@@ -8,9 +8,14 @@
 //      Training aus settings.days / calendar_overrides) endete vor 30–44 Minuten
 //      → aktive Spieler mit Push-Token, ohne RPE-Eintrag heute, ohne Abwesenheit
 //      heute und nicht als entschuldigt/unentschuldigt geführt.
-//  (b) Morgen-Check "wellness" zwischen 08:00 und 08:14 Ortszeit → aktive Spieler
-//      mit Push-Token ohne Wellness-Eintrag heute.
-// Module lassen sich je Team abschalten: modules.rpe === false bzw. modules.wellness === false.
+//  (b) Morgen-Check "wellness" zur eingestellten Uhrzeit (Standard 08:00) → aktive Spieler
+//      mit Push-Token ohne Wellness-Eintrag heute. In Pausen kein Morgen-Check.
+//  (c) Pausenprogramm "program": montags und donnerstags 17:00, wenn eine Pause mit
+//      sichtbarem Spielerprogramm läuft.
+// Einstellungen je Team: settings.reminders = { well, wellAt, rpe, rpeDelay, program }.
+// Module: Belastung aus (modules.belastung === false) → keine RPE-/Morgen-Erinnerung;
+// Vorbereitung aus → keine Pausen. In Pausen (season_phases kind 'break') gibt es kein
+// reguläres Training und damit keine RPE-Erinnerung dafür.
 // Deduplizierung über push_log (user_id, kind, day): pro Konto, Art und Tag höchstens eine Nachricht.
 // Versand über die Expo Push API in Blöcken zu 100; ungültige Tokens werden gelöscht.
 //
@@ -23,8 +28,10 @@ import {
   localNow,
   type LocalNow,
   morningCheckDue,
+  programReminderDue,
   pushText,
   type ReminderKind,
+  reminderSettings,
   rpeReminderDue,
   sessionsForDay,
 } from '../_shared/schedule.ts';
@@ -143,10 +150,11 @@ async function run(admin: SupabaseClient, now: Date) {
   );
   const local = new Map<string, LocalNow>(teams.map((t) => [t.id, localNow(now, t.timezone)]));
   const dates = unique([...local.values()].map((l) => l.date));
-  if (teams.length === 0) return { teams: 0, rpe: 0, wellness: 0, sent: 0 };
+  if (teams.length === 0) return { teams: 0, rpe: 0, wellness: 0, program: 0, sent: 0 };
 
   // ---- 2. Kalender der betroffenen Tage ----------------------------------
-  const [matches, overrides, replacing] = await Promise.all([
+  const minDay = dates.reduce((a, b) => (a < b ? a : b)), maxDay = dates.reduce((a, b) => (a > b ? a : b));
+  const [matches, overrides, replacing, phases] = await Promise.all([
     fetchAll<{ team_id: string; date: string; time: string | null }>((from, to) =>
       admin.from('matches').select('team_id, date, time').in('date', dates).order('id').range(from, to)
     ),
@@ -169,7 +177,17 @@ async function run(admin: SupabaseClient, now: Date) {
         .order('id')
         .range(from, to)
     ),
+    fetchAll<{ team_id: string; kind: string; date_from: string; date_to: string; visible: boolean; program: unknown[] }>((from, to) =>
+      admin
+        .from('season_phases')
+        .select('team_id, kind, date_from, date_to, visible, program')
+        .lte('date_from', maxDay)
+        .gte('date_to', minDay)
+        .order('id')
+        .range(from, to)
+    ),
   ]);
+  const phasesOn = (teamId: string, day: string) => phases.filter((p) => p.team_id === teamId && p.date_from <= day && p.date_to >= day);
 
   const matchesByDay = new Map<string, { time: string | null }[]>();
   for (const m of matches) {
@@ -184,9 +202,13 @@ async function run(admin: SupabaseClient, now: Date) {
   for (const team of teams) {
     const l = local.get(team.id)!;
     const modules = team.modules ?? {};
+    const rem = reminderSettings(team.settings);
+    const load = modules.belastung !== false;
+    const ph = phasesOn(team.id, l.date);
+    const inBreak = modules.vorbereitung !== false && ph.some((p) => p.kind === 'break');
     const kinds: ReminderKind[] = [];
 
-    if (modules.rpe !== false) {
+    if (load && rem.rpe && modules.rpe !== false) {
       const k = key(team.id, l.date);
       const sessions = sessionsForDay({
         settings: team.settings,
@@ -195,13 +217,16 @@ async function run(admin: SupabaseClient, now: Date) {
         matches: matchesByDay.get(k) ?? [],
         override: overrideByDay.get(k) ?? null,
         replacesTraining: replacedDays.has(k),
+        inBreak,
       });
-      if (rpeReminderDue(sessions, l.minutes)) kinds.push('rpe');
+      if (rpeReminderDue(sessions, l.minutes, rem.rpeDelay)) kinds.push('rpe');
     }
-    if (modules.wellness !== false && morningCheckDue(l.minutes)) kinds.push('wellness');
+    if (load && rem.well && modules.wellness !== false && !inBreak && morningCheckDue(l.minutes, rem.wellAt)) kinds.push('wellness');
+    if (rem.program && inBreak && ph.some((p) => p.kind === 'break' && p.visible && Array.isArray(p.program) && p.program.length > 0)
+        && programReminderDue(l.minutes, l.weekday)) kinds.push('program');
     if (kinds.length) due.set(team.id, kinds);
   }
-  if (due.size === 0) return { teams: teams.length, rpe: 0, wellness: 0, sent: 0 };
+  if (due.size === 0) return { teams: teams.length, rpe: 0, wellness: 0, program: 0, sent: 0 };
 
   // ---- 4. Spieler mit Konto und Push-Token --------------------------------
   const players = await fetchByIds<PlayerRow>([...due.keys()], (chunk, from, to) =>
@@ -230,6 +255,7 @@ async function run(admin: SupabaseClient, now: Date) {
   const reachable = players.filter((p) => tokensByUser.has(p.user_id));
   const rpePlayers = reachable.filter((p) => due.get(p.team_id)!.includes('rpe'));
   const wellnessPlayers = reachable.filter((p) => due.get(p.team_id)!.includes('wellness'));
+  const programPlayers = reachable.filter((p) => due.get(p.team_id)!.includes('program'));
   const dayOf = (p: PlayerRow) => local.get(p.team_id)!.date;
 
   // ---- 5. Wer hat schon eingetragen / ist abwesend? ------------------------
@@ -279,6 +305,10 @@ async function run(admin: SupabaseClient, now: Date) {
     if (wellnessDoneSet.has(key(p.id, day))) continue;
     candidates.set(`${p.user_id}|wellness|${day}`, { user_id: p.user_id, kind: 'wellness', day });
   }
+  for (const p of programPlayers) {
+    const day = dayOf(p);
+    candidates.set(`${p.user_id}|program|${day}`, { user_id: p.user_id, kind: 'program', day });
+  }
 
   // ---- 7. Deduplizieren: push_log-Zeilen beanspruchen (ON CONFLICT DO NOTHING) ----
   const claimed: { user_id: string; kind: ReminderKind; day: string }[] = [];
@@ -318,6 +348,7 @@ async function run(admin: SupabaseClient, now: Date) {
     teams: teams.length,
     rpe: claimed.filter((c) => c.kind === 'rpe').length,
     wellness: claimed.filter((c) => c.kind === 'wellness').length,
+    program: claimed.filter((c) => c.kind === 'program').length,
     sent,
     invalid_tokens: invalidTokens.length,
   };

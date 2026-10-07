@@ -37,6 +37,7 @@ export function usePush(): void {
       const type = r.notification.request.content.data?.type;
       if (type === "rpe") router.push("/player/eintragen?tab=rpe");
       else if (type === "wellness") router.push("/player/eintragen?tab=well");
+      else if (type === "program") router.push("/player/programm");
     });
     return () => sub.remove();
   }, [ready]); // eslint-disable-line react-hooks/exhaustive-deps

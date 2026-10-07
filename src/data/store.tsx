@@ -7,7 +7,7 @@ import { addDays, iso, monday } from "../core/dates";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
 import type {
-  Absence, AttStatus, CalOverride, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
+  Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo } from "./api";
@@ -152,7 +152,7 @@ function useStoreValue() {
 
   const replaceIn = <T extends { id: string }>(arr: T[], tmpObj: T, saved: T): void => { const i = arr.findIndex(x => x.id === tmpObj.id); if (i >= 0) arr[i] = saved; };
   /** Eintrag in einer Liste von TeamData anlegen oder ersetzen und speichern. */
-  function upsert<K extends "exercises" | "templates" | "staff" | "phases">(key: K, x: TeamData[K][number], save: (api: Api, teamId: string) => Promise<TeamData[K][number]>, opts: { plan?: boolean } = {}) {
+  function upsert<K extends "exercises" | "templates" | "staff" | "phases" | "contacts">(key: K, x: TeamData[K][number], save: (api: Api, teamId: string) => Promise<TeamData[K][number]>, opts: { plan?: boolean } = {}) {
     const isNew = x.id.startsWith("tmp-");
     return change(D => { const L = D[key] as { id: string }[]; const i = L.findIndex(y => y.id === x.id); if (isNew || i < 0) L.push(x); else L[i] = x; },
       async (api, t) => { const saved = await save(api, t); replaceIn(ref.current.D![key] as { id: string }[], x, saved); }, opts);
@@ -207,10 +207,14 @@ function useStoreValue() {
     savePlayer: async (p: Player): Promise<Player> => {
       const { api, active, D } = ref.current; if (!D || !active) return p;
       const saved = await api.savePlayer(active.teamId, p);
-      const i = D.players.findIndex(x => x.id === p.id); if (i >= 0) D.players[i] = { ...saved, photo: saved.photo ?? p.photo }; else D.players.push(saved);
+      const x = { ...saved, photo: saved.photo ?? p.photo };
+      // Aktive und inaktive Spieler getrennt halten (inaktive zählen in keiner Berechnung)
+      D.players = D.players.filter(y => y.id !== p.id); D.inactive = D.inactive.filter(y => y.id !== p.id);
+      if (x.active === false) D.inactive.push(x);
+      else { const at = D.players.findIndex(y => (y.nr ?? 99) > (x.nr ?? 99)); if (at < 0) D.players.push(x); else D.players.splice(at, 0, x); }
       set({ version: ref.current.version + 1 }); return saved;
     },
-    deletePlayer: (p: Player) => change(D => { D.players = D.players.filter(x => x.id !== p.id); }, (api, t) => api.deletePlayer(t, p)),
+    deletePlayer: (p: Player) => change(D => { D.players = D.players.filter(x => x.id !== p.id); D.inactive = D.inactive.filter(x => x.id !== p.id); }, (api, t) => api.deletePlayer(t, p)),
     mergePlayers: async (newId: string, existingId: string) => { await ref.current.api.mergePlayers(newId, existingId); await reload(); },
     uploadPhoto: async (pid: string, uri: string) => {
       const { api, active, D } = ref.current; if (!D || !active) return;
@@ -261,6 +265,8 @@ function useStoreValue() {
     saveStaff: (x: StaffProfile) => upsert("staff", x, (api, t) => api.saveStaff(t, x)),
     deleteStaff: (id: string) => change(D => { D.staff = D.staff.filter(x => x.id !== id); }, api => api.deleteStaff(id)),
     savePhase: (x: SeasonPhase) => upsert("phases", x, (api, t) => api.savePhase(t, x), { plan: true }),
+    saveContact: (x: Contact) => upsert("contacts", x, (api, t) => api.saveContact(t, x)),
+    deleteContact: (id: string) => change(D => { D.contacts = D.contacts.filter(x => x.id !== id); }, api => api.deleteContact(id)),
     deletePhase: (id: string) => change(D => { D.phases = D.phases.filter(x => x.id !== id); }, api => api.deletePhase(id), { plan: true }),
     analyzeFinding: async (id: string, context: string): Promise<string> => {
       const { api, active, D, lang } = ref.current; if (!D || !active) throw new ApiError("server");

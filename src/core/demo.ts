@@ -4,7 +4,7 @@ import { addDays, ageOn, diff, iso, monday, parse, rng } from "./dates";
 import { createEngine } from "./engine";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
-import type { Phase, PhaseKind, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult } from "./types";
+import type { Contact, Phase, PhaseKind, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult } from "./types";
 import { emptyTeamData } from "./types";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
@@ -181,7 +181,24 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   });
   demoArchive(D, en);
   demoPhases(D, lang, TODAY);
+  demoContacts(D, en);
   D.videos.push({ id: "v" + (vid++), title: en ? "Pressing triggers – clips for the back line" : "Pressing-Auslöser – Clips für die Abwehrkette", url: "https://example.com/video/pressing", date: null, matchId: null, pids: ["p2", "p3", "p4"], note: "", vis: true });
+}
+
+/** Kontaktliste der Demo (erfundene Namen und Nummern; 116 117 = ärztlicher Bereitschaftsdienst). */
+function demoContacts(D: TeamData, en: boolean): void {
+  const c = (id: string, name: string, role: Contact["role"], org: string, phone: string, email: string, address: string, note: string, vis = true): Contact =>
+    ({ id, name, role, org, phone, email, address, note, vis });
+  D.contacts = [
+    c("c1", "Daniel Kurz", "trainer", en ? "Assistant coach U19" : "Co-Trainer U19", "0171 5550101", "", "", ""),
+    c("c2", "Markus Feld", "koordinator", en ? "Youth coordinator" : "Jugendkoordinator", "0171 5550102", "jugend@beispielverein.de", "", en ? "Questions about passes, registrations, tournaments" : "Fragen zu Pässen, Anmeldungen, Turnieren"),
+    c("c3", "Petra Hoff", "vorstand", en ? "Board – youth" : "Vorstand Jugend", "", "vorstand@beispielverein.de", "", ""),
+    c("c4", "Sarah Meier", "physio", "Physio am Park", "0201 5550103", "", "Parkstraße 12", en ? "Appointments for team players on Tuesdays and Thursdays" : "Termine für Teamspieler dienstags und donnerstags"),
+    c("c5", "Dr. Jonas Weber", "arzt", en ? "Sports medicine practice" : "Praxis für Sportmedizin", "0201 5550104", "", "Am Sportpark 3",
+      en ? "Mon–Fri 8–18. Evenings/weekends: on-call medical service 116 117, emergency 112." : "Mo–Fr 8–18 Uhr. Abends/Wochenende: ärztlicher Bereitschaftsdienst 116 117, Notfall 112."),
+    c("c6", "Uwe Brandt", "betreuer", en ? "Team manager" : "Teambetreuer", "0171 5550105", "", "", en ? "Kit, travel, match day organisation" : "Trikots, Fahrten, Organisation am Spieltag"),
+    c("c7", "Heinz Krämer", "sonst", en ? "Groundsman" : "Platzwart", "0171 5550106", "", "", "", false),
+  ];
 }
 
 /** Saisonphasen für die Demo: vergangene Pause + Vorbereitung (mit Umsetzung), kurze Ferienpause in der

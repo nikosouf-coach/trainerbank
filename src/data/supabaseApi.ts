@@ -3,7 +3,7 @@ import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "../core/classes";
 import { addDays, iso, monday } from "../core/dates";
-import type { Phase,
+import type { Contact, Phase,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -74,6 +74,7 @@ const mapVideo = (r: Row): Video => ({ id: r.id, title: r.title, url: r.url, dat
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
 const mapAbs = (r: Row): Absence => ({ id: r.id, pid: r.player_id, typ: r.type, von: r.from_date, bis: r.to_date, stufe: r.stage, notiz: r.note || "", by: r.reported_by_player ? "player" : "coach" });
 const mapExtra = (r: Row): Extra => ({ id: r.id, date: r.date, art: r.type, min: r.minutes, rpe: Number(r.rpe ?? 5), label: r.label || undefined, prog: r.program_item || undefined });
+const mapContact = (r: Row): Contact => ({ id: r.id, name: r.name, role: r.role, org: r.org || "", phone: r.phone || "", email: r.email || "", address: r.address || "", note: r.note || "", vis: r.visible !== false });
 const mapPhase = (r: Row): Phase => ({ id: r.id, kind: r.kind, title: r.title, from: r.date_from, to: r.date_to, firstMatch: r.first_match || null, weeks: r.weeks || {}, program: r.program || [], vis: r.visible !== false, note: r.note || "" });
 const mapPot = (r: Row): Potential => ({ id: r.id, cat: r.category, text: r.text, vis: !!r.visible_to_player, src: r.source || "trainer" });
 const mapMsg = (r: Row): CoachMsg => ({ id: r.id, date: (r.created_at || "").slice(0, 10), typ: r.type, text: r.text, bis: r.valid_until });
@@ -142,7 +143,9 @@ export class SupabaseApi implements Api {
     const D = emptyTeamData(team);
     const staff = m.role !== "player";
     const [players, matches, events, cal, over, modes, kinds, sessions] = await Promise.all([
-      q(sb.from("players").select("*").eq("team_id", tid).eq("active", true).order("shirt_number", { ascending: true, nullsFirst: false })),
+      // Trainerteam lädt auch inaktive Spieler (zum Reaktivieren); Berechnungen nutzen nur aktive
+      staff ? q(sb.from("players").select("*").eq("team_id", tid).order("shirt_number", { ascending: true, nullsFirst: false }))
+        : q(sb.from("players").select("*").eq("team_id", tid).eq("active", true).order("shirt_number", { ascending: true, nullsFirst: false })),
       q(sb.from("matches").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).order("date")),
       q(sb.from("team_events").select("*").eq("team_id", tid).gte("date", addDays(today, -60)).order("date")),
       q(sb.from("calendar_overrides").select("*").eq("team_id", tid).gte("date", addDays(today, -90))),
@@ -151,7 +154,8 @@ export class SupabaseApi implements Api {
       q(sb.from("session_types").select("*").eq("team_id", tid)),
       q(sb.from("sessions").select("*").eq("team_id", tid).gte("date", addDays(today, -70)).order("date")),
     ]);
-    D.players = players.map(mapPlayer);
+    const allPlayers = players.map(mapPlayer);
+    D.players = allPlayers.filter(p => p.active !== false); D.inactive = allPlayers.filter(p => p.active === false);
     D.matches = matches.map(mapMatch);
     D.events = events.map(mapEvent);
     for (const r of cal) D.cal[r.date] = { cancel: r.cancel, extra: r.extra, zeit: r.time || undefined, dauer: r.duration || undefined };
@@ -188,7 +192,7 @@ export class SupabaseApi implements Api {
         for (const r of notes) D.notes[r.player_id] = r.text;
       }
       // Spieldaten, Noten, Videos (für Spieler filtern die Zugriffsregeln auf eigene, freigegebene Einträge)
-      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases] = await Promise.all([
+      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases, contacts] = await Promise.all([
         all((a, b) => sb.from("match_stats").select("*").eq("team_id", tid).range(a, b)),
         all((a, b) => sb.from("player_ratings").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).range(a, b)),
         q(sb.from("videos").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
@@ -198,8 +202,9 @@ export class SupabaseApi implements Api {
         staff ? q(sb.from("session_templates").select("*").eq("team_id", tid).order("created_at")) : Promise.resolve([] as Row[]),
         staff ? q(sb.from("staff_profiles").select("*").eq("team_id", tid).order("created_at")) : Promise.resolve([] as Row[]),
         q(sb.from("season_phases").select("*").eq("team_id", tid).gte("date_to", addDays(today, -400)).order("date_from")),
+        q(sb.from("team_contacts").select("*").eq("team_id", tid).order("name")),
       ]);
-      D.phases = phases.map(mapPhase);
+      D.phases = phases.map(mapPhase); D.contacts = contacts.map(mapContact);
       D.exercises = exercises.map(mapExercise); D.templates = templates.map(mapTemplate); D.staff = staffP.map(mapStaff);
       D.findings = findings.map(mapFinding);
       D.tests = tests.map(mapTest);
@@ -286,6 +291,9 @@ export class SupabaseApi implements Api {
   }
   async deletePlayer(teamId: string, p: Player) {
     if (p.photo) await this.sb.storage.from("avatars").remove([p.photo]);
+    // Befund-Dateien zuerst entfernen (die Zeilen löscht die Datenbank per Cascade)
+    const files = await q(this.sb.from("findings").select("path").eq("player_id", p.id));
+    if (files.length) await this.sb.storage.from("findings").remove(files.map(f => f.path as string));
     await q(this.sb.from("players").delete().eq("id", p.id));
   }
   async mergePlayers(newId: string, existingId: string) { await q(this.sb.rpc("merge_players", { p_new: newId, p_existing: existingId })); }
@@ -392,6 +400,12 @@ export class SupabaseApi implements Api {
     return mapPhase(r);
   }
   async deletePhase(id: string) { await q(this.sb.from("season_phases").delete().eq("id", id)); }
+  async saveContact(teamId: string, x: Contact) {
+    const row: Row = { team_id: teamId, name: x.name, role: x.role, org: x.org || null, phone: x.phone || null, email: x.email || null, address: x.address || null, note: x.note || null, visible: x.vis };
+    const r = isTmp(x.id) ? await q<Row>(this.sb.from("team_contacts").insert(row).select().single()) : await q<Row>(this.sb.from("team_contacts").update(row).eq("id", x.id).select().single());
+    return mapContact(r);
+  }
+  async deleteContact(id: string) { await q(this.sb.from("team_contacts").delete().eq("id", id)); }
 
   // ---------- Befunde ----------
   async uploadFinding(teamId: string, f: Omit<Finding, "id" | "path" | "ai" | "aiAt">, uri: string) {

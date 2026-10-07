@@ -36,6 +36,16 @@ export interface TeamSettings {
   groups?: TeamGroup[];
   /** Was Spieler in ihrer App sehen (Baukasten). Fehlender Schlüssel = Standard aus PLAYER_VIEW. */
   playerView?: Partial<Record<PlayerViewKey, boolean>>;
+  /** Push-Erinnerungen für Spieler (Server: supabase/functions/_shared/schedule.ts → reminderSettings). */
+  reminders?: Reminders;
+}
+export interface Reminders {
+  /** Morgen-Check an/aus und Uhrzeit "HH:MM" (Standard 08:00) */
+  well?: boolean; wellAt?: string;
+  /** RPE-Erinnerung an/aus und Minuten nach Ende der Einheit (Standard 30) */
+  rpe?: boolean; rpeDelay?: number;
+  /** Erinnerung ans Pausenprogramm (Mo und Do 17:00) */
+  program?: boolean;
 }
 export interface TeamGroup { id: string; name: string }
 export type PlayerViewKey = "plan" | "load" | "tips" | "ai" | "goals" | "att" | "ratings" | "stats" | "tests" | "videos" | "contacts" | "program";
@@ -124,6 +134,10 @@ export interface StaffProfile { id: string; name: string; role: StaffRoleKey; ar
 export type TestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit";
 export interface TestResult { id: string; pid: string; test: TestKey; date: string; value: number; note?: string }
 /** Video-Link (YouTube, Veo, Hudl, Vimeo, Cloud …) zu Spiel, Spielern oder Übung. */
+export type ContactRole = "trainer" | "koordinator" | "vorstand" | "physio" | "arzt" | "betreuer" | "sonst";
+/** Eintrag der Kontaktliste; vis = für Spieler sichtbar. */
+export interface Contact { id: string; name: string; role: ContactRole; org: string; phone: string; email: string; address: string; note: string; vis: boolean }
+
 /** Vorbereitung (prep) oder längere Pause (break, z. B. Sommer-/Winterpause). */
 export type PhaseKind = "prep" | "break";
 export type FreeKey = "andere" | "mobility" | "locker" | "fahrtspiel" | "intervall" | "kraft" | "sprint" | "ball" | "eigen";
@@ -172,12 +186,15 @@ export interface TeamData {
   templates: SessionTemplate[];
   staff: StaffProfile[];
   phases: Phase[];
+  contacts: Contact[];
+  /** Inaktive Spieler (nur für das Trainerteam; nicht in Berechnungen) */
+  inactive: Player[];
 }
 
 export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
-    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [],
+    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], inactive: [],
   };
 }

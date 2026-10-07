@@ -23,6 +23,7 @@ export default function Kader() {
   const [edit, setEdit] = useState<Player | null | undefined>(undefined);
   const [merge, setMerge] = useState<Player | null>(null);
   const [showPast, setShowPast] = useState(false);
+  const [showInactive, setShowInactive] = useState(false);
   const [grpEdit, setGrpEdit] = useState<TeamGroup | null>(null);
   const [grpName, setGrpName] = useState("");
   const sheets = usePlanSheets();
@@ -79,6 +80,12 @@ export default function Kader() {
           </View>
         ))}
       </View> : <Muted>{t("noPlayers")}</Muted>}
+      {E.D.inactive.length ? <Card testID="kader-inactive">
+        <CardTitle title={tf("in_title", { n: E.D.inactive.length })} info={<Info title={tf("in_title", { n: E.D.inactive.length })} text={t("in_info")} />}
+          right={<Btn small kind="ghost" testID="kader-inactive-toggle" label={showInactive ? t("in_hide") : t("in_show")} onPress={() => setShowInactive(!showInactive)} />} />
+        {showInactive ? E.D.inactive.map(p => <ListItem key={p.id} testID={"inactive-" + p.id} title={E.name(p)} sub={`${p.pos}${p.nr ? " · #" + p.nr : ""}`} left={<PlayerAvatar p={p} size={36} />}
+          right={<Btn small testID={"reactivate-" + p.id} label={t("in_reactivate")} onPress={async () => { await s.savePlayer({ ...p, active: true }); s.toast(tf("in_done", { n: E.name(p) })); }} />} />) : null}
+      </Card> : null}
     </>
   );
 

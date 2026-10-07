@@ -8,6 +8,8 @@ import {
   localNow,
   matchDuration,
   morningCheckDue,
+  programReminderDue,
+  reminderSettings,
   parseTime,
   pushText,
   rpeReminderDue,
@@ -111,6 +113,28 @@ test('morningCheckDue: 08:00–08:14', () => {
   assert.equal(morningCheckDue(480), true);
   assert.equal(morningCheckDue(494), true);
   assert.equal(morningCheckDue(495), false);
+});
+
+test('reminderSettings: Standardwerte, Uhrzeit auf Viertelstunden, Grenzen', () => {
+  assert.deepEqual(reminderSettings({}), { well: true, wellAt: 480, rpe: true, rpeDelay: 30, program: true });
+  assert.deepEqual(reminderSettings({ reminders: { well: false, wellAt: '07:20', rpe: true, rpeDelay: 500, program: false } }),
+    { well: false, wellAt: 435, rpe: true, rpeDelay: 180, program: false });
+  assert.equal(reminderSettings({ reminders: { rpeDelay: 60 } }).rpeDelay, 60);
+});
+
+test('Erinnerungen: eigene Uhrzeit, eigener Abstand, Pausen, Programm', () => {
+  assert.equal(morningCheckDue(7 * 60 + 30, 7 * 60 + 30), true);
+  assert.equal(morningCheckDue(8 * 60, 7 * 60 + 30), false);
+  const sessions = [{ kind: 'training' as const, start: 18 * 60, duration: 90 }];
+  assert.equal(rpeReminderDue(sessions, 19 * 60 + 30 + 60, 60), true);
+  assert.equal(rpeReminderDue(sessions, 19 * 60 + 30 + 30, 60), false);
+  const settings = { days: { 2: { zeit: '18:00', dauer: 90 } } };
+  const base = { settings, ageClass: 'u19', weekday: 2, matches: [], override: null, replacesTraining: false };
+  assert.equal(sessionsForDay(base).length, 1);
+  assert.equal(sessionsForDay({ ...base, inBreak: true }).length, 0, 'Pause: kein reguläres Training');
+  assert.equal(sessionsForDay({ ...base, inBreak: true, override: { cancel: false, extra: true, time: '10:00', duration: 60 } }).length, 1, 'Zusatztermin bleibt');
+  assert.equal(programReminderDue(17 * 60 + 5, 1), true);
+  assert.equal(programReminderDue(17 * 60 + 5, 2), false);
 });
 
 test('absenceCovers', () => {

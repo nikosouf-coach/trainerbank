@@ -36,10 +36,38 @@ const WEEKDAYS_EN = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DEFAULT_TIMEZONE = 'Europe/Berlin';
 const DEFAULT_TRAINING_MINUTES = 90;
 
-/** Fenster der Session-Erinnerung: Ende der Einheit liegt 30 bis < 45 Minuten zurück. */
+/** Fenster der Session-Erinnerung: Ende der Einheit liegt 30 bis < 45 Minuten zurück (Standard). */
 export const RPE_WINDOW = { from: 30, to: 45 } as const;
-/** Fenster des Morgen-Checks: 08:00–08:14 Ortszeit. */
+/** Fenster des Morgen-Checks: 08:00–08:14 Ortszeit (Standard). */
 export const MORNING_WINDOW = { from: 8 * 60, to: 8 * 60 + 15 } as const;
+/** Erinnerung ans Pausenprogramm: montags und donnerstags um 17:00 Ortszeit. */
+export const PROGRAM_REMINDER = { weekdays: [1, 4], at: 17 * 60 } as const;
+
+/** Vom Trainer eingestellte Erinnerungen (teams.settings.reminders). */
+export interface ReminderSettings {
+  /** Morgen-Check an/aus und Uhrzeit (Minuten seit Mitternacht) */
+  well: boolean;
+  wellAt: number;
+  /** RPE-Erinnerung an/aus und Abstand zum Ende der Einheit in Minuten */
+  rpe: boolean;
+  rpeDelay: number;
+  /** Erinnerung ans Pausenprogramm */
+  program: boolean;
+}
+
+/** Liest settings.reminders mit Standardwerten; Uhrzeit auf Viertelstunden, Abstand 15–180 Minuten. */
+export function reminderSettings(settings: unknown): ReminderSettings {
+  const r = (settings && typeof settings === 'object' ? (settings as Record<string, unknown>).reminders : null) as Record<string, unknown> | null;
+  const at = parseTime(typeof r?.wellAt === 'string' ? r.wellAt : null);
+  const delay = Number(r?.rpeDelay);
+  return {
+    well: r?.well !== false,
+    wellAt: at === null ? MORNING_WINDOW.from : Math.floor(at / 15) * 15,
+    rpe: r?.rpe !== false,
+    rpeDelay: Number.isFinite(delay) ? Math.min(180, Math.max(15, Math.round(delay / 15) * 15)) : RPE_WINDOW.from,
+    program: r?.program !== false,
+  };
+}
 
 /** Lokales Datum, Uhrzeit und Wochentag in einer IANA-Zeitzone (ungültige Zone → Europe/Berlin). */
 export function localNow(now: Date, timeZone: string | null | undefined): LocalNow {
@@ -175,6 +203,8 @@ export function sessionsForDay(input: {
   matches: MatchRow[];
   override: OverrideRow | null;
   replacesTraining: boolean;
+  /** Tag liegt in einer geplanten Pause: kein reguläres Training (Spiele und Zusatztraining bleiben) */
+  inBreak?: boolean;
 }): PlannedSession[] {
   const out: PlannedSession[] = [];
   const matchMinutes = matchDuration(input.ageClass);
@@ -185,7 +215,7 @@ export function sessionsForDay(input: {
 
   const regularBase = trainingForWeekday(input.settings, input.weekday);
   const ov = input.override;
-  let regular = input.matches.length === 0 && !input.replacesTraining ? regularBase : null;
+  let regular = input.matches.length === 0 && !input.replacesTraining && !input.inBreak ? regularBase : null;
 
   if (ov?.cancel) {
     regular = null;
@@ -211,16 +241,21 @@ export function sessionsForDay(input: {
 }
 
 /** true, wenn eine Einheit vor 30 bis < 45 Minuten geendet hat (ein Cron-Lauf alle 15 Minuten trifft genau einmal). */
-export function rpeReminderDue(sessions: PlannedSession[], nowMinutes: number): boolean {
+export function rpeReminderDue(sessions: PlannedSession[], nowMinutes: number, delay: number = RPE_WINDOW.from): boolean {
   return sessions.some((s) => {
     const sinceEnd = nowMinutes - (s.start + s.duration);
-    return sinceEnd >= RPE_WINDOW.from && sinceEnd < RPE_WINDOW.to;
+    return sinceEnd >= delay && sinceEnd < delay + 15;
   });
 }
 
 /** true zwischen 08:00 und 08:14 Ortszeit. */
-export function morningCheckDue(nowMinutes: number): boolean {
-  return nowMinutes >= MORNING_WINDOW.from && nowMinutes < MORNING_WINDOW.to;
+export function morningCheckDue(nowMinutes: number, at: number = MORNING_WINDOW.from): boolean {
+  return nowMinutes >= at && nowMinutes < at + 15;
+}
+
+/** true montags und donnerstags 17:00–17:14 Ortszeit. */
+export function programReminderDue(nowMinutes: number, weekday: number): boolean {
+  return (PROGRAM_REMINDER.weekdays as readonly number[]).includes(weekday) && nowMinutes >= PROGRAM_REMINDER.at && nowMinutes < PROGRAM_REMINDER.at + 15;
 }
 
 /** true, wenn eine Abwesenheit (to_date null = offen) den Tag abdeckt. */
@@ -237,6 +272,10 @@ export const PUSH_TEXT = {
   wellness: {
     de: { title: 'Guten Morgen!', body: 'Morgen-Check: Wie hast du geschlafen?' },
     en: { title: 'Good morning!', body: 'Morning check: How did you sleep?' },
+  },
+  program: {
+    de: { title: 'Dein Pausenprogramm', body: 'Schon trainiert? Hak deine Einheiten ab – jede bringt XP.' },
+    en: { title: 'Your break programme', body: 'Trained already? Tick off your sessions – each one earns XP.' },
   },
 } as const;
 

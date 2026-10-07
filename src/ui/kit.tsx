@@ -125,7 +125,7 @@ export function Pill({ label, color }: { label: string; color: string }) {
 }
 
 // ---------- Eingaben ----------
-export function Field({ label, value, onChangeText, placeholder, keyboardType, multiline, secure, testID, hint, autoCapitalize, autoComplete, maxLength, style }: { label: string; value: string; onChangeText: (s: string) => void; placeholder?: string; keyboardType?: "default" | "numeric" | "number-pad" | "decimal-pad" | "email-address" | "numbers-and-punctuation"; multiline?: boolean; secure?: boolean; testID?: string; hint?: string; autoCapitalize?: "none" | "sentences" | "words" | "characters"; autoComplete?: string; maxLength?: number; style?: StyleProp<ViewStyle> }) {
+export function Field({ label, value, onChangeText, placeholder, keyboardType, multiline, secure, testID, hint, autoCapitalize, autoComplete, maxLength, style }: { label: string; value: string; onChangeText: (s: string) => void; placeholder?: string; keyboardType?: "default" | "numeric" | "number-pad" | "decimal-pad" | "email-address" | "numbers-and-punctuation" | "phone-pad"; multiline?: boolean; secure?: boolean; testID?: string; hint?: string; autoCapitalize?: "none" | "sentences" | "words" | "characters"; autoComplete?: string; maxLength?: number; style?: StyleProp<ViewStyle> }) {
   const { c } = useTheme();
   return (
     <View style={[{ gap: 4 }, style]}>

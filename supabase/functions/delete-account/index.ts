@@ -4,9 +4,10 @@
 // Antwort:      200 { ok: true } · 401 { error: 'unauthorized' } · 500 { error: 'internal' }
 //
 // Ablauf (mit service_role):
-//   1. Fotos der eigenen Spielerzeilen aus dem Bucket "avatars" entfernen
+//   1. Fotos der eigenen Spielerzeilen aus dem Bucket "avatars" und Befund-Dateien
+//      (Bucket "findings", Pfade aus der Tabelle findings) entfernen
 //   2. Teams löschen, in denen das Konto das einzige (bestätigte) Staff-Mitglied ist
-//      (inkl. aller Fotos des Teams; offene Anfragen 'pending' zählen nicht und
+//      (inkl. aller Fotos und Befund-Dateien des Teams; offene Anfragen 'pending' zählen nicht und
 //      verfallen mit dem Team). Bleiben andere Staff-Mitglieder übrig und war das
 //      Konto der einzige Owner, wird ein verbleibendes Mitglied Owner.
 //      Eigene offene Anfragen ('pending') lösen nichts aus.
@@ -17,7 +18,8 @@ import type { SupabaseClient } from 'npm:@supabase/supabase-js@2';
 import { json, preflight } from '../_shared/http.ts';
 import { adminClient, authenticate } from '../_shared/supabase.ts';
 
-const BUCKET = 'avatars';
+const AVATARS = 'avatars';
+const FINDINGS = 'findings';
 
 interface StaffRow {
   user_id: string;
@@ -25,22 +27,26 @@ interface StaffRow {
 }
 
 /** Entfernt Objekte in Blöcken (Storage-API verarbeitet Listen). Fehlende Dateien sind kein Fehler. */
-async function removeObjects(admin: SupabaseClient, paths: string[]): Promise<void> {
+async function removeObjects(admin: SupabaseClient, bucket: string, paths: string[]): Promise<void> {
   for (let i = 0; i < paths.length; i += 500) {
     const chunk = paths.slice(i, i + 500);
-    const { error } = await admin.storage.from(BUCKET).remove(chunk);
+    const { error } = await admin.storage.from(bucket).remove(chunk);
     if (error) throw error;
   }
 }
 
-/** Alle Objektpfade unterhalb von "{teamId}/". */
-async function listTeamObjects(admin: SupabaseClient, teamId: string): Promise<string[]> {
+/** Alle Objektpfade unterhalb eines Ordners; Unterordner (id === null) bis zur Tiefe `depth`. */
+async function listObjects(admin: SupabaseClient, bucket: string, folder: string, depth = 1): Promise<string[]> {
   const paths: string[] = [];
   const pageSize = 1000;
   for (let offset = 0; ; offset += pageSize) {
-    const { data, error } = await admin.storage.from(BUCKET).list(teamId, { limit: pageSize, offset });
+    const { data, error } = await admin.storage.from(bucket).list(folder, { limit: pageSize, offset });
     if (error) throw error;
-    for (const obj of (data ?? []) as { name: string }[]) paths.push(`${teamId}/${obj.name}`);
+    for (const obj of (data ?? []) as { name: string; id: string | null }[]) {
+      const path = `${folder}/${obj.name}`;
+      if (obj.id === null) { if (depth > 1) paths.push(...(await listObjects(admin, bucket, path, depth - 1))); }
+      else paths.push(path);
+    }
     if (!data || data.length < pageSize) break;
   }
   return paths;
@@ -69,7 +75,15 @@ Deno.serve(async (req: Request): Promise<Response> => {
       photoPaths.add(`${p.team_id}/${p.id}.jpg`);
       if (p.photo_path) photoPaths.add(p.photo_path);
     }
-    await removeObjects(admin, [...photoPaths]);
+    await removeObjects(admin, AVATARS, [...photoPaths]);
+
+    // Befund-Dateien der eigenen Spielerzeilen (die Zeilen löscht der Cascade)
+    const ownIds = ((players ?? []) as { id: string }[]).map((p) => p.id);
+    if (ownIds.length) {
+      const { data: files, error: filesError } = await admin.from('findings').select('path').in('player_id', ownIds);
+      if (filesError) throw filesError;
+      await removeObjects(admin, FINDINGS, ((files ?? []) as { path: string }[]).map((f) => f.path));
+    }
 
     // 2. Teams, in denen das Konto Staff ist
     const { data: memberships, error: staffError } = await admin
@@ -92,7 +106,8 @@ Deno.serve(async (req: Request): Promise<Response> => {
 
       if (others.length === 0) {
         // Einziges Staff-Mitglied: Team mit allen Daten löschen (Cascade) – vorher die Fotos
-        await removeObjects(admin, await listTeamObjects(admin, teamId));
+        await removeObjects(admin, AVATARS, await listObjects(admin, AVATARS, teamId));
+        await removeObjects(admin, FINDINGS, await listObjects(admin, FINDINGS, teamId, 2));
         const { error } = await admin.from('teams').delete().eq('id', teamId);
         if (error) throw error;
         continue;

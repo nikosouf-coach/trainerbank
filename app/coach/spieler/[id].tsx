@@ -163,7 +163,7 @@ export default function Spieler() {
       <PotCard p={p} />
       <ExtraCard p={p} />
       {wide ? <Row align="flex-start" gap={18}>{absCard}{notes}</Row> : <>{absCard}{notes}</>}
-      <PlayerSheet player={edit} onClose={saved => { setEdit(undefined); if (!saved && !E.P(id)) back(); }} />
+      <PlayerSheet player={edit} onClose={() => { setEdit(undefined); if (!E.P(id)) back(); }} />
       <MergeSheet newPlayer={merge} onClose={() => { setMerge(null); if (!E.P(id)) router.replace("/coach/kader"); }} />
       {sheets.el}
     </Screen>

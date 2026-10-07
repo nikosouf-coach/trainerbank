@@ -19,6 +19,7 @@ export default function Mehr() {
         <ListItem testID="mehr-team" title={t("mh_team")} sub={`${team.club} · ${team.name} · ${classLabel(classDef(team.cls), E.tr.lang)} · ${t("dp_" + team.depth)}`} right={chev} onPress={() => go("/coach/team")} />
         <ListItem testID="mehr-training" title={t("mh_training")} sub={tf("mh_trainingSub", { n: nDays })} right={chev} onPress={() => go("/coach/training")} />
         <ListItem testID="mehr-baukasten" title={t("bk_title")} sub={t("bk_sub")} right={chev} onPress={() => go("/coach/baukasten")} />
+        {E.mods.kontakte ? <ListItem testID="mehr-kontakte" title={t("ct_title")} sub={t("ct_sub")} right={chev} onPress={() => go("/coach/kontakte")} /> : null}
         {E.mods.vorbereitung ? <ListItem testID="mehr-vorbereitung" title={t("vb_title")} sub={t("vb_sub")} right={chev} onPress={() => go("/coach/vorbereitung")} /> : null}
         {E.mods.archiv ? <ListItem testID="mehr-archiv" title={t("ar_title")} sub={t("ar_sub")} right={chev} onPress={() => go("/coach/archiv")} /> : null}
         {E.mods.leistung ? <ListItem testID="mehr-leistung" title={t("lt_title")} sub={t("lt_sub")} right={chev} onPress={() => go("/coach/leistung")} /> : null}

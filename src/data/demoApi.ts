@@ -1,7 +1,7 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoExtras, demoTeam } from "../core/demo";
-import type { Phase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { Contact, Phase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { ApiError, type Api, type ConsentState, type Membership, type UserInfo } from "./api";
 
 let n = 1;
@@ -38,6 +38,8 @@ export class DemoApi implements Api {
     // Ein Spieler hat sich zusätzlich selbst per App angemeldet (zeigt das Zusammenführen)
     const dup = D.players.find(p => p.vn === "Tim");
     if (dup) D.players.push({ ...dup, id: "p-app-1", nr: null, kg: null, photo: null, userId: "demo-user-tim", neu: true, groups: [] });
+    // Ein ehemaliger Spieler (inaktiv) – zeigt das Reaktivieren im Kader
+    D.inactive = [{ id: "p-old-1", vn: "Kai", nn: "Wendt", pos: "ST", nr: 23, geb: (D.players[5]?.geb || "2008-03-01"), active: false, groups: [] }];
     // Freigegebene Ziele für den ersten Spieler (zeigt die Ziele in der Spieler-App)
     const en = this.lang === "en";
     const goals: [Potential["cat"], string][] = en
@@ -109,6 +111,8 @@ export class DemoApi implements Api {
   async deleteStaff() { /* lokal */ }
   async savePhase(_t: string, x: Phase) { return { ...x, id: newId(x.id) }; }
   async deletePhase() { /* lokal */ }
+  async saveContact(_t: string, x: Contact) { return { ...x, id: newId(x.id) }; }
+  async deleteContact() { /* lokal */ }
   async consents() { return { ...this.consent }; }
   async giveConsent(kind: keyof ConsentState) { this.consent[kind] = true; }
   async withdrawConsent(kind: keyof ConsentState) { this.consent[kind] = false; }

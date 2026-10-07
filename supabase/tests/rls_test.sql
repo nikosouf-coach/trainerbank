@@ -502,6 +502,11 @@ set local request.jwt.claim.sub = :'coachA';
 -- Konflikt-Daten: Trainer hat für "Max Muster" am 04.10. bereits RPE 4 erfasst
 select tst.affects(format($q$insert into public.rpe_entries (player_id, date, rpe, minutes) values (%L, '2026-10-04', 4, 60)$q$,
                           tst.get('max')), 1, 'T05c Trainer-RPE für Max am 04.10.');
+-- Daten an der Beitritts-Zeile, die beim Zusammenführen mitwandern müssen
+select tst.affects(format($q$insert into public.performance_tests (player_id, test, date, value) values (%L, 'cmj', '2026-10-03', 41)$q$,
+                          tst.get('p1_player')), 1, 'T05c Leistungstest an der Beitritts-Zeile');
+select tst.affects(format($q$insert into public.player_ratings (player_id, date, kind, rating, visible) values (%L, '2026-10-03', 'training', 7.5, true)$q$,
+                          tst.get('p1_player')), 1, 'T05c Note an der Beitritts-Zeile');
 commit;
 
 begin;
@@ -546,6 +551,12 @@ begin
                  'T05c Wellness ohne Konflikt wurde verschoben');
   perform tst.eq((select count(*) from public.consents where player_id = tst.get('max')::uuid)::text, '1',
                  'T05c Einwilligung zeigt auf die zusammengeführte Zeile');
+  perform tst.eq((select count(*) from public.performance_tests where player_id = tst.get('max')::uuid)::text, '1',
+                 'T05c Leistungstest wurde verschoben');
+  perform tst.eq((select count(*) from public.player_ratings where player_id = tst.get('max')::uuid)::text, '1',
+                 'T05c Note wurde verschoben');
+  delete from public.performance_tests where player_id = tst.get('max')::uuid;
+  delete from public.player_ratings where player_id = tst.get('max')::uuid;
 end
 $$;
 commit;
@@ -972,6 +983,59 @@ commit;
 
 begin;
 delete from public.season_phases; delete from public.extra_activities where program_item = 'pi1';
+commit;
+
+-- =====================================================================
+-- T31 Kontaktliste (Baustein 9): Staff verwaltet, Spieler sehen freigegebene Kontakte
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.team_contacts (team_id, name, role, org, phone, visible) values
+                             (%1$L, 'Praxis Dr. Sommer', 'arzt', 'Sportmedizin', '0201 123', true),
+                             (%1$L, 'Vorstand Jugend', 'vorstand', null, null, false)$q$, tst.get('team_a')),
+                   2, 'T31 Coach legt Kontakte an');
+select tst.throws(format($q$insert into public.team_contacts (team_id, name, role) values (%L, 'X', 'fan')$q$, tst.get('team_a')),
+                  'T31 unbekannte Rolle wird abgelehnt', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select string_agg(name, ',') from public.team_contacts), 'Praxis Dr. Sommer', 'T31 Spieler sieht nur freigegebene Kontakte');
+end $$;
+select tst.throws(format($q$insert into public.team_contacts (team_id, name, role) values (%L, 'X', 'sonst')$q$, tst.get('team_a')),
+                  'T31 Spieler kann keine Kontakte anlegen', 'row-level security');
+select tst.affects($q$update public.team_contacts set phone = '0'$q$, 0, 'T31 Spieler kann Kontakte nicht ändern');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.teams set settings = settings || '{"playerView":{"contacts":false}}'::jsonb where id = %L$q$, tst.get('team_a')),
+                   1, 'T31 Coach blendet Kontakte für Spieler aus');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_contacts)::text, '0', 'T31 ausgeblendet: Spieler sieht keine Kontakte');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_contacts)::text, '0', 'T31 fremdes Team sieht keine Kontakte');
+end $$;
+commit;
+
+begin;
+delete from public.team_contacts;
+update public.teams set settings = settings - 'playerView' where id = tst.get('team_a')::uuid;
 commit;
 
 -- =====================================================================
@@ -1495,8 +1559,10 @@ begin
   perform tst.eq(x -> 'profile' ->> 'display_name', 'Maxi', 'T21b Export enthält das Profil');
   perform tst.ok(x ?& array['consents', 'team_staff', 'players', 'rpe_entries', 'wellness_entries', 'extra_activities',
                             'absences', 'attendance', 'growth_measurements', 'potentials', 'coach_messages',
+                            'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v2', 'T21b Exportformat v2');
   perform tst.eq(jsonb_array_length(x -> 'players')::text, '1', 'T21b Export: eigene Spielerzeile');
   perform tst.eq(jsonb_array_length(x -> 'consents')::text, '4', 'T21b Export: eigene Einwilligungen');
   perform tst.eq(jsonb_array_length(x -> 'rpe_entries')::text, '3', 'T21b Export: eigene RPE-Einträge');
