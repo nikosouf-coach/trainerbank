@@ -30,12 +30,23 @@ export interface TeamSettings {
   /** Üblicher Spieltag (Date.getDay()). */
   spieltag: number;
   anstoss: string;
+  /** Spieler dürfen Trainings selbst absagen / Abwesenheiten eintragen (Standard: ja). */
+  playerAbs?: boolean;
+  /** Eigene Gruppen (z. B. „Reha-Gruppe“, „Kapitänsrat“); Zuordnung in Player.groups. */
+  groups?: TeamGroup[];
+  /** Was Spieler in ihrer App sehen (Baukasten). Fehlender Schlüssel = Standard aus PLAYER_VIEW. */
+  playerView?: Partial<Record<PlayerViewKey, boolean>>;
 }
+export interface TeamGroup { id: string; name: string }
+export type PlayerViewKey = "plan" | "load" | "tips" | "ai" | "goals" | "att" | "ratings" | "stats" | "tests" | "videos" | "contacts";
 export interface Principle { kind: Kind; rpe: number }
 export type Principles = Record<string, Principle>;
 export interface Modules {
   beteiligung: boolean; planung: boolean; belastung: boolean; regeneration: boolean;
   wachstum: boolean; ki: boolean; matchplan: boolean; kaderplanung: boolean;
+  /** Neue Bausteine (Pakete) */
+  leistung: boolean; befunde: boolean; spielanalyse: boolean; videos: boolean;
+  archiv: boolean; vorbereitung: boolean; kontakte: boolean;
 }
 export interface Team {
   id: string;
@@ -63,6 +74,8 @@ export interface Player {
   userId?: string | null;
   neu?: boolean;
   active?: boolean;
+  /** IDs eigener Gruppen (TeamSettings.groups). */
+  groups?: string[];
 }
 export interface Match { id: string; date: string; zeit: string; gegner: string; heim: boolean; comp: "liga" | "pokal" | "test" }
 export interface TeamEvent { id: string; date: string; zeit: string; titel: string; typ: string; ersetzt: boolean }
@@ -76,7 +89,7 @@ export interface Session { date: string; typ: "Training" | "Spiel"; dauer: numbe
 export interface RpeEntry { rpe: number; min: number }
 export interface WellnessItems { sq: number; fat: number; doms: number; stress: number }
 export interface Wellness { sum: number; schlaf: number; beschw: Complaint; ort?: string; items?: WellnessItems }
-export interface Extra { id: string; date: string; art: ExtraType; min: number; rpe: number }
+export interface Extra { id: string; date: string; art: ExtraType; min: number; rpe: number; /** freie Bezeichnung bei „Sonstiges“ */ label?: string }
 export interface Growth { date: string; cm: number }
 export interface CustomKind { id: string; name: string; rpe: number; inhalt: string }
 export interface Potential { id: string; cat: PotCat; text: string; vis: boolean; src: "trainer" | "daten" | "ki" }

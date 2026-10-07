@@ -747,6 +747,41 @@ $$;
 commit;
 
 -- =====================================================================
+-- T25 Baukasten: Absagen durch Spieler abschaltbar, Gruppen nur durch Staff
+-- =====================================================================
+begin;
+update public.teams set settings = settings || '{"playerAbs": false}'::jsonb where id = tst.get('team_a')::uuid;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$insert into public.absences (player_id, type, from_date) values (%L, 'urlaub', '2026-12-27')$q$, tst.get('max')),
+                  'T25 P1 kann sich nicht abmelden, wenn Absagen per App aus sind', 'row-level security');
+select tst.throws(format($q$update public.players set groups = '{reha}' where id = %L$q$, tst.get('max')),
+                  'T25 P1 kann seine Gruppen nicht selbst ändern', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.players set groups = '{reha}' where id = %L$q$, tst.get('max')), 1,
+                   'T25 Coach ordnet Spieler einer Gruppe zu');
+select tst.affects(format($q$insert into public.absences (player_id, type, from_date) values (%L, 'urlaub', '2026-12-27')$q$, tst.get('max')), 1,
+                   'T25 Coach trägt Abwesenheit trotz abgeschalteter Spieler-Absagen ein');
+commit;
+
+begin;
+update public.teams set settings = settings || '{"playerAbs": true}'::jsonb where id = tst.get('team_a')::uuid;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$insert into public.absences (player_id, type, from_date) values (%L, 'urlaub', '2027-01-03')$q$, tst.get('max')), 1,
+                   'T25 mit eingeschalteten Absagen meldet sich P1 wieder selbst ab');
+commit;
+-- Aufräumen, damit spätere Zählungen unverändert bleiben
+begin;
+delete from public.absences where player_id = tst.get('max')::uuid and from_date in ('2026-12-27', '2027-01-03');
+update public.players set groups = '{}' where id = tst.get('max')::uuid;
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

@@ -1,7 +1,7 @@
 // Gemeinsame Editoren für Einrichtung und Einstellungen (gesteuert über value/onChange).
 import React, { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { CLASSES, KINDS, MDS, PITCH, classLabel, defaultPrinciples, groupOf, isGrowthAge } from "../core/classes";
+import { CLASSES, KINDS, MDS, PACKAGES, PITCH, classLabel, defaultPrinciples, groupOf, isGrowthAge } from "../core/classes";
 import type { Translator } from "../core/i18n";
 import type { ClassKey, CustomKind, Depth, Kind, Modules, Principles, TeamSettings } from "../core/types";
 import { Banner, Btn, Col, Info, Muted, Picker, Row, T, Tag, TimeField, ToggleRow } from "./kit";
@@ -42,16 +42,23 @@ export function DepthPicker({ value, onChange, tr, kids }: { value: Depth; onCha
   );
 }
 
+/** Bausteine, deren Bildschirme noch entstehen (Kennzeichnung „in Entwicklung“). */
+export const MODULES_SOON = new Set<keyof Modules>(["leistung", "befunde", "spielanalyse", "videos", "archiv", "vorbereitung", "kontakte"]);
+
+/** Module nach Paketen gruppiert (Baukasten). */
 export function ModuleList({ value, onChange, tr, cls }: { value: Modules; onChange: (m: Modules) => void; tr: Translator; cls: ClassKey }) {
   const kids = groupOf(cls) === "u11";
-  const keys: (keyof Modules)[] = ["beteiligung", "planung", "belastung", "regeneration", "wachstum", "ki", "matchplan", "kaderplanung"];
   return (
-    <Col gap={14}>
-      {keys.map(k => {
-        const soon = k === "matchplan" || k === "kaderplanung";
-        const dis = soon || (kids && ["belastung", "regeneration", "wachstum"].includes(k)) || (k === "wachstum" && !isGrowthAge(cls));
-        return <ToggleRow key={k} testID={"mod-" + k} label={tr.t("m_" + k)} desc={tr.t("md_" + k)} value={!!value[k] && !dis} disabled={dis} badge={soon ? tr.t("dev") : undefined} onChange={v => onChange({ ...value, [k]: v })} />;
-      })}
+    <Col gap={18}>
+      {PACKAGES.map(pk => (
+        <Col key={pk.key} gap={10}>
+          <Col gap={2}><T v="eyebrow">{tr.t("pk_" + pk.key)}</T>{tr.t("pkd_" + pk.key) !== "pkd_" + pk.key ? <Muted small>{tr.t("pkd_" + pk.key)}</Muted> : null}</Col>
+          {pk.mods.map(k => {
+            const dis = (kids && ["belastung", "regeneration", "wachstum"].includes(k)) || (k === "wachstum" && !isGrowthAge(cls));
+            return <ToggleRow key={k} testID={"mod-" + k} label={tr.t("m_" + k)} desc={tr.t("md_" + k)} value={!!value[k] && !dis} disabled={dis} badge={MODULES_SOON.has(k) ? tr.t("dev") : undefined} onChange={v => onChange({ ...value, [k]: v })} />;
+          })}
+        </Col>
+      ))}
     </Col>
   );
 }

@@ -52,12 +52,12 @@ function mapTeam(r: Row): Team {
 }
 const mapPlayer = (r: Row): Player => ({
   id: r.id, vn: r.first_name, nn: r.last_name || "", pos: r.position || "", nr: r.shirt_number ?? null, geb: r.birthdate || "",
-  kg: r.weight_kg != null ? Number(r.weight_kg) : null, photo: r.photo_path || null, userId: r.user_id || null, neu: !!r.is_new, active: r.active !== false,
+  kg: r.weight_kg != null ? Number(r.weight_kg) : null, photo: r.photo_path || null, userId: r.user_id || null, neu: !!r.is_new, active: r.active !== false, groups: r.groups || [],
 });
 const mapMatch = (r: Row): Match => ({ id: r.id, date: r.date, zeit: r.time || "15:00", gegner: r.opponent || "", heim: !!r.home, comp: r.competition || "liga" });
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
 const mapAbs = (r: Row): Absence => ({ id: r.id, pid: r.player_id, typ: r.type, von: r.from_date, bis: r.to_date, stufe: r.stage, notiz: r.note || "", by: r.reported_by_player ? "player" : "coach" });
-const mapExtra = (r: Row): Extra => ({ id: r.id, date: r.date, art: r.type, min: r.minutes, rpe: Number(r.rpe ?? 5) });
+const mapExtra = (r: Row): Extra => ({ id: r.id, date: r.date, art: r.type, min: r.minutes, rpe: Number(r.rpe ?? 5), label: r.label || undefined });
 const mapPot = (r: Row): Potential => ({ id: r.id, cat: r.category, text: r.text, vis: !!r.visible_to_player, src: r.source || "trainer" });
 const mapMsg = (r: Row): CoachMsg => ({ id: r.id, date: (r.created_at || "").slice(0, 10), typ: r.type, text: r.text, bis: r.valid_until });
 const mapKind = (r: Row): CustomKind => ({ id: r.id, name: r.name, rpe: Number(r.rpe ?? 5), inhalt: r.content || "" });
@@ -244,6 +244,7 @@ export class SupabaseApi implements Api {
   async savePlayer(teamId: string, p: Player) {
     const row: Row = { team_id: teamId, first_name: p.vn, last_name: p.nn || null, birthdate: p.geb || null, position: p.pos || null, shirt_number: p.nr ?? null, weight_kg: p.kg ?? null };
     if (!isTmp(p.id)) { row.is_new = !!p.neu; row.active = p.active !== false; }
+    if (p.groups) row.groups = p.groups;
     const r = isTmp(p.id) ? await q<Row>(this.sb.from("players").insert(row).select().single()) : await q<Row>(this.sb.from("players").update(row).eq("id", p.id).select().single());
     return mapPlayer(r);
   }
@@ -281,7 +282,7 @@ export class SupabaseApi implements Api {
     }));
   }
   async saveExtra(pid: string, x: Extra) {
-    const row: Row = { player_id: pid, date: x.date, type: x.art, minutes: x.min, rpe: x.rpe };
+    const row: Row = { player_id: pid, date: x.date, type: x.art, minutes: x.min, rpe: x.rpe, label: x.label?.trim() || null };
     const r = isTmp(x.id) ? await q<Row>(this.sb.from("extra_activities").insert(row).select().single()) : await q<Row>(this.sb.from("extra_activities").update(row).eq("id", x.id).select().single());
     return mapExtra(r);
   }

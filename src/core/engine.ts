@@ -3,13 +3,13 @@
 
 import { CONTENT } from "./content";
 import {
-  BANDS, KIND_RPE, MATCHMIN, MDS, bandOf, capOf, classDef, classLabel, groupOf, isGrowthAge, sleepTarget, DEPTH,
+  BANDS, KIND_RPE, MATCHMIN, MDS, PLAYER_VIEW, bandOf, capOf, classDef, classLabel, groupOf, isGrowthAge, sleepTarget, DEPTH,
 } from "./classes";
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
 import { translator } from "./i18n";
 import type {
   Absence, AttStatus, CoachMsg, Complaint, CustomKind, Kind, Lang, Match, Pitch, Player, PotCat, Session, Status,
-  TeamData, TeamEvent, Wellness, WeekMode, MsgType,
+  TeamData, TeamEvent, Wellness, WeekMode, MsgType, PlayerViewKey,
 } from "./types";
 
 export interface EngineOptions {
@@ -152,8 +152,16 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const v = D.att[d]?.[pid]; if (v) return v;
     const a = absenceOn(pid, d); return a ? (("abs:" + a.typ) as `abs:${string}`) : "offen";
   }
+  /** Erster Tag mit Anwesenheit/RPE (neue Spieler zählen erst ab da). */
+  function firstSeen(pid: string): string | null {
+    let f: string | null = null;
+    for (const d of Object.keys(D.att)) if (D.att[d][pid] && (!f || d < f)) f = d;
+    for (const d of Object.keys(D.rpe[pid] || {})) if (!f || d < f) f = d;
+    return f;
+  }
   function attendance(pid: string): number | null {
-    const ss = D.sessions.filter(s => s.date <= TODAY && diff(s.date, TODAY) <= 28 && !["abs:verletzung", "abs:krank"].includes(attStatus(s.date, pid)));
+    const first = firstSeen(pid); if (!first) return null;
+    const ss = D.sessions.filter(s => s.date >= first && s.date <= TODAY && diff(s.date, TODAY) <= 28 && !["abs:verletzung", "abs:krank"].includes(attStatus(s.date, pid)));
     if (!ss.length) return null; return ss.filter(s => attStatus(s.date, pid) === "da").length / ss.length;
   }
   function sleep7(pid: string): number | null { const v: number[] = []; for (let k = 0; k < 7; k++) { const w = D.well[pid]?.[addDays(TODAY, -k)]; if (w) v.push(w.schlaf); } return v.length ? sum(v) / v.length : null; }
@@ -406,6 +414,12 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     if (returning(p.id)) out.push({ cat: "verf", text: t("ph8") });
     return out;
   }
+  /** Darf der Spieler diesen Bereich sehen? (Baukasten: Modul aktiv + Freigabe für Spieler) */
+  const playerSees = (key: PlayerViewKey): boolean => {
+    const def = PLAYER_VIEW.find(x => x.key === key); if (!def) return true;
+    if (def.needs && !mods[def.needs]) return false;
+    const v = S.playerView?.[key]; return v == null ? def.def : v;
+  };
   const activeMsgs = (pid: string): CoachMsg[] => (D.msgs[pid] || []).filter(m => !m.bis || m.bis >= TODAY);
   function suggestRec(p: Player): RecSuggestion {
     const pr = profile(p.id), tg = pr.tg, sun = addDays(monday(TODAY), 6);
@@ -570,7 +584,7 @@ Empfehlung des Trainers: ${activeMsgs(p.id).map(m => t("ry_" + m.typ) + ": " + m
     profile, advice, nextItem, sessAvg, dataHints, activeMsgs, suggestRec,
     playerState, playerSessions, playerOpenSession, tipRegen, tipGym, tipExtra, tipFood, tipSleep,
     aiContext, aiSessionPrompt, potPrompt, playerAiContext,
-    wt, de, isGrowthAge: () => isGrowthAge(team.cls),
+    wt, de, isGrowthAge: () => isGrowthAge(team.cls), playerSees,
   };
 }
 

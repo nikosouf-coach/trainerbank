@@ -1,4 +1,4 @@
-import type { BuiltinKind, ClassKey, Depth, Group, Lang, Modules, Pitch, Principles, TeamSettings } from "./types";
+import type { BuiltinKind, ClassKey, Depth, Group, Lang, Modules, Pitch, PlayerViewKey, Principles, TeamSettings } from "./types";
 
 export interface ClassDef { k: ClassKey; grp: Group; ages: [number, number]; de?: string; en?: string; team?: { de: string; en: string } }
 
@@ -22,6 +22,8 @@ export function modsFor(depth: Depth, k: ClassKey): Modules {
   const m: Modules = {
     beteiligung: true, planung: depth !== "org", belastung: depth !== "org", regeneration: depth !== "org",
     wachstum: depth !== "org" && isGrowthAge(k), ki: true, matchplan: false, kaderplanung: false,
+    leistung: depth !== "org", befunde: depth !== "org", spielanalyse: true, videos: true,
+    archiv: true, vorbereitung: depth !== "org", kontakte: true,
   };
   if (grp === "u11") { m.belastung = false; m.regeneration = false; m.wachstum = false; }
   return m;
@@ -52,7 +54,7 @@ export function defaultPrinciples(grp: Group): Principles {
 export function defaultSettings(): TeamSettings {
   return {
     days: { 1: { zeit: "19:30", platz: "ganz", dauer: 90 }, 3: { zeit: "19:30", platz: "halb", dauer: 90 }, 4: { zeit: "19:30", platz: "halb", dauer: 90 }, 5: { zeit: "19:30", platz: "halb", dauer: 90 } },
-    dauer: 90, fix: true, spieltag: 0, anstoss: "15:00",
+    dauer: 90, fix: true, spieltag: 0, anstoss: "15:00", playerAbs: true, groups: [], playerView: {},
   };
 }
 
@@ -70,4 +72,36 @@ export const KIND_RPE: Record<BuiltinKind, number> = { regen: 3, frei: 0, aktiv:
 
 export const NAV_COACH = ["heute", "kalender", "plan", "kader", "module"] as const;
 export const NAV_PLAYER = ["heute", "eintragen", "daten", "tipps", "ich"] as const;
-export const POS = ["TW", "IV", "AV", "ZM", "OM", "Flügel", "ST"];
+export const POS = ["TW", "RV", "IV", "LV", "DM", "ZM", "OM", "LM", "RM", "ST"];
+/** Positionsgruppe (für Filter und Gruppen). Alte Werte (AV, Flügel) werden zugeordnet. */
+export type PosGroup = "TW" | "Abwehr" | "Mittelfeld" | "Sturm";
+export function posGroup(pos: string): PosGroup {
+  if (pos === "TW") return "TW";
+  if (["RV", "IV", "LV", "AV"].includes(pos)) return "Abwehr";
+  if (["DM", "ZM", "OM", "LM", "RM", "Flügel"].includes(pos)) return "Mittelfeld";
+  return "Sturm";
+}
+
+/** Pakete des Baukastens: welche Module zusammengehören. "basis" ist immer enthalten. */
+export const PACKAGES: { key: string; mods: (keyof Modules)[] }[] = [
+  { key: "basis", mods: ["beteiligung", "kontakte"] },
+  { key: "belastung", mods: ["belastung", "regeneration", "wachstum"] },
+  { key: "planung", mods: ["planung", "archiv", "vorbereitung"] },
+  { key: "leistung", mods: ["leistung", "befunde"] },
+  { key: "analyse", mods: ["spielanalyse", "videos"] },
+  { key: "ki", mods: ["ki"] },
+];
+/** Was Spieler sehen dürfen – mit Standardwert und dem Modul, das dafür nötig ist. */
+export const PLAYER_VIEW: { key: PlayerViewKey; def: boolean; needs?: keyof Modules }[] = [
+  { key: "plan", def: true, needs: "planung" },
+  { key: "load", def: true, needs: "belastung" },
+  { key: "att", def: true, needs: "beteiligung" },
+  { key: "tips", def: true },
+  { key: "goals", def: true },
+  { key: "ai", def: true, needs: "ki" },
+  { key: "ratings", def: true, needs: "spielanalyse" },
+  { key: "stats", def: true, needs: "spielanalyse" },
+  { key: "tests", def: true, needs: "leistung" },
+  { key: "videos", def: true, needs: "videos" },
+  { key: "contacts", def: true, needs: "kontakte" },
+];

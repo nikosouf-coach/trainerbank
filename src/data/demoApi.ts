@@ -29,7 +29,16 @@ export class DemoApi implements Api {
   async createTeam() { return "demo"; }
   async joinTeam() { return "p6"; }
   async joinStaff() { return "demo"; }
-  async loadTeam(): Promise<TeamData> { return buildDemo(demoTeam(this.cls, this.depth, this.lang), this.lang, new Date()); }
+  /** Demo-Daten bleiben für die Sitzung im Speicher (Änderungen gehen beim Neuladen nicht verloren). */
+  private data: TeamData | null = null;
+  async loadTeam(): Promise<TeamData> {
+    if (this.data) return this.data;
+    const D = buildDemo(demoTeam(this.cls, this.depth, this.lang), this.lang, new Date());
+    // Ein Spieler hat sich zusätzlich selbst per App angemeldet (zeigt das Zusammenführen)
+    const dup = D.players.find(p => p.vn === "Tim");
+    if (dup) D.players.push({ ...dup, id: "p-app-1", nr: null, kg: null, photo: null, userId: "demo-user-tim", neu: true, groups: [] });
+    this.data = D; return D;
+  }
   async updateTeam() { /* lokal */ }
   async regenerateCodes() { return { joinCode: "DEMO-U19K", staffCode: "DEMO-STAF" }; }
   async staffList() { return [{ userId: this.user.id, role: "owner" as const, displayName: this.user.displayName }]; }
@@ -48,7 +57,16 @@ export class DemoApi implements Api {
   async publishWeekPlan() { /* lokal */ }
   async savePlayer(_t: string, p: Player) { return { ...p, id: newId(p.id) }; }
   async deletePlayer() { /* lokal */ }
-  async mergePlayers() { /* lokal */ }
+  async mergePlayers(newId: string, existingId: string) {
+    const D = this.data; if (!D) return;
+    const nw = D.players.find(p => p.id === newId), ex = D.players.find(p => p.id === existingId); if (!nw || !ex) throw new ApiError("invalid_merge");
+    ex.userId = nw.userId; ex.neu = false;
+    for (const map of [D.rpe, D.well] as Record<string, Record<string, unknown>>[]) { if (map[newId]) { map[existingId] = { ...(map[existingId] || {}), ...map[newId] }; delete map[newId]; } }
+    for (const map of [D.extra, D.pot, D.msgs, D.growth] as Record<string, unknown[]>[]) { if (map[newId]) { map[existingId] = [...(map[existingId] || []), ...map[newId]]; delete map[newId]; } }
+    D.absences.forEach(a => { if (a.pid === newId) a.pid = existingId; });
+    for (const d of Object.keys(D.att)) { const r = D.att[d]; if (r[newId]) { r[existingId] = r[existingId] || r[newId]; delete r[newId]; } }
+    D.players = D.players.filter(p => p.id !== newId);
+  }
   async uploadPhoto(_t: string, _pid: string, uri: string) { return uri; }
   async photoUrl(path: string) { return path; }
   async setAttendance() { /* lokal */ }
