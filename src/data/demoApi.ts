@@ -37,6 +37,12 @@ export class DemoApi implements Api {
     // Ein Spieler hat sich zusätzlich selbst per App angemeldet (zeigt das Zusammenführen)
     const dup = D.players.find(p => p.vn === "Tim");
     if (dup) D.players.push({ ...dup, id: "p-app-1", nr: null, kg: null, photo: null, userId: "demo-user-tim", neu: true, groups: [] });
+    // Freigegebene Ziele für den ersten Spieler (zeigt die Ziele in der Spieler-App)
+    const en = this.lang === "en";
+    const goals: [Potential["cat"], string][] = en
+      ? [["tech", "Weak foot: 2 extra passing sets per week"], ["ath", "Push-off power: clean single-leg jumps"], ["takt", "Organise the defensive line louder and earlier"], ["ment", "After mistakes: reset within the next action"], ["verf", "Morning check every day – keep your streak"]]
+      : [["tech", "Schwacher Fuß: 2 zusätzliche Passserien pro Woche"], ["ath", "Absprungkraft: saubere einbeinige Sprünge"], ["takt", "Abwehrkette früher und lauter organisieren"], ["ment", "Nach Fehlern: in der nächsten Aktion abhaken"], ["verf", "Jeden Tag Morgen-Check – Serie halten"]];
+    D.pot.p1 = [...(D.pot.p1 || []), ...goals.map(([cat, text], i) => ({ id: "demo-goal-" + i, cat, text, vis: true, src: "trainer" as const }))];
     this.data = D; return D;
   }
   async updateTeam() { /* lokal */ }

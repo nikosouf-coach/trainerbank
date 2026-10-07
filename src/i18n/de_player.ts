@@ -1,5 +1,30 @@
-// Zusätzliche Texte (player) – de
+// Texte der Spieler-App (Dashboard, Eintragen, Daten, Tipps, Ich) – de
 import type { Dict } from "./types";
 
 export const de_player: Dict = {
+  gm_lv: ["Rookie", "Talent", "Stammspieler", "Leistungsträger", "Führungsspieler", "Kapitän", "Legende"],
+  gm_level: "Level {n}", gm_xp: "{x} XP", gm_toNext: "Noch {x} XP bis Level {n}", gm_streak: "{n} Tage Serie", gm_streak0: "Starte deine Serie",
+  gm_streakHint: "Jeden Tag Morgen-Check machen und die Serie wachsen lassen.", gm_best: "Rekord: {n} Tage",
+  gm_week: "Deine Woche", gm_r_check: "Check-ins", gm_r_rpe: "RPE nach Einheiten", gm_r_att: "Dabei",
+  gm_badges: "Abzeichen", gm_earned: "{n} von {m} geschafft",
+  gm_b_first: "Erster Check-in", gm_b_streak7: "7-Tage-Serie", gm_b_perfect: "Perfekte Woche", gm_b_rpe: "RPE-Profi",
+  gm_b_att: "Immer da", gm_b_sleep: "Schlaf-Profi", gm_b_extra: "Extraschicht", gm_b_streak30: "30-Tage-Serie",
+  gm_bd_first: "Ersten Morgen-Check gemacht.", gm_bd_streak7: "7 Tage in Folge eingecheckt.", gm_bd_perfect: "Eine ganze Woche jeden Tag eingecheckt.",
+  gm_bd_rpe: "Nach mindestens 90 % deiner Einheiten die RPE eingetragen.", gm_bd_att: "100 % Trainingsbeteiligung in 28 Tagen.",
+  gm_bd_sleep: "An 5 von 7 Tagen genug geschlafen.", gm_bd_extra: "3 Zusatzeinheiten in 14 Tagen eingetragen.", gm_bd_streak30: "30 Tage in Folge eingecheckt.",
+  gm_info: "XP bekommst du fürs Eintragen (Morgen-Check +10, RPE +15), fürs Dabeisein (+10) und für Zusatzsport (+5 pro Tag). Mehr Belastung bringt keine Extrapunkte – es geht um Regelmäßigkeit, nicht ums Übertreiben.",
+  gm_plusXp: "+{x} XP",
+  pl_todoRpe: "RPE eintragen", pl_todoWell: "Morgen-Check", pl_allDone: "Alles erledigt – stark!",
+  pl_dates: "Nächste Termine", pl_noDates: "In den nächsten zwei Wochen stehen keine Termine an.", pl_absent: "abgemeldet",
+  pl_goals: "Deine Ziele", pl_noGoals: "Dein Trainer hat noch keine Ziele für dich freigegeben.",
+  pl_msgs: "Vom Trainer",
+  pl_consentT: "Einwilligung nötig", pl_consentD: "Damit du Belastung, Schlaf und Wohlbefinden eintragen kannst, brauchen wir deine Einwilligung zur Verarbeitung von Gesundheitsdaten.",
+  pl_consentBtn: "Einwilligen", pl_absOff: "Abmeldungen laufen in deinem Team über das Trainerteam. Sag deinem Trainer Bescheid.",
+  pl_otherLabel: "Was hast du gemacht?", pl_otherPh: "z. B. Tennis, Schwimmen, Radfahren",
+  pl_saveWell: "Check-in speichern", pl_saveRpe: "RPE speichern",
+  pl_photo: "Profilbild", pl_photoChange: "Bild ändern", pl_profile: "Meine Angaben", pl_account: "Konto, Einwilligungen & Datenschutz",
+  pl_team: "Team", pl_tipsOff: "Dein Trainer hat die Tipps für dein Team ausgeschaltet.",
+  pl_aiConsent: "Für den KI-Coach brauchst du eine Einwilligung (Ich → Konto, Einwilligungen & Datenschutz).",
+  pl_tab_rpe: "RPE", pl_tab_well: "Check-in", pl_tab_extra: "Zusatz", pl_tab_abs: "Abmelden",
+  pl_saved: "Gespeichert",
 };

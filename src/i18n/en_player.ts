@@ -1,5 +1,30 @@
-// Zusätzliche Texte (player) – en
+// Texts of the player app (dashboard, entries, data, tips, me) – en
 import type { Dict } from "./types";
 
 export const en_player: Dict = {
+  gm_lv: ["Rookie", "Talent", "Regular", "Key player", "Leader", "Captain", "Legend"],
+  gm_level: "Level {n}", gm_xp: "{x} XP", gm_toNext: "{x} XP to level {n}", gm_streak: "{n}-day streak", gm_streak0: "Start your streak",
+  gm_streakHint: "Do the morning check every day and keep the streak growing.", gm_best: "Record: {n} days",
+  gm_week: "Your week", gm_r_check: "Check-ins", gm_r_rpe: "RPE after sessions", gm_r_att: "Attended",
+  gm_badges: "Badges", gm_earned: "{n} of {m} earned",
+  gm_b_first: "First check-in", gm_b_streak7: "7-day streak", gm_b_perfect: "Perfect week", gm_b_rpe: "RPE pro",
+  gm_b_att: "Always there", gm_b_sleep: "Sleep pro", gm_b_extra: "Extra shift", gm_b_streak30: "30-day streak",
+  gm_bd_first: "Did your first morning check.", gm_bd_streak7: "Checked in 7 days in a row.", gm_bd_perfect: "Checked in every day for a whole week.",
+  gm_bd_rpe: "Entered your RPE after at least 90 % of your sessions.", gm_bd_att: "100 % attendance in 28 days.",
+  gm_bd_sleep: "Slept enough on 5 of 7 days.", gm_bd_extra: "Logged 3 extra sessions in 14 days.", gm_bd_streak30: "Checked in 30 days in a row.",
+  gm_info: "You earn XP for entries (morning check +10, RPE +15), for showing up (+10) and for extra sport (+5 per day). More load does not earn extra points – it's about consistency, not overdoing it.",
+  gm_plusXp: "+{x} XP",
+  pl_todoRpe: "Enter RPE", pl_todoWell: "Morning check", pl_allDone: "All done – great!",
+  pl_dates: "Upcoming", pl_noDates: "No dates in the next two weeks.", pl_absent: "excused",
+  pl_goals: "Your goals", pl_noGoals: "Your coach hasn't shared any goals with you yet.",
+  pl_msgs: "From your coach",
+  pl_consentT: "Consent needed", pl_consentD: "To enter load, sleep and wellbeing we need your consent to process health data.",
+  pl_consentBtn: "Give consent", pl_absOff: "In your team, absences go through the coaching staff. Let your coach know.",
+  pl_otherLabel: "What did you do?", pl_otherPh: "e.g. tennis, swimming, cycling",
+  pl_saveWell: "Save check-in", pl_saveRpe: "Save RPE",
+  pl_photo: "Profile picture", pl_photoChange: "Change picture", pl_profile: "My details", pl_account: "Account, consents & privacy",
+  pl_team: "Team", pl_tipsOff: "Your coach has switched off tips for your team.",
+  pl_aiConsent: "The AI coach needs your consent (Me → Account, consents & privacy).",
+  pl_tab_rpe: "RPE", pl_tab_well: "Check-in", pl_tab_extra: "Extra", pl_tab_abs: "Absence",
+  pl_saved: "Saved",
 };
