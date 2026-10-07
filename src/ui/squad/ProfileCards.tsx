@@ -1,11 +1,12 @@
 // Karten im Spielerprofil: Empfehlung an den Spieler, Potenziale & Ziele, Zusatzsport.
 import React, { useState } from "react";
-import { ActivityIndicator, Text } from "react-native";
+import { ActivityIndicator, Pressable, Text } from "react-native";
 import { diff } from "../../core/dates";
 import { parsePotentials, type Hint } from "../../core/engine";
-import type { MsgType, Player, PotCat } from "../../core/types";
+import type { MsgType, Player, PotCat, Video } from "../../core/types";
 import { tmpId, useEngine, useStore } from "../../data/store";
 import { useAi } from "../ai";
+import { fmtRating, RatingBadge, ratingColor, RatingSheet, StatTile, VideoList, VideoSheet, type RatingTarget } from "../games";
 import { Btn, Card, CardTitle, Check, Chip, Col, DateField, Field, Info, Msg, Muted, Picker, Row, T, Tag } from "../kit";
 import { useTheme, type Colors } from "../theme";
 
@@ -100,6 +101,45 @@ export function ExtraCard({ p }: { p: Player }) {
     <Card>
       <CardTitle title={t("x_title")} />
       {L.length ? L.map(x => <Row key={x.id} between gap={8}><T v="small" style={{ flex: 1 }}>{E.wt(x.date)} {E.de(x.date)} · {x.label || t("px_" + x.art)} · {x.min} {t("min")}</T><T v="small" bold>RPE {x.rpe}{E.lvl(2) ? ` · ${x.rpe * x.min} AU` : ""}</T></Row>) : <Muted>{t("x_none")}</Muted>}
+    </Card>
+  );
+}
+
+/** Spiele & Bewertungen im Spielerprofil: Saisonwerte, Noten mit Feedback, Videos. */
+export function GamesCard({ p }: { p: Player }) {
+  const E = useEngine(); const { t } = E; const { c } = useTheme();
+  const [rt, setRt] = useState<RatingTarget | null>(null);
+  const [video, setVideo] = useState<Video | null | undefined>(undefined);
+  if (!E.mods.spielanalyse && !E.mods.videos) return null;
+  const ss = E.seasonStats(p.id), rs = E.ratingsOf(p.id).slice(0, 8);
+  return (
+    <Card testID="games-card">
+      <CardTitle title={t("pr_games")} />
+      {E.mods.spielanalyse ? <>
+        <Row wrap gap={8}>
+          <StatTile label={t("sp_games")} value={String(ss.games)} />
+          <StatTile label={t("sp_min")} value={String(ss.min)} />
+          <StatTile label={t("sp_goals")} value={String(ss.goals)} color={ss.goals ? c.ok : undefined} />
+          <StatTile label={t("sp_assists")} value={String(ss.assists)} color={ss.assists ? c.low : undefined} />
+          <StatTile label={t("sp_avg")} value={ss.avg != null ? fmtRating(ss.avg, E.tr.lang) : "–"} color={ss.avg != null ? ratingColor(ss.avg) : undefined} />
+        </Row>
+        <T v="eyebrow">{t("pr_ratings")}</T>
+        {rs.length ? rs.map(r => (
+          <Pressable key={r.id} accessibilityRole="button" onPress={() => setRt({ pid: p.id, date: r.date, kind: r.kind, existing: r })} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 6 }}>
+            <RatingBadge value={r.rating} size="s" />
+            <Col gap={1} style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {r.kind === "spiel" ? (E.D.matches.find(m => m.date === r.date) ? `${t("vs")} ${E.D.matches.find(m => m.date === r.date)!.gegner}` : t("it_match")) : t("it_training")}{!r.vis ? " · " + t("pot_hidden") : ""}</Text>
+              {r.text ? <Text style={{ fontSize: 13.5, color: c.ink }}>{r.text}</Text> : null}
+            </Col>
+          </Pressable>
+        )) : <Muted>{t("pr_noRatings")}</Muted>}
+      </> : null}
+      {E.mods.videos ? <>
+        <Row between><T v="eyebrow">{t("sp_lib")}</T><Btn small kind="ghost" icon="plus" label={t("vd_add")} onPress={() => setVideo(null)} /></Row>
+        <VideoList videos={E.D.videos.filter(v => v.pids.includes(p.id))} onEdit={setVideo} />
+      </> : null}
+      <RatingSheet target={rt} onClose={() => setRt(null)} />
+      <VideoSheet video={video} defaults={{ pids: [p.id], title: E.name(p) }} onClose={() => setVideo(undefined)} />
     </Card>
   );
 }

@@ -5,6 +5,7 @@ import { Pressable, Text, View } from "react-native";
 import type { AttStatus } from "../../../src/core/types";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Btn, Card, CardTitle, Chip, Col, Header, Info, Muted, NumScale, Row, Screen, Sheet, T } from "../../../src/ui/kit";
+import { RatingBadge, RatingSheet, type RatingTarget } from "../../../src/ui/games";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
@@ -14,6 +15,7 @@ export default function Einheit() {
   const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
   const { date = "" } = useLocalSearchParams<{ date: string }>();
   const [rpeFor, setRpeFor] = useState<string | null>(null);
+  const [rate, setRate] = useState<RatingTarget | null>(null);
   const sess = E.D.sessions.find(x => x.date === date);
   const back = () => router.canGoBack() ? router.back() : router.replace("/coach/kalender");
   if (!sess) return <Screen testID="coach-einheit"><Header title={t("nav_kalender")} onBack={back} backLabel={t("nav_kalender")} /><Muted>{t("noSession")}</Muted></Screen>;
@@ -46,6 +48,9 @@ export default function Einheit() {
                     <Text style={{ fontSize: 12, fontWeight: "700", color: cl }}>{label(st)}</Text>
                   </Col>
                 </Pressable>
+                {E.mods.spielanalyse && st === "da" && sess.typ === "Training" ? <Pressable testID={"rate-" + p.id} accessibilityRole="button" accessibilityLabel={`${t("tr_rate")} ${E.name(p)}`} onPress={() => setRate({ pid: p.id, date, kind: "training" })}>
+                  <RatingBadge value={E.D.ratings.find(x => x.pid === p.id && x.date === date && x.kind === "training")?.rating ?? null} size="s" />
+                </Pressable> : null}
                 {E.mods.belastung && st === "da" ? <Pressable testID={"rpe-" + p.id} accessibilityRole="button" accessibilityLabel={`RPE ${E.name(p)}`} onPress={() => setRpeFor(p.id)}
                   style={{ minWidth: 52, height: 36, borderRadius: radius.s, borderWidth: 1, borderColor: r ? rpeColor(c, r.rpe) : c.line, backgroundColor: r ? rpeColor(c, r.rpe) : c.surface, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 }}>
                   <Text style={{ fontWeight: "800", fontSize: 12.5, color: r ? "#fff" : c.muted }}>{r ? "RPE " + r.rpe : "RPE +"}</Text>
@@ -55,6 +60,7 @@ export default function Einheit() {
           })}
         </View>
       </Card>
+      <RatingSheet target={rate} onClose={() => setRate(null)} />
       <Sheet visible={!!rp} onClose={() => setRpeFor(null)} title={rp ? `RPE · ${E.name(rp)}` : ""} testID="rpe-sheet" closeLabel={t("cancel")}>
         {rp ? <Col gap={12}>
           <Muted>{t("rpe_coachQ")}</Muted>

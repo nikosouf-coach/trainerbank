@@ -45,6 +45,7 @@ function DayBody({ date, open, close }: { date: string; open: (s: SheetState) =>
         <T bold>{t("it_match")} {t("vs")} {x.match.gegner}</T>
         <Muted small>{x.match.zeit} · {x.match.heim ? t("home") : t("away")} · {t("comp_" + x.match.comp)}{pro ? ` · ${E.int(E.matchLoad())} AU` : ""}</Muted>
         <Row wrap gap={6}>
+          {mods.spielanalyse && date <= E.TODAY ? <Btn small kind="primary" testID="day-report" label={t("sp_open")} onPress={() => { close(); router.push("/coach/spiel/" + x.match!.id); }} /> : null}
           <Btn small testID="day-edit-match" label={t("day_editMatch")} onPress={() => open({ k: "add", date, type: "match", obj: x.match! })} />
           {sess && mods.beteiligung ? <Btn small label={t("day_attOpen")} onPress={() => { close(); router.push("/coach/einheit/" + date); }} /> : null}
         </Row>

@@ -1,7 +1,7 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
-import { buildDemo, demoTeam } from "../core/demo";
-import type { ClassKey, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, TeamData, TeamEvent } from "../core/types";
+import { buildDemo, demoExtras, demoTeam } from "../core/demo";
+import type { ClassKey, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, Video } from "../core/types";
 import { ApiError, type Api, type ConsentState, type Membership, type UserInfo } from "./api";
 
 let n = 1;
@@ -34,6 +34,7 @@ export class DemoApi implements Api {
   async loadTeam(): Promise<TeamData> {
     if (this.data) return this.data;
     const D = buildDemo(demoTeam(this.cls, this.depth, this.lang), this.lang, new Date());
+    demoExtras(D, this.lang, new Date());
     // Ein Spieler hat sich zusätzlich selbst per App angemeldet (zeigt das Zusammenführen)
     const dup = D.players.find(p => p.vn === "Tim");
     if (dup) D.players.push({ ...dup, id: "p-app-1", nr: null, kg: null, photo: null, userId: "demo-user-tim", neu: true, groups: [] });
@@ -88,6 +89,11 @@ export class DemoApi implements Api {
   async saveMessage(_p: string, m: CoachMsg) { return { ...m, id: newId(m.id) }; }
   async deleteMessage() { /* lokal */ }
   async saveNote() { /* lokal */ }
+  async saveStat() { /* lokal */ }
+  async saveRating(_t: string, r: Rating) { return { ...r, id: newId(r.id) }; }
+  async deleteRating() { /* lokal */ }
+  async saveVideo(_t: string, v: Video) { return { ...v, id: newId(v.id) }; }
+  async deleteVideo() { /* lokal */ }
   async consents() { return { ...this.consent }; }
   async giveConsent(kind: keyof ConsentState) { this.consent[kind] = true; }
   async withdrawConsent(kind: keyof ConsentState) { this.consent[kind] = false; }

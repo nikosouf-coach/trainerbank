@@ -782,6 +782,54 @@ update public.players set groups = '{}' where id = tst.get('max')::uuid;
 commit;
 
 -- =====================================================================
+-- T26 Spieldaten, Noten, Videos (Baustein 4)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.put('m26', (select id::text from public.matches where team_id = tst.get('team_a')::uuid order by date limit 1));
+select tst.affects(format($q$insert into public.match_stats (match_id, player_id, minutes, goals, assists, started) values (%L, %L, 90, 1, 0, true)$q$, tst.get('m26'), tst.get('max')), 1,
+                   'T26 Coach erfasst Spieldaten');
+select tst.affects(format($q$insert into public.player_ratings (player_id, date, kind, rating, text, visible) values (%L, '2026-10-04', 'spiel', 7.5, 'Gut', true)$q$, tst.get('max')), 1,
+                   'T26 Coach vergibt sichtbare Note');
+select tst.affects(format($q$insert into public.player_ratings (player_id, date, kind, rating, text, visible) values (%L, '2026-10-05', 'training', 5.0, 'intern', false)$q$, tst.get('max')), 1,
+                   'T26 Coach vergibt interne Note');
+select tst.affects(format($q$insert into public.videos (team_id, title, url, player_ids) values (%L, 'Alle', 'https://example.com/a', '{}')$q$, tst.get('team_a')), 1, 'T26 Video für alle');
+select tst.affects(format($q$insert into public.videos (team_id, title, url, player_ids) values (%L, 'Nur P2', 'https://example.com/b', ARRAY[%L]::uuid[])$q$, tst.get('team_a'), tst.get('p2_player')), 1, 'T26 Video nur für P2');
+select tst.throws(format($q$insert into public.videos (team_id, title, url) values (%L, 'X', 'javascript:alert(1)')$q$, tst.get('team_a')), 'T26 nur http(s)-Links', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+begin
+  perform tst.eq((select count(*) from public.match_stats)::text, '1', 'T26 P1 sieht eigene Spieldaten');
+  perform tst.eq((select count(*) from public.player_ratings)::text, '1', 'T26 P1 sieht nur freigegebene Note');
+  perform tst.eq((select count(*) from public.videos)::text, '1', 'T26 P1 sieht Video für alle, nicht das für P2');
+end
+$$;
+select tst.throws(format($q$insert into public.player_ratings (player_id, date, kind, rating) values (%L, '2026-10-06', 'spiel', 10)$q$, tst.get('max')),
+                  'T26 P1 kann sich keine Note geben', 'row-level security');
+commit;
+
+begin;
+update public.teams set settings = settings || '{"playerView": {"ratings": false}}'::jsonb where id = tst.get('team_a')::uuid;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+begin
+  perform tst.eq((select count(*) from public.player_ratings)::text, '0', 'T26 Noten im Baukasten aus: P1 sieht keine Noten');
+end
+$$;
+commit;
+
+begin;
+update public.teams set settings = settings - 'playerView' where id = tst.get('team_a')::uuid;
+delete from public.player_ratings; delete from public.match_stats; delete from public.videos;
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

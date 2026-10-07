@@ -9,7 +9,7 @@ import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./date
 import { translator } from "./i18n";
 import type {
   Absence, AttStatus, CoachMsg, Complaint, CustomKind, Kind, Lang, Match, Pitch, Player, PotCat, Session, Status,
-  TeamData, TeamEvent, Wellness, WeekMode, MsgType, PlayerViewKey,
+  TeamData, TeamEvent, Wellness, WeekMode, MsgType, PlayerViewKey, Rating, Video,
 } from "./types";
 
 export interface EngineOptions {
@@ -414,6 +414,21 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     if (returning(p.id)) out.push({ cat: "verf", text: t("ph8") });
     return out;
   }
+  // ---------- Spiele & Bewertungen ----------
+  function seasonStats(pid: string) {
+    const st = D.matches.filter(m => m.date <= TODAY && D.stats[m.id]?.[pid]).map(m => D.stats[m.id][pid]);
+    const rs = D.ratings.filter(r => r.pid === pid && r.rating != null);
+    const played = st.filter(x => x.min > 0);
+    return {
+      games: played.length, starts: played.filter(x => x.start).length, min: sum(played.map(x => x.min)),
+      goals: sum(st.map(x => x.goals)), assists: sum(st.map(x => x.assists)),
+      avg: rs.length ? sum(rs.map(r => r.rating!)) / rs.length : null, best: rs.length ? Math.max(...rs.map(r => r.rating!)) : null,
+    };
+  }
+  const ratingsOf = (pid: string): Rating[] => D.ratings.filter(r => r.pid === pid).sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
+  /** Videos für einen Spieler (ohne Zuordnung = für alle) bzw. alle Videos. */
+  const videosFor = (pid?: string): Video[] => D.videos.filter(v => !pid || !v.pids.length || v.pids.includes(pid)).sort((a, b) => (a.date || "") < (b.date || "") ? 1 : -1);
+
   /** Darf der Spieler diesen Bereich sehen? (Baukasten: Modul aktiv + Freigabe für Spieler) */
   const playerSees = (key: PlayerViewKey): boolean => {
     const def = PLAYER_VIEW.find(x => x.key === key); if (!def) return true;
@@ -584,7 +599,7 @@ Empfehlung des Trainers: ${activeMsgs(p.id).map(m => t("ry_" + m.typ) + ": " + m
     profile, advice, nextItem, sessAvg, dataHints, activeMsgs, suggestRec,
     playerState, playerSessions, playerOpenSession, tipRegen, tipGym, tipExtra, tipFood, tipSleep,
     aiContext, aiSessionPrompt, potPrompt, playerAiContext,
-    wt, de, isGrowthAge: () => isGrowthAge(team.cls), playerSees,
+    wt, de, isGrowthAge: () => isGrowthAge(team.cls), playerSees, seasonStats, ratingsOf, videosFor,
   };
 }
 

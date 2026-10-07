@@ -7,8 +7,8 @@ import { addDays, iso, monday } from "../core/dates";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
 import type {
-  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Player, PlanOverride,
-  Potential, RpeEntry, Session, TeamData, TeamEvent, WeekMode, Wellness,
+  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
+  Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, Video, WeekMode, Wellness,
 } from "../core/types";
 import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo } from "./api";
 import { DemoApi } from "./demoApi";
@@ -226,6 +226,15 @@ function useStoreValue() {
     saveMessage: (pid: string, m: CoachMsg) => change(D => { (D.msgs[pid] ||= []).push(m); }, async api => { const saved = await api.saveMessage(pid, m); replaceIn(ref.current.D!.msgs[pid] || [], m, saved); }),
     deleteMessage: (pid: string, id: string) => change(D => { D.msgs[pid] = (D.msgs[pid] || []).filter(x => x.id !== id); }, api => api.deleteMessage(id)),
     saveNote: (pid: string, text: string) => change(D => { D.notes[pid] = text; }, api => api.saveNote(pid, text)),
+
+    // Spiele, Bewertungen, Videos
+    saveStat: (matchId: string, pid: string, st: MatchStat | null) => change(D => { const m = (D.stats[matchId] ||= {}); if (st) m[pid] = st; else delete m[pid]; }, (api, t) => api.saveStat(t, matchId, pid, st)),
+    saveRating: (r: Rating) => { const isNew = r.id.startsWith("tmp-"); return change(D => { if (isNew) D.ratings.push(r); else Object.assign(D.ratings.find(x => x.id === r.id)!, r); },
+      async (api, t) => { const saved = await api.saveRating(t, r); replaceIn(ref.current.D!.ratings, r, saved); }); },
+    deleteRating: (id: string) => change(D => { D.ratings = D.ratings.filter(x => x.id !== id); }, api => api.deleteRating(id)),
+    saveVideo: (v: Video) => { const isNew = v.id.startsWith("tmp-"); return change(D => { if (isNew) D.videos.push(v); else Object.assign(D.videos.find(x => x.id === v.id)!, v); },
+      async (api, t) => { const saved = await api.saveVideo(t, v); replaceIn(ref.current.D!.videos, v, saved); }); },
+    deleteVideo: (id: string) => change(D => { D.videos = D.videos.filter(x => x.id !== id); }, api => api.deleteVideo(id)),
 
     // KI
     ai: (mode: "coach" | "player" | "session" | "potentials" | "kind", prompt: string, context: string) => {

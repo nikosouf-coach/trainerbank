@@ -36,7 +36,7 @@ export default function Kalender() {
 
   const dayRow = (x: PlanItem) => {
     const its: React.ReactNode[] = [];
-    if (x.match) its.push(<Item key="m" testID={"cal-match-" + x.date} kind={t("it_match")} color={c.accentTx} text={`${x.match.zeit} · ${t("vs")} ${x.match.gegner} (${x.match.heim ? t("home") : t("away")}${x.match.comp !== "liga" ? ", " + t("comp_" + x.match.comp) : ""})`} onPress={() => sheets.open({ k: "add", date: x.date, type: "match", obj: x.match! })} />);
+    if (x.match) its.push(<Item key="m" testID={"cal-match-" + x.date} kind={t("it_match")} color={c.accentTx} text={`${x.match.zeit} · ${t("vs")} ${x.match.gegner} (${x.match.heim ? t("home") : t("away")}${x.match.comp !== "liga" ? ", " + t("comp_" + x.match.comp) : ""})`} onPress={() => x.date <= E.TODAY && mods.spielanalyse ? router.push("/coach/spiel/" + x.match!.id) : sheets.open({ k: "add", date: x.date, type: "match", obj: x.match! })} />);
     if (x.train && x.train.kind === "frei") its.push(<Item key="r" kind={t("k_frei")} color={c.ok} text={tf("restDay", { md: x.md })} onPress={() => sheets.open({ k: "day", date: x.date })} />);
     else if (x.train) its.push(<Item key="t" testID={"cal-train-" + x.date} kind={t("it_training")} color={rpeColor(c, showI ? x.train.rpe : 5)} text={`${E.zeitOf(x.date)} · ${E.kn(x.train.kind)}${showI ? " · " + E.intWord(x.train.rpe) : ""}`} onPress={() => openTrain(x.date)} />);
     if (x.cancelled) its.push(<Item key="c" off kind={t("it_training")} color={c.muted} text={t("cancelled")} onPress={() => sheets.open({ k: "day", date: x.date })} />);

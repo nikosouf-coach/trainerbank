@@ -19,6 +19,8 @@ export default function Mehr() {
         <ListItem testID="mehr-team" title={t("mh_team")} sub={`${team.club} · ${team.name} · ${classLabel(classDef(team.cls), E.tr.lang)} · ${t("dp_" + team.depth)}`} right={chev} onPress={() => go("/coach/team")} />
         <ListItem testID="mehr-training" title={t("mh_training")} sub={tf("mh_trainingSub", { n: nDays })} right={chev} onPress={() => go("/coach/training")} />
         <ListItem testID="mehr-baukasten" title={t("bk_title")} sub={t("bk_sub")} right={chev} onPress={() => go("/coach/baukasten")} />
+        {E.mods.spielanalyse ? <ListItem testID="mehr-spiele" title={t("sp_list")} sub={t("sp_listSub")} right={chev} onPress={() => go("/coach/spiele")} /> : null}
+        {E.mods.videos ? <ListItem testID="mehr-videos" title={t("sp_lib")} sub={t("sp_libSub")} right={chev} onPress={() => go("/coach/videos")} /> : null}
         <ListItem testID="mehr-zugang" title={t("mh_access")} sub={t("cd_title") + " · " + t("st_title2")} right={chev} onPress={() => go("/coach/zugang")} />
         <ListItem testID="mehr-konto" title={t("mh_account")} sub={s.isDemo ? t("w_demoHint") : s.user?.email || ""} right={chev} onPress={() => go("/konto")} />
       </Card>

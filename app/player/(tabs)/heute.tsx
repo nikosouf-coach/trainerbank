@@ -6,7 +6,7 @@ import { gameOf, XP } from "../../../src/core/game";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Ring } from "../../../src/ui/charts";
 import { Card, Col, Msg, Row, Screen, T } from "../../../src/ui/kit";
-import { Badges, Goals, LevelHero, NextDates, TodoTile, WeekRings } from "../../../src/ui/player/parts";
+import { Badges, Goals, LevelHero, NewRating, NextDates, TodoTile, WeekRings } from "../../../src/ui/player/parts";
 import { msgColor } from "../../../src/ui/squad/ProfileCards";
 import { useTheme } from "../../../src/ui/theme";
 
@@ -27,6 +27,7 @@ export default function PlayerHeute() {
         <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} xp={XP.well} done={wellDone} color="#16a3a3" onPress={() => router.push("/player/eintragen?tab=well")} />
         <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} xp={XP.rpe} done={!open} color="#f0762b" onPress={() => router.push("/player/eintragen?tab=rpe")} />
       </Row> : null}
+      <NewRating pid={p.id} />
       {msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}
       {seesLoad && (E.mods.belastung || E.mods.regeneration) ? <Card testID="player-body" tone={stCol}>
         <Row gap={14}>

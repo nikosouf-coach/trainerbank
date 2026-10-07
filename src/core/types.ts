@@ -77,7 +77,7 @@ export interface Player {
   /** IDs eigener Gruppen (TeamSettings.groups). */
   groups?: string[];
 }
-export interface Match { id: string; date: string; zeit: string; gegner: string; heim: boolean; comp: "liga" | "pokal" | "test" }
+export interface Match { id: string; date: string; zeit: string; gegner: string; heim: boolean; comp: "liga" | "pokal" | "test"; /** Ergebnis aus eigener Sicht */ result?: { own: number; opp: number } | null }
 export interface TeamEvent { id: string; date: string; zeit: string; titel: string; typ: string; ersetzt: boolean }
 export interface CalOverride { cancel?: boolean; extra?: boolean; zeit?: string; dauer?: number }
 export interface PlanOverride { kind?: Kind; rpe?: number; dauer?: number; inhalt?: string; keepRest?: boolean }
@@ -94,6 +94,12 @@ export interface Growth { date: string; cm: number }
 export interface CustomKind { id: string; name: string; rpe: number; inhalt: string }
 export interface Potential { id: string; cat: PotCat; text: string; vis: boolean; src: "trainer" | "daten" | "ki" }
 export interface CoachMsg { id: string; date: string; typ: MsgType; text: string; bis: string | null }
+/** Spieldaten eines Spielers in einem Spiel (vom Trainerteam erfasst). */
+export interface MatchStat { min: number; goals: number; assists: number; start: boolean }
+/** Note (1–10, eine Nachkommastelle) und Feedback des Trainers zu Spiel oder Training. */
+export interface Rating { id: string; pid: string; date: string; kind: "spiel" | "training"; rating: number | null; text: string; vis: boolean }
+/** Video-Link (YouTube, Veo, Hudl, Vimeo, Cloud …) zu Spiel, Spielern oder Übung. */
+export interface Video { id: string; title: string; url: string; date: string | null; matchId: string | null; pids: string[]; note: string; vis: boolean }
 
 /** Alles, was die Fachlogik über ein Team wissen muss. */
 export interface TeamData {
@@ -115,11 +121,16 @@ export interface TeamData {
   pot: Record<string, Potential[]>;
   msgs: Record<string, CoachMsg[]>;
   notes: Record<string, string>;
+  /** Spieldaten je Spiel-ID und Spieler-ID */
+  stats: Record<string, Record<string, MatchStat>>;
+  ratings: Rating[];
+  videos: Video[];
 }
 
 export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
+    stats: {}, ratings: [], videos: [],
   };
 }

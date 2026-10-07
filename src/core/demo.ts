@@ -112,3 +112,38 @@ export function sampleFixtures(team: Team, now: Date = new Date()): string {
     return `${WT[d.getDay()]}, ${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()} | ${team.settings.anstoss} | ${home ? own + " - " + opp : opp + " - " + own}`;
   }).join("\n");
 }
+
+/**
+ * Zusätzliche Demo-Daten für neuere Bausteine (Ergebnisse, Spieldaten, Noten, Videos).
+ * Getrennt von buildDemo, damit die mit dem Prototyp abgeglichenen Daten unverändert bleiben.
+ */
+export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): void {
+  const r = rng(77), TODAY = iso(now), en = lang === "en";
+  const past = D.matches.filter(m => m.date < TODAY).sort((a, b) => a.date < b.date ? -1 : 1);
+  const attack = (pos: string) => ["ST", "OM", "LM", "RM"].includes(pos) ? 0.35 : ["ZM", "DM"].includes(pos) ? 0.12 : pos === "TW" ? 0 : 0.05;
+  const texts = en
+    ? ["Strong in duels, keep it up.", "Good runs in behind – finish more calmly.", "Organised the back line well.", "Too passive after losing the ball.", "Very good pressing, great energy.", "Decision-making in the final third can improve."]
+    : ["Stark in den Zweikämpfen, weiter so.", "Gute Tiefenläufe – im Abschluss ruhiger bleiben.", "Kette gut organisiert.", "Nach Ballverlust zu passiv.", "Sehr gutes Pressing, tolle Energie.", "Entscheidungen im letzten Drittel verbessern."];
+  let vid = 1, rid = 1;
+  past.forEach((m, mi) => {
+    const st: Record<string, { min: number; goals: number; assists: number; start: boolean }> = {};
+    let own = 0;
+    for (const p of D.players) {
+      const e = D.rpe[p.id]?.[m.date]; const min = e ? e.min : 0; if (!min) continue;
+      const g = r() < attack(p.pos) * (min / 90) ? (r() < 0.2 ? 2 : 1) : 0, a = r() < attack(p.pos) * 0.8 * (min / 90) ? 1 : 0;
+      own += g; st[p.id] = { min, goals: g, assists: a, start: min >= 60 };
+    }
+    D.stats[m.id] = st;
+    m.result = { own, opp: Math.floor(r() * 3) + (r() < 0.3 ? 1 : 0) };
+    if (mi >= past.length - 3) {
+      for (const pid of Object.keys(st)) {
+        const rating = Math.round((5.6 + r() * 2.9 + Math.min(1, st[pid].goals * 0.6 + st[pid].assists * 0.3)) * 10) / 10;
+        D.ratings.push({ id: "r" + (rid++), pid, date: m.date, kind: "spiel", rating: Math.min(10, rating), text: r() < 0.45 ? texts[Math.floor(r() * texts.length)] : "", vis: true });
+      }
+      D.videos.push({ id: "v" + (vid++), title: (en ? "Highlights vs " : "Highlights gegen ") + m.gegner, url: "https://example.com/video/" + m.date, date: m.date, matchId: m.id, pids: [], note: en ? "Full match and key scenes" : "Gesamtes Spiel und Schlüsselszenen", vis: true });
+    }
+  });
+  const lastTr = D.sessions.filter(s => s.typ === "Training" && s.date < TODAY).at(-1);
+  if (lastTr) for (const pid of ["p1", "p8", "p12"]) D.ratings.push({ id: "r" + (rid++), pid, date: lastTr.date, kind: "training", rating: Math.round((6.5 + r() * 2) * 10) / 10, text: texts[Math.floor(r() * texts.length)], vis: true });
+  D.videos.push({ id: "v" + (vid++), title: en ? "Pressing triggers – clips for the back line" : "Pressing-Auslöser – Clips für die Abwehrkette", url: "https://example.com/video/pressing", date: null, matchId: null, pids: ["p2", "p3", "p4"], note: "", vis: true });
+}

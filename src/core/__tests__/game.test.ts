@@ -17,7 +17,7 @@ test("Spieler mit Einträgen hat XP, Level und Abzeichen", () => {
   const g = gameOf(E, "p1");
   assert.ok(g.xp > 0);
   assert.ok(g.level >= 1 && g.xp >= g.levelStart && g.xp < g.levelNext);
-  assert.equal(g.badges.length, 8);
+  assert.ok(g.badges.length >= 8);
   assert.ok(g.week.checkins.done <= g.week.checkins.total);
   assert.ok(g.streak <= g.bestStreak || g.streak === 0);
 });

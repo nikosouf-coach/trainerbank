@@ -10,6 +10,7 @@ import { useEngine, useStore } from "../../data/store";
 import { Icon, type IconName } from "../icons";
 import { Btn, Card, Col, Info, Muted, Row, T } from "../kit";
 import { PlayerAvatar } from "../playerAvatar";
+import { RatingBadge, ratingColor, StatTile, VideoList } from "../games";
 import { potColor } from "../squad/ProfileCards";
 import { radius, space, useTheme, withAlpha } from "../theme";
 
@@ -93,7 +94,7 @@ export function WeekRings({ g }: { g: GameState }) {
   );
 }
 
-const BADGE_ICON: Record<string, IconName> = { first: "check", streak7: "flame", perfect: "star", rpe: "bolt", att: "calendar", sleep: "moon", extra: "plus", streak30: "trophy" };
+const BADGE_ICON: Record<string, IconName> = { first: "check", streak7: "flame", perfect: "star", rpe: "bolt", att: "calendar", sleep: "moon", extra: "plus", streak30: "trophy", goal: "target", assist: "spark", top: "star" };
 const BADGE_COL = ["#f2b705", "#f0762b", "#16a3a3", "#7b5fd0", "#2f9e44", "#3a6db5", "#d6336c", "#e8590c"];
 
 /** Abzeichen: erreichte farbig, offene grau mit Fortschritt. */
@@ -214,3 +215,61 @@ export function HealthConsentGate() {
 
 /** Kurzer Weg zu einem Ziel innerhalb der Spieler-App. */
 export function useGo() { const router = useRouter(); return (h: string) => router.push(h); }
+
+/** Neueste Bewertung des Trainers (letzte 10 Tage). */
+export function NewRating({ pid }: { pid: string }) {
+  const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
+  const r = E.ratingsOf(pid).find(x => x.vis && diff(x.date, E.TODAY) <= 10 && (x.rating != null || x.text));
+  if (!r || !E.playerSees("ratings")) return null;
+  const m = r.kind === "spiel" ? E.D.matches.find(x => x.date === r.date) : null;
+  return (
+    <Pressable testID="player-newrating" accessibilityRole="button" onPress={() => router.push("/player/daten")}>
+      <Card tone={ratingColor(r.rating)}>
+        <Row gap={12} align="flex-start">
+          <RatingBadge value={r.rating} size="l" />
+          <Col gap={3} style={{ flex: 1 }}>
+            <T v="eyebrow">{t("pl_newRating")}</T>
+            <Text style={{ fontWeight: "800", fontSize: 15, color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}</Text>
+            {r.text ? <Text style={{ fontSize: 14, color: c.ink }}>{r.text}</Text> : null}
+          </Col>
+        </Row>
+      </Card>
+    </Pressable>
+  );
+}
+
+/** Saisonwerte, Notenverlauf mit Feedback und Videos für den Spieler. */
+export function MySeason({ pid }: { pid: string }) {
+  const E = useEngine(); const { t } = E; const { c } = useTheme();
+  const ss = E.seasonStats(pid), rs = E.ratingsOf(pid).filter(r => r.vis);
+  const vids = E.videosFor(pid).filter(v => v.vis);
+  return (
+    <>
+      {E.playerSees("stats") ? <Card testID="pd-season">
+        <T v="h3">{t("pl_mySeason")}</T>
+        <Row wrap gap={8}>
+          <StatTile label={t("sp_games")} value={String(ss.games)} />
+          <StatTile label={t("sp_min")} value={String(ss.min)} />
+          <StatTile label={t("sp_goals")} value={String(ss.goals)} color={ss.goals ? GOLD : undefined} />
+          <StatTile label={t("sp_assists")} value={String(ss.assists)} color={ss.assists ? c.low : undefined} />
+        </Row>
+      </Card> : null}
+      {E.playerSees("ratings") && rs.length ? <Card testID="pd-ratings">
+        <Row between><T v="h3">{t("pl_ratings")}</T>{ss.avg != null ? <Row gap={6}><Muted small>{t("sp_avg")}</Muted><RatingBadge value={Math.round(ss.avg * 10) / 10} size="s" /></Row> : null}</Row>
+        <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 4, height: 70 }}>
+          {rs.filter(r => r.rating != null).slice(0, 12).reverse().map(r => <View key={r.id} style={{ flex: 1, height: `${Math.max(10, (r.rating! - 3) / 7 * 100)}%`, backgroundColor: ratingColor(r.rating), borderRadius: 4 }} />)}
+        </View>
+        {rs.slice(0, 8).map(r => { const m = r.kind === "spiel" ? E.D.matches.find(x => x.date === r.date) : null; return (
+          <Row key={r.id} gap={10} align="flex-start">
+            <RatingBadge value={r.rating} size="s" />
+            <Col gap={1} style={{ flex: 1 }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}</Text>
+              {r.text ? <Text style={{ fontSize: 13.5, color: c.ink }}>{r.text}</Text> : null}
+            </Col>
+          </Row>
+        ); })}
+      </Card> : null}
+      {E.playerSees("videos") && vids.length ? <Card testID="pd-videos"><T v="h3">{t("pl_videos")}</T><VideoList videos={vids} /></Card> : null}
+    </>
+  );
+}

@@ -10,7 +10,7 @@ import { Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, 
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
-import { ExtraCard, PotCard, RecCard } from "../../../src/ui/squad/ProfileCards";
+import { ExtraCard, GamesCard, PotCard, RecCard } from "../../../src/ui/squad/ProfileCards";
 import { radius, statusColor, useTheme } from "../../../src/ui/theme";
 import type { Player } from "../../../src/core/types";
 
@@ -155,6 +155,7 @@ export default function Spieler() {
       {regen}
       {growth}
       {load}
+      <GamesCard p={p} />
       <PotCard p={p} />
       <ExtraCard p={p} />
       {wide ? <Row align="flex-start" gap={18}>{absCard}{notes}</Row> : <>{absCard}{notes}</>}

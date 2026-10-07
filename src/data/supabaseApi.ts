@@ -5,7 +5,7 @@ import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "
 import { addDays, iso, monday } from "../core/dates";
 import type {
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
-  Player, PlanOverride, Potential, RpeEntry, Session, Team, TeamData, TeamEvent, WeekMode, Wellness,
+  MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, Video, WeekMode, Wellness,
 } from "../core/types";
 import { emptyTeamData } from "../core/types";
 import {
@@ -54,7 +54,10 @@ const mapPlayer = (r: Row): Player => ({
   id: r.id, vn: r.first_name, nn: r.last_name || "", pos: r.position || "", nr: r.shirt_number ?? null, geb: r.birthdate || "",
   kg: r.weight_kg != null ? Number(r.weight_kg) : null, photo: r.photo_path || null, userId: r.user_id || null, neu: !!r.is_new, active: r.active !== false, groups: r.groups || [],
 });
-const mapMatch = (r: Row): Match => ({ id: r.id, date: r.date, zeit: r.time || "15:00", gegner: r.opponent || "", heim: !!r.home, comp: r.competition || "liga" });
+const mapMatch = (r: Row): Match => ({ id: r.id, date: r.date, zeit: r.time || "15:00", gegner: r.opponent || "", heim: !!r.home, comp: r.competition || "liga",
+  result: r.goals_for != null && r.goals_against != null ? { own: r.goals_for, opp: r.goals_against } : null });
+const mapRating = (r: Row): Rating => ({ id: r.id, pid: r.player_id, date: r.date, kind: r.kind, rating: r.rating != null ? Number(r.rating) : null, text: r.text || "", vis: !!r.visible });
+const mapVideo = (r: Row): Video => ({ id: r.id, title: r.title, url: r.url, date: r.date || null, matchId: r.match_id || null, pids: r.player_ids || [], note: r.note || "", vis: !!r.visible });
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
 const mapAbs = (r: Row): Absence => ({ id: r.id, pid: r.player_id, typ: r.type, von: r.from_date, bis: r.to_date, stufe: r.stage, notiz: r.note || "", by: r.reported_by_player ? "player" : "coach" });
 const mapExtra = (r: Row): Extra => ({ id: r.id, date: r.date, art: r.type, min: r.minutes, rpe: Number(r.rpe ?? 5), label: r.label || undefined });
@@ -126,7 +129,7 @@ export class SupabaseApi implements Api {
     const staff = m.role !== "player";
     const [players, matches, events, cal, over, modes, kinds, sessions] = await Promise.all([
       q(sb.from("players").select("*").eq("team_id", tid).eq("active", true).order("shirt_number", { ascending: true, nullsFirst: false })),
-      q(sb.from("matches").select("*").eq("team_id", tid).gte("date", addDays(today, -120)).order("date")),
+      q(sb.from("matches").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).order("date")),
       q(sb.from("team_events").select("*").eq("team_id", tid).gte("date", addDays(today, -60)).order("date")),
       q(sb.from("calendar_overrides").select("*").eq("team_id", tid).gte("date", addDays(today, -90))),
       q(sb.from("plan_overrides").select("*").eq("team_id", tid).gte("date", addDays(today, -90))),
@@ -170,6 +173,15 @@ export class SupabaseApi implements Api {
         const notes = await q(sb.from("coach_notes").select("player_id, text").in("player_id", ids));
         for (const r of notes) D.notes[r.player_id] = r.text;
       }
+      // Spieldaten, Noten, Videos (für Spieler filtern die Zugriffsregeln auf eigene, freigegebene Einträge)
+      const [stats, ratings, videos] = await Promise.all([
+        all((a, b) => sb.from("match_stats").select("*").eq("team_id", tid).range(a, b)),
+        all((a, b) => sb.from("player_ratings").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).range(a, b)),
+        q(sb.from("videos").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
+      ]);
+      for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started };
+      D.ratings = ratings.map(mapRating);
+      D.videos = videos.map(mapVideo);
     }
     if (!staff) {
       // Spieler sehen den vom Trainer veröffentlichten Plan. Er wird als Vorgabe übernommen,
@@ -203,7 +215,7 @@ export class SupabaseApi implements Api {
 
   // ---------- Kalender & Plan ----------
   async saveMatch(teamId: string, m: Match) {
-    const row: Row = { team_id: teamId, date: m.date, time: m.zeit || null, opponent: m.gegner, home: m.heim, competition: m.comp };
+    const row: Row = { team_id: teamId, date: m.date, time: m.zeit || null, opponent: m.gegner, home: m.heim, competition: m.comp, goals_for: m.result ? m.result.own : null, goals_against: m.result ? m.result.opp : null };
     const r = isTmp(m.id) ? await q<Row>(this.sb.from("matches").insert(row).select().single()) : await q<Row>(this.sb.from("matches").update(row).eq("id", m.id).select().single());
     return mapMatch(r);
   }
@@ -305,6 +317,24 @@ export class SupabaseApi implements Api {
   }
   async deleteMessage(id: string) { await q(this.sb.from("coach_messages").delete().eq("id", id)); }
   async saveNote(pid: string, text: string) { await q(this.sb.from("coach_notes").upsert({ player_id: pid, text })); }
+
+  // ---------- Spiele, Bewertungen, Videos ----------
+  async saveStat(teamId: string, matchId: string, pid: string, st: MatchStat | null) {
+    if (!st) { await q(this.sb.from("match_stats").delete().eq("match_id", matchId).eq("player_id", pid)); return; }
+    await q(this.sb.from("match_stats").upsert({ team_id: teamId, match_id: matchId, player_id: pid, minutes: st.min, goals: st.goals, assists: st.assists, started: st.start }));
+  }
+  async saveRating(teamId: string, x: Rating) {
+    const row: Row = { team_id: teamId, player_id: x.pid, date: x.date, kind: x.kind, rating: x.rating, text: x.text || null, visible: x.vis };
+    const r = isTmp(x.id) ? await q<Row>(this.sb.from("player_ratings").insert(row).select().single()) : await q<Row>(this.sb.from("player_ratings").update(row).eq("id", x.id).select().single());
+    return mapRating(r);
+  }
+  async deleteRating(id: string) { await q(this.sb.from("player_ratings").delete().eq("id", id)); }
+  async saveVideo(teamId: string, v: Video) {
+    const row: Row = { team_id: teamId, title: v.title, url: v.url, date: v.date, match_id: v.matchId, player_ids: v.pids, note: v.note || null, visible: v.vis };
+    const r = isTmp(v.id) ? await q<Row>(this.sb.from("videos").insert(row).select().single()) : await q<Row>(this.sb.from("videos").update(row).eq("id", v.id).select().single());
+    return mapVideo(r);
+  }
+  async deleteVideo(id: string) { await q(this.sb.from("videos").delete().eq("id", id)); }
 
   // ---------- Einwilligungen, Push, Datenschutz ----------
   async consents(): Promise<ConsentState> {

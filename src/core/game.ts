@@ -67,5 +67,9 @@ export function gameOf(E: Engine, pid: string): GameState {
     b("extra", ex14 / 3),
     b("streak30", bestStreak / 30),
   ];
+  if (E.mods.spielanalyse) {
+    const ss = E.seasonStats(pid);
+    badges.push(b("goal", ss.goals ? 1 : 0), b("assist", ss.assists ? 1 : 0), b("top", ss.best != null ? Math.min(1, ss.best / 8) : 0));
+  }
   return { xp, level, levelStart, levelNext, pct: (xp - levelStart) / Math.max(1, levelNext - levelStart), streak, bestStreak, checkedToday, week, badges };
 }
