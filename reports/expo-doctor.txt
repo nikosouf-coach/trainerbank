@@ -1,0 +1,3 @@
+npm warn exec The following package was not found and will be installed: expo-doctor@1.20.4
+Running 21 checks on your project...
+21/21 checks passed. No issues detected!

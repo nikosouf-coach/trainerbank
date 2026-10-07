@@ -1,0 +1,5 @@
+
+> trainerbank@1.0.0 typecheck
+> tsc --noEmit
+
+app.config.ts(14,3): error TS2353: Object literal may only specify known properties, and 'newArchEnabled' does not exist in type 'ExpoConfig'.

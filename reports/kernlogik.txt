@@ -1,0 +1,140 @@
+
+> trainerbank@1.0.0 test
+> tsc -p tsconfig.core.json && node --test .build/src/core/__tests__/*.test.js
+
+TAP version 13
+# Subtest: Demo-Daten und Wochenpläne für alle Altersklassen und Tiefen ohne Fehler
+ok 1 - Demo-Daten und Wochenpläne für alle Altersklassen und Tiefen ohne Fehler
+  ---
+  duration_ms: 5539.936896
+  type: 'test'
+  ...
+# Subtest: Spieltags-Bezug: Sonntagsspiel → Mo MD+1, Di MD+2, Mi MD-4, Sa MD-1
+ok 2 - Spieltags-Bezug: Sonntagsspiel → Mo MD+1, Di MD+2, Mi MD-4, Sa MD-1
+  ---
+  duration_ms: 1.913497
+  type: 'test'
+  ...
+# Subtest: Prinzipien: MD-4 intensiv, MD+2 frei (U19-Standard)
+ok 3 - Prinzipien: MD-4 intensiv, MD+2 frei (U19-Standard)
+  ---
+  duration_ms: 5.021351
+  type: 'test'
+  ...
+# Subtest: Entlastung senkt die Trainingslast um mindestens 25 %, Aufbau erhöht oder erklärt die Grenze
+ok 4 - Entlastung senkt die Trainingslast um mindestens 25 %, Aufbau erhöht oder erklärt die Grenze
+  ---
+  duration_ms: 11.113068
+  type: 'test'
+  ...
+# Subtest: Englische Woche: Aufbau wird begründet abgelehnt
+ok 5 - Englische Woche: Aufbau wird begründet abgelehnt
+  ---
+  duration_ms: 4.480883
+  type: 'test'
+  ...
+# Subtest: Erholungsmodell nach Alter
+ok 6 - Erholungsmodell nach Alter
+  ---
+  duration_ms: 1.801839
+  type: 'test'
+  ...
+# Subtest: Spielplan-Import: Text und .ics
+ok 7 - Spielplan-Import: Text und .ics
+  ---
+  duration_ms: 2.059219
+  type: 'test'
+  ...
+# Subtest: KI-Potenziale werden zerlegt
+ok 8 - KI-Potenziale werden zerlegt
+  ---
+  duration_ms: 0.360742
+  type: 'test'
+  ...
+# Subtest: Demo-Daten sind deterministisch
+ok 9 - Demo-Daten sind deterministisch
+  ---
+  duration_ms: 4.862284
+  type: 'test'
+  ...
+# Subtest: Level-Schwellen steigen
+ok 10 - Level-Schwellen steigen
+  ---
+  duration_ms: 2.119791
+  type: 'test'
+  ...
+# Subtest: Spieler mit Einträgen hat XP, Level und Abzeichen
+ok 11 - Spieler mit Einträgen hat XP, Level und Abzeichen
+  ---
+  duration_ms: 53.718204
+  type: 'test'
+  ...
+# Subtest: Serie zählt aufeinanderfolgende Check-ins
+ok 12 - Serie zählt aufeinanderfolgende Check-ins
+  ---
+  duration_ms: 29.901945
+  type: 'test'
+  ...
+# Subtest: Bewertung nach Orientierungswerten (Zeiten: kleiner ist besser)
+ok 13 - Bewertung nach Orientierungswerten (Zeiten: kleiner ist besser)
+  ---
+  duration_ms: 0.985067
+  type: 'test'
+  ...
+# Subtest: CMJ-Abfall wird erkannt und verlängert die Erholung
+ok 14 - CMJ-Abfall wird erkannt und verlängert die Erholung
+  ---
+  duration_ms: 33.139824
+  type: 'test'
+  ...
+# Subtest: Laufvorgaben aus V_IFT
+ok 15 - Laufvorgaben aus V_IFT
+  ---
+  duration_ms: 5.175168
+  type: 'test'
+  ...
+# Subtest: Vorbereitung: Einstieg, Aufbau mit Entlastung (3:1), Taper, Ein- und Ausgangstest
+ok 16 - Vorbereitung: Einstieg, Aufbau mit Entlastung (3:1), Taper, Ein- und Ausgangstest
+  ---
+  duration_ms: 2.388072
+  type: 'test'
+  ...
+# Subtest: Pause: Erholung zuerst, Anlauf am Ende, Programm mit 2–4 Trainingseinheiten pro Woche
+ok 17 - Pause: Erholung zuerst, Anlauf am Ende, Programm mit 2–4 Trainingseinheiten pro Woche
+  ---
+  duration_ms: 1.712823
+  type: 'test'
+  ...
+# Subtest: Angebrochene Woche: wichtigste Reize zuerst, eine Einheit pro Tag
+ok 18 - Angebrochene Woche: wichtigste Reize zuerst, eine Einheit pro Tag
+  ---
+  duration_ms: 0.492098
+  type: 'test'
+  ...
+# Subtest: Pausentage: kein Mannschaftstraining, nicht als abgesagt markiert; Extra-Termin bleibt möglich
+ok 19 - Pausentage: kein Mannschaftstraining, nicht als abgesagt markiert; Extra-Termin bleibt möglich
+  ---
+  duration_ms: 33.618143
+  type: 'test'
+  ...
+# Subtest: Umsetzung: abgehakte Programm-Einheiten, laufende Woche anteilig, Abzeichen
+ok 20 - Umsetzung: abgehakte Programm-Einheiten, laufende Woche anteilig, Abzeichen
+  ---
+  duration_ms: 20.416832
+  type: 'test'
+  ...
+# Subtest: Demo enthält Phasen mit Programm und Umsetzung
+ok 21 - Demo enthält Phasen mit Programm und Umsetzung
+  ---
+  duration_ms: 26.727697
+  type: 'test'
+  ...
+1..21
+# tests 21
+# suites 0
+# pass 21
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 5719.695709
