@@ -13,6 +13,7 @@ import type {
 import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo } from "./api";
 import { DemoApi } from "./demoApi";
 import { hasSupabase } from "./supabase";
+import { forgetPhoto } from "../ui/playerAvatar";
 
 const K_TEAM = "tb.activeTeam", K_LANG = "tb.lang";
 let tmp = 1;
@@ -207,7 +208,7 @@ function useStoreValue() {
     mergePlayers: async (newId: string, existingId: string) => { await ref.current.api.mergePlayers(newId, existingId); await reload(); },
     uploadPhoto: async (pid: string, uri: string) => {
       const { api, active, D } = ref.current; if (!D || !active) return;
-      const path = await api.uploadPhoto(active.teamId, pid, uri); const p = D.players.find(x => x.id === pid); if (p) p.photo = path;
+      const path = await api.uploadPhoto(active.teamId, pid, uri); forgetPhoto(path); const p = D.players.find(x => x.id === pid); if (p) p.photo = path;
       set({ version: ref.current.version + 1 });
     },
     setAttendance: (date: string, pid: string, st: AttStatus | null) => change(D => { if (st) (D.att[date] ||= {})[pid] = st; else if (D.att[date]) delete D.att[date][pid]; }, (api, t) => api.setAttendance(t, date, pid, st)),

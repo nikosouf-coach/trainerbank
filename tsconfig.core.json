@@ -9,7 +9,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "types": ["node"],
-    "outDir": "/tmp/claude-0/tb-build",
+    "outDir": ".build",
     "rootDir": "."
   },
   "include": ["src/core/**/*.ts", "src/i18n/**/*.ts"]

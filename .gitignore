@@ -11,3 +11,4 @@ android/
 coverage/
 supabase/.temp/
 supabase/.branches/
+.build/
