@@ -57,7 +57,7 @@ export function useAi() {
  * Karte mit Schnellfragen, Eingabefeld und Antwort.
  * mode: "coach" (Trainer) oder "player" (Spieler-App); context: Text aus der Fachlogik (engine.aiContext / playerAiContext).
  */
-export function AiPanel({ mode, context, quick, placeholder, note, testID = "ai" }: { mode: AiMode; context: () => string; quick: string[]; placeholder: string; note?: string; testID?: string }) {
+export function AiPanel({ mode, context, quick, placeholder, note, testID = "ai", onQuick }: { mode: AiMode; context: () => string; quick: string[]; placeholder: string; note?: string; testID?: string; onQuick?: (key: string) => boolean }) {
   const s = useStore(); const { t } = s.tr; const { c } = useTheme();
   const [q, setQ] = useState("");
   const ai = useAi();
@@ -68,7 +68,7 @@ export function AiPanel({ mode, context, quick, placeholder, note, testID = "ai"
     <Card testID={testID}>
       <Row gap={8}><Icon name="spark" color={c.accentTx} /><T v="h2" style={{ flexShrink: 1 }}>{t("ki_title")}</T>{note ? <Info title={t("ki_title")} text={note} /> : null}</Row>
       <Row wrap gap={6}>
-        {quick.map((k, i) => <Btn key={k} small testID={testID + "-q" + (i + 1)} label={t(k)} disabled={ai.busy} onPress={() => { setQ(t(k)); ask(t(k)); }} />)}
+        {quick.map((k, i) => <Btn key={k} small testID={testID + "-q" + (i + 1)} label={t(k)} disabled={ai.busy} onPress={() => { if (onQuick?.(k)) return; setQ(t(k)); ask(t(k)); }} />)}
       </Row>
       <Field testID={testID + "-input"} label={placeholder} value={q} onChangeText={setQ} multiline />
       <Row gap={8}>
