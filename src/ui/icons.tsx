@@ -1,5 +1,6 @@
 // Linien-Icons (24×24) als SVG.
 import React from "react";
+import type { ColorValue } from "react-native";
 import Svg, { Circle, Path, Rect } from "react-native-svg";
 
 export type IconName =
@@ -36,9 +37,9 @@ const P: Record<IconName, React.ReactNode> = {
   target: <><Circle cx={12} cy={12} r={9} /><Circle cx={12} cy={12} r={5} /><Circle cx={12} cy={12} r={1.5} /></>,
 };
 
-export function Icon({ name, size = 22, color = "#000", strokeWidth = 1.8 }: { name: IconName; size?: number; color?: string; strokeWidth?: number }) {
+export function Icon({ name, size = 22, color = "#000", strokeWidth = 1.8 }: { name: IconName; size?: number; color?: ColorValue; strokeWidth?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color as string} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">
       {P[name]}
     </Svg>
   );

@@ -28,7 +28,6 @@ const config: ExpoConfig = {
     package: BUNDLE_ID,
     versionCode: 1,
     adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#0B3D91" },
-    edgeToEdgeEnabled: true,
     permissions: ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"],
     blockedPermissions: ["android.permission.RECORD_AUDIO", "android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"],
   },
@@ -41,6 +40,8 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     "expo-localization",
+    "expo-sharing",
+    "expo-status-bar",
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 200, resizeMode: "contain", backgroundColor: "#0B3D91" }],
     ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#0B3D91" }],
     ["expo-image-picker", {

@@ -3,7 +3,7 @@
 App für Fußballtrainer und ihre Spieler – vom Kinderfußball bis zu den Senioren. Planung, Belastungssteuerung und
 Spielerentwicklung an einem Ort, mit einer eigenen Spieler-App, die Spaß macht.
 
-**Technik:** Expo SDK 54 (iOS, Android, Web) · React Native · Expo Router · TypeScript · Supabase (Region Frankfurt) ·
+**Technik:** Expo SDK 57 (iOS, Android, Web) · React Native · Expo Router · TypeScript · Supabase (Region Frankfurt) ·
 Claude API für den KI-Coach und die Befund-Auswertung.
 
 Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt für Schritt).

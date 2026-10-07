@@ -29,7 +29,8 @@ jobs:
           mkdir -p reports
           {
             echo "## npm install (Ausgangsstand)"; npm install --no-audit --no-fund --legacy-peer-deps 2>&1 | tail -n 60
-            echo "## expo install expo@^${{ inputs.sdk }}"; npx expo install "expo@^${{ inputs.sdk }}.0.0" -- --legacy-peer-deps 2>&1 | tail -n 60
+            cur=$(node -p "require('./package.json').dependencies.expo.replace(/[^0-9.]/g,'').split('.')[0]")
+            if [ "$cur" != "${{ inputs.sdk }}" ]; then echo "## expo install expo@^${{ inputs.sdk }}"; npx expo install "expo@^${{ inputs.sdk }}.0.0" -- --legacy-peer-deps 2>&1 | tail -n 60; fi
             echo "## expo install --fix"; npx expo install --fix -- --legacy-peer-deps 2>&1 | tail -n 60
             echo "## npm install (sauber)"; rm -rf node_modules package-lock.json; npm install --no-audit --no-fund 2>&1 | tail -n 80 || true
             if [ ! -d node_modules/expo ]; then echo "## npm install --legacy-peer-deps"; npm install --no-audit --no-fund --legacy-peer-deps 2>&1 | tail -n 40; fi

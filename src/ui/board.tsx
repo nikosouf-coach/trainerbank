@@ -1,7 +1,7 @@
 // Zeichentool (Taktiktafel) für Übungen: Spielfeld wählen, Spieler/Hütchen/Bälle/Tore setzen,
 // Pass-, Lauf- und Dribbelwege sowie Zonen ziehen, verschieben, löschen. Koordinaten in Metern.
 import React, { useRef, useState } from "react";
-import { Pressable, Text, View, type GestureResponderEvent, type LayoutEvent } from "react-native";
+import { Pressable, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, G, Line, Path, Polyline, Rect, Text as SvgText } from "react-native-svg";
 import type { BoardItem, BoardKind, Drawing } from "../core/types";
 import { useStore } from "../data/store";
@@ -160,7 +160,7 @@ export function BoardEditor({ value, onChange, testID = "board" }: { value: Draw
           </Pressable>
         ))}
       </View>
-      <View onLayout={(e: LayoutEvent) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })} style={{ width: "100%" }}>
+      <View onLayout={(e: LayoutChangeEvent) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })} style={{ width: "100%" }}>
         <View pointerEvents="none"><BoardView value={value} /></View>
         <View testID={testID + "-surface"} style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
           onStartShouldSetResponder={() => true} onMoveShouldSetResponder={() => true} onResponderTerminationRequest={() => false}

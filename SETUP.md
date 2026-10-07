@@ -81,7 +81,7 @@ Einmal auf deinem Rechner (Node.js 22 LTS installieren, dann im Terminal):
 git clone https://github.com/nikosouf-coach/trainerbank.git
 cd trainerbank
 npm install
-npx expo install --fix      # passt die Paketversionen genau an Expo SDK 54 an
+npx expo install --fix      # prüft, ob alle Pakete zur Expo-SDK-Version passen
 npm install -g eas-cli
 eas login
 eas init                    # legt das Projekt bei Expo an und zeigt die Projekt-ID
@@ -156,8 +156,10 @@ Für die Prüfung durch Apple und Google: In der App gibt es den Demo-Modus ohne
 | App bauen | manuell | Testversion oder Store-Version, optional mit Einreichung |
 | Dependabot | wöchentlich | Vorschläge für Paket-Updates als Pull Request |
 
-Expo-Pakete werden einmal pro SDK-Version gemeinsam aktualisiert (`npx expo install expo@latest --fix`), nicht
-einzeln durch Dependabot.
+Expo-Pakete werden einmal pro SDK-Version gemeinsam aktualisiert, nicht einzeln durch Dependabot. Dafür gibt es den
+Workflow **Werkzeug** (Actions → Werkzeug → SDK-Nummer eingeben): Er schreibt die neuen Paketversionen samt
+Prüfberichten (TypeScript, expo-doctor, Tests) in einen eigenen Branch, aus dem ein Pull Request wird. Expo bringt
+etwa dreimal im Jahr ein neues SDK heraus; ältere SDKs bekommen nur noch eine Zeit lang Fehlerkorrekturen.
 
 ## 9. Checkliste vor dem ersten Release
 
