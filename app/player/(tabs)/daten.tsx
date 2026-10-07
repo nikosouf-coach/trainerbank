@@ -6,6 +6,7 @@ import { gameOf } from "../../../src/core/game";
 import { useEngine, useStore } from "../../../src/data/store";
 import { WeekBars } from "../../../src/ui/charts";
 import { Bar, Card, Chip, Col, Header, Info, ListItem, Muted, Row, Screen, StatusChip, T } from "../../../src/ui/kit";
+import { PerfCard } from "../../../src/ui/perf";
 import { Badges, MySeason } from "../../../src/ui/player/parts";
 import { useTheme } from "../../../src/ui/theme";
 
@@ -27,6 +28,7 @@ export default function Daten() {
     <Screen testID="player-daten">
       <Header title={t("pn_daten")} />
       <Badges g={g} />
+      {E.playerSees("tests") ? <PerfCard p={p} /> : null}
       {E.mods.spielanalyse || E.mods.videos ? <MySeason pid={p.id} /> : null}
       {E.mods.beteiligung && E.playerSees("att") ? <Card testID="pd-att">
         <Row between><T v="h3">{t("pd_att")}</T><Muted small>{t("pd_28")}</Muted></Row>

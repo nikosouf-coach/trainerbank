@@ -94,7 +94,7 @@ export function WeekRings({ g }: { g: GameState }) {
   );
 }
 
-const BADGE_ICON: Record<string, IconName> = { first: "check", streak7: "flame", perfect: "star", rpe: "bolt", att: "calendar", sleep: "moon", extra: "plus", streak30: "trophy", goal: "target", assist: "spark", top: "star" };
+const BADGE_ICON: Record<string, IconName> = { first: "check", streak7: "flame", perfect: "star", rpe: "bolt", att: "calendar", sleep: "moon", extra: "plus", streak30: "trophy", goal: "target", assist: "spark", top: "star", pb: "bolt" };
 const BADGE_COL = ["#f2b705", "#f0762b", "#16a3a3", "#7b5fd0", "#2f9e44", "#3a6db5", "#d6336c", "#e8590c"];
 
 /** Abzeichen: erreichte farbig, offene grau mit Fortschritt. */

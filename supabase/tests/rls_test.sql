@@ -830,6 +830,42 @@ delete from public.player_ratings; delete from public.match_stats; delete from p
 commit;
 
 -- =====================================================================
+-- T27 Leistungstests (Baustein 5)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.performance_tests (player_id, test, date, value) values (%L, 'cmj', '2026-10-06', 41.5)$q$, tst.get('max')), 1,
+                   'T27 Coach trägt CMJ ein');
+select tst.throws(format($q$insert into public.performance_tests (player_id, test, date, value) values (%L, 'bankdruecken', '2026-10-06', 80)$q$, tst.get('max')),
+                  'T27 unbekannter Test wird abgelehnt', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.performance_tests)::text, '1', 'T27 P1 sieht eigene Testwerte');
+end $$;
+select tst.throws(format($q$insert into public.performance_tests (player_id, test, date, value) values (%L, 'cmj', '2026-10-07', 60)$q$, tst.get('max')),
+                  'T27 P1 kann keine Testwerte eintragen', 'row-level security');
+commit;
+
+begin;
+update public.teams set settings = settings || '{"playerView": {"tests": false}}'::jsonb where id = tst.get('team_a')::uuid;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.performance_tests)::text, '0', 'T27 Tests im Baukasten aus: P1 sieht keine Werte');
+end $$;
+commit;
+
+begin;
+update public.teams set settings = settings - 'playerView' where id = tst.get('team_a')::uuid;
+delete from public.performance_tests;
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

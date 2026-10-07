@@ -2,6 +2,7 @@
 // Belohnt wird regelmäßiges Eintragen und Dabeisein – nicht hohe Belastung (keine Anreize zur Überlastung).
 import { addDays, diff, monday } from "./dates";
 import type { Engine } from "./engine";
+import { testDef } from "./perf";
 
 export const XP = { well: 10, rpe: 15, att: 10, extra: 5 } as const;
 /** Benötigte XP für Level L (L1 = 0, L2 = 100, L3 = 300, L4 = 600, L5 = 1000 …). */
@@ -67,6 +68,13 @@ export function gameOf(E: Engine, pid: string): GameState {
     b("extra", ex14 / 3),
     b("streak30", bestStreak / 30),
   ];
+  if (E.mods.leistung) {
+    // Neuer Bestwert in einem Test in den letzten 30 Tagen
+    const mine = D.tests.filter(x => x.pid === pid), keys = [...new Set(mine.map(x => x.test))];
+    const pb = keys.some(k => { const L = mine.filter(x => x.test === k).sort((a, b) => a.date < b.date ? -1 : 1); if (L.length < 2) return false;
+      const lo = testDef(k).lower, last = L[L.length - 1], prev = L.slice(0, -1); return diff(last.date, TODAY) <= 30 && prev.every(x => lo ? last.value < x.value : last.value > x.value); });
+    badges.push(b("pb", pb ? 1 : 0));
+  }
   if (E.mods.spielanalyse) {
     const ss = E.seasonStats(pid);
     badges.push(b("goal", ss.goals ? 1 : 0), b("assist", ss.assists ? 1 : 0), b("top", ss.best != null ? Math.min(1, ss.best / 8) : 0));

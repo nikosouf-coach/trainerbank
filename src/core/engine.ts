@@ -7,6 +7,7 @@ import {
 } from "./classes";
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
 import { translator } from "./i18n";
+import { cmjDrop, fitnessIndex } from "./perf";
 import type {
   Absence, AttStatus, CoachMsg, Complaint, CustomKind, Kind, Lang, Match, Pitch, Player, PotCat, Session, Status,
   TeamData, TeamEvent, Wellness, WeekMode, MsgType, PlayerViewKey, Rating, Video,
@@ -208,6 +209,13 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     }
     const sl = sleep7(p.id), tg = sleepTarget(a);
     if (sl != null && sl < tg[0]) { const r = Math.round(base * 0.1); lines.push([t("mod_sleep"), r]); base += r; }
+    if (mods.leistung) {
+      // Ausdauer aus Leistungstests: fittere Spieler erholen sich etwas schneller (max. ±10 %)
+      const fit = fitnessIndex(D, p.id, grp, TODAY);
+      if (fit && Math.abs(fit.fi - 1) >= 0.03) { const r = -Math.round(base * Math.max(-0.1, Math.min(0.1, fit.fi - 1))); if (r) { lines.push([tf(r < 0 ? "mod_fitHi" : "mod_fitLo", { t: t("ts_" + fit.test) }), r]); base += r; } }
+      const drop = cmjDrop(D, p.id, TODAY);
+      if (drop != null && drop >= 0.05) { const r = drop >= 0.08 ? 24 : 12; lines.push([tf("mod_cmj", { p: Math.round(drop * 100) }), r]); base += r; }
+    }
     const w = D.well[p.id]?.[TODAY] || D.well[p.id]?.[addDays(TODAY, -1)];
     if (w && w.beschw === COMPLAINT_CLEAR) { lines.push([t("mod_sore"), 12]); base += 12; }
     if (returning(p.id)) { lines.push([t("mod_return"), 12]); base += 12; }
@@ -371,6 +379,8 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     if (sl != null && sl < tg[0]) reasons.push(["warn", t("r_sleep") + " " + num(sl, 1) + " h"]);
     if (gr && gr.spurt) reasons.push(["warn", t("r_spurt")]);
     if (att != null && att < 0.8 && st !== "inj") reasons.push(["warn", t("r_att") + " " + Math.round(att * 100) + " %"]);
+    const drop = mods.leistung ? cmjDrop(D, pid, TODAY) : null;
+    if (drop != null && drop >= 0.05) reasons.push([drop >= 0.08 ? "crit" : "warn", "CMJ −" + Math.round(drop * 100) + " %"]);
     return { p, m, st, att, sl, w0, rec, gr, tg, reasons, ab };
   }
   function advice(pr: Profile): string {
@@ -456,6 +466,8 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     if (w && w.beschw === COMPLAINT_CLEAR) return { k: "pause", why: t("r_sore") };
     const rem = pr.rec && !pr.rec.none ? pr.rec.remaining : 0;
     if (pr.st === "crit") return { k: "easy", why: t("pd_load_crit") };
+    const drop = mods.leistung ? cmjDrop(D, p.id, TODAY) : null;
+    if (drop != null && drop >= 0.08) return { k: "easy", why: t("ph_cmj") };
     if (rem > 0) return { k: "easy", why: tf("ph_recIn", { h: Math.round(rem) }) };
     if (pr.sl != null && pr.sl < pr.tg[0]) return { k: "easy", why: t("r_sleep") + " " + num(pr.sl, 1) + " h" };
     return { k: "ready", why: "" };

@@ -15,6 +15,7 @@ export const en_player: Dict = {
   gm_info: "You earn XP for entries (morning check +10, RPE +15), for showing up (+10) and for extra sport (+5 per day). More load does not earn extra points – it's about consistency, not overdoing it.",
   gm_b_goal: "Goalscorer", gm_b_assist: "Playmaker", gm_b_top: "Top rating",
   gm_bd_goal: "Scored a goal in a match.", gm_bd_assist: "Set up a goal.", gm_bd_top: "Got a rating of 8.0 or better.",
+  gm_b_pb: "Personal best", gm_bd_pb: "New personal best in a test.",
   gm_plusXp: "+{x} XP",
   pl_todoRpe: "Enter RPE", pl_todoWell: "Morning check", pl_allDone: "All done – great!",
   pl_dates: "Upcoming", pl_noDates: "No dates in the next two weeks.", pl_absent: "excused",

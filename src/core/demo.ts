@@ -3,7 +3,7 @@ import { classDef, defaultPrinciples, defaultSettings, groupOf, isGrowthAge, mod
 import { addDays, ageOn, diff, iso, parse, rng } from "./dates";
 import { createEngine } from "./engine";
 import { translator } from "./i18n";
-import type { AttStatus, ClassKey, Depth, Lang, Team, TeamData } from "./types";
+import type { AttStatus, ClassKey, Depth, Lang, Team, TeamData, TestResult } from "./types";
 import { emptyTeamData } from "./types";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
@@ -145,5 +145,29 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   });
   const lastTr = D.sessions.filter(s => s.typ === "Training" && s.date < TODAY).at(-1);
   if (lastTr) for (const pid of ["p1", "p8", "p12"]) D.ratings.push({ id: "r" + (rid++), pid, date: lastTr.date, kind: "training", rating: Math.round((6.5 + r() * 2) * 10) / 10, text: texts[Math.floor(r() * texts.length)], vis: true });
+  // Leistungstests: zwei Testtage und wöchentlicher CMJ-Check; ein Spieler zeigt heute einen deutlichen Abfall
+  const grp = classDef(D.team.cls).grp, base: Record<string, number> = {};
+  let tid = 1;
+  const add = (pid: string, test: TestResult["test"], date: string, value: number) => D.tests.push({ id: "t" + (tid++), pid, test, date, value });
+  const days = [addDays(TODAY, -56), addDays(TODAY, -14)];
+  if (grp !== "u11") for (const p of D.players) {
+    const k = 0.92 + r() * 0.16; base[p.id] = k;
+    days.forEach((d, i) => {
+      const imp = i ? 0.985 + r() * 0.02 : 1;
+      add(p.id, "sprint10", d, Math.round((grp === "u15" ? 1.98 : 1.82) * k * imp * 100) / 100);
+      add(p.id, "sprint30", d, Math.round((grp === "u15" ? 4.85 : 4.35) * k * imp * 100) / 100);
+      add(p.id, "ift", d, Math.round((grp === "u15" ? 18 : 19.5) / k * (i ? 1.02 : 1) * 2) / 2);
+      add(p.id, "agility505", d, Math.round((grp === "u15" ? 2.65 : 2.42) * k * imp * 100) / 100);
+    });
+    for (let w = 6; w >= 0; w--) {
+      const d = addDays(TODAY, -7 * w - (w ? 0 : 1)), cm = (grp === "u15" ? 31 : 38) / k;
+      const drop = p.id === "p6" && w === 0 ? 0.9 : 1;
+      add(p.id, "cmj", d, Math.round(cm * (0.97 + r() * 0.06) * drop * 10) / 10);
+    }
+  } else for (const p of D.players) {
+    add(p.id, "sprint10", days[1], Math.round((2.3 + r() * 0.3) * 100) / 100);
+    add(p.id, "slalom", days[1], Math.round((13 + r() * 5) * 10) / 10);
+    add(p.id, "standweit", days[1], Math.round(130 + r() * 50));
+  }
   D.videos.push({ id: "v" + (vid++), title: en ? "Pressing triggers – clips for the back line" : "Pressing-Auslöser – Clips für die Abwehrkette", url: "https://example.com/video/pressing", date: null, matchId: null, pids: ["p2", "p3", "p4"], note: "", vis: true });
 }

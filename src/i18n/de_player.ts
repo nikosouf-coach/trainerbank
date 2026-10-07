@@ -15,6 +15,7 @@ export const de_player: Dict = {
   gm_info: "XP bekommst du fürs Eintragen (Morgen-Check +10, RPE +15), fürs Dabeisein (+10) und für Zusatzsport (+5 pro Tag). Mehr Belastung bringt keine Extrapunkte – es geht um Regelmäßigkeit, nicht ums Übertreiben.",
   gm_b_goal: "Torschütze", gm_b_assist: "Vorlagengeber", gm_b_top: "Top-Note",
   gm_bd_goal: "Ein Tor in einem Spiel erzielt.", gm_bd_assist: "Ein Tor vorbereitet.", gm_bd_top: "Eine Note von 8,0 oder besser bekommen.",
+  gm_b_pb: "Bestwert", gm_bd_pb: "Neuer persönlicher Bestwert in einem Test.",
   gm_plusXp: "+{x} XP",
   pl_todoRpe: "RPE eintragen", pl_todoWell: "Morgen-Check", pl_allDone: "Alles erledigt – stark!",
   pl_dates: "Nächste Termine", pl_noDates: "In den nächsten zwei Wochen stehen keine Termine an.", pl_absent: "abgemeldet",

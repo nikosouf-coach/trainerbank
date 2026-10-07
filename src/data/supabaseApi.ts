@@ -5,7 +5,7 @@ import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "
 import { addDays, iso, monday } from "../core/dates";
 import type {
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
-  MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, Video, WeekMode, Wellness,
+  MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness,
 } from "../core/types";
 import { emptyTeamData } from "../core/types";
 import {
@@ -57,6 +57,7 @@ const mapPlayer = (r: Row): Player => ({
 const mapMatch = (r: Row): Match => ({ id: r.id, date: r.date, zeit: r.time || "15:00", gegner: r.opponent || "", heim: !!r.home, comp: r.competition || "liga",
   result: r.goals_for != null && r.goals_against != null ? { own: r.goals_for, opp: r.goals_against } : null });
 const mapRating = (r: Row): Rating => ({ id: r.id, pid: r.player_id, date: r.date, kind: r.kind, rating: r.rating != null ? Number(r.rating) : null, text: r.text || "", vis: !!r.visible });
+const mapTest = (r: Row): TestResult => ({ id: r.id, pid: r.player_id, test: r.test as TestKey, date: r.date, value: Number(r.value), note: r.note || undefined });
 const mapVideo = (r: Row): Video => ({ id: r.id, title: r.title, url: r.url, date: r.date || null, matchId: r.match_id || null, pids: r.player_ids || [], note: r.note || "", vis: !!r.visible });
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
 const mapAbs = (r: Row): Absence => ({ id: r.id, pid: r.player_id, typ: r.type, von: r.from_date, bis: r.to_date, stufe: r.stage, notiz: r.note || "", by: r.reported_by_player ? "player" : "coach" });
@@ -174,11 +175,13 @@ export class SupabaseApi implements Api {
         for (const r of notes) D.notes[r.player_id] = r.text;
       }
       // Spieldaten, Noten, Videos (für Spieler filtern die Zugriffsregeln auf eigene, freigegebene Einträge)
-      const [stats, ratings, videos] = await Promise.all([
+      const [stats, ratings, videos, tests] = await Promise.all([
         all((a, b) => sb.from("match_stats").select("*").eq("team_id", tid).range(a, b)),
         all((a, b) => sb.from("player_ratings").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).range(a, b)),
         q(sb.from("videos").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
+        all((a, b) => sb.from("performance_tests").select("*").eq("team_id", tid).gte("date", addDays(today, -730)).order("date").range(a, b)),
       ]);
+      D.tests = tests.map(mapTest);
       for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started };
       D.ratings = ratings.map(mapRating);
       D.videos = videos.map(mapVideo);
@@ -335,6 +338,12 @@ export class SupabaseApi implements Api {
     return mapVideo(r);
   }
   async deleteVideo(id: string) { await q(this.sb.from("videos").delete().eq("id", id)); }
+  async saveTest(teamId: string, x: TestResult) {
+    const row: Row = { team_id: teamId, player_id: x.pid, test: x.test, date: x.date, value: x.value, note: x.note || null };
+    const r = isTmp(x.id) ? await q<Row>(this.sb.from("performance_tests").insert(row).select().single()) : await q<Row>(this.sb.from("performance_tests").update(row).eq("id", x.id).select().single());
+    return mapTest(r);
+  }
+  async deleteTest(id: string) { await q(this.sb.from("performance_tests").delete().eq("id", id)); }
 
   // ---------- Einwilligungen, Push, Datenschutz ----------
   async consents(): Promise<ConsentState> {

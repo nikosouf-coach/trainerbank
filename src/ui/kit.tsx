@@ -21,6 +21,9 @@ export const Muted = ({ children, small, style }: { children?: React.ReactNode; 
   const { c } = useTheme(); return <T v={small ? "small" : "body"} color={c.muted} style={style}>{children}</T>;
 };
 
+/** Länge des längsten Wortes (lange deutsche Wörter in Großbuchstaben brauchen eine kleinere Schrift). */
+const longest = (s: string): number => Math.max(0, ...String(s).split(/\s+/).map(w => w.length));
+
 // ---------- Layout ----------
 export function Row({ children, gap = space.s, wrap, between, align = "center", style, testID }: { children?: React.ReactNode; gap?: number; wrap?: boolean; between?: boolean; align?: ViewStyle["alignItems"]; style?: StyleProp<ViewStyle>; testID?: string }) {
   return <View testID={testID} style={[{ flexDirection: "row", alignItems: align, gap }, wrap && { flexWrap: "wrap" }, between && { justifyContent: "space-between" }, style]}>{children}</View>;
@@ -42,7 +45,7 @@ export function Header({ eyebrow, title, right, info, onBack, backLabel }: { eye
       <Row between align="flex-end" wrap>
         <Col gap={4} style={{ flexShrink: 1 }}>
           {eyebrow ? <T v="eyebrow">{eyebrow}</T> : null}
-          <Row gap={8}><T v="h1" style={{ flexShrink: 1 }}>{title}</T>{info}</Row>
+          <Row gap={8}><T v="h1" style={[{ flexShrink: 1 }, longest(title) > 13 ? { fontSize: longest(title) > 17 ? 21 : 25 } : null]}>{title}</T>{info}</Row>
         </Col>
         {right}
       </Row>
@@ -54,7 +57,7 @@ export function Card({ children, style, testID, tone }: { children?: React.React
   return <View testID={testID} style={[{ backgroundColor: tone ? withAlpha(tone, 0.1) : c.surface, borderWidth: 1, borderColor: tone ? withAlpha(tone, 0.35) : c.line, borderRadius: radius.l, padding: space.l, gap: space.m }, style]}>{children}</View>;
 }
 export function CardTitle({ title, info, right }: { title: string; info?: React.ReactNode; right?: React.ReactNode }) {
-  return <Row between><Row gap={6} style={{ flexShrink: 1 }}><T v="h2" style={{ flexShrink: 1 }}>{title}</T>{info}</Row>{right}</Row>;
+  return <Row between><Row gap={6} style={{ flexShrink: 1 }}><T v="h2" style={[{ flexShrink: 1 }, longest(title) > 14 ? { fontSize: 17 } : null]}>{title}</T>{info}</Row>{right}</Row>;
 }
 export const Divider = () => { const { c } = useTheme(); return <View style={{ height: 1, backgroundColor: c.line, marginVertical: 2 }} />; };
 

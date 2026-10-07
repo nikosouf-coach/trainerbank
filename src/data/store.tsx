@@ -8,7 +8,7 @@ import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
 import type {
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
-  Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, Video, WeekMode, Wellness,
+  Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness,
 } from "../core/types";
 import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo } from "./api";
 import { DemoApi } from "./demoApi";
@@ -235,6 +235,11 @@ function useStoreValue() {
     saveVideo: (v: Video) => { const isNew = v.id.startsWith("tmp-"); return change(D => { if (isNew) D.videos.push(v); else Object.assign(D.videos.find(x => x.id === v.id)!, v); },
       async (api, t) => { const saved = await api.saveVideo(t, v); replaceIn(ref.current.D!.videos, v, saved); }); },
     deleteVideo: (id: string) => change(D => { D.videos = D.videos.filter(x => x.id !== id); }, api => api.deleteVideo(id)),
+
+    // Leistungstests
+    saveTest: (r: TestResult) => { const isNew = r.id.startsWith("tmp-"); return change(D => { if (isNew) D.tests.push(r); else Object.assign(D.tests.find(x => x.id === r.id)!, r); },
+      async (api, t) => { const saved = await api.saveTest(t, r); replaceIn(ref.current.D!.tests, r, saved); }, { plan: true }); },
+    deleteTest: (id: string) => change(D => { D.tests = D.tests.filter(x => x.id !== id); }, api => api.deleteTest(id)),
 
     // KI
     ai: (mode: "coach" | "player" | "session" | "potentials" | "kind", prompt: string, context: string) => {

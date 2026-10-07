@@ -98,6 +98,9 @@ export interface CoachMsg { id: string; date: string; typ: MsgType; text: string
 export interface MatchStat { min: number; goals: number; assists: number; start: boolean }
 /** Note (1–10, eine Nachkommastelle) und Feedback des Trainers zu Spiel oder Training. */
 export interface Rating { id: string; pid: string; date: string; kind: "spiel" | "training"; rating: number | null; text: string; vis: boolean }
+/** Leistungstests (Katalog in perf.ts) */
+export type TestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit";
+export interface TestResult { id: string; pid: string; test: TestKey; date: string; value: number; note?: string }
 /** Video-Link (YouTube, Veo, Hudl, Vimeo, Cloud …) zu Spiel, Spielern oder Übung. */
 export interface Video { id: string; title: string; url: string; date: string | null; matchId: string | null; pids: string[]; note: string; vis: boolean }
 
@@ -125,12 +128,13 @@ export interface TeamData {
   stats: Record<string, Record<string, MatchStat>>;
   ratings: Rating[];
   videos: Video[];
+  tests: TestResult[];
 }
 
 export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
-    stats: {}, ratings: [], videos: [],
+    stats: {}, ratings: [], videos: [], tests: [],
   };
 }
