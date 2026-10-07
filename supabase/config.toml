@@ -1,0 +1,43 @@
+# Supabase CLI – Konfiguration für Trainerbank
+# Gilt für die lokale Entwicklung (`supabase start`) und für die Deploy-Einstellungen
+# der Edge Functions. Das gehostete Projekt (Region Frankfurt, eu-central-1) wird mit
+# `supabase link --project-ref <PROJECT_REF>` verbunden – siehe supabase/README.md.
+
+project_id = "trainerbank"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+# An die Postgres-Version des gehosteten Projekts anpassen (Dashboard → Settings → Infrastructure).
+major_version = 17
+
+[auth]
+enabled = true
+# Platzhalter: Web-Adresse der App bzw. Ziel der Bestätigungs-/Reset-Links.
+site_url = "https://trainerbank.example"
+# Platzhalter: Deep-Link-Schema der Expo-App (app.json → "scheme") und Expo-Web-Dev-Server.
+additional_redirect_urls = ["trainerbank://", "http://localhost:8081"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+# Edge Functions
+# ai, delete-account: nur mit gültigem Nutzer-JWT aufrufbar.
+# push-reminders: wird von pg_cron ohne JWT aufgerufen und prüft stattdessen den Header x-cron-secret.
+[functions.ai]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.push-reminders]
+verify_jwt = false
