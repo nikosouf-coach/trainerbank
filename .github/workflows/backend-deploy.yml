@@ -42,15 +42,29 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
     steps:
+      - name: Sind die Schlüssel eingetragen?
+        id: check
+        run: |
+          if [ -n "$SUPABASE_ACCESS_TOKEN" ] && [ -n "$PROJECT_REF" ] && [ -n "$SUPABASE_DB_PASSWORD" ]; then
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Supabase-Secrets fehlen noch – Deploy übersprungen (siehe SETUP.md, Schritt 3)."
+          fi
       - uses: actions/checkout@v4
+        if: steps.check.outputs.ok == 'true'
       - uses: supabase/setup-cli@v1
+        if: steps.check.outputs.ok == 'true'
         with:
           version: latest
       - name: Projekt verbinden
+        if: steps.check.outputs.ok == 'true'
         run: supabase link --project-ref "$PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
       - name: Migrationen einspielen
+        if: steps.check.outputs.ok == 'true'
         run: supabase db push --password "$SUPABASE_DB_PASSWORD"
       - name: Secrets der Edge Functions setzen
+        if: steps.check.outputs.ok == 'true'
         run: |
           args=()
           [ -n "${{ secrets.ANTHROPIC_API_KEY }}" ] && args+=("ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }}")
@@ -58,6 +72,7 @@ jobs:
           [ -n "${{ secrets.EXPO_ACCESS_TOKEN }}" ] && args+=("EXPO_ACCESS_TOKEN=${{ secrets.EXPO_ACCESS_TOKEN }}")
           if [ ${#args[@]} -gt 0 ]; then supabase secrets set --project-ref "$PROJECT_REF" "${args[@]}"; fi
       - name: Edge Functions deployen
+        if: steps.check.outputs.ok == 'true'
         run: |
           for fn in ai finding delete-account push-reminders; do
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF"
