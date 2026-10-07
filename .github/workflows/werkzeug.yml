@@ -23,27 +23,29 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Expo und passende Pakete installieren
-        run: |
-          npm install --no-audit --no-fund --legacy-peer-deps
-          npx expo install "expo@^${{ inputs.sdk }}.0.0" -- --legacy-peer-deps
-          npx expo install --fix -- --legacy-peer-deps
-          rm -rf node_modules package-lock.json
-          npm install --no-audit --no-fund
-      - name: Berichte erzeugen
+      - name: Expo und passende Pakete installieren, Berichte erzeugen
+        # Läuft immer durch; alle Ausgaben landen in reports/ (im Branch nachlesbar)
         run: |
           mkdir -p reports
+          {
+            echo "## npm install (Ausgangsstand)"; npm install --no-audit --no-fund --legacy-peer-deps 2>&1 | tail -n 60
+            echo "## expo install expo@^${{ inputs.sdk }}"; npx expo install "expo@^${{ inputs.sdk }}.0.0" -- --legacy-peer-deps 2>&1 | tail -n 60
+            echo "## expo install --fix"; npx expo install --fix -- --legacy-peer-deps 2>&1 | tail -n 60
+            echo "## npm install (sauber)"; rm -rf node_modules package-lock.json; npm install --no-audit --no-fund 2>&1 | tail -n 80 || true
+            if [ ! -d node_modules/expo ]; then echo "## npm install --legacy-peer-deps"; npm install --no-audit --no-fund --legacy-peer-deps 2>&1 | tail -n 40; fi
+          } > reports/install.txt 2>&1 || true
           { npm run typecheck 2>&1 || true; } > reports/typecheck.txt
           { npx expo-doctor@latest 2>&1 || true; } > reports/expo-doctor.txt
           { npm test 2>&1 || true; } > reports/kernlogik.txt
           { npx expo config --type public --json 2>&1 || true; } > reports/expo-config.json
-          tail -n 40 reports/typecheck.txt
+          tail -n 40 reports/install.txt reports/typecheck.txt || true
       - name: Branch schreiben
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           branch="werkzeug/expo-sdk-${{ inputs.sdk }}"
           git checkout -B "$branch"
-          git add package.json package-lock.json reports
+          git add package.json reports
+          [ -f package-lock.json ] && git add package-lock.json
           git commit -m "Expo SDK ${{ inputs.sdk }}: Paketversionen und Prüfberichte" || echo "keine Änderungen"
           git push -f origin "$branch"
