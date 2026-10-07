@@ -46,7 +46,7 @@
     "@types/node": "^22.7.0",
     "@types/react": "~19.1.10",
     "eslint": "^9.25.0",
-    "eslint-config-expo": "~10.0.0",
+    "eslint-config-expo": "~57.0.2",
     "typescript": "~5.9.2"
   },
   "engines": {
