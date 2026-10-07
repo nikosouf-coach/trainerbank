@@ -11,7 +11,6 @@ const config: ExpoConfig = {
   orientation: "default",
   icon: "./assets/icon.png",
   userInterfaceStyle: "automatic",
-  newArchEnabled: true,
   ios: {
     bundleIdentifier: BUNDLE_ID,
     supportsTablet: true,
