@@ -1,7 +1,7 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoExtras, demoTeam } from "../core/demo";
-import type { ClassKey, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding } from "../core/types";
+import type { ClassKey, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { ApiError, type Api, type ConsentState, type Membership, type UserInfo } from "./api";
 
 let n = 1;
@@ -101,6 +101,12 @@ export class DemoApi implements Api {
   async deleteFinding() { /* lokal */ }
   async findingUrl(path: string) { return path.startsWith("demo:") ? null : path; }
   async analyzeFinding(): Promise<string> { throw new ApiError("demo_ai"); }
+  async saveExercise(_t: string, x: Exercise) { return { ...x, id: newId(x.id) }; }
+  async deleteExercise() { /* lokal */ }
+  async saveTemplate(_t: string, x: SessionTemplate) { return { ...x, id: newId(x.id) }; }
+  async deleteTemplate() { /* lokal */ }
+  async saveStaff(_t: string, x: StaffProfile) { return { ...x, id: newId(x.id) }; }
+  async deleteStaff() { /* lokal */ }
   async consents() { return { ...this.consent }; }
   async giveConsent(kind: keyof ConsentState) { this.consent[kind] = true; }
   async withdrawConsent(kind: keyof ConsentState) { this.consent[kind] = false; }

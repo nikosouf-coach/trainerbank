@@ -3,7 +3,7 @@ import { classDef, defaultPrinciples, defaultSettings, groupOf, isGrowthAge, mod
 import { addDays, ageOn, diff, iso, parse, rng } from "./dates";
 import { createEngine } from "./engine";
 import { translator } from "./i18n";
-import type { AttStatus, ClassKey, Depth, Lang, Team, TeamData, TestResult } from "./types";
+import type { AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult } from "./types";
 import { emptyTeamData } from "./types";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
@@ -178,5 +178,55 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
       ? "### Summary\nAccording to the report there is a strain / partial tear of the hamstrings (biceps femoris, long head) without tendon involvement.\n\n### What it means for training\n- No sprints, maximal shots or slide tackles for now.\n- Core, upper body and easy cycling are fine if pain-free.\n\n### Possible stage plan\n1. Individual/rehab: pain-free walking, isometric exercises, mobility – progress when daily life and easy jogging are pain-free.\n2. Partial training: technique without sprints, running up to about 70 % – progress when eccentric exercises (e.g. Nordic hamstrings) are pain-free and strength is at least 90 % of the other side.\n3. Full training: build sprints gradually to 100 %, duels – progress after at least two sessions without symptoms and clearance.\n4. Match fit: start with partial match time.\nDepending on severity 2–6 weeks are common; the range is wide.\n\n### Warning signs – stop immediately\n- Sharp pain, pulling during sprints, new swelling or bruising\n\n### Questions for the doctor or physio\n- How large is the injury and is the tendon involved?\n- When are sprints and eccentric training allowed?\n\nThis is not medical advice – the medical staff decides on the return."
       : "### Zusammenfassung\nLaut Befund liegt eine Zerrung bzw. ein Teilfaserriss der hinteren Oberschenkelmuskulatur (M. biceps femoris, langer Kopf) ohne Beteiligung der Sehne vor.\n\n### Bedeutung fürs Training\n- Vorerst keine Sprints, keine maximalen Schüsse, keine Grätschen.\n- Rumpf, Oberkörper und lockeres Radfahren sind möglich, wenn schmerzfrei.\n\n### Möglicher Stufenplan\n1. Individuell/Reha: schmerzfreies Gehen, isometrische Übungen, Beweglichkeit – weiter, wenn Alltag und lockeres Laufen schmerzfrei sind.\n2. Teiltraining: Technik ohne Sprints, Laufen bis ca. 70 % – weiter, wenn exzentrische Übungen (z. B. Nordic Hamstring) schmerzfrei sind und die Kraft im Seitenvergleich bei mindestens 90 % liegt.\n3. Volles Training: Sprints schrittweise bis 100 %, Zweikämpfe – weiter nach mindestens zwei beschwerdefreien Einheiten und Freigabe.\n4. Spielfähig: zunächst Teilzeit-Einsatz.\nJe nach Schwere sind 2–6 Wochen üblich, die Spanne ist groß.\n\n### Warnzeichen – sofort abbrechen\n- Stechender Schmerz, Ziehen beim Sprint, neue Schwellung oder Bluterguss\n\n### Fragen an Arzt oder Physio\n- Wie groß ist die Verletzung und ist die Sehne beteiligt?\n- Ab wann sind Sprints und exzentrisches Training erlaubt?\n\nDies ist keine medizinische Beratung – über die Rückkehr entscheidet das medizinische Personal.",
   });
+  demoArchive(D, en);
   D.videos.push({ id: "v" + (vid++), title: en ? "Pressing triggers – clips for the back line" : "Pressing-Auslöser – Clips für die Abwehrkette", url: "https://example.com/video/pressing", date: null, matchId: null, pids: ["p2", "p3", "p4"], note: "", vis: true });
+}
+
+/** Beispiel-Übungen, Einheiten-Vorlagen und Trainerprofile für die Demo. */
+function demoArchive(D: TeamData, en: boolean): void {
+  let k = 1; const it = (t: BoardItem["t"], x: number, y: number, extra: Partial<BoardItem> = {}): BoardItem => ({ id: "b" + (k++), t, x, y, ...extra });
+  const L = (t: "pass" | "run" | "drib", x: number, y: number, x2: number, y2: number) => it(t, x, y, { x2, y2 });
+  D.staff = [
+    { id: "s1", name: en ? "Demo coach" : "Demo-Trainer", role: "chef", areas: en ? ["Match plan", "Pressing"] : ["Matchplan", "Pressing"], phone: "", email: "", note: "" },
+    { id: "s2", name: "Daniel Kurz", role: "co", areas: en ? ["Set pieces", "Video analysis"] : ["Standards", "Videoanalyse"], phone: "", email: "", note: "" },
+    { id: "s3", name: "Tobias Lang", role: "tw", areas: en ? ["Goalkeepers"] : ["Torhüter"], phone: "", email: "", note: "" },
+    { id: "s4", name: "Sarah Meier", role: "physio", areas: en ? ["Rehab", "Injury prevention"] : ["Reha", "Prävention"], phone: "", email: "", note: "" },
+  ];
+  const ex = (id: string, title: [string, string], cat: Exercise["cat"], themes: [string[], string[]], dur: number, players: string, area: [string, string], rpe: number | null, desc: [string, string], points: [string, string, string | null][], drawing: Drawing | null): Exercise =>
+    ({ id, title: en ? title[1] : title[0], cat, themes: en ? themes[1] : themes[0], dur, players, area: en ? area[1] : area[0], rpe, desc: en ? desc[1] : desc[0], points: points.map(p => ({ text: en ? p[1] : p[0], staffId: p[2] })), drawing, video: "" });
+  D.exercises = [
+    ex("e1", ["Rondo 5 gegen 2", "Rondo 5 v 2"], "pass", [["Passspiel", "Pressing", "Aufwärmen"], ["Passing", "Pressing", "Warm-up"]], 12, "7", ["12 × 12 m", "12 × 12 m"], 5,
+      ["5 Spieler am Rand halten den Ball gegen 2 in der Mitte. Ballgewinn oder Fehlpass: Wechsel mit dem Spieler, der den Fehler gemacht hat. 3 × 3 Min., 1 Min. Pause.", "5 players on the outside keep the ball against 2 in the middle. Ball won or misplaced pass: swap with the player who made the mistake. 3 × 3 min, 1 min rest."],
+      [["Offene Körperstellung vor der Ballannahme", "Open body shape before receiving", "s2"], ["Erster Kontakt weg vom Gegner", "First touch away from the opponent", "s1"], ["Immer zwei Anspielstationen anbieten", "Always offer two passing options", null]],
+      { pitch: "free", items: [it("cone", 14, 9), it("cone", 26, 9), it("cone", 26, 21), it("cone", 14, 21), it("a", 14, 15, { n: 1 }), it("a", 20, 8, { n: 2 }), it("a", 26, 13, { n: 3 }), it("a", 24, 22, { n: 4 }), it("a", 16, 22, { n: 5 }), it("b", 19, 14, { n: 1 }), it("b", 22, 17, { n: 2 }), it("ball", 15.5, 15), L("pass", 15, 14, 19.5, 9), L("pass", 20.5, 9, 25.5, 12.5)] }),
+    ex("e2", ["Passdreieck mit Torabschluss", "Passing triangle with finish"], "abschluss", [["Torabschluss", "Passspiel"], ["Finishing", "Passing"]], 15, "8–12", ["Strafraum + 20 m", "Box + 20 m"], 6,
+      ["A spielt auf B, B klatscht auf C, C spielt in den Lauf von A, A schließt ab. Positionen rotieren. Nach 5 Min. Seite wechseln.", "A passes to B, B lays off to C, C plays A into space, A finishes. Rotate positions. Switch sides after 5 min."],
+      [["Abschluss mit dem ersten Kontakt vorbereiten", "Set up the shot with the first touch", "s1"], ["Tempo im Pass, flach ins lange Eck", "Pace on the pass, low into the far corner", null]],
+      { pitch: "box", items: [it("gk", 25, 1.5), it("goal", 25, -0.5), it("a", 12, 26, { n: 1 }), it("a", 30, 22, { n: 2 }), it("a", 20, 17, { n: 3 }), it("cone", 12, 28), it("ball", 13, 27), L("pass", 12.5, 25.5, 29.5, 22), L("pass", 29.5, 21.5, 21, 17.5), L("run", 12, 25, 18, 12), L("pass", 20, 16.5, 18.5, 12.5), L("pass", 18, 11.5, 27, 1)] }),
+    ex("e3", ["Gegenpressing 6 gegen 6 + 2", "Counter-pressing 6 v 6 + 2"], "spielform", [["Pressing", "Umschalten"], ["Pressing", "Transition"]], 20, "14", ["40 × 30 m", "40 × 30 m"], 8,
+      ["6 gegen 6 mit 2 neutralen Spielern. Nach Ballverlust hat das Team 6 Sek., um den Ball zurückzugewinnen (Punkt). 4 × 4 Min., 2 Min. Pause.", "6 v 6 with 2 neutral players. After losing the ball the team has 6 s to win it back (point). 4 × 4 min, 2 min rest."],
+      [["Sofort nach Ballverlust: nächster Spieler attackiert, die anderen schließen Passwege", "Right after losing the ball: nearest player presses, others close passing lanes", "s1"], ["Kompakt bleiben, Abstände max. 10 m", "Stay compact, distances max. 10 m", "s2"]],
+      { pitch: "free", items: [it("a", 10, 8, { n: 1 }), it("a", 16, 15, { n: 2 }), it("a", 12, 23, { n: 3 }), it("a", 24, 10, { n: 4 }), it("a", 28, 20, { n: 5 }), it("a", 33, 14, { n: 6 }), it("b", 14, 10, { n: 1 }), it("b", 20, 13, { n: 2 }), it("b", 17, 21, { n: 3 }), it("b", 27, 8, { n: 4 }), it("b", 25, 17, { n: 5 }), it("b", 31, 24, { n: 6 }), it("gk", 2, 15), it("gk", 38, 15), it("ball", 21, 14), L("run", 16.5, 14.5, 19.5, 13.5), L("run", 24, 10.5, 21.5, 12.5), it("zone", 14, 8, { x2: 28, y2: 20 })] }),
+    ex("e4", ["Spielaufbau 4 gegen 3", "Build-up 4 v 3"], "taktik", [["Spielaufbau", "Abwehr"], ["Build-up", "Defence"]], 15, "8", ["Halbes Feld", "Half pitch"], 6,
+      ["Torwart und Viererkette bauen gegen 3 Angreifer auf. Ziel: kontrolliert über die Mittellinie dribbeln oder in eine Minitorzone passen.", "Goalkeeper and back four build up against 3 attackers. Aim: dribble over the halfway line or pass into a mini-goal zone."],
+      [["Breite und Tiefe geben – Außenverteidiger hoch", "Give width and depth – full-backs high", "s1"], ["Torwart als Anspielstation einbinden", "Use the goalkeeper as a passing option", "s3"]],
+      { pitch: "half", items: [it("gk", 34, 2), it("a", 22, 12, { n: 4 }), it("a", 46, 12, { n: 5 }), it("a", 8, 22, { n: 2 }), it("a", 60, 22, { n: 3 }), it("b", 28, 20, { n: 9 }), it("b", 40, 20, { n: 10 }), it("b", 34, 30, { n: 8 }), L("pass", 34, 3, 22, 11), L("pass", 22, 13, 9, 21), L("run", 60, 23, 60, 40), it("goal", 20, 51), it("goal", 48, 51)] }),
+    ex("e5", ["Sprint-Staffel mit Richtungswechsel", "Sprint relay with change of direction"], "athletik", [["Schnelligkeit", "Aufwärmen"], ["Speed", "Warm-up"]], 10, "alle", ["20 m", "20 m"], 7,
+      ["2–3 Gruppen, Slalom durch 4 Hütchen, Wende, 10 m Sprint zurück. 6 Läufe, volle Pause.", "2–3 groups, slalom through 4 cones, turn, 10 m sprint back. 6 runs, full rest."],
+      [["Tief in die Wende, kurze Schritte", "Get low into the turn, short steps", "s4"]],
+      { pitch: "free", items: [it("cone", 8, 10), it("cone", 12, 12), it("cone", 16, 10), it("cone", 20, 12), it("cone", 28, 11), it("a", 4, 11, { n: 1 }), L("drib", 5, 11, 21, 11), L("run", 22, 11, 27, 11)] }),
+    ex("e6", ["Torwart: Flanken abfangen", "Goalkeeper: claiming crosses"], "torwart", [["Torwart", "Flanken"], ["Goalkeeper", "Crosses"]], 15, "2 + Flankengeber", ["Strafraum", "Box"], 6,
+      ["Flanken von beiden Seiten, zunächst ohne, dann mit Gegenspieler. Torwart fängt am höchsten Punkt.", "Crosses from both sides, first without, then with an opponent. Goalkeeper catches at the highest point."],
+      [["Startposition je nach Ballposition anpassen", "Adjust the starting position to the ball", "s3"], ["Lautes „Torwart!“ beim Herauslaufen", "Loud “keeper!” when coming out", "s3"]],
+      { pitch: "box", items: [it("gk", 25, 2), it("a", 3, 12, { n: 7 }), it("a", 47, 12, { n: 11 }), it("b", 23, 7, { n: 9 }), L("pass", 4, 11.5, 24, 5)] }),
+    ex("e7", ["Auslaufen & Mobility", "Cool-down & mobility"], "cooldown", [["Regeneration"], ["Recovery"]], 10, "alle", ["–", "–"], 2,
+      ["5 Min. lockeres Traben, danach Mobility für Hüfte, Oberschenkel und Waden.", "5 min easy jogging, then mobility for hips, thighs and calves."], [], null),
+  ];
+  D.templates = [
+    { id: "tp1", title: en ? "Pressing day (MD-4)" : "Pressing-Tag (MD-4)", theme: en ? "Pressing" : "Pressing", notes: "", blocks: [
+      { exId: "e1", text: "", min: 12, staffId: "s2" }, { exId: "e5", text: "", min: 10, staffId: "s4" }, { exId: "e3", text: "", min: 20, staffId: "s1" },
+      { exId: null, text: en ? "Final game 8 v 8" : "Abschlussspiel 8 gegen 8", min: 25, staffId: "s1" }, { exId: "e7", text: "", min: 10, staffId: null }] },
+    { id: "tp2", title: en ? "Finishing day (MD-2)" : "Abschluss-Tag (MD-2)", theme: en ? "Finishing" : "Torabschluss", notes: "", blocks: [
+      { exId: "e1", text: "", min: 10, staffId: null }, { exId: "e2", text: "", min: 20, staffId: "s1" }, { exId: "e6", text: "", min: 15, staffId: "s3" }, { exId: "e7", text: "", min: 10, staffId: null }] },
+  ];
 }

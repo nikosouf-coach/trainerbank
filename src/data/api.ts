@@ -1,7 +1,7 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
 import type {
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Modules,
-  MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding,
+  MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 
 export type Role = "owner" | "coach" | "physio" | "pending" | "player";
@@ -106,6 +106,14 @@ export interface Api {
   deleteFinding(f: Finding): Promise<void>;
   findingUrl(path: string): Promise<string | null>;
   analyzeFinding(teamId: string, id: string, context: string, lang: Lang): Promise<string>;
+
+  // Übungsarchiv, Einheiten-Vorlagen, Trainerprofile
+  saveExercise(teamId: string, x: Exercise): Promise<Exercise>;
+  deleteExercise(id: string): Promise<void>;
+  saveTemplate(teamId: string, x: SessionTemplate): Promise<SessionTemplate>;
+  deleteTemplate(id: string): Promise<void>;
+  saveStaff(teamId: string, x: StaffProfile): Promise<StaffProfile>;
+  deleteStaff(id: string): Promise<void>;
 
   // Einwilligungen, Push, Datenschutz
   consents(): Promise<ConsentState>;

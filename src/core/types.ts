@@ -103,6 +103,23 @@ export interface Finding {
   id: string; pid: string; absenceId: string | null; date: string; title: string;
   path: string; mime: string; consent: "app" | "schriftlich"; ai: string | null; aiAt: string | null; note: string;
 }
+/** Taktik-/Übungszeichnung. Koordinaten in Metern innerhalb des gewählten Spielfelds. */
+export type BoardKind = "a" | "b" | "gk" | "cone" | "ball" | "goal" | "pass" | "run" | "drib" | "zone";
+export interface BoardItem { id: string; t: BoardKind; x: number; y: number; x2?: number; y2?: number; n?: number }
+export interface Drawing { pitch: "full" | "half" | "box" | "free"; items: BoardItem[] }
+/** Übungsarchiv */
+export type ExerciseCat = "warmup" | "technik" | "pass" | "abschluss" | "spielform" | "taktik" | "athletik" | "torwart" | "cooldown";
+export interface CoachPoint { text: string; staffId?: string | null }
+export interface Exercise {
+  id: string; title: string; cat: ExerciseCat; themes: string[]; dur: number; players: string; area: string;
+  rpe: number | null; desc: string; points: CoachPoint[]; drawing: Drawing | null; video: string;
+}
+export interface TemplateBlock { exId: string | null; text: string; min: number; staffId?: string | null }
+/** Gespeicherte Einheit (Vorlage) aus Übungen oder freien Blöcken. */
+export interface SessionTemplate { id: string; title: string; theme: string; blocks: TemplateBlock[]; notes: string }
+/** Trainerprofil mit Aufgabenbereichen (auch für Personen ohne App-Konto). */
+export type StaffRoleKey = "chef" | "co" | "tw" | "athletik" | "physio" | "betreuer" | "analyst";
+export interface StaffProfile { id: string; name: string; role: StaffRoleKey; areas: string[]; phone: string; email: string; note: string }
 /** Leistungstests (Katalog in perf.ts) */
 export type TestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit";
 export interface TestResult { id: string; pid: string; test: TestKey; date: string; value: number; note?: string }
@@ -135,12 +152,15 @@ export interface TeamData {
   videos: Video[];
   tests: TestResult[];
   findings: Finding[];
+  exercises: Exercise[];
+  templates: SessionTemplate[];
+  staff: StaffProfile[];
 }
 
 export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
-    stats: {}, ratings: [], videos: [], tests: [], findings: [],
+    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [],
   };
 }

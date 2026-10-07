@@ -906,6 +906,31 @@ delete from public.consents where kind = 'findings';
 commit;
 
 -- =====================================================================
+-- T29 Übungsarchiv, Vorlagen, Trainerprofile (Baustein 7): nur Trainerteam
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.exercises (team_id, title, category, points, drawing) values (%L, 'Rondo 4 gegen 2', 'pass', '[{"text":"Körperstellung offen"}]', '{"pitch":"free","items":[]}')$q$, tst.get('team_a')), 1, 'T29 Coach legt Übung an');
+select tst.affects(format($q$insert into public.session_templates (team_id, title, blocks) values (%L, 'Pressing-Tag', '[]')$q$, tst.get('team_a')), 1, 'T29 Coach speichert Einheit');
+select tst.affects(format($q$insert into public.staff_profiles (team_id, name, role, areas) values (%L, 'Co Max', 'co', '{Standards}')$q$, tst.get('team_a')), 1, 'T29 Coach legt Trainerprofil an');
+select tst.throws(format($q$insert into public.exercises (team_id, title, category) values (%L, 'X', 'yoga')$q$, tst.get('team_a')), 'T29 unbekannte Kategorie wird abgelehnt', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.exercises)::text, '0', 'T29 Spieler sieht das Übungsarchiv nicht');
+  perform tst.eq((select count(*) from public.staff_profiles)::text, '0', 'T29 Spieler sieht keine Trainerprofile');
+end $$;
+commit;
+
+begin;
+delete from public.exercises; delete from public.session_templates; delete from public.staff_profiles;
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

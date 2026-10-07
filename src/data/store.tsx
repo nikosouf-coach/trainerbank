@@ -8,7 +8,7 @@ import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
 import type {
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
-  Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding,
+  Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo } from "./api";
 import { DemoApi } from "./demoApi";
@@ -151,6 +151,12 @@ function useStoreValue() {
   }, [toast, errText, reload, publishPlans]);
 
   const replaceIn = <T extends { id: string }>(arr: T[], tmpObj: T, saved: T): void => { const i = arr.findIndex(x => x.id === tmpObj.id); if (i >= 0) arr[i] = saved; };
+  /** Eintrag in einer Liste von TeamData anlegen oder ersetzen und speichern. */
+  function upsert<K extends "exercises" | "templates" | "staff">(key: K, x: TeamData[K][number], save: (api: Api, teamId: string) => Promise<TeamData[K][number]>) {
+    const isNew = x.id.startsWith("tmp-");
+    return change(D => { const L = D[key] as { id: string }[]; const i = L.findIndex(y => y.id === x.id); if (isNew || i < 0) L.push(x); else L[i] = x; },
+      async (api, t) => { const saved = await save(api, t); replaceIn(ref.current.D![key] as { id: string }[], x, saved); });
+  }
 
   const actions = {
     toast, errText, reload, boot,
@@ -248,6 +254,12 @@ function useStoreValue() {
     },
     updateFinding: (f: Finding) => change(D => { Object.assign(D.findings.find(x => x.id === f.id)!, f); }, api => api.updateFinding(f)),
     deleteFinding: (f: Finding) => change(D => { D.findings = D.findings.filter(x => x.id !== f.id); }, api => api.deleteFinding(f)),
+    saveExercise: (x: Exercise) => upsert("exercises", x, (api, t) => api.saveExercise(t, x)),
+    deleteExercise: (id: string) => change(D => { D.exercises = D.exercises.filter(x => x.id !== id); }, api => api.deleteExercise(id)),
+    saveTemplate: (x: SessionTemplate) => upsert("templates", x, (api, t) => api.saveTemplate(t, x)),
+    deleteTemplate: (id: string) => change(D => { D.templates = D.templates.filter(x => x.id !== id); }, api => api.deleteTemplate(id)),
+    saveStaff: (x: StaffProfile) => upsert("staff", x, (api, t) => api.saveStaff(t, x)),
+    deleteStaff: (id: string) => change(D => { D.staff = D.staff.filter(x => x.id !== id); }, api => api.deleteStaff(id)),
     analyzeFinding: async (id: string, context: string): Promise<string> => {
       const { api, active, D, lang } = ref.current; if (!D || !active) throw new ApiError("server");
       const text = await api.analyzeFinding(active.teamId, id, context, lang);

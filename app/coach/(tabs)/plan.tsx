@@ -6,7 +6,8 @@ import { addDays, kwOf, monday } from "../../../src/core/dates";
 import type { Change, PlanItem, PlanTrain } from "../../../src/core/engine";
 import { CONTENT } from "../../../src/core/content";
 import type { Kind, WeekMode } from "../../../src/core/types";
-import { useEngine, useStore } from "../../../src/data/store";
+import { tmpId, useEngine, useStore } from "../../../src/data/store";
+import { TemplatePicker, templateMin, templateRpe, templateText } from "../../../src/ui/archive";
 import { Dist } from "../../../src/ui/charts";
 import { KindEditor, type KindEditorTarget } from "../../../src/ui/kindEditor";
 import { Banner, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T, Tag } from "../../../src/ui/kit";
@@ -25,6 +26,7 @@ export default function Plan() {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [kindTarget, setKindTarget] = useState<KindEditorTarget | null>(null);
   const [openNR, setOpenNR] = useState<Record<string, boolean>>({});
+  const [pickFor, setPickFor] = useState<string | null>(null);
   const kids = E.grp === "u11", show = E.lvl(1) && !kids, pro = E.lvl(2) && !kids;
 
   const wp = useMemo(() => E.weekPlan(cal.week), [s.version, cal.week, E]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -116,6 +118,10 @@ export default function Plan() {
           </Row>
           {show ? <Col gap={6}><T v="small" bold color={c.muted}>{t("target")}: {dr.rpe} · {E.intWord(dr.rpe)}</T>
             <NumScale testID={"plan-rpe-" + x.date} value={dr.rpe} min={1} max={E.CAP} onChange={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, rpe: v } }))} color={n => rpeColor(c, n)} /></Col> : null}
+          {E.mods.archiv ? <Row gap={8} wrap>
+            <Btn small icon="plus" testID={"plan-fromarchive-" + x.date} label={t("tp_fromArchive")} onPress={() => setPickFor(x.date)} />
+            <Btn small testID={"plan-saveas-" + x.date} label={t("tp_saveAs")} onPress={() => s.saveTemplate({ id: tmpId(), title: `${E.kn(dr.kind)} ${x.md || ""}`.trim(), theme: E.kn(dr.kind), blocks: [{ exId: null, text: dr.touched || dr.kind === p.kind ? dr.inhalt : p.inhalt, min: dr.dauer }], notes: "" }).then(() => s.toast(t("tp_saved")))} />
+          </Row> : null}
           <Row gap={8} wrap>
             <Btn small testID={"plan-reset-" + x.date} label={t("reset")} onPress={() => resetDay(x.date)} />
             <Btn small label={t("cancel")} onPress={() => setDrafts(o => { const n = { ...o }; delete n[x.date]; return n; })} />
@@ -167,6 +173,12 @@ export default function Plan() {
           </Row>
         </Col>
       </Card> : null}
+      <TemplatePicker visible={!!pickFor} onClose={() => setPickFor(null)} onPick={tp => {
+        const d = pickFor!; const dr = drafts[d]; if (!dr) return;
+        setDrafts(o => ({ ...o, [d]: { ...dr, inhalt: tp.title + "\n" + templateText(E, tp), dauer: templateMin(tp), touched: true } }));
+        // Sportwissenschaftlicher Hinweis: Vorlage deutlich intensiver als für diesen Tag vorgesehen (z. B. MD-2-Einheit am MD+1).
+        const r = templateRpe(E, tp); if (r != null && r > dr.rpe + 1) s.toast(tf("tp_rpeWarn", { t: r, p: dr.rpe }));
+      }} />
       <KindEditor target={kindTarget} onClose={saved => {
         const tg = kindTarget; setKindTarget(null);
         if (saved && tg?.date) setDrafts(o => { const n = { ...o }; delete n[tg.date!]; return n; });
