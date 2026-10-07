@@ -8,7 +8,7 @@ import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
 import type {
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
-  Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness,
+  Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding,
 } from "../core/types";
 import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo } from "./api";
 import { DemoApi } from "./demoApi";
@@ -240,6 +240,20 @@ function useStoreValue() {
     saveTest: (r: TestResult) => { const isNew = r.id.startsWith("tmp-"); return change(D => { if (isNew) D.tests.push(r); else Object.assign(D.tests.find(x => x.id === r.id)!, r); },
       async (api, t) => { const saved = await api.saveTest(t, r); replaceIn(ref.current.D!.tests, r, saved); }, { plan: true }); },
     deleteTest: (id: string) => change(D => { D.tests = D.tests.filter(x => x.id !== id); }, api => api.deleteTest(id)),
+
+    // Befunde
+    uploadFinding: async (f: Omit<Finding, "id" | "path" | "ai" | "aiAt">, uri: string): Promise<Finding | null> => {
+      const { api, active, D } = ref.current; if (!D || !active) return null;
+      const saved = await api.uploadFinding(active.teamId, f, uri); D.findings.push(saved); set({ version: ref.current.version + 1 }); return saved;
+    },
+    updateFinding: (f: Finding) => change(D => { Object.assign(D.findings.find(x => x.id === f.id)!, f); }, api => api.updateFinding(f)),
+    deleteFinding: (f: Finding) => change(D => { D.findings = D.findings.filter(x => x.id !== f.id); }, api => api.deleteFinding(f)),
+    analyzeFinding: async (id: string, context: string): Promise<string> => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) throw new ApiError("server");
+      const text = await api.analyzeFinding(active.teamId, id, context, lang);
+      const f = D.findings.find(x => x.id === id); if (f) { f.ai = text; f.aiAt = new Date().toISOString(); }
+      set({ version: ref.current.version + 1 }); return text;
+    },
 
     // KI
     ai: (mode: "coach" | "player" | "session" | "potentials" | "kind", prompt: string, context: string) => {

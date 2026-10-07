@@ -866,6 +866,46 @@ delete from public.performance_tests;
 commit;
 
 -- =====================================================================
+-- T28 Befunde (Baustein 6): Gesundheitsdaten nur für Trainerteam und den Spieler selbst
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.findings (player_id, date, title, path, mime, consent_source) values (%L, '2026-10-06', 'MRT Knie', %L, 'application/pdf', 'schriftlich')$q$,
+                          tst.get('max'), tst.get('team_a') || '/' || tst.get('max') || '/11111111-1111-4111-8111-111111111111.pdf'), 1, 'T28 Coach legt Befund an');
+select tst.throws(format($q$insert into public.findings (player_id, date, title, path, mime, consent_source) values (%L, '2026-10-06', 'X', 'fremd/pfad.pdf', 'application/pdf', 'app')$q$, tst.get('max')),
+                  'T28 Pfad muss zu Team und Spieler passen', 'invalid_path');
+select tst.affects(format($q$insert into storage.objects (bucket_id, name) values ('findings', %L)$q$,
+                          tst.get('team_a') || '/' || tst.get('max') || '/11111111-1111-4111-8111-111111111111.pdf'), 1, 'T28 Coach lädt Befund-Datei hoch');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.findings)::text, '1', 'T28 P1 sieht eigenen Befund');
+  perform tst.eq((select count(*) from storage.objects where bucket_id = 'findings')::text, '1', 'T28 P1 sieht eigene Befund-Datei');
+end $$;
+select tst.throws(format($q$insert into storage.objects (bucket_id, name) values ('findings', %L)$q$,
+                         tst.get('team_a') || '/' || tst.get('max') || '/22222222-2222-4222-8222-222222222222.pdf'), 'T28 P1 kann keine Befunde hochladen', 'row-level security');
+select tst.affects($q$insert into public.consents (kind, version) values ('findings', '2026-10')$q$, 1, 'T28 P1 willigt in Befund-Auswertung ein');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.findings)::text, '0', 'T28 P2 sieht keine Befunde von P1');
+  perform tst.eq((select count(*) from storage.objects where bucket_id = 'findings')::text, '0', 'T28 P2 sieht keine Befund-Dateien von P1');
+end $$;
+commit;
+
+begin;
+delete from public.findings; delete from storage.objects where bucket_id = 'findings';
+delete from public.consents where kind = 'findings';
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

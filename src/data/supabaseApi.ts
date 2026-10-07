@@ -5,7 +5,7 @@ import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "
 import { addDays, iso, monday } from "../core/dates";
 import type {
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
-  MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness,
+  MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding,
 } from "../core/types";
 import { emptyTeamData } from "../core/types";
 import {
@@ -38,6 +38,12 @@ async function all(build: (from: number, to: number) => PromiseLike<{ data: unkn
 const mdToNum = (md: string): number | null => md === "MD" ? 0 : md.startsWith("MD") ? Number(md.slice(2)) : null;
 const numToMd = (n: number | null): string => n == null ? "" : n === 0 ? "MD" : n > 0 ? "MD+" + n : "MD" + n;
 const isTmp = (id: string | undefined): boolean => !id || id.startsWith("tmp-");
+/** Zufällige UUID (v4) für Dateinamen. */
+const cryptoId = (): string => {
+  const c = (globalThis as unknown as { crypto?: { randomUUID?: () => string } }).crypto;
+  if (c?.randomUUID) return c.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, ch => { const r = Math.random() * 16 | 0; return (ch === "x" ? r : (r & 0x3) | 0x8).toString(16); });
+};
 
 function mapTeam(r: Row): Team {
   const cls = (r.age_class || "u19") as ClassKey, depth = (r.depth || "basis") as Depth;
@@ -58,6 +64,8 @@ const mapMatch = (r: Row): Match => ({ id: r.id, date: r.date, zeit: r.time || "
   result: r.goals_for != null && r.goals_against != null ? { own: r.goals_for, opp: r.goals_against } : null });
 const mapRating = (r: Row): Rating => ({ id: r.id, pid: r.player_id, date: r.date, kind: r.kind, rating: r.rating != null ? Number(r.rating) : null, text: r.text || "", vis: !!r.visible });
 const mapTest = (r: Row): TestResult => ({ id: r.id, pid: r.player_id, test: r.test as TestKey, date: r.date, value: Number(r.value), note: r.note || undefined });
+const mapFinding = (r: Row): Finding => ({ id: r.id, pid: r.player_id, absenceId: r.absence_id || null, date: r.date, title: r.title, path: r.path, mime: r.mime,
+  consent: r.consent_source === "app" ? "app" : "schriftlich", ai: r.ai_text || null, aiAt: r.ai_at || null, note: r.note || "" });
 const mapVideo = (r: Row): Video => ({ id: r.id, title: r.title, url: r.url, date: r.date || null, matchId: r.match_id || null, pids: r.player_ids || [], note: r.note || "", vis: !!r.visible });
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
 const mapAbs = (r: Row): Absence => ({ id: r.id, pid: r.player_id, typ: r.type, von: r.from_date, bis: r.to_date, stufe: r.stage, notiz: r.note || "", by: r.reported_by_player ? "player" : "coach" });
@@ -175,12 +183,14 @@ export class SupabaseApi implements Api {
         for (const r of notes) D.notes[r.player_id] = r.text;
       }
       // Spieldaten, Noten, Videos (für Spieler filtern die Zugriffsregeln auf eigene, freigegebene Einträge)
-      const [stats, ratings, videos, tests] = await Promise.all([
+      const [stats, ratings, videos, tests, findings] = await Promise.all([
         all((a, b) => sb.from("match_stats").select("*").eq("team_id", tid).range(a, b)),
         all((a, b) => sb.from("player_ratings").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).range(a, b)),
         q(sb.from("videos").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
         all((a, b) => sb.from("performance_tests").select("*").eq("team_id", tid).gte("date", addDays(today, -730)).order("date").range(a, b)),
+        q(sb.from("findings").select("*").eq("team_id", tid).order("date", { ascending: false }).limit(300)),
       ]);
+      D.findings = findings.map(mapFinding);
       D.tests = tests.map(mapTest);
       for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started };
       D.ratings = ratings.map(mapRating);
@@ -345,9 +355,34 @@ export class SupabaseApi implements Api {
   }
   async deleteTest(id: string) { await q(this.sb.from("performance_tests").delete().eq("id", id)); }
 
+  // ---------- Befunde ----------
+  async uploadFinding(teamId: string, f: Omit<Finding, "id" | "path" | "ai" | "aiAt">, uri: string) {
+    const pdf = f.mime === "application/pdf";
+    // Fotos auf max. 2000 px verkleinern (lesbar, aber klein); PDFs unverändert (max. 10 MB)
+    const src = pdf ? uri : (await manipulateAsync(uri, [{ resize: { width: 2000 } }], { compress: 0.8, format: SaveFormat.JPEG })).uri;
+    const buf = await (await fetch(src)).arrayBuffer();
+    const id = cryptoId(), path = `${teamId}/${f.pid}/${id}.${pdf ? "pdf" : "jpg"}`;
+    const { error } = await this.sb.storage.from("findings").upload(path, buf, { contentType: pdf ? "application/pdf" : "image/jpeg", upsert: false });
+    if (error) fail(error);
+    const row: Row = { id, team_id: teamId, player_id: f.pid, absence_id: f.absenceId, date: f.date, title: f.title, path, mime: pdf ? "application/pdf" : "image/jpeg", consent_source: f.consent, note: f.note || null };
+    return mapFinding(await q<Row>(this.sb.from("findings").insert(row).select().single()));
+  }
+  async updateFinding(f: Finding) { await q(this.sb.from("findings").update({ title: f.title, date: f.date, absence_id: f.absenceId, note: f.note || null }).eq("id", f.id)); }
+  async deleteFinding(f: Finding) { await this.sb.storage.from("findings").remove([f.path]); await q(this.sb.from("findings").delete().eq("id", f.id)); }
+  async findingUrl(path: string) { const { data } = await this.sb.storage.from("findings").createSignedUrl(path, 600); return data?.signedUrl || null; }
+  async analyzeFinding(teamId: string, id: string, context: string, lang: Lang) {
+    const { data, error } = await this.sb.functions.invoke("finding", { body: { finding_id: id, team_id: teamId, context, lang } });
+    if (error) {
+      let code = "upstream";
+      try { const body = await (error as { context?: Response }).context?.json(); code = body?.error || code; } catch { /* Antwort ohne JSON */ }
+      throw new ApiError(code, error.message);
+    }
+    return String((data as { text?: string })?.text || "");
+  }
+
   // ---------- Einwilligungen, Push, Datenschutz ----------
   async consents(): Promise<ConsentState> {
-    const st: ConsentState = { privacy: false, health_data: false, parental: false, ai: false, staff_confidentiality: false };
+    const st: ConsentState = { privacy: false, health_data: false, parental: false, ai: false, staff_confidentiality: false, findings: false };
     const { data } = await this.sb.auth.getSession(); const uid = data.session?.user.id; if (!uid) return st;
     const rows = await q(this.sb.from("consents").select("kind").eq("user_id", uid).is("withdrawn_at", null));
     for (const r of rows) (st as Record<string, boolean>)[r.kind] = true;

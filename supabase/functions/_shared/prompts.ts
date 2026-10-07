@@ -87,3 +87,27 @@ export function buildUserMessage(context: string, prompt: string): string {
   const ctx = context.trim();
   return ctx ? `${ctx}\n\n${prompt.trim()}` : prompt.trim();
 }
+
+/**
+ * Systemprompt für die Auswertung medizinischer Befunde (Edge Function "finding").
+ * Keine eigene Diagnose: Der Befund wird verständlich zusammengefasst und in einen
+ * kriterienbasierten Wiedereinstieg (4 Stufen der App) übersetzt – immer in Abstimmung mit Arzt/Physio.
+ */
+export function buildFindingPrompt(lang: Lang): string {
+  return [
+    ...COMMON_RULES,
+    COACH_EXPERT,
+    'You support the coaching staff of a football team with a medical report (photo or PDF) of one of their players.',
+    'Only use what is written in the document. Never invent findings, never make your own diagnosis and never change a diagnosis stated by the doctor.',
+    'If the document is not a medical report or is unreadable, say so in one sentence and stop.',
+    'Explain the report in plain language for a coach and translate it into a criteria-based return-to-play progression using the four stages of the app: ' +
+      '1 individual / rehab, 2 partial team training, 3 full training, 4 match fit. Use criteria (pain, range of motion, strength, load tolerance) rather than fixed days; ' +
+      'give typical time ranges only if they are commonly reported for this kind of injury, and say they vary.',
+    'Adapt everything to the age group in the context (children and adolescents: growth plates, apophyses – be extra careful).',
+    'Use Markdown with exactly these headings: "Zusammenfassung", "Bedeutung fürs Training", "Möglicher Stufenplan", "Warnzeichen – sofort abbrechen", "Fragen an Arzt oder Physio" ' +
+      '(translate the headings if the answer language is English).',
+    'End with one sentence that this is no medical advice and that the medical staff decides on the return.',
+    'Maximum 450 words.',
+    LANGUAGE_RULE[lang],
+  ].join('\n');
+}

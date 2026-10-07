@@ -57,7 +57,7 @@ export function Card({ children, style, testID, tone }: { children?: React.React
   return <View testID={testID} style={[{ backgroundColor: tone ? withAlpha(tone, 0.1) : c.surface, borderWidth: 1, borderColor: tone ? withAlpha(tone, 0.35) : c.line, borderRadius: radius.l, padding: space.l, gap: space.m }, style]}>{children}</View>;
 }
 export function CardTitle({ title, info, right }: { title: string; info?: React.ReactNode; right?: React.ReactNode }) {
-  return <Row between><Row gap={6} style={{ flexShrink: 1 }}><T v="h2" style={[{ flexShrink: 1 }, longest(title) > 14 ? { fontSize: 17 } : null]}>{title}</T>{info}</Row>{right}</Row>;
+  return <Row between><Row gap={6} style={{ flexShrink: 1 }}><T v="h2" style={[{ flexShrink: 1 }, longest(title) > 14 ? { fontSize: longest(title) > 17 ? 15 : 17 } : null]}>{title}</T>{info}</Row>{right}</Row>;
 }
 export const Divider = () => { const { c } = useTheme(); return <View style={{ height: 1, backgroundColor: c.line, marginVertical: 2 }} />; };
 

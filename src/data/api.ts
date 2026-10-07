@@ -1,7 +1,7 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
 import type {
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Modules,
-  MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness,
+  MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding,
 } from "../core/types";
 
 export type Role = "owner" | "coach" | "physio" | "pending" | "player";
@@ -9,7 +9,7 @@ export const isStaffRole = (r: Role | undefined | null): boolean => r === "owner
 
 export interface Membership { teamId: string; club: string; name: string; role: Role; playerId?: string | null }
 export interface UserInfo { id: string; email: string; displayName: string; lang: Lang }
-export type ConsentKind = "privacy" | "health_data" | "parental" | "ai" | "staff_confidentiality";
+export type ConsentKind = "privacy" | "health_data" | "parental" | "ai" | "staff_confidentiality" | "findings";
 export type ConsentState = Record<ConsentKind, boolean>;
 export interface CreateTeamInput {
   club: string; name: string; cls: ClassKey; depth: Depth; settings: TeamSettings; principles: Principles; modules: Modules; lang: Lang;
@@ -99,6 +99,13 @@ export interface Api {
   // Leistungstests
   saveTest(teamId: string, r: TestResult): Promise<TestResult>;
   deleteTest(id: string): Promise<void>;
+
+  // Befunde (Verletzungen)
+  uploadFinding(teamId: string, f: Omit<Finding, "id" | "path" | "ai" | "aiAt">, uri: string): Promise<Finding>;
+  updateFinding(f: Finding): Promise<void>;
+  deleteFinding(f: Finding): Promise<void>;
+  findingUrl(path: string): Promise<string | null>;
+  analyzeFinding(teamId: string, id: string, context: string, lang: Lang): Promise<string>;
 
   // Einwilligungen, Push, Datenschutz
   consents(): Promise<ConsentState>;

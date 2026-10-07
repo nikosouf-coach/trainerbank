@@ -71,6 +71,7 @@ export default function Konto() {
         {isPlayer ? <>
           {consentRow("health_data", t("cs_health"), t("cs_health_s"), t("cs_health_l"))}
           {consentRow("ai", t("cs_ai"), t("cs_ai_s"), t("cs_ai_l"))}
+          {s.D?.team.modules.befunde ? consentRow("findings", t("cs_findings"), t("cs_findings_s"), t("cs_findings_l")) : null}
         </> : consentRow("staff_confidentiality", t("sj_title"), t("sj_conf"), t("sj_conf"))}
         <ListItem title={t("cs_privacy")} sub={t("cs_privacy_s")} right={<StatusChip status={s.consents?.privacy ? "ok" : "none"} label={t(s.consents?.privacy ? "cs_active" : "cs_inactive")} />} />
       </Card>

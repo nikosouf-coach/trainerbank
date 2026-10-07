@@ -36,6 +36,9 @@ enable_confirmations = true
 [functions.ai]
 verify_jwt = true
 
+[functions.finding]
+verify_jwt = true
+
 [functions.delete-account]
 verify_jwt = true
 

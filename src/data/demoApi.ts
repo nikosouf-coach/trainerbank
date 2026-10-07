@@ -1,7 +1,7 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoExtras, demoTeam } from "../core/demo";
-import type { ClassKey, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video } from "../core/types";
+import type { ClassKey, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding } from "../core/types";
 import { ApiError, type Api, type ConsentState, type Membership, type UserInfo } from "./api";
 
 let n = 1;
@@ -10,7 +10,7 @@ const newId = (id: string): string => (!id || id.startsWith("tmp-")) ? "demo-" +
 export class DemoApi implements Api {
   readonly kind = "demo" as const;
   private user: UserInfo;
-  private consent: ConsentState = { privacy: true, health_data: true, parental: true, ai: true, staff_confidentiality: true };
+  private consent: ConsentState = { privacy: true, health_data: true, parental: true, ai: true, staff_confidentiality: true, findings: true };
   constructor(public cls: ClassKey = "u19", public depth: Depth = "basis", public lang: Lang = "de") {
     this.user = { id: "demo-user", email: "demo@trainerbank.app", displayName: lang === "en" ? "Demo coach" : "Demo-Trainer", lang };
   }
@@ -96,6 +96,11 @@ export class DemoApi implements Api {
   async deleteVideo() { /* lokal */ }
   async saveTest(_t: string, r: TestResult) { return { ...r, id: newId(r.id) }; }
   async deleteTest() { /* lokal */ }
+  async uploadFinding(_t: string, f: Omit<Finding, "id" | "path" | "ai" | "aiAt">, uri: string): Promise<Finding> { return { ...f, id: newId(""), path: uri, ai: null, aiAt: null }; }
+  async updateFinding() { /* lokal */ }
+  async deleteFinding() { /* lokal */ }
+  async findingUrl(path: string) { return path.startsWith("demo:") ? null : path; }
+  async analyzeFinding(): Promise<string> { throw new ApiError("demo_ai"); }
   async consents() { return { ...this.consent }; }
   async giveConsent(kind: keyof ConsentState) { this.consent[kind] = true; }
   async withdrawConsent(kind: keyof ConsentState) { this.consent[kind] = false; }

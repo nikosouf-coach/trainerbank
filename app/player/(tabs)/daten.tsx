@@ -6,6 +6,7 @@ import { gameOf } from "../../../src/core/game";
 import { useEngine, useStore } from "../../../src/data/store";
 import { WeekBars } from "../../../src/ui/charts";
 import { Bar, Card, Chip, Col, Header, Info, ListItem, Muted, Row, Screen, StatusChip, T } from "../../../src/ui/kit";
+import { PlayerFindings } from "../../../src/ui/injury";
 import { PerfCard } from "../../../src/ui/perf";
 import { Badges, MySeason } from "../../../src/ui/player/parts";
 import { useTheme } from "../../../src/ui/theme";
@@ -59,6 +60,7 @@ export default function Daten() {
         <T v="h3">{t("pd_abs")}</T>
         {abs.length ? abs.map(a => <ListItem key={a.id} title={t("ab_" + a.typ) + (a.notiz ? " · " + a.notiz : "")} sub={`${E.de(a.von)} – ${a.bis ? E.de(a.bis) : t("ongoing")}`} />) : <Muted>{t("abs_none")}</Muted>}
       </Card> : null}
+      <PlayerFindings pid={p.id} />
       <Col />
     </Screen>
   );
