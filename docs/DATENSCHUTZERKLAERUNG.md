@@ -111,10 +111,25 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.15 | KI-Coach | Inhalt deiner Anfrage und ein reduzierter Datenkontext (siehe Abschnitt 11); Anzahl der KI-Anfragen pro Tag | du | freiwillig, gesonderte Einwilligung |
 | 4.16 | Technische Daten | IP-Adresse, Zeitpunkt, aufgerufener Dienst, Statuscodes, technische Kennung des App-Clients in Server-Protokollen | dein Gerät | technisch erforderlich |
 | 4.17 | Kommunikation mit uns | Inhalt deiner Nachricht, E-Mail-Adresse, ggf. Name | du | freiwillig |
+| 4.18 | Spieldaten und Bewertungen | Einsatzminuten, Startelf, Tore, Vorlagen je Spiel; Noten (1–10) mit Rückmeldung des Trainerteams zu Spielen und Trainings; Links zu Videos | Trainerteam | – |
+| 4.19 | Leistungstests | Ergebnisse von Leistungstests (z. B. Sprintzeiten, Sprunghöhe, Ausdauertest) mit Datum; daraus berechnete Einordnung und persönliche Laufvorgaben | Trainerteam | freiwillig |
+| 4.20 | Befunde | Fotos oder PDF-Dateien von Arztbriefen und Befunden, Titel, Datum, Art der Einwilligung; auf Wunsch eine KI-Zusammenfassung | Trainerteam | freiwillig, gesonderte Einwilligung |
+| 4.21 | Vorbereitung und Pausen | Zeiträume, Wochenaufbau, Trainingsprogramm für die freie Zeit; welche Programm-Einheiten du abgehakt hast (Dauer, Belastungsempfinden) | Trainerteam, du | freiwillig |
+| 4.22 | Kontaktliste des Teams | Name, Funktion, Telefon, E-Mail, Adresse und Hinweise von Ansprechpersonen (z. B. Koordinator, Physio, Arztpraxis) | Trainerteam | – |
+| 4.23 | Trainingsplanung | Übungen mit Zeichnungen und Coachingpunkten, gespeicherte Einheiten, Profile des Trainerteams (Name, Rolle, Aufgaben, Kontakt) | Trainerteam | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
-Rückkehrstufe und Notiz (4.6) sowie die daraus berechneten Werte (4.12). Auch Trainernotizen, Potenziale und
+Rückkehrstufe und Notiz (4.6), Befunde und ihre Zusammenfassung (4.20), abgehakte Programm-Einheiten (4.21) sowie die
+daraus berechneten Werte (4.12). Leistungstests (4.19) behandeln wir genauso vertraulich, weil sie Rückschlüsse auf
+die körperliche Verfassung zulassen.
+
+**Kontaktliste (4.22):** Die Daten der Ansprechpersonen trägt das Trainerteam ein. Es ist dafür verantwortlich, dass
+die Personen einverstanden sind, und legt fest, welche Kontakte Spieler sehen. Bei Ärzten und Praxen genügen in der
+Regel die öffentlich angegebenen Praxisdaten.
+
+**Kamera und Fotos:** Die App nutzt die Kamera bzw. deine Fotoauswahl nur, wenn du selbst ein Profilbild oder einen
+Befund aufnimmst oder auswählst. Es gibt keinen Zugriff im Hintergrund. Auch Trainernotizen, Potenziale und
 Nachrichten (4.11) können Gesundheitsbezug haben, wenn das Trainerteam darin z. B. Beschwerden erwähnt.
 
 Die „Körperregion“ bei Beschwerden ist eine Angabe wie „Oberschenkel hinten“. Trainerbank erfasst **keinen
@@ -344,6 +359,18 @@ der KI-Coach für dich gesperrt.
 >    Spielerdaten betreiben oder den Absatz anpassen.
 > 4. KI-Verordnung (EU) 2024/1689: Transparenzpflicht nach Art. 50 (Hinweis, dass mit einer KI interagiert wird) und
 >    KI-Kompetenz nach Art. 4 – Anwendbarkeit und Geltungsbeginn prüfen.
+
+### 11a. KI-Auswertung von Befunden
+
+Wenn ein Befund gespeichert ist und du (bzw. bei Spielern ohne Konto: du schriftlich gegenüber dem Trainerteam)
+**ausdrücklich eingewilligt** hast, kann das Trainerteam eine Zusammenfassung erstellen lassen. Dafür wird die Datei
+(Bild oder PDF) zusammen mit wenigen Angaben zum Kontext (Altersgruppe, aktuelle Rückkehrstufe) an den KI-Anbieter
+Anthropic übermittelt. Ergebnis ist eine verständliche Zusammenfassung mit Hinweisen für den Trainingsaufbau und
+Fragen an Arzt oder Physio – **keine Diagnose und keine medizinische Beratung**; über die Rückkehr entscheidet das
+medizinische Personal. Die Zusammenfassung wird am Befund gespeichert und ist für dich sichtbar. Anthropic nutzt die
+Daten nach den Vertragsbedingungen nicht zum Training und speichert sie nur kurz zur Missbrauchserkennung (siehe
+Abschnitt 10 zur Übermittlung in Drittländer). Die Einwilligung kannst du jederzeit unter Konto → Einwilligungen
+widerrufen; danach sind keine neuen Auswertungen möglich.
 
 ## 12. Push-Mitteilungen
 

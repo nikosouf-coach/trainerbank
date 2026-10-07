@@ -236,6 +236,9 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R16 | Fehlinterpretation von Kennzahlen (z. B. ACWR als Verletzungsprognose, obwohl wissenschaftlich umstritten) oder falsche Eingaben | Spieler | Über- oder Unterbelastung, Verletzung | 2 | 3 | Risiko |
 | R17 | Unklare Verantwortlichkeit (Herausgeber vs. Verein) | alle | erschwerte Durchsetzung von Betroffenenrechten | 3 | 2 | Risiko |
 | R18 | Mangelnde Verständlichkeit für Kinder | Kinder | Einwilligung ohne Verständnis | 3 | 2 | Risiko |
+| R19 | **Befunde** (Arztbriefe als Bild/PDF): sehr sensible Dokumente; Offenlegung durch falsche Zugriffsregeln, Weitergabe an die KI ohne Einwilligung, Dateien bleiben nach Löschung des Spielers im Speicher | verletzte Spieler | Offenlegung von Diagnosen, Nachteile bei Vereinswechsel | 2 | 4 | **hoch** |
+| R20 | KI-Zusammenfassung eines Befunds wird als ärztliche Aussage verstanden (z. B. zu früher Wiedereinstieg) | verletzte Spieler | körperlicher Schaden | 2 | 4 | **hoch** |
+| R21 | Daten Dritter in der Kontaktliste (Telefon, Adresse) ohne deren Wissen | Ansprechpersonen | unerwünschte Kontaktaufnahme | 2 | 2 | gering |
 
 ---
 
@@ -366,6 +369,8 @@ von Krankheiten oder Verletzungen bestimmt.
 
 | Funktion | Risiko für Einstufung | Maßnahme |
 |---|---|---|
+| Befund-Zusammenfassung durch KI | „Diagnose“ bzw. Therapieempfehlung | Ausgabe als Zusammenfassung und Fragen an Arzt/Physio, fester Hinweis „keine medizinische Beratung – über die Rückkehr entscheidet das medizinische Personal“; Stufen setzt weiterhin das Trainerteam |
+| Leistungstests, CMJ-Ermüdungscheck | „Überwachung“ des Gesundheitszustands | als Trainingssteuerung gesunder Sportler darstellen (Erholungszeit), keine Krankheitsaussagen |
 | Rückkehr nach Verletzung (Stufen 1–4) | „Überwachung“ einer Verletzung | Stufen als organisatorischer Status, den das Trainerteam nach ärztlicher bzw. physiotherapeutischer Freigabe setzt; keine Ableitung von Stufen aus Daten |
 | Ampel, ACWR | „Vorhersage/Prognose“ von Verletzungen | nicht als Verletzungsrisiko bezeichnen; als Belastungsorientierung darstellen |
 | Beschwerden mit Körperregion | „Diagnose“ | keine Auswertung zu Krankheitsbildern; nur Weitergabe an das Trainerteam |
@@ -396,3 +401,4 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 | Version | Datum | Änderung | Autor |
 |---|---|---|---|
 | 0.1 | [TT.MM.JJJJ] | Erstentwurf auf Basis ARCHITEKTUR.md | [ ] |
+| 0.2 | [TT.MM.JJJJ] | Ergänzt: Spieldaten/Noten, Leistungstests, Befunde mit KI-Auswertung (R19, R20), Vorbereitung/Pausen, Kontaktliste (R21). Umgesetzte Maßnahmen: privater Bucket `findings` mit Pfad- und Zeilenprüfung, eigene Einwilligung `findings` (serverseitig geprüft), Löschung der Dateien bei Spieler-, Konto- und Teamlöschung, Export v2, Sichtbarkeit je Bereich im Baukasten | [ ] |

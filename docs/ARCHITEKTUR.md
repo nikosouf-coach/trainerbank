@@ -60,6 +60,24 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `consents` | `id`, `user_id`, `kind` ('privacy'/'health_data'/'parental'), `version`, `parent_email`, `given_at` | Nachweis der Einwilligungen |
 | `ai_usage` | pk(`user_id`,`day`), `count` | Tageslimit KI |
 
+### Erweiterungen (Migrationen `20261008…`)
+
+| Tabelle | Spalten (Auszug) | Zugriff |
+|---|---|---|
+| `players.groups` | `text[]` – eigene Gruppen (`teams.settings.groups`) | ändert nur Staff |
+| `extra_activities.label`, `.program_item` | freie Bezeichnung; erledigter Programm-Baustein | wie Zusatzsport |
+| `match_stats` | pk(`match_id`,`player_id`), `minutes`, `goals`, `assists`, `started` | Staff; Spieler eigene, wenn `player_view(team,'stats')` |
+| `player_ratings` | `id`, `player_id`, `date`, `kind` (spiel/training), `rating` 1–10, `text`, `visible` | Staff; Spieler eigene freigegebene, wenn `player_view(team,'ratings')` |
+| `videos` | `id`, `title`, `url`, `date`, `match_id`, `player_ids` (leer = ganzes Team), `note`, `visible` | Staff; Mitglieder freigegebene (für sie bestimmte) |
+| `performance_tests` | `id`, `player_id`, `test`, `date`, `value`, `note` | Staff; Spieler eigene, wenn `player_view(team,'tests')` |
+| `findings` | `id`, `player_id`, `date`, `title`, `path` (Bucket `findings`), `mime`, `consent` (app/schriftlich), `ai_text`, `ai_at` | Staff und der Spieler selbst; KI nur mit Einwilligung `findings` |
+| `exercises`, `session_templates`, `staff_profiles` | Übungen mit Zeichnung (jsonb) und Coachingpunkten, Einheiten-Vorlagen, Trainerprofile | nur Staff |
+| `season_phases` | `kind` (prep/break), `date_from`, `date_to`, `first_match`, `weeks` jsonb, `program` jsonb, `visible` | lesen Mitglieder, schreiben Staff |
+| `team_contacts` | `name`, `role`, `org`, `phone`, `email`, `address`, `note`, `visible` | Staff; Mitglieder freigegebene, wenn `player_view(team,'contacts')` |
+
+`player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
+in `teams.settings.reminders` und werden von `push-reminders` ausgewertet.
+
 ### Zugriffsregeln (RLS)
 
 Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
@@ -94,11 +112,16 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Erholungsmodell (9 Altersstufen), Kennzahlen (ACWR rollend 7/28), Profile, Ampel, Empfehlungen,
   Datenhinweise für Potenziale, Spieler-Status und -Tipps.
 - `fixtures.ts` – Spielplan-Import (.ics und kopierter Text, z. B. fussball.de).
+- `perf.ts` – Leistungstests, Normwerte je Altersgruppe, CMJ-Ermüdungscheck, Fitnessindex, Laufvorgaben aus dem 30-15 IFT.
+- `prep.ts` – Vorbereitung und Pausen: Wochenaufbau (Einstieg, Aufbau, 3:1-Entlastung, Taper), Spielerprogramm,
+  angebrochene Wochen, Umsetzung.
+- `game.ts` – XP, Level, Serie, Wochenringe, Abzeichen (belohnt Regelmäßigkeit, nicht Belastung).
 - `demo.ts` – Demo-Mannschaft (für Demo-Modus, Tests und „Beispieldaten laden“).
 - Tests: `src/core/__tests__` (`node --test`).
 
 Wissenschaftliche Grundlagen (in den Info-Texten der App zitiert): Foster et al. 2001 (Session-RPE),
 Gabbett 2016 (ACWR), Hooper & Mackinnon 1995 (Wellness), Ratel et al. 2006, Nédélec et al. 2012, Silva et al. 2018,
 Fell & Williams 2008 (Erholung), Akenhead et al. 2016, Martín-García et al. 2018 (Spieltags-Logik),
-Bosquet et al. 2007 (Tapering), van Dyk et al. 2019, Thorborg et al. 2017, Lloyd et al. 2014 (Kraft/Prävention),
+Bosquet et al. 2007, Mujika 2003 (Tapering), Mujika & Padilla 2000, Bangsbo 2008 (Training in Pausen),
+Buchheit 2008 (30-15 IFT), Claudino et al. 2017 (CMJ), Helgerud et al. 2001 (Intervalle), van Dyk et al. 2019, Thorborg et al. 2017, Lloyd et al. 2014 (Kraft/Prävention),
 Maughan et al. 2018, Thomas et al. 2016 (Ernährung).

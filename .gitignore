@@ -12,3 +12,8 @@ coverage/
 supabase/.temp/
 supabase/.branches/
 .build/
+google-play-service-account.json
+*.p8
+*.p12
+*.mobileprovision
+.eas/

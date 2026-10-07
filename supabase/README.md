@@ -14,9 +14,17 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `migrations/…04_storage.sql` | Privater Bucket `avatars` (JPEG, max. 2 MB) und Policies |
 | `migrations/…05_cron.sql` | `pg_cron` + `pg_net`: `push-reminders` alle 15 Minuten |
 | `migrations/…06_hardening.sql` | Datenschutz-Härtung: Staff-Freigabe (`pending`), kein Auto-Verknüpfen + `merge_players`, Einwilligungen als Nachweis + Pflicht für Gesundheitsdaten, Löschfristen (`purge_stale_health_data`, täglich 03:30 UTC), Datenexport `my_data_export` |
+| `migrations/20261008…01_baukasten.sql` | Gruppen je Spieler, Absagen durch Spieler schaltbar (`team_setting_bool`), freie Bezeichnung für Zusatzsport |
+| `migrations/20261008…02_spiele.sql` | `match_stats` (Minuten, Tore, Assists), `player_ratings` (Note 1–10 + Text), `videos`; Sichtbarkeit für Spieler über `player_view(team, key)` |
+| `migrations/20261008…03_leistung.sql` | `performance_tests` (Sprint, CMJ, 30-15 IFT, Yo-Yo, 505, Slalom, Standweitsprung) |
+| `migrations/20261008…04_befunde.sql` | `findings` + privater Bucket `findings` (Bilder/PDF bis 10 MB), Einwilligung `findings` |
+| `migrations/20261008…05_archiv.sql` | `exercises` (mit Zeichnung, Coachingpunkten), `session_templates`, `staff_profiles` – nur Trainerteam |
+| `migrations/20261008…06_vorbereitung.sql` | `season_phases` (Vorbereitung/Pause, Wochenaufbau, Spielerprogramm), `extra_activities.program_item` |
+| `migrations/20261008…07_kontakte.sql` | `team_contacts`; `merge_players` und `my_data_export` (v2) für alle neuen Tabellen; Befund-Dateizugriff nach dem Zusammenführen |
+| `functions/finding` | Befund-Auswertung: prüft Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
-| `functions/delete-account` | Konto löschen (Fotos, verwaiste Teams, Auth-Nutzer ⇒ Cascade) |
-| `functions/push-reminders` | RPE-Erinnerung nach Einheiten und Morgen-Check um 08:00 (Expo Push) |
+| `functions/delete-account` | Konto löschen (Fotos, Befund-Dateien, verwaiste Teams, Auth-Nutzer ⇒ Cascade) |
+| `functions/push-reminders` | RPE-Erinnerung nach Einheiten, Morgen-Check, Pausenprogramm – Zeiten je Team in `settings.reminders`, Pausen werden beachtet (Expo Push) |
 | `functions/_shared` | CORS/JSON, Supabase-Clients, Systemprompts, Zeitlogik (ohne Abhängigkeiten) |
 | `tests/run.sh` | Lokale Tests: Wegwerf-Postgres + Supabase-Platzhalter + alle Migrationen + `rls_test.sql` + Unit-Tests |
 
@@ -34,6 +42,7 @@ supabase db push
 
 # Edge Functions (verify_jwt kommt aus config.toml)
 supabase functions deploy ai
+supabase functions deploy finding
 supabase functions deploy delete-account
 supabase functions deploy push-reminders
 
@@ -81,11 +90,11 @@ Manueller Aufruf: `curl -X POST https://<PROJECT_REF>.supabase.co/functions/v1/p
 
 ```bash
 supabase/tests/run.sh          # Exit 0 = alles bestanden
-KEEP_DB=1 supabase/tests/run.sh   # Cluster danach laufen lassen (psql -h /tmp/claude-0/pgtest -p 54329 -U postgres trainerbank_test)
+KEEP_DB=1 supabase/tests/run.sh   # Cluster danach laufen lassen (psql -h /tmp/trainerbank-pgtest -p 54329 -U postgres trainerbank_test)
 ```
 
 Braucht nur die PostgreSQL-16-Binärdateien (`PGBIN`, Standard `/usr/lib/postgresql/16/bin`) – kein Docker.
-Das Skript startet einen Wegwerf-Cluster in `PGTEST_DIR` (Standard `/tmp/claude-0/pgtest`, Port `PGTEST_PORT`
+Das Skript startet einen Wegwerf-Cluster in `PGTEST_DIR` (Standard `$TMPDIR/trainerbank-pgtest`, Port `PGTEST_PORT`
 54329; als root läuft Postgres als OS-Benutzer `postgres`, dafür wird bei Bedarf `o+x` auf das Elternverzeichnis
 gesetzt), legt Supabase-Platzhalter an (Rollen `anon`/`authenticated`/`service_role`, `auth.users`, `auth.uid()`,
 `storage.buckets/objects`, `storage.foldername/filename`, Default-Privileges wie bei Supabase), spielt alle
@@ -115,7 +124,7 @@ Fehler kommen als `error.message` (genau der angegebene Text); `consent_required
 | `team_by_join_code({ p_code })` | `[{ club, name }]` | auch ohne Login | – |
 | `register_push_token({ p_token, p_platform })` | – | angemeldet (`'ios'\|'android'\|'web'`); statt Upsert, damit ein Gerät den Besitzer wechseln kann | `not_authenticated` |
 | `has_consent({ p_user, p_kind })` | `boolean` | eigenes Konto bzw. Staff für eigene Spieler (sonst `false`) | – |
-| `my_data_export()` | `jsonb` (Art. 15/20) | angemeldet: Profil, Einwilligungen, Staff-Rollen, Spielerzeilen, RPE, Wellness, Zusatzsport, Abwesenheiten, Anwesenheit, Wachstum, freigegebene Potenziale, Nachrichten, Push-Tokens, KI-Zähler | `not_authenticated` |
+| `my_data_export()` | `jsonb` (Art. 15/20, Format v2) | angemeldet: Profil, Einwilligungen, Staff-Rollen, Spielerzeilen, RPE, Wellness, Zusatzsport (inkl. Programm-Einheiten), Abwesenheiten, Anwesenheit, Wachstum, freigegebene Potenziale, Nachrichten, Spieldaten, freigegebene Noten, Leistungstests, Befunde (Metadaten und KI-Text), Push-Tokens, KI-Zähler | `not_authenticated` |
 
 Hilfsfunktionen für Abfragen: `is_team_staff({ team })`, `is_team_member({ team })`, `is_team_owner({ team })`.
 
@@ -162,3 +171,9 @@ Hilfsfunktionen für Abfragen: `is_team_staff({ team })`, `is_team_member({ team
 - **Fotos:** Pfad `{team_id}/{player_id}.jpg` im privaten Bucket `avatars`, Anzeige per `createSignedUrl`.
   Beim Löschen einer Spielerzeile durch den Trainer das Foto per Storage-API mitlöschen (die Datenbank kann
   Storage-Dateien nicht entfernen); beim Kontolöschen erledigt das `delete-account`.
+
+## Automatisch per GitHub Actions
+
+`.github/workflows/backend-deploy.yml` führt bei jeder Änderung in `supabase/` auf `main` zuerst diese Tests aus und
+spielt danach Migrationen, Secrets und alle Edge Functions ein. Benötigte Repository-Secrets stehen im Kopf der Datei
+und in [`SETUP.md`](../SETUP.md).

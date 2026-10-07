@@ -1,0 +1,25 @@
+# Abhängigkeiten aktuell halten: wöchentlich npm (gebündelt), monatlich GitHub Actions.
+# Expo-Pakete werden mit dem SDK gemeinsam aktualisiert (npx expo install --fix) – deshalb ignoriert.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      kleinkram:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "expo*"
+      - dependency-name: "@expo/*"
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-*"
+      - dependency-name: "@react-native-async-storage/async-storage"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

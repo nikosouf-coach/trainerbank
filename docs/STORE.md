@@ -312,13 +312,14 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Kontaktinformationen | E-Mail-Adresse | ja | ja | nein | App-Funktionalität | Konto-E-Mail, E-Mail der Erziehungsberechtigten |
 | Gesundheit & Fitness | Gesundheit | ja | ja | nein | App-Funktionalität | Wohlbefinden, Beschwerden, Krankheit/Verletzung, Rückkehrstufe, Größe, Gewicht |
 | Gesundheit & Fitness | Fitness | ja | ja | nein | App-Funktionalität | Session-RPE, Minuten, Zusatzsport |
-| Benutzerinhalte | Fotos oder Videos | ja | ja | nein | App-Funktionalität | optionales Profilfoto |
+| Benutzerinhalte | Fotos oder Videos | ja | ja | nein | App-Funktionalität | optionales Profilfoto, Fotos von Befunden (Arztbriefe) |
+| Gesundheit & Fitness | Gesundheit (Ergänzung) | ja | ja | nein | App-Funktionalität | Befunde (Bild/PDF) und deren KI-Zusammenfassung, Leistungstests |
 | Benutzerinhalte | E-Mails oder Textnachrichten | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Trainer-Nachrichten an Spieler |
 | Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen |
 | Identifikatoren | Benutzer-ID | ja | ja | nein | App-Funktionalität | Konto-ID |
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |
-| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit |
+| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen), Noten, Kontaktliste des Teams |
 | Standort, Finanzen, Kontakte, Browserverlauf, Suchverlauf, Käufe, Diagnose, Sensible Daten | – | **nein** | – | – | – | Körperregion bei Beschwerden ist kein Standort; Gesundheit gehört nicht unter „Sensible Daten“ |
 
 **Zu prüfen:** Falls später Absturzberichte (z. B. ein Crash-SDK) oder In-App-Käufe hinzukommen, Kategorie
@@ -355,11 +356,12 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 | Gesundheit und Fitness | Gesundheitsinformationen | ja | nein | nein | optional | App-Funktionalität |
 | Gesundheit und Fitness | Fitnessinformationen | ja | nein | nein | optional | App-Funktionalität |
 | Nachrichten | Sonstige In-App-Nachrichten | ja | nein | nein | optional | App-Funktionalität |
-| Fotos und Videos | Fotos | ja | nein | nein | optional | App-Funktionalität |
+| Fotos und Videos | Fotos | ja | nein | nein | optional | App-Funktionalität (Profilbild, Befund-Fotos) |
+| Dateien und Dokumente | Dateien und Dokumente | ja | nein | nein | optional | App-Funktionalität (Befunde als PDF) |
 | App-Aktivitäten | Sonstige nutzergenerierte Inhalte | ja | nein | nein (KI-Anfragen: ja, sofern nicht gespeichert – zu prüfen) | optional | App-Funktionalität |
 | App-Aktivitäten | App-Interaktionen | ja (konservativ, KI-Zähler) – zu prüfen | nein | nein | Pflicht bei KI-Nutzung | App-Funktionalität, Betrugsprävention/Sicherheit |
 | Geräte- oder andere IDs | Geräte- oder andere IDs | ja (Push-Token) | nein | nein | optional | App-Funktionalität |
-| Standort, Finanzdaten, Kalender (Geräte-Kalender), Kontakte, Audio, Dateien, Web-Browsing, Absturzberichte, Diagnosen | – | **nein** | – | – | – | Teamkalender ist App-Inhalt, kein Zugriff auf den Gerätekalender |
+| Standort, Finanzdaten, Kalender (Geräte-Kalender), Kontakte, Audio, Web-Browsing, Absturzberichte, Diagnosen | – | **nein** | – | – | – | Teamkalender und Kontaktliste sind App-Inhalte, kein Zugriff auf Gerätekalender oder Geräte-Kontakte |
 
 ### Weitere Formulare unter „App-Inhalte“
 

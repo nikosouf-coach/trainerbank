@@ -1,0 +1,5 @@
+{
+  "CFBundleDisplayName": "Trainerbank",
+  "NSCameraUsageDescription": "Trainerbank uses the camera to take profile pictures and photos of medical reports (e.g. doctor's letters).",
+  "NSPhotoLibraryUsageDescription": "Trainerbank accesses your photos when you choose a profile picture or a medical report."
+}

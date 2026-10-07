@@ -1,0 +1,48 @@
+# Baut die App in der Expo-Cloud (EAS) und reicht sie auf Wunsch bei den Stores ein.
+# Start: Actions → App bauen → Run workflow (Plattform und Profil wählen).
+#
+# Benötigt: Repository-Secret EXPO_TOKEN (expo.dev → Account settings → Access tokens) und
+# Repository-Variable EAS_PROJECT_ID (Settings → Secrets and variables → Actions → Variables).
+# Die App-Umgebungsvariablen (EXPO_PUBLIC_SUPABASE_URL usw.) liegen in EAS:
+#   expo.dev → Projekt → Environment variables (Umgebungen „preview“ und „production“)
+name: App bauen
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: Plattform
+        type: choice
+        options: [all, ios, android]
+        default: all
+      profile:
+        description: Build-Profil (preview = Testversion, production = Store)
+        type: choice
+        options: [preview, production]
+        default: preview
+      submit:
+        description: Nach dem Build bei den Stores einreichen (nur production)
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Pakete installieren
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - name: Build starten
+        run: |
+          extra=""
+          if [ "${{ inputs.submit }}" = "true" ] && [ "${{ inputs.profile }}" = "production" ]; then extra="--auto-submit"; fi
+          eas build --platform "${{ inputs.platform }}" --profile "${{ inputs.profile }}" --non-interactive --no-wait $extra

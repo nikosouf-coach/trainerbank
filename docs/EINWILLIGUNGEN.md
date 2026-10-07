@@ -574,6 +574,37 @@ Buttons: **"Consent and open AI coach"** · **"Not now"**
 
 ---
 
+## (f) Einwilligung Befund-Auswertung (freiwillig)
+
+Wird nur angezeigt, wenn das Paket „Leistung“ mit Befunden aktiv ist. Technischer Schlüssel: `findings`.
+Ohne diese Einwilligung kann das Trainerteam Befunde speichern, wenn der Spieler schriftlich zugestimmt hat, aber
+**keine** KI-Auswertung starten (geprüft serverseitig in der Function `finding`).
+
+### Deutsch
+
+**Befund-Auswertung (freiwillig)**
+
+Mein Trainerteam darf Befunde zu meinen Verletzungen (z. B. Arztbriefe) speichern und mit KI auswerten lassen.
+
+Wenn du verletzt bist, kann dein Trainerteam Befunde (Fotos oder PDFs von Arztbriefen) in der App speichern. Mit
+deiner Einwilligung darf es sie von einem KI-Dienst zusammenfassen lassen, um deinen Wiedereinstieg zu planen. Die
+Datei wird dafür an den KI-Anbieter übermittelt, möglicherweise außerhalb der EU, und dort nicht gespeichert oder zum
+Training verwendet. Du siehst alle Befunde selbst und kannst die Einwilligung jederzeit widerrufen.
+
+### English
+
+**Medical report analysis (optional)**
+
+My coaching staff may store medical reports about my injuries (e.g. doctor's letters) and have them summarised by AI.
+
+If you are injured, your coaching staff can store medical reports (photos or PDFs of doctor's letters) in the app.
+With your consent they may have an AI service summarise them to plan your return to training. The file is sent to the
+AI provider for this, possibly outside the EU, and is not stored there or used for training. You can see all reports
+yourself and withdraw your consent at any time.
+
+> **Prüfhinweis:** Bei Spielern unter 16 Jahren zusätzlich die Einwilligung der Erziehungsberechtigten einholen
+> (Vorlage (c) um diesen Punkt ergänzen).
+
 ## Widerruf von Einwilligungen
 
 ### Ort in der App

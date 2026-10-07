@@ -1,0 +1,53 @@
+# Prüft jede Änderung: Kernlogik-Tests, Datenbank- und Zugriffsregeln (RLS), Edge-Function-Logik, TypeScript.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kernlogik:
+    name: Kernlogik (Belastung, Planung, Leistung, Pausen)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pakete installieren
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - run: npm test
+
+  datenbank:
+    name: Datenbank, Zugriffsregeln, Edge Functions
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Postgres-Binärdateien finden
+        run: echo "PGBIN=$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)" >> "$GITHUB_ENV"
+      - name: Tests (Wegwerf-Datenbank, alle Migrationen, RLS-Tests, Edge-Function-Logik)
+        run: bash supabase/tests/run.sh
+        env:
+          PGTEST_DIR: ${{ runner.temp }}/pgtest
+
+  typen:
+    name: TypeScript (App)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Pakete installieren
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - run: npm run typecheck
+      - run: npx expo-doctor || true
