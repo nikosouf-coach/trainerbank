@@ -104,4 +104,5 @@ export const PLAYER_VIEW: { key: PlayerViewKey; def: boolean; needs?: keyof Modu
   { key: "tests", def: true, needs: "leistung" },
   { key: "videos", def: true, needs: "videos" },
   { key: "contacts", def: true, needs: "kontakte" },
+  { key: "program", def: true, needs: "vorbereitung" },
 ];

@@ -7,7 +7,7 @@ import { addDays, iso, monday } from "../core/dates";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
 import type {
-  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
+  Absence, AttStatus, CalOverride, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo } from "./api";
@@ -152,10 +152,10 @@ function useStoreValue() {
 
   const replaceIn = <T extends { id: string }>(arr: T[], tmpObj: T, saved: T): void => { const i = arr.findIndex(x => x.id === tmpObj.id); if (i >= 0) arr[i] = saved; };
   /** Eintrag in einer Liste von TeamData anlegen oder ersetzen und speichern. */
-  function upsert<K extends "exercises" | "templates" | "staff">(key: K, x: TeamData[K][number], save: (api: Api, teamId: string) => Promise<TeamData[K][number]>) {
+  function upsert<K extends "exercises" | "templates" | "staff" | "phases">(key: K, x: TeamData[K][number], save: (api: Api, teamId: string) => Promise<TeamData[K][number]>, opts: { plan?: boolean } = {}) {
     const isNew = x.id.startsWith("tmp-");
     return change(D => { const L = D[key] as { id: string }[]; const i = L.findIndex(y => y.id === x.id); if (isNew || i < 0) L.push(x); else L[i] = x; },
-      async (api, t) => { const saved = await save(api, t); replaceIn(ref.current.D![key] as { id: string }[], x, saved); });
+      async (api, t) => { const saved = await save(api, t); replaceIn(ref.current.D![key] as { id: string }[], x, saved); }, opts);
   }
 
   const actions = {
@@ -260,6 +260,8 @@ function useStoreValue() {
     deleteTemplate: (id: string) => change(D => { D.templates = D.templates.filter(x => x.id !== id); }, api => api.deleteTemplate(id)),
     saveStaff: (x: StaffProfile) => upsert("staff", x, (api, t) => api.saveStaff(t, x)),
     deleteStaff: (id: string) => change(D => { D.staff = D.staff.filter(x => x.id !== id); }, api => api.deleteStaff(id)),
+    savePhase: (x: SeasonPhase) => upsert("phases", x, (api, t) => api.savePhase(t, x), { plan: true }),
+    deletePhase: (id: string) => change(D => { D.phases = D.phases.filter(x => x.id !== id); }, api => api.deletePhase(id), { plan: true }),
     analyzeFinding: async (id: string, context: string): Promise<string> => {
       const { api, active, D, lang } = ref.current; if (!D || !active) throw new ApiError("server");
       const text = await api.analyzeFinding(active.teamId, id, context, lang);

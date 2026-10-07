@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { addDays, iso, kwOf, monday, monthStart, parse } from "../../../src/core/dates";
 import type { PlanItem } from "../../../src/core/engine";
+import { phaseOn } from "../../../src/core/prep";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Icon } from "../../../src/ui/icons";
 import { Btn, Card, CardTitle, Header, Info, ListItem, Muted, Row, Screen, Seg, Tag } from "../../../src/ui/kit";
@@ -40,6 +41,7 @@ export default function Kalender() {
     if (x.train && x.train.kind === "frei") its.push(<Item key="r" kind={t("k_frei")} color={c.ok} text={tf("restDay", { md: x.md })} onPress={() => sheets.open({ k: "day", date: x.date })} />);
     else if (x.train) its.push(<Item key="t" testID={"cal-train-" + x.date} kind={t("it_training")} color={rpeColor(c, showI ? x.train.rpe : 5)} text={`${E.zeitOf(x.date)} · ${E.kn(x.train.kind)}${showI ? " · " + E.intWord(x.train.rpe) : ""}`} onPress={() => openTrain(x.date)} />);
     if (x.cancelled) its.push(<Item key="c" off kind={t("it_training")} color={c.muted} text={t("cancelled")} onPress={() => sheets.open({ k: "day", date: x.date })} />);
+    if (x.brk && E.regularDay(x.date)) { const ph = phaseOn(E.D, x.date); its.push(<Item key="b" kind={t("vb_breakDay")} color="#16a3a3" text={ph?.title || ""} onPress={() => ph ? router.push("/coach/phase/" + ph.id) : sheets.open({ k: "day", date: x.date })} />); }
     x.events.forEach(e => its.push(<Item key={e.id} kind={t("it_event")} color={c.event} text={(e.zeit ? e.zeit + " · " : "") + e.titel} onPress={() => sheets.open({ k: "add", date: x.date, type: "event", obj: e })} />));
     const ab = E.absentOn(x.date);
     if ((x.train || x.match) && ab.length) its.push(<Muted key="a" small>{ab.length} {t("absent")}: {ab.slice(0, 4).map(p => p.vn).join(", ")}{ab.length > 4 ? " …" : ""}</Muted>);
@@ -87,6 +89,7 @@ export default function Kalender() {
           L.push(tx("k", E.kn(tr.kind), c.ink, true)); if (!narrow) L.push(tx("z", `${E.zeitOf(d)} · ${tr.dauer}′`)); L.push(tx("p", `👤 ${n - E.absentOn(d).length}`));
         }
       } else if (x.cancelled) L.push(<Text key="c" numberOfLines={1} style={{ fontSize: narrow ? 9.5 : 11, color: c.muted, textDecorationLine: "line-through" }}>{t("it_training")}</Text>);
+      else if (x.brk && E.regularDay(d)) L.push(<Text key="b" numberOfLines={1} style={{ fontSize: narrow ? 9.5 : 11, color: "#16a3a3", fontWeight: "700" }}>{t("vb_breakDay")}</Text>);
       x.events.forEach(e => L.push(tx("e" + e.id, "● " + e.titel, c.event)));
       const today = d === E.TODAY;
       cells.push(

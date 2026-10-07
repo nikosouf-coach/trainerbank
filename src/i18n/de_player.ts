@@ -12,7 +12,7 @@ export const de_player: Dict = {
   gm_bd_first: "Ersten Morgen-Check gemacht.", gm_bd_streak7: "7 Tage in Folge eingecheckt.", gm_bd_perfect: "Eine ganze Woche jeden Tag eingecheckt.",
   gm_bd_rpe: "Nach mindestens 90 % deiner Einheiten die RPE eingetragen.", gm_bd_att: "100 % Trainingsbeteiligung in 28 Tagen.",
   gm_bd_sleep: "An 5 von 7 Tagen genug geschlafen.", gm_bd_extra: "3 Zusatzeinheiten in 14 Tagen eingetragen.", gm_bd_streak30: "30 Tage in Folge eingecheckt.",
-  gm_info: "XP bekommst du fürs Eintragen (Morgen-Check +10, RPE +15), fürs Dabeisein (+10) und für Zusatzsport (+5 pro Tag). Mehr Belastung bringt keine Extrapunkte – es geht um Regelmäßigkeit, nicht ums Übertreiben.",
+  gm_info: "XP bekommst du fürs Eintragen (Morgen-Check +10, RPE +15), fürs Dabeisein (+10) und für Zusatzsport (+5 pro Tag). Einheiten aus deinem Pausen-Programm bringen +10 (höchstens zwei pro Tag). Mehr Belastung bringt keine Extrapunkte – es geht um Regelmäßigkeit, nicht ums Übertreiben.",
   gm_b_goal: "Torschütze", gm_b_assist: "Vorlagengeber", gm_b_top: "Top-Note",
   gm_bd_goal: "Ein Tor in einem Spiel erzielt.", gm_bd_assist: "Ein Tor vorbereitet.", gm_bd_top: "Eine Note von 8,0 oder besser bekommen.",
   gm_b_pb: "Bestwert", gm_bd_pb: "Neuer persönlicher Bestwert in einem Test.",

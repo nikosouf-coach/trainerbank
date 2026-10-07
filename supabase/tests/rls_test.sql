@@ -931,6 +931,50 @@ delete from public.exercises; delete from public.session_templates; delete from 
 commit;
 
 -- =====================================================================
+-- T30 Vorbereitung & Pausen (Baustein 8): Trainer plant, Spieler lesen, Programm abhaken
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.season_phases (team_id, kind, title, date_from, date_to, program)
+                             values (%L, 'break', 'Winterpause', '2026-12-19', '2027-01-10', '[{"id":"pi1","key":"kraft","min":35,"rpe":6,"perWeek":1,"from":1,"to":3}]')$q$, tst.get('team_a')),
+                   1, 'T30 Coach legt Pause mit Programm an');
+select tst.throws(format($q$insert into public.season_phases (team_id, kind, title, date_from, date_to) values (%L, 'prep', 'X', '2027-01-10', '2027-01-01')$q$, tst.get('team_a')),
+                  'T30 Ende vor Beginn wird abgelehnt', 'check constraint');
+select tst.throws(format($q$insert into public.season_phases (team_id, kind, title, date_from, date_to) values (%L, 'urlaub', 'X', '2027-01-01', '2027-01-10')$q$, tst.get('team_a')),
+                  'T30 unbekannte Phasenart wird abgelehnt', 'check constraint');
+do $$ begin
+  perform tst.ok(public.player_view(tst.get('team_a')::uuid, 'program'), 'T30 Programm ist für Spieler standardmäßig sichtbar');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select title from public.season_phases), 'Winterpause', 'T30 Spieler sieht die Pause seines Teams');
+end $$;
+select tst.affects($q$update public.season_phases set title = 'Urlaub'$q$, 0, 'T30 Spieler kann Phasen nicht ändern');
+select tst.throws(format($q$insert into public.season_phases (team_id, kind, title, date_from, date_to) values (%L, 'break', 'X', '2027-01-01', '2027-01-10')$q$, tst.get('team_a')),
+                  'T30 Spieler kann keine Phase anlegen', 'row-level security');
+select tst.affects(format($q$insert into public.extra_activities (player_id, date, type, minutes, rpe, label, program_item)
+                             values (%L, '2026-12-21', 'gym', 35, 6, 'Kraft & Prävention', 'pi1')$q$, tst.get('max')),
+                   1, 'T30 Spieler hakt Programm-Einheit ab');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.season_phases)::text, '0', 'T30 fremdes Team sieht die Phase nicht');
+end $$;
+commit;
+
+begin;
+delete from public.season_phases; delete from public.extra_activities where program_item = 'pi1';
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

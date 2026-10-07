@@ -9,6 +9,7 @@ import { WeekBars, WeekStrip } from "../../../src/ui/charts";
 import { Bar, Btn, Card, CardTitle, Chip, Col, Divider, Header, Info, ListItem, Muted, Row, Screen, T } from "../../../src/ui/kit";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
+import { CoachPhaseCard } from "../../../src/ui/prep";
 import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
 function HeroPill({ label }: { label: string }) {
@@ -124,6 +125,7 @@ export default function Heute() {
     <Screen testID="coach-heute">
       <Header eyebrow={`${E.wt(E.TODAY)} ${E.de(E.TODAY)} · ${E.team.club} ${E.team.name}`} title={`${gruss}, ${t("coach")}`} />
       {hero}
+      <CoachPhaseCard />
       {mods.ki ? <AiPanel mode="coach" testID="ai" context={() => E.aiContext(pid => s.aiPlayers.includes(pid))} quick={["ki_q1", "ki_q2", "ki_q3"]} placeholder={t("ki_ph")} note={t("ki_note")}
         onQuick={k => { if (k === "ki_q1" && nx?.train) { sheets.open({ k: "ai", date: nx.date }); return true; } return false; }} /> : null}
       <Card>

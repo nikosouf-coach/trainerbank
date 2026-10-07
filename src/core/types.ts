@@ -38,7 +38,7 @@ export interface TeamSettings {
   playerView?: Partial<Record<PlayerViewKey, boolean>>;
 }
 export interface TeamGroup { id: string; name: string }
-export type PlayerViewKey = "plan" | "load" | "tips" | "ai" | "goals" | "att" | "ratings" | "stats" | "tests" | "videos" | "contacts";
+export type PlayerViewKey = "plan" | "load" | "tips" | "ai" | "goals" | "att" | "ratings" | "stats" | "tests" | "videos" | "contacts" | "program";
 export interface Principle { kind: Kind; rpe: number }
 export type Principles = Record<string, Principle>;
 export interface Modules {
@@ -89,7 +89,7 @@ export interface Session { date: string; typ: "Training" | "Spiel"; dauer: numbe
 export interface RpeEntry { rpe: number; min: number }
 export interface WellnessItems { sq: number; fat: number; doms: number; stress: number }
 export interface Wellness { sum: number; schlaf: number; beschw: Complaint; ort?: string; items?: WellnessItems }
-export interface Extra { id: string; date: string; art: ExtraType; min: number; rpe: number; /** freie Bezeichnung bei „Sonstiges“ */ label?: string }
+export interface Extra { id: string; date: string; art: ExtraType; min: number; rpe: number; /** freie Bezeichnung bei „Sonstiges“ */ label?: string; /** erledigter Programm-Baustein (ProgItem.id) aus Pause/Vorbereitung */ prog?: string }
 export interface Growth { date: string; cm: number }
 export interface CustomKind { id: string; name: string; rpe: number; inhalt: string }
 export interface Potential { id: string; cat: PotCat; text: string; vis: boolean; src: "trainer" | "daten" | "ki" }
@@ -124,6 +124,22 @@ export interface StaffProfile { id: string; name: string; role: StaffRoleKey; ar
 export type TestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit";
 export interface TestResult { id: string; pid: string; test: TestKey; date: string; value: number; note?: string }
 /** Video-Link (YouTube, Veo, Hudl, Vimeo, Cloud …) zu Spiel, Spielern oder Übung. */
+/** Vorbereitung (prep) oder längere Pause (break, z. B. Sommer-/Winterpause). */
+export type PhaseKind = "prep" | "break";
+export type FreeKey = "andere" | "mobility" | "locker" | "fahrtspiel" | "intervall" | "kraft" | "sprint" | "ball" | "eigen";
+/** Baustein im Spielerprogramm: perWeek-mal pro Woche in den Phasenwochen from..to (1-basiert). */
+export interface ProgItem { id: string; key: FreeKey; title?: string; min: number; rpe: number; perWeek: number; from: number; to: number; note?: string }
+/** Anpassungen einer Phasenwoche durch den Trainer (Schlüssel = Montag der Woche). */
+export interface PhaseWeek { pct?: number; note?: string; test?: boolean }
+export interface Phase {
+  id: string; kind: PhaseKind; title: string; from: string; to: string;
+  /** erstes Pflichtspiel nach der Vorbereitung */
+  firstMatch: string | null;
+  weeks: Record<string, PhaseWeek>; program: ProgItem[];
+  /** Programm für Spieler sichtbar */
+  vis: boolean; note: string;
+}
+
 export interface Video { id: string; title: string; url: string; date: string | null; matchId: string | null; pids: string[]; note: string; vis: boolean }
 
 /** Alles, was die Fachlogik über ein Team wissen muss. */
@@ -155,12 +171,13 @@ export interface TeamData {
   exercises: Exercise[];
   templates: SessionTemplate[];
   staff: StaffProfile[];
+  phases: Phase[];
 }
 
 export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
-    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [],
+    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [],
   };
 }

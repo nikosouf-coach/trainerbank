@@ -3,7 +3,7 @@ import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "../core/classes";
 import { addDays, iso, monday } from "../core/dates";
-import type {
+import type { Phase,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -73,7 +73,8 @@ const mapStaff = (r: Row): StaffProfile => ({ id: r.id, name: r.name, role: r.ro
 const mapVideo = (r: Row): Video => ({ id: r.id, title: r.title, url: r.url, date: r.date || null, matchId: r.match_id || null, pids: r.player_ids || [], note: r.note || "", vis: !!r.visible });
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
 const mapAbs = (r: Row): Absence => ({ id: r.id, pid: r.player_id, typ: r.type, von: r.from_date, bis: r.to_date, stufe: r.stage, notiz: r.note || "", by: r.reported_by_player ? "player" : "coach" });
-const mapExtra = (r: Row): Extra => ({ id: r.id, date: r.date, art: r.type, min: r.minutes, rpe: Number(r.rpe ?? 5), label: r.label || undefined });
+const mapExtra = (r: Row): Extra => ({ id: r.id, date: r.date, art: r.type, min: r.minutes, rpe: Number(r.rpe ?? 5), label: r.label || undefined, prog: r.program_item || undefined });
+const mapPhase = (r: Row): Phase => ({ id: r.id, kind: r.kind, title: r.title, from: r.date_from, to: r.date_to, firstMatch: r.first_match || null, weeks: r.weeks || {}, program: r.program || [], vis: r.visible !== false, note: r.note || "" });
 const mapPot = (r: Row): Potential => ({ id: r.id, cat: r.category, text: r.text, vis: !!r.visible_to_player, src: r.source || "trainer" });
 const mapMsg = (r: Row): CoachMsg => ({ id: r.id, date: (r.created_at || "").slice(0, 10), typ: r.type, text: r.text, bis: r.valid_until });
 const mapKind = (r: Row): CustomKind => ({ id: r.id, name: r.name, rpe: Number(r.rpe ?? 5), inhalt: r.content || "" });
@@ -164,7 +165,7 @@ export class SupabaseApi implements Api {
       const [rpe, well, extra, att, abs, growth, pots, msgs] = await Promise.all([
         all((a, b) => sb.from("rpe_entries").select("player_id, date, rpe, minutes").in("player_id", ids).gte("date", from).range(a, b)),
         all((a, b) => sb.from("wellness_entries").select("*").in("player_id", ids).gte("date", addDays(today, -35)).range(a, b)),
-        q(sb.from("extra_activities").select("*").in("player_id", ids).gte("date", addDays(today, -35))),
+        q(sb.from("extra_activities").select("*").in("player_id", ids).gte("date", addDays(today, -70))),
         all((a, b) => sb.from("attendance").select("player_id, date, status").eq("team_id", tid).gte("date", addDays(today, -70)).range(a, b)),
         q(sb.from("absences").select("*").in("player_id", ids).or(`to_date.is.null,to_date.gte.${addDays(today, -365)}`)),
         q(sb.from("growth_measurements").select("*").in("player_id", ids).order("date")),
@@ -187,7 +188,7 @@ export class SupabaseApi implements Api {
         for (const r of notes) D.notes[r.player_id] = r.text;
       }
       // Spieldaten, Noten, Videos (für Spieler filtern die Zugriffsregeln auf eigene, freigegebene Einträge)
-      const [stats, ratings, videos, tests, findings, exercises, templates, staffP] = await Promise.all([
+      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases] = await Promise.all([
         all((a, b) => sb.from("match_stats").select("*").eq("team_id", tid).range(a, b)),
         all((a, b) => sb.from("player_ratings").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).range(a, b)),
         q(sb.from("videos").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
@@ -196,7 +197,9 @@ export class SupabaseApi implements Api {
         staff ? q(sb.from("exercises").select("*").eq("team_id", tid).order("created_at")) : Promise.resolve([] as Row[]),
         staff ? q(sb.from("session_templates").select("*").eq("team_id", tid).order("created_at")) : Promise.resolve([] as Row[]),
         staff ? q(sb.from("staff_profiles").select("*").eq("team_id", tid).order("created_at")) : Promise.resolve([] as Row[]),
+        q(sb.from("season_phases").select("*").eq("team_id", tid).gte("date_to", addDays(today, -400)).order("date_from")),
       ]);
+      D.phases = phases.map(mapPhase);
       D.exercises = exercises.map(mapExercise); D.templates = templates.map(mapTemplate); D.staff = staffP.map(mapStaff);
       D.findings = findings.map(mapFinding);
       D.tests = tests.map(mapTest);
@@ -315,7 +318,7 @@ export class SupabaseApi implements Api {
     }));
   }
   async saveExtra(pid: string, x: Extra) {
-    const row: Row = { player_id: pid, date: x.date, type: x.art, minutes: x.min, rpe: x.rpe, label: x.label?.trim() || null };
+    const row: Row = { player_id: pid, date: x.date, type: x.art, minutes: x.min, rpe: x.rpe, label: x.label?.trim() || null, program_item: x.prog || null };
     const r = isTmp(x.id) ? await q<Row>(this.sb.from("extra_activities").insert(row).select().single()) : await q<Row>(this.sb.from("extra_activities").update(row).eq("id", x.id).select().single());
     return mapExtra(r);
   }
@@ -383,6 +386,12 @@ export class SupabaseApi implements Api {
     return mapStaff(r);
   }
   async deleteStaff(id: string) { await q(this.sb.from("staff_profiles").delete().eq("id", id)); }
+  async savePhase(teamId: string, x: Phase) {
+    const row: Row = { team_id: teamId, kind: x.kind, title: x.title, date_from: x.from, date_to: x.to, first_match: x.firstMatch || null, weeks: x.weeks, program: x.program, visible: x.vis, note: x.note || null };
+    const r = isTmp(x.id) ? await q<Row>(this.sb.from("season_phases").insert(row).select().single()) : await q<Row>(this.sb.from("season_phases").update(row).eq("id", x.id).select().single());
+    return mapPhase(r);
+  }
+  async deletePhase(id: string) { await q(this.sb.from("season_phases").delete().eq("id", id)); }
 
   // ---------- Befunde ----------
   async uploadFinding(teamId: string, f: Omit<Finding, "id" | "path" | "ai" | "aiAt">, uri: string) {

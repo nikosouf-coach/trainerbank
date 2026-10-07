@@ -1,9 +1,10 @@
 // Demo-Mannschaft: für den Demo-Modus, für Tests und für „Beispieldaten laden“ (App-Review).
 import { classDef, defaultPrinciples, defaultSettings, groupOf, isGrowthAge, modsFor, sleepTarget } from "./classes";
-import { addDays, ageOn, diff, iso, parse, rng } from "./dates";
+import { addDays, ageOn, diff, iso, monday, parse, rng } from "./dates";
 import { createEngine } from "./engine";
 import { translator } from "./i18n";
-import type { AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult } from "./types";
+import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
+import type { Phase, PhaseKind, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult } from "./types";
 import { emptyTeamData } from "./types";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
@@ -179,7 +180,46 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
       : "### Zusammenfassung\nLaut Befund liegt eine Zerrung bzw. ein Teilfaserriss der hinteren Oberschenkelmuskulatur (M. biceps femoris, langer Kopf) ohne Beteiligung der Sehne vor.\n\n### Bedeutung fürs Training\n- Vorerst keine Sprints, keine maximalen Schüsse, keine Grätschen.\n- Rumpf, Oberkörper und lockeres Radfahren sind möglich, wenn schmerzfrei.\n\n### Möglicher Stufenplan\n1. Individuell/Reha: schmerzfreies Gehen, isometrische Übungen, Beweglichkeit – weiter, wenn Alltag und lockeres Laufen schmerzfrei sind.\n2. Teiltraining: Technik ohne Sprints, Laufen bis ca. 70 % – weiter, wenn exzentrische Übungen (z. B. Nordic Hamstring) schmerzfrei sind und die Kraft im Seitenvergleich bei mindestens 90 % liegt.\n3. Volles Training: Sprints schrittweise bis 100 %, Zweikämpfe – weiter nach mindestens zwei beschwerdefreien Einheiten und Freigabe.\n4. Spielfähig: zunächst Teilzeit-Einsatz.\nJe nach Schwere sind 2–6 Wochen üblich, die Spanne ist groß.\n\n### Warnzeichen – sofort abbrechen\n- Stechender Schmerz, Ziehen beim Sprint, neue Schwellung oder Bluterguss\n\n### Fragen an Arzt oder Physio\n- Wie groß ist die Verletzung und ist die Sehne beteiligt?\n- Ab wann sind Sprints und exzentrisches Training erlaubt?\n\nDies ist keine medizinische Beratung – über die Rückkehr entscheidet das medizinische Personal.",
   });
   demoArchive(D, en);
+  demoPhases(D, lang, TODAY);
   D.videos.push({ id: "v" + (vid++), title: en ? "Pressing triggers – clips for the back line" : "Pressing-Auslöser – Clips für die Abwehrkette", url: "https://example.com/video/pressing", date: null, matchId: null, pids: ["p2", "p3", "p4"], note: "", vis: true });
+}
+
+/** Saisonphasen für die Demo: vergangene Pause + Vorbereitung (mit Umsetzung), kurze Ferienpause in der
+ *  spielfreien Zeit, geplante Winter-/Sommerpause mit anschließender Vorbereitung. */
+function demoPhases(D: TeamData, lang: Lang, TODAY: string): void {
+  const en = lang === "en", { t } = translator(lang), grp = groupOf(D.team.cls), r = rng(88);
+  const liga = D.matches.filter(m => m.comp === "liga").sort((a, b) => a.date < b.date ? -1 : 1);
+  if (!liga.length) return;
+  let pi = 1, ph = 1; const idf = (): string => "pi" + (pi++);
+  const summer = (d: string): boolean => { const m = parse(d).getMonth(); return m >= 4 && m <= 8; };
+  const mk = (kind: PhaseKind, from: string, to: string, title: string, firstMatch: string | null = null): Phase =>
+    ({ id: "ph" + (ph++), kind, title, from, to, firstMatch, weeks: {}, program: defaultProgram(kind, from, to, grp, idf), vis: true, note: "" });
+  const name = (d: string, kind: PhaseKind): string => summer(d)
+    ? (kind === "break" ? (en ? "Summer break" : "Sommerpause") : (en ? "Summer pre-season" : "Sommervorbereitung"))
+    : (kind === "break" ? (en ? "Winter break" : "Winterpause") : (en ? "Winter pre-season" : "Wintervorbereitung"));
+  // 1. Vor dem ersten Spiel: 4 Wochen Pause, 6 Wochen Vorbereitung
+  const first = liga[0].date, prepFrom = monday(addDays(first, -42)), brkTo = addDays(prepFrom, -1), brkFrom = addDays(brkTo, -27);
+  const past = mk("break", brkFrom, brkTo, name(brkFrom, "break")), prep = mk("prep", prepFrom, addDays(first, -1), name(prepFrom, "prep"), first);
+  D.phases.push(past, prep);
+  // 2. Kurze Pause in der spielfreien Zeit
+  const fut = liga.filter(m => m.date > TODAY);
+  for (let i = 0; i + 1 < fut.length; i++) if (diff(fut[i].date, fut[i + 1].date) >= 14) {
+    D.phases.push(mk("break", addDays(fut[i].date, 1), addDays(fut[i + 1].date, -4), en ? "Holiday break" : "Ferienpause")); break;
+  }
+  // 3. Nach dem letzten Spiel: Pause und Vorbereitung
+  const last = liga[liga.length - 1].date, b2 = monday(addDays(last, 8)), p2 = addDays(b2, 28), m2 = addDays(p2, 41 + 6);
+  D.phases.push(mk("break", b2, addDays(p2, -1), name(b2, "break")), mk("prep", p2, addDays(m2, -1), name(p2, "prep"), m2));
+  // Umsetzung der vergangenen Pause: je Spieler unterschiedlich fleißig
+  for (const p of D.players) {
+    const diligence = 0.25 + r() * 0.8, L = (D.extra[p.id] ||= []);
+    for (const ph of [past, prep]) for (const ws of phaseWeeks(ph.from, ph.to)) for (const it of weekItems(ph, ws)) for (let k = 0; k < it.perWeek; k++) {
+      if (r() > (ph === past ? diligence : diligence * 0.8)) continue;
+      const d = addDays(ws, Math.floor(r() * 7)); if (d < ph.from || d > ph.to) continue;
+      L.push({ id: "dx" + p.id + "-" + L.length, date: d, art: artOf(it), min: Math.max(10, it.min + Math.round((r() - 0.5) * 10)), rpe: Math.max(1, Math.min(10, it.rpe + Math.round((r() - 0.5) * 2))), label: t("fl_" + it.key), prog: it.id });
+    }
+    if (r() < 0.5) L.push({ id: "dx" + p.id + "-" + L.length, date: addDays(past.from, 10 + Math.floor(r() * 10)), art: "sonst", min: 90, rpe: 5, label: en ? "Football with friends" : "Fußball mit Freunden" });
+    L.sort((a, b) => a.date < b.date ? -1 : 1);
+  }
 }
 
 /** Beispiel-Übungen, Einheiten-Vorlagen und Trainerprofile für die Demo. */

@@ -8,11 +8,13 @@ import { de_player } from "../i18n/de_player";
 import { de_squad } from "../i18n/de_squad";
 import { en_player } from "../i18n/en_player";
 import { en_squad } from "../i18n/en_squad";
+import { de_prep } from "../i18n/de_prep";
+import { en_prep } from "../i18n/en_prep";
 import type { Dict } from "../i18n/types";
 import type { Lang } from "./types";
 
-const de: Dict = { ...deBase, ...de_app, ...de_coach, ...de_squad, ...de_player };
-const en: Dict = { ...enBase, ...en_app, ...en_coach, ...en_squad, ...en_player };
+const de: Dict = { ...deBase, ...de_app, ...de_coach, ...de_squad, ...de_player, ...de_prep };
+const en: Dict = { ...enBase, ...en_app, ...en_coach, ...en_squad, ...en_player, ...en_prep };
 const DICTS: Record<Lang, Dict> = { de, en };
 
 export interface Translator {

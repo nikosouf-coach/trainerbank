@@ -1,0 +1,107 @@
+// Texte: Vorbereitung & Pausen (Trainer), Programm für die freie Zeit (Spieler) – de
+import type { Dict } from "./types";
+
+export const de_prep: Dict = {
+  // Trainer: Übersicht
+  vb_title: "Vorbereitung & Pausen", vb_sub: "Wochenaufbau, Testtage, Pausenprogramm für Spieler",
+  vb_newPrep: "Vorbereitung", vb_newBreak: "Pause",
+  vb_kind_prep: "Vorbereitung", vb_kind_break: "Pause",
+  vb_running: "Läuft gerade", vb_planned: "Geplant", vb_past: "Vergangen",
+  vb_none: "Noch nichts geplant. Lege eine Vorbereitung oder eine längere Pause (z. B. Winterpause, Ferien) an – die App schlägt Wochenaufbau, Testtage und ein Programm für die Spieler vor.",
+  vb_weeks: "{n} Wochen", vb_week1: "1 Woche",
+  vb_titleF: "Bezeichnung", vb_titlePh_prep: "z. B. Wintervorbereitung", vb_titlePh_break: "z. B. Winterpause",
+  vb_from: "Von", vb_to: "Bis", vb_firstMatch: "Erstes Pflichtspiel (optional)",
+  vb_new: "Neue Phase", vb_edit: "Phase bearbeiten", vb_delete: "Phase löschen",
+  vb_deleteQ: "Phase wirklich löschen? Von Spielern eingetragene Einheiten bleiben erhalten.",
+  vb_errDates: "Bitte einen gültigen Zeitraum wählen (höchstens 26 Wochen).",
+  vb_saved: "Phase gespeichert", vb_deleted: "Phase gelöscht",
+  vb_newHint: "Die App erstellt einen Wochenaufbau und ein Spielerprogramm als Vorschlag. Beides kannst du danach anpassen.",
+  vb_noTraining: "In dieser Zeit findet kein Mannschaftstraining statt. Kalender und Planung zeigen die Trainingstage als Pause. Einzelne Termine kannst du trotzdem ansetzen.",
+
+  // Trainer: Wochenaufbau
+  vb_period: "Wochenaufbau",
+  vb_periodInfo: "Einstiegswoche moderat (ca. 75 % einer normalen Saisonwoche) mit Eingangstest. Danach Steigerung um höchstens 10–15 % pro Woche, nach zwei Aufbauwochen eine Entlastungswoche (3:1). In der letzten Woche vor dem ersten Pflichtspiel den Umfang um etwa 20–40 % senken und die Intensität halten (Tapering). Große Sprünge von einer Woche zur nächsten erhöhen das Verletzungsrisiko – gerade nach einer Pause, wenn die gewohnte Belastung niedrig ist.",
+  vb_breakInfo: "Erste Woche(n): aktive Erholung – abschalten, andere Sportarten. Danach 2–3 Einheiten pro Woche mit hoher Intensität: Ohne Training sinkt die Ausdauer nach 2–4 Wochen spürbar, mit wenigen intensiven Einheiten bleibt sie weitgehend erhalten. Letzte Woche: Anlauf mit Sprints, damit der Start in die Vorbereitung nicht aus dem Stand kommt.",
+  vb_r_rest: "Erholung", vb_r_keep: "Erhalt", vb_r_ramp: "Anlauf", vb_r_entry: "Einstieg", vb_r_build: "Aufbau", vb_r_deload: "Entlastung", vb_r_taper: "Taper",
+  vb_f_rest: "Abschalten, andere Sportarten, Beweglichkeit",
+  vb_f_keep: "2–3 Einheiten: Intervalle, lockerer Lauf, Kraft",
+  vb_f_ramp: "Sprints und Intervalle – bereit für den Start",
+  vb_f_entry: "Grundlagen, Technik, Prävention, Eingangstest – Spielformen dosiert",
+  vb_f_build: "Intensive Spielformen, Intervalle, Kraft, Schnelligkeit",
+  vb_f_build2: "Taktik, Spielrhythmus, Standards – Testspiele über 60–90′",
+  vb_f_deload: "Umfang runter, Qualität hoch – Erholung einplanen",
+  vb_f_taper: "Frische holen: kurz und knackig, Standards, Abläufe",
+  vb_target: "Ziel {p} %", vb_plAU: "geplant {au} AU", vb_noPlan: "noch keine Einheiten",
+  vb_ref: "100 % = {au} AU pro Woche", vb_refData: "aus euren Daten", vb_refEst: "geschätzt",
+  vb_refInfo: "100 % entspricht einer normalen Saisonwoche eures Teams (Training + ein Spiel). Sobald genug Daten da sind, aus euren Einträgen – sonst geschätzt aus Trainingstagen, Dauer und mittlerer Intensität.",
+  vb_ist: "Ist Ø {au} AU", vb_noData: "keine Daten", vb_all: "Alle {n} anzeigen", vb_less: "Weniger anzeigen",
+  vb_spike: "+{p} % über dem Niveau der Vorwochen – Richtwert höchstens 10–15 %",
+  vb_entryHigh: "Einstieg deutlich über dem Ziel – nach der Pause langsamer starten",
+  vb_test: "Testtag", vb_testIn: "Eingangstest: CMJ, 10-/30-m-Sprint, 30-15 IFT (nach 2–3 Trainingstagen)", vb_testOut: "Ausgangstest – Fortschritt messen",
+  vb_toTests: "Zu den Leistungstests",
+  vb_matches: "Spiele", vb_minutes: "Einsatzzeit pro Spieler etwa {m}′",
+  vb_apply: "In die Wochenplanung übernehmen", vb_applied: "Wochenplanung angepasst ({n} Wochen)",
+  vb_applyInfo: "Setzt in der Wochenplanung: Aufbau = Aufbau ↑, Einstieg, Entlastung und Taper = Entlastung ↓. Die Einheiten passt du wie gewohnt in der Planung an.",
+  vb_weekEdit: "Woche {i} anpassen", vb_pct: "Ziel-Last in %", vb_note: "Notiz", vb_mode: "Wochenmodus", vb_testWeek: "Testwoche",
+  vb_toPlan: "Woche planen", vb_wkLabel: "Woche {i}",
+
+  // Trainer: Spielerprogramm
+  vb_program: "Spielerprogramm",
+  vb_programInfo: "Was die Spieler in dieser Zeit selbst machen. Sie sehen das Programm in ihrer App, haken erledigte Einheiten ab (zählt als Zusatzbelastung) und bekommen dafür XP. Belohnt wird Regelmäßigkeit, nicht möglichst viel Belastung.",
+  vb_vis: "Für Spieler sichtbar", vb_regen: "Vorschlag neu erstellen", vb_regenQ: "Programm durch einen neuen Vorschlag ersetzen?", vb_regenDone: "Neuer Vorschlag erstellt",
+  vb_addItem: "Baustein", vb_item: "Baustein", vb_itemNew: "Neuer Baustein",
+  vb_perWeek: "Pro Woche", vb_perWeekN: "{n}× pro Woche", vb_wFrom: "Ab Woche", vb_wTo: "Bis Woche",
+  vb_wk: "Woche {a}–{b}", vb_wkOne: "Woche {a}",
+  vb_customTitle: "Bezeichnung", vb_itemNote: "Hinweis für Spieler", vb_itemDel: "Baustein entfernen",
+  vb_progEmpty: "Noch keine Bausteine.", vb_perWeekSum: "{n} Einheiten pro Woche",
+
+  // Trainer: Umsetzung
+  vb_compliance: "Umsetzung",
+  vb_compInfo: "Anteil der bis heute fälligen Programmeinheiten, die abgehakt wurden (laufende Woche anteilig). Eigene Aktivitäten wie Fußball mit Freunden zählen zusätzlich.",
+  vb_compNone: "Noch keine Einheiten fällig.", vb_own: "+{m}′ eigene", vb_avg: "Ø {p} %", vb_compLow: "Unter 50 %: kurz nachfragen",
+
+  // Trainer: KI
+  vb_ai_q1: "Inhalte für jede Einheit?", vb_ai_q2: "Testspiele & Einsatzzeiten?", vb_ai_q3: "Wiedereinstieg verletzungsarm?",
+  vb_aiPh: "Frage zur Vorbereitung …",
+
+  // Kalender, Planung, Heute
+  vb_breakDay: "Pause", vb_breakCal: "Pause · {t}",
+  vb_nowBreak: "Pause läuft · Woche {i} von {n}", vb_nowPrep: "Vorbereitung · Woche {i} von {n}", vb_soon: "{t} ab {d}",
+  vb_compShort: "Umsetzung Ø {p} %",
+
+  // Bausteine (Programm für die freie Zeit)
+  fl_andere: "Andere Sportart",
+  fl_andere_d: "Schwimmen, Radfahren, Tennis, Basketball – Hauptsache Bewegung mit Spaß. Locker bis mittel (RPE 3–5). Tut Kopf und Körper nach einer langen Saison gut.",
+  fl_mobility: "Mobility & Beweglichkeit",
+  fl_mobility_d: "15–20 Min.: Hüftöffner, Ausfallschritt mit Rotation, Waden und Oberschenkel dehnen, Brustwirbelsäule mobilisieren. Ruhig atmen, nichts erzwingen.",
+  fl_locker: "Lockerer Dauerlauf",
+  fl_locker_d: "30–40 Min. so locker, dass du dich noch unterhalten kannst (RPE 3–4). Alternativ 45–60 Min. Radfahren. Baut die Grundlagenausdauer, mit der du dich zwischen Sprints schneller erholst.",
+  fl_fahrtspiel: "Fahrtspiel",
+  fl_fahrtspiel_d: "30 Min. Laufen mit Tempowechseln: 5 Min. einlaufen, dann 8 × (1 Min. zügig / 1 Min. locker), 5 Min. auslaufen. Zügig heißt: Sprechen fällt schwer (RPE 7).",
+  fl_intervall: "Intervalllauf 4 × 4",
+  fl_intervall_d: "10 Min. einlaufen, dann 4 × 4 Min. hart (RPE 8–9, nur kurze Sätze möglich) mit 3 Min. Traben dazwischen, 5 Min. auslaufen. Diese Form verbessert nachweislich die Ausdauer von Fußballern. Alternativ: 2 × 8 Min. 15 Sek. laufen / 15 Sek. gehen.",
+  fl_kraft: "Kraft & Verletzungsprävention",
+  fl_kraft_d: "35 Min., ohne Geräte möglich: 3 × 8 Kniebeugen oder Ausfallschritte je Bein, 3 × 5 Nordic Hamstrings (Partner hält die Füße), 3 × 20 Sek. Copenhagen-Plank je Seite, 3 × 30 Sek. Unterarmstütz, 3 × 10 Hüftheben einbeinig. Nordic Hamstrings und Copenhagen senken das Risiko für Oberschenkel- und Leistenverletzungen deutlich.",
+  fl_sprint: "Sprints",
+  fl_sprint_d: "10 Min. aufwärmen mit Lauf-ABC, dann 6–8 × 20–30 m Vollgas mit 1–2 Min. Pause (immer erholt starten), danach 2 × 3 kurze Richtungswechsel. Hohe Geschwindigkeit vor der Vorbereitung schützt die Oberschenkel beim Wiedereinstieg.",
+  fl_ball: "Ball & Technik",
+  fl_ball_d: "30 Min.: Jonglieren, Wandpässe mit beiden Füßen, Ballannahme in die Bewegung, Dribbling durch Hütchen. Kicken mit Freunden zählt auch.",
+  fl_eigen: "Eigener Baustein", fl_eigen_d: "",
+  fl_cat_erholung: "Erholung", fl_cat_ausdauer: "Ausdauer", fl_cat_kraft: "Kraft", fl_cat_schnell: "Schnelligkeit", fl_cat_technik: "Technik",
+
+  // Spieler
+  pg_ready: "Dein Programm ist schon da – schau rein.", pg_title: "Mein Programm", pg_week: "Woche {i} von {n}", pg_startsIn: "Startet am {d}",
+  pg_done: "Erledigt", pg_log: "Einheit eintragen", pg_logged: "Eingetragen – stark! +{xp} XP",
+  pg_all: "Ganzes Programm", pg_allDone: "Woche komplett – richtig stark!",
+  pg_progress: "{d} von {t} Einheiten", pg_left: "Noch {n} diese Woche",
+  pg_own: "Eigenes (z. B. Fußball mit Freunden) trägst du unter „Eintragen“ als Zusatz ein – das zählt auch.",
+  pg_none: "Gerade läuft kein Programm. Dein Trainer stellt es vor Pausen und in der Vorbereitung ein.",
+  pg_how: "So geht's", pg_personal: "Deine Strecken aus dem 30-15-Test: 15 Sek. laufen / 15 Sek. gehen – {a}–{b} m pro Lauf",
+  pg_teaser: "{t} ab {d} – dein Programm ist schon da.", pg_upcoming: "Kommt noch",
+  pg_why_break: "Ohne Training sinkt deine Ausdauer nach 2–4 Wochen spürbar. Mit 2–3 kurzen, knackigen Einheiten pro Woche hältst du sie – und startest fit und mit weniger Verletzungsrisiko in die Vorbereitung.",
+  pg_why_prep: "Das Mannschaftstraining ist jetzt der Hauptreiz. Zu Hause nur Prävention und Beweglichkeit – das schützt vor Verletzungen, wenn die Belastung steigt.",
+  pg_date: "Datum", pg_min: "Minuten", pg_rpe: "Wie anstrengend war es?",
+  pg_week_n: "Woche {i}", pg_thisWeek: "Diese Woche",
+  gm_b_prog: "Pausen-Profi", gm_bd_prog: "Eine Programmwoche komplett erledigt.",
+  pv_program: "Programm für Pausen & Vorbereitung",
+};

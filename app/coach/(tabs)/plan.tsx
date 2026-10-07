@@ -78,7 +78,7 @@ export default function Plan() {
     );
     if (!x.train) return (
       <View key={x.date} testID={"plan-day-" + x.date} style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
-        <Muted small><Text style={{ color: c.ink, fontWeight: "700" }}>{E.wt(x.date)} {E.de(x.date)}</Text>{x.md ? ` · ${x.md}` : ""} · {x.cancelled ? t("it_training") + " " + t("cancelled") : t("noTraining")}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}</Muted>
+        <Muted small><Text style={{ color: c.ink, fontWeight: "700" }}>{E.wt(x.date)} {E.de(x.date)}</Text>{x.md ? ` · ${x.md}` : ""} · {x.brk ? t("vb_breakDay") : x.cancelled ? t("it_training") + " " + t("cancelled") : t("noTraining")}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}</Muted>
       </View>
     );
     const p = x.train, dr = drafts[x.date];

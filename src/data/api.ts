@@ -1,6 +1,6 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
 import type {
-  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Modules,
+  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Phase, Modules,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 
@@ -114,6 +114,10 @@ export interface Api {
   deleteTemplate(id: string): Promise<void>;
   saveStaff(teamId: string, x: StaffProfile): Promise<StaffProfile>;
   deleteStaff(id: string): Promise<void>;
+
+  // Vorbereitung & Pausen
+  savePhase(teamId: string, x: Phase): Promise<Phase>;
+  deletePhase(id: string): Promise<void>;
 
   // Einwilligungen, Push, Datenschutz
   consents(): Promise<ConsentState>;

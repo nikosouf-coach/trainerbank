@@ -7,6 +7,7 @@ import { CONTENT } from "../../core/content";
 import { kwOf, monday } from "../../core/dates";
 import { demoTeam, sampleFixtures } from "../../core/demo";
 import { parseFixtures } from "../../core/fixtures";
+import { phaseOn } from "../../core/prep";
 import type { AbsenceType, Match, TeamEvent } from "../../core/types";
 import { pickTextFile } from "../../data/files";
 import { tmpId, useEngine, useStore } from "../../data/store";
@@ -78,7 +79,8 @@ function DayBody({ date, open, close }: { date: string; open: (s: SheetState) =>
         <Muted small>{e.zeit || ""}{e.ersetzt ? " · " + t("f_replace") : ""}</Muted>
         <Btn small label={t("day_editMatch")} onPress={() => open({ k: "add", date, type: "event", obj: e })} style={{ alignSelf: "flex-start" }} />
       </Sec>)}
-      {!x.match && !tr && !x.cancelled && !x.events.length ? <Muted>{t("day_none")}</Muted> : null}
+      {x.brk ? <Sec color="#16a3a3"><T bold>{tf("vb_breakCal", { t: phaseOn(E.D, date)?.title || "" })}</T><Muted small>{t("vb_noTraining")}</Muted></Sec> : null}
+      {!x.match && !tr && !x.cancelled && !x.brk && !x.events.length ? <Muted>{t("day_none")}</Muted> : null}
       {x.match || tr ? <Sec>
         <T bold>{tf("day_avail", { a: n - ab.length, n })}</T>
         {ab.length ? ab.map(p => { const a = E.absenceOn(p.id, date)!; return <T key={p.id} v="small">{E.name(p)} · <T v="small" color={c.muted}>{t("ab_" + a.typ)}{a.bis ? " " + t("until") + " " + E.de(a.bis) : ""}</T></T>; }) : <Muted small>{t("day_all")}</Muted>}

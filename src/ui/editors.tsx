@@ -43,7 +43,7 @@ export function DepthPicker({ value, onChange, tr, kids }: { value: Depth; onCha
 }
 
 /** Bausteine, deren Bildschirme noch entstehen (Kennzeichnung „in Entwicklung“). */
-export const MODULES_SOON = new Set<keyof Modules>(["vorbereitung", "kontakte"]);
+export const MODULES_SOON = new Set<keyof Modules>(["kontakte"]);
 
 /** Module nach Paketen gruppiert (Baukasten). */
 export function ModuleList({ value, onChange, tr, cls }: { value: Modules; onChange: (m: Modules) => void; tr: Translator; cls: ClassKey }) {

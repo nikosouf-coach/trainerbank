@@ -1,0 +1,107 @@
+// Texts: pre-season & breaks (coach), free-time programme (player) – en
+import type { Dict } from "./types";
+
+export const en_prep: Dict = {
+  // Coach: overview
+  vb_title: "Pre-season & breaks", vb_sub: "Weekly build-up, test days, break programme for players",
+  vb_newPrep: "Pre-season", vb_newBreak: "Break",
+  vb_kind_prep: "Pre-season", vb_kind_break: "Break",
+  vb_running: "Running now", vb_planned: "Planned", vb_past: "Past",
+  vb_none: "Nothing planned yet. Add a pre-season or a longer break (e.g. winter break, holidays) – the app suggests a weekly build-up, test days and a programme for the players.",
+  vb_weeks: "{n} weeks", vb_week1: "1 week",
+  vb_titleF: "Name", vb_titlePh_prep: "e.g. Winter pre-season", vb_titlePh_break: "e.g. Winter break",
+  vb_from: "From", vb_to: "To", vb_firstMatch: "First competitive match (optional)",
+  vb_new: "New phase", vb_edit: "Edit phase", vb_delete: "Delete phase",
+  vb_deleteQ: "Really delete this phase? Sessions logged by players are kept.",
+  vb_errDates: "Please choose a valid period (at most 26 weeks).",
+  vb_saved: "Phase saved", vb_deleted: "Phase deleted",
+  vb_newHint: "The app creates a weekly build-up and a player programme as a suggestion. You can adjust both afterwards.",
+  vb_noTraining: "There is no team training during this time. Calendar and planning show the training days as a break. You can still schedule single sessions.",
+
+  // Coach: weekly build-up
+  vb_period: "Weekly build-up",
+  vb_periodInfo: "Moderate entry week (about 75 % of a normal in-season week) with baseline tests. Then increase by at most 10–15 % per week, with a lighter week after two build-up weeks (3:1). In the last week before the first competitive match reduce volume by about 20–40 % and keep intensity (tapering). Big jumps from one week to the next raise injury risk – especially after a break, when the usual load is low.",
+  vb_breakInfo: "First week(s): active recovery – switch off, other sports. Then 2–3 sessions per week at high intensity: without training endurance drops noticeably after 2–4 weeks, a few intense sessions largely preserve it. Last week: ramp-up with sprints so pre-season doesn't start from zero.",
+  vb_r_rest: "Recovery", vb_r_keep: "Maintain", vb_r_ramp: "Ramp-up", vb_r_entry: "Entry", vb_r_build: "Build", vb_r_deload: "Deload", vb_r_taper: "Taper",
+  vb_f_rest: "Switch off, other sports, mobility",
+  vb_f_keep: "2–3 sessions: intervals, easy run, strength",
+  vb_f_ramp: "Sprints and intervals – ready for the start",
+  vb_f_entry: "Basics, technique, injury prevention, baseline tests – small-sided games dosed",
+  vb_f_build: "Intense small-sided games, intervals, strength, speed",
+  vb_f_build2: "Tactics, match rhythm, set pieces – friendlies over 60–90′",
+  vb_f_deload: "Less volume, high quality – plan recovery",
+  vb_f_taper: "Get fresh: short and sharp, set pieces, patterns",
+  vb_target: "Target {p} %", vb_plAU: "planned {au} AU", vb_noPlan: "no sessions yet",
+  vb_ref: "100 % = {au} AU per week", vb_refData: "from your data", vb_refEst: "estimated",
+  vb_refInfo: "100 % is a normal in-season week of your team (training + one match). From your entries once there is enough data – otherwise estimated from training days, duration and medium intensity.",
+  vb_ist: "Actual avg {au} AU", vb_noData: "no data", vb_all: "Show all {n}", vb_less: "Show less",
+  vb_spike: "+{p} % above the level of previous weeks – guideline at most 10–15 %",
+  vb_entryHigh: "Entry clearly above target – start more slowly after the break",
+  vb_test: "Test day", vb_testIn: "Baseline tests: CMJ, 10/30 m sprint, 30-15 IFT (after 2–3 training days)", vb_testOut: "Final tests – measure progress",
+  vb_toTests: "Go to performance tests",
+  vb_matches: "Matches", vb_minutes: "Playing time per player about {m}′",
+  vb_apply: "Apply to weekly planning", vb_applied: "Weekly planning updated ({n} weeks)",
+  vb_applyInfo: "Sets in weekly planning: build = build-up ↑, entry, deload and taper = deload ↓. Adjust single sessions in planning as usual.",
+  vb_weekEdit: "Adjust week {i}", vb_pct: "Target load in %", vb_note: "Note", vb_mode: "Week mode", vb_testWeek: "Test week",
+  vb_toPlan: "Plan week", vb_wkLabel: "Week {i}",
+
+  // Coach: player programme
+  vb_program: "Player programme",
+  vb_programInfo: "What players do on their own during this time. They see the programme in their app, tick off completed sessions (counts as extra load) and earn XP. Consistency is rewarded, not maximum load.",
+  vb_vis: "Visible to players", vb_regen: "Create new suggestion", vb_regenQ: "Replace the programme with a new suggestion?", vb_regenDone: "New suggestion created",
+  vb_addItem: "Block", vb_item: "Block", vb_itemNew: "New block",
+  vb_perWeek: "Per week", vb_perWeekN: "{n}× per week", vb_wFrom: "From week", vb_wTo: "To week",
+  vb_wk: "Week {a}–{b}", vb_wkOne: "Week {a}",
+  vb_customTitle: "Name", vb_itemNote: "Note for players", vb_itemDel: "Remove block",
+  vb_progEmpty: "No blocks yet.", vb_perWeekSum: "{n} sessions per week",
+
+  // Coach: compliance
+  vb_compliance: "Completion",
+  vb_compInfo: "Share of programme sessions due so far that were ticked off (current week pro rata). Own activities like football with friends count on top.",
+  vb_compNone: "No sessions due yet.", vb_own: "+{m}′ own", vb_avg: "Avg {p} %", vb_compLow: "Below 50 %: check in briefly",
+
+  // Coach: AI
+  vb_ai_q1: "Content for each session?", vb_ai_q2: "Friendlies & playing time?", vb_ai_q3: "Low-injury return?",
+  vb_aiPh: "Question about this phase …",
+
+  // Calendar, planning, today
+  vb_breakDay: "Break", vb_breakCal: "Break · {t}",
+  vb_nowBreak: "Break running · week {i} of {n}", vb_nowPrep: "Pre-season · week {i} of {n}", vb_soon: "{t} from {d}",
+  vb_compShort: "Completion avg {p} %",
+
+  // Blocks (free-time programme)
+  fl_andere: "Other sport",
+  fl_andere_d: "Swimming, cycling, tennis, basketball – anything that moves you and is fun. Easy to moderate (RPE 3–5). Good for body and mind after a long season.",
+  fl_mobility: "Mobility & flexibility",
+  fl_mobility_d: "15–20 min: hip openers, lunge with rotation, calf and thigh stretches, thoracic spine mobility. Breathe calmly, don't force anything.",
+  fl_locker: "Easy run",
+  fl_locker_d: "30–40 min easy enough to hold a conversation (RPE 3–4). Or 45–60 min cycling. Builds the aerobic base that helps you recover faster between sprints.",
+  fl_fahrtspiel: "Fartlek",
+  fl_fahrtspiel_d: "30 min run with pace changes: 5 min warm-up, then 8 × (1 min fast / 1 min easy), 5 min cool-down. Fast means talking is hard (RPE 7).",
+  fl_intervall: "Intervals 4 × 4",
+  fl_intervall_d: "10 min warm-up, then 4 × 4 min hard (RPE 8–9, only short sentences possible) with 3 min jogging in between, 5 min cool-down. Proven to improve endurance in footballers. Alternative: 2 × 8 min of 15 s run / 15 s walk.",
+  fl_kraft: "Strength & injury prevention",
+  fl_kraft_d: "35 min, no equipment needed: 3 × 8 squats or lunges per leg, 3 × 5 Nordic hamstrings (partner holds your feet), 3 × 20 s Copenhagen plank per side, 3 × 30 s forearm plank, 3 × 10 single-leg hip thrusts. Nordic hamstrings and Copenhagen clearly reduce the risk of thigh and groin injuries.",
+  fl_sprint: "Sprints",
+  fl_sprint_d: "10 min warm-up with running drills, then 6–8 × 20–30 m flat out with 1–2 min rest (always start recovered), then 2 × 3 short changes of direction. Reaching top speed before pre-season protects your hamstrings when training restarts.",
+  fl_ball: "Ball & technique",
+  fl_ball_d: "30 min: juggling, wall passes with both feet, first touch into space, dribbling through cones. Kicking about with friends counts too.",
+  fl_eigen: "Custom block", fl_eigen_d: "",
+  fl_cat_erholung: "Recovery", fl_cat_ausdauer: "Endurance", fl_cat_kraft: "Strength", fl_cat_schnell: "Speed", fl_cat_technik: "Technique",
+
+  // Player
+  pg_ready: "Your programme is ready – take a look.", pg_title: "My programme", pg_week: "Week {i} of {n}", pg_startsIn: "Starts on {d}",
+  pg_done: "Done", pg_log: "Log session", pg_logged: "Logged – great! +{xp} XP",
+  pg_all: "Full programme", pg_allDone: "Week complete – really strong!",
+  pg_progress: "{d} of {t} sessions", pg_left: "{n} left this week",
+  pg_own: "Log your own activities (e.g. football with friends) under “Log” as extra – they count too.",
+  pg_none: "No programme running right now. Your coach sets it up before breaks and during pre-season.",
+  pg_how: "How to", pg_personal: "Your distances from the 30-15 test: 15 s run / 15 s walk – {a}–{b} m per run",
+  pg_teaser: "{t} from {d} – your programme is ready.", pg_upcoming: "Coming up",
+  pg_why_break: "Without training your endurance drops noticeably after 2–4 weeks. With 2–3 short, sharp sessions per week you keep it – and start pre-season fit and with less injury risk.",
+  pg_why_prep: "Team training is now the main stimulus. At home only injury prevention and mobility – that protects you when the load goes up.",
+  pg_date: "Date", pg_min: "Minutes", pg_rpe: "How hard was it?",
+  pg_week_n: "Week {i}", pg_thisWeek: "This week",
+  gm_b_prog: "Break pro", gm_bd_prog: "Completed a full programme week.",
+  pv_program: "Programme for breaks & pre-season",
+};

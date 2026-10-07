@@ -3,8 +3,9 @@
 import { addDays, diff, monday } from "./dates";
 import type { Engine } from "./engine";
 import { testDef } from "./perf";
+import { phaseWeeks, progWeek } from "./prep";
 
-export const XP = { well: 10, rpe: 15, att: 10, extra: 5 } as const;
+export const XP = { well: 10, rpe: 15, att: 10, extra: 5, prog: 10 } as const;
 /** Benötigte XP für Level L (L1 = 0, L2 = 100, L3 = 300, L4 = 600, L5 = 1000 …). */
 export const xpFor = (level: number): number => 50 * level * (level - 1);
 
@@ -25,7 +26,11 @@ export function gameOf(E: Engine, pid: string): GameState {
 
   // XP: Einträge und Anwesenheit; Zusatzsport höchstens einmal pro Tag
   const extraDays = new Set(extra.filter(x => x.date <= TODAY).map(x => x.date));
-  const xp = wellDays.length * XP.well + Object.keys(rpe).filter(d => d <= TODAY).length * XP.rpe + attended.length * XP.att + extraDays.size * XP.extra;
+  // Programm-Einheiten aus Pause/Vorbereitung: +10 je Einheit, höchstens zwei pro Tag
+  const progDay: Record<string, number> = {};
+  for (const x of extra) if (x.prog && x.date <= TODAY) progDay[x.date] = Math.min(2, (progDay[x.date] || 0) + 1);
+  const xp = wellDays.length * XP.well + Object.keys(rpe).filter(d => d <= TODAY).length * XP.rpe + attended.length * XP.att + extraDays.size * XP.extra
+    + Object.values(progDay).reduce((a, n) => a + n, 0) * XP.prog;
   let level = 1; while (xp >= xpFor(level + 1)) level++;
   const levelStart = xpFor(level), levelNext = xpFor(level + 1);
 
@@ -68,6 +73,14 @@ export function gameOf(E: Engine, pid: string): GameState {
     b("extra", ex14 / 3),
     b("streak30", bestStreak / 30),
   ];
+  if (E.mods.vorbereitung && D.phases.some(ph => ph.program.length && ph.from <= TODAY)) {
+    // Programmwoche komplett erledigt (beste Woche zählt)
+    let best = 0;
+    for (const ph of D.phases) for (const w of phaseWeeks(ph.from, ph.to)) {
+      if (w > TODAY) break; const pw = progWeek(D, pid, ph, w); if (pw.total) best = Math.max(best, pw.done / pw.total);
+    }
+    badges.push(b("prog", best));
+  }
   if (E.mods.leistung) {
     // Neuer Bestwert in einem Test in den letzten 30 Tagen
     const mine = D.tests.filter(x => x.pid === pid), keys = [...new Set(mine.map(x => x.test))];

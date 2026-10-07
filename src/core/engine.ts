@@ -8,6 +8,7 @@ import {
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
 import { translator } from "./i18n";
 import { cmjDrop, fitnessIndex } from "./perf";
+import { phaseOn } from "./prep";
 import type {
   Absence, AttStatus, CoachMsg, Complaint, CustomKind, Kind, Lang, Match, Pitch, Player, PotCat, Session, Status,
   TeamData, TeamEvent, Wellness, WeekMode, MsgType, PlayerViewKey, Rating, Video,
@@ -26,6 +27,8 @@ export interface PlanTrain {
 }
 export interface PlanItem {
   date: string; md: string; match: Match | null; events: TeamEvent[]; train: PlanTrain | null; cancelled: boolean; trainDay: boolean;
+  /** Tag liegt in einer geplanten Pause (kein Mannschaftstraining, Spielerprogramm) */
+  brk?: boolean;
 }
 export interface WeekPlan {
   ws: string; mode: WeekMode; items: PlanItem[]; tr: PlanTrain[];
@@ -95,12 +98,14 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
   const dayCfg = (d: string) => S.days[parse(d).getDay()] || { zeit: "19:30", platz: "halb" as Pitch, dauer: S.dauer };
   const zeitOf = (d: string): string => D.cal[d]?.zeit || dayCfg(d).zeit;
   const durOf = (d: string): number => D.cal[d]?.dauer || dayCfg(d).dauer || S.dauer;
+  const inBreak = (d: string): boolean => !!mods.vorbereitung && phaseOn(D, d)?.kind === "break";
   function isTraining(d: string): boolean {
     const c = D.cal[d] || {};
     if (matchOn(d)) return false;
     if (c.extra) return true;
     if (c.cancel) return false;
     if (eventsOn(d).some(e => e.ersetzt)) return false;
+    if (inBreak(d)) return false;
     return regularDay(d);
   }
   const absenceOn = (pid: string, d: string): Absence | undefined => D.absences.find(a => a.pid === pid && a.von <= d && (!a.bis || d <= a.bis));
@@ -240,7 +245,8 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const mode: WeekMode = D.wkMode[ws] || "normal", cap = CAP;
     const items: PlanItem[] = days.map(d => {
       const m = matchOn(d), ev = eventsOn(d), trd = isTraining(d), mdx = mdOf(d);
-      return { date: d, md: mdx.md, match: m || null, events: ev, train: null, cancelled: !trd && regularDay(d) && !m, trainDay: trd };
+      const brk = !trd && !m && inBreak(d);
+      return { date: d, md: mdx.md, match: m || null, events: ev, train: null, cancelled: !trd && regularDay(d) && !m && !brk, trainDay: trd, brk };
     });
     // 1. Vorschlag aus den Prinzipien
     const free: [Kind, number][] = [["intensiv", cap], ["taktik", 5], ["extensiv", Math.min(7, cap)], ["aufbau", 6]];
@@ -605,7 +611,7 @@ Empfehlung des Trainers: ${activeMsgs(p.id).map(m => t("ry_" + m.typ) + ": " + m
     TODAY, NOW, team, D, tr: tr8, t, tf, tl, num, int: tr8.int, lvl, grp, CAP, mods,
     isCustom, customOf, kn, allKinds, kindRpe, contentOf, intWord, whyOf,
     matchMin, matchRpe, matchLoad,
-    matchOn, eventsOn, regularDay, dayCfg, zeitOf, durOf, isTraining, absenceOn, absentOn, mdOf,
+    matchOn, eventsOn, regularDay, dayCfg, zeitOf, durOf, isTraining, inBreak, absenceOn, absentOn, mdOf,
     P, age, name, daily, metrics, injuryOf, returning, status, attStatus, attendance, sleep7, growthInfo, teamChronic,
     lastIntenseBefore, recoveryNeed, notReadyFor, recovery, weekPlan,
     profile, advice, nextItem, sessAvg, dataHints, activeMsgs, suggestRec,
