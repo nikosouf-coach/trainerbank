@@ -1,0 +1,49 @@
+# Werkzeug: Expo-SDK aktualisieren und echte Typprüfung erzeugen.
+# Start: Actions → Werkzeug → Run workflow (SDK-Version angeben).
+# Ergebnis: Branch "werkzeug/expo-sdk-<SDK>" mit angepasster package.json, package-lock.json und Berichten in
+# reports/ (TypeScript, expo-doctor). Danach Pull Request öffnen und prüfen lassen.
+name: Werkzeug
+
+on:
+  workflow_dispatch:
+    inputs:
+      sdk:
+        description: Expo-SDK (Hauptversion, z. B. 57)
+        default: "57"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  expo-upgrade:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Expo und passende Pakete installieren
+        run: |
+          npm install --no-audit --no-fund --legacy-peer-deps
+          npx expo install "expo@^${{ inputs.sdk }}.0.0" -- --legacy-peer-deps
+          npx expo install --fix -- --legacy-peer-deps
+          rm -rf node_modules package-lock.json
+          npm install --no-audit --no-fund
+      - name: Berichte erzeugen
+        run: |
+          mkdir -p reports
+          { npm run typecheck 2>&1 || true; } > reports/typecheck.txt
+          { npx expo-doctor@latest 2>&1 || true; } > reports/expo-doctor.txt
+          { npm test 2>&1 || true; } > reports/kernlogik.txt
+          { npx expo config --type public --json 2>&1 || true; } > reports/expo-config.json
+          tail -n 40 reports/typecheck.txt
+      - name: Branch schreiben
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          branch="werkzeug/expo-sdk-${{ inputs.sdk }}"
+          git checkout -B "$branch"
+          git add package.json package-lock.json reports
+          git commit -m "Expo SDK ${{ inputs.sdk }}: Paketversionen und Prüfberichte" || echo "keine Änderungen"
+          git push -f origin "$branch"

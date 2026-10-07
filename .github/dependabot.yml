@@ -13,6 +13,9 @@ updates:
         update-types: [minor, patch]
     ignore:
       - dependency-name: "expo*"
+      - dependency-name: "eslint-config-expo"
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
       - dependency-name: "@expo/*"
       - dependency-name: "react"
       - dependency-name: "react-dom"

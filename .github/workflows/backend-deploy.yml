@@ -24,8 +24,8 @@ jobs:
   tests:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       - run: echo "PGBIN=$(ls -d /usr/lib/postgresql/*/bin | sort -V | tail -1)" >> "$GITHUB_ENV"
@@ -51,9 +51,9 @@ jobs:
             echo "ok=false" >> "$GITHUB_OUTPUT"
             echo "::notice::Supabase-Secrets fehlen noch – Deploy übersprungen (siehe SETUP.md, Schritt 3)."
           fi
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: steps.check.outputs.ok == 'true'
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         if: steps.check.outputs.ok == 'true'
         with:
           version: latest

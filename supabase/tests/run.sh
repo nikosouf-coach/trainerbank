@@ -204,7 +204,7 @@ echo
 echo "================================================================"
 echo "SQL (RLS/RPC/Trigger): $sql_passed bestanden, $sql_failed fehlgeschlagen (psql-Exit $sql_status)"
 echo "Unit (Edge Functions): $unit_summary"
-if [ "$sql_status" -ne 0 ] || [ "$sql_failed" -ne 0 ] || [ "$unit_status" -ne 0 ]; then
+if [ "$sql_status" -ne 0 ] || [ "$sql_failed" -ne 0 ] || [ "$sql_passed" -lt 1 ] || [ "$unit_status" -ne 0 ]; then
   echo "ERGEBNIS: FAIL"
   echo "================================================================"
   exit 1
