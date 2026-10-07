@@ -6,7 +6,7 @@ import {
   BANDS, KIND_RPE, MATCHMIN, MDS, bandOf, capOf, classDef, classLabel, groupOf, isGrowthAge, sleepTarget, DEPTH,
 } from "./classes";
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
-import { translator, type Translator } from "./i18n";
+import { translator } from "./i18n";
 import type {
   Absence, AttStatus, CoachMsg, Complaint, CustomKind, Kind, Lang, Match, Pitch, Player, PotCat, Session, Status,
   TeamData, TeamEvent, Wellness, WeekMode, MsgType,
