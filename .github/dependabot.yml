@@ -16,6 +16,13 @@ updates:
       - dependency-name: "eslint-config-expo"
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # TypeScript und ESLint gibt Expo vor (npx expo install --check); Hauptversionen nur mit dem SDK
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
       - dependency-name: "@expo/*"
       - dependency-name: "react"
       - dependency-name: "react-dom"
