@@ -69,10 +69,11 @@ const MODE_RULES: Record<AiMode, (lang: Lang) => string[]> = {
 
   kind: () => [
     COACH_EXPERT,
-    'Design one session for a children\'s team (roughly U7 to U11): playful, game-based, many ball contacts, ' +
-      'short explanations, no isolated fitness or running drills, no long queues.',
+    'Design one reusable session type (title, target RPE and duration are given in the request) for the age group in the context: ' +
+      'warm-up, 2–3 main parts, finish. Each line: block name with minutes, organisation (pitch size, number of players) and load (duration × sets, rest).',
+    'For children\'s teams (roughly U7 to U11) make it playful and game-based with many ball contacts, ' +
+      'short explanations, no isolated fitness or running drills and no long queues.',
     'Output ONLY short lines starting with "- " (no headings, no other text), maximum 110 words in total.',
-    'Mention the minutes per part inside the lines.',
   ],
 };
 

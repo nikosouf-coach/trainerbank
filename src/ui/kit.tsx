@@ -211,6 +211,25 @@ export function Check({ label, value, onChange, testID }: { label: React.ReactNo
   );
 }
 
+/** Zahlenskala als Knöpfe (z. B. RPE 1–10), farbig nach Intensität. */
+export function NumScale({ value, onChange, min = 1, max = 10, color, testID, labels }: { value: number | null; onChange: (n: number) => void; min?: number; max?: number; color?: (n: number) => string; testID?: string; labels?: string[] }) {
+  const { c } = useTheme();
+  const nums: number[] = []; for (let i = min; i <= max; i++) nums.push(i);
+  return (
+    <Row wrap gap={6} testID={testID}>
+      {nums.map(n => {
+        const on = n === value, col = color ? color(n) : c.accent;
+        return (
+          <Pressable key={n} testID={testID ? testID + "-" + n : undefined} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={labels?.[n - min] ? `${n} ${labels[n - min]}` : String(n)} onPress={() => onChange(n)}
+            style={{ minWidth: 40, height: 40, borderRadius: radius.m, borderWidth: 1.5, borderColor: on ? col : c.line, backgroundColor: on ? col : c.surface, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 }}>
+            <Text style={{ fontWeight: "800", fontSize: 15, color: on ? "#fff" : c.ink }}>{n}</Text>
+          </Pressable>
+        );
+      })}
+    </Row>
+  );
+}
+
 // ---------- Blätter (Dialoge) & Info ----------
 export function Sheet({ visible, onClose, title, children, testID, closeLabel }: { visible: boolean; onClose: () => void; title?: string; children?: React.ReactNode; testID?: string; closeLabel?: string }) {
   const { c } = useTheme(); const { width, height } = useWindowDimensions(); const wide = width >= 700; const ins = useSafeAreaInsets();
