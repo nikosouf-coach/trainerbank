@@ -89,7 +89,12 @@ export function VideoList({ videos, onEdit, empty }: { videos: Video[]; onEdit?:
     <Col gap={8}>
       {videos.map(v => {
         const m = v.matchId ? E.D.matches.find(x => x.id === v.matchId) : null;
-        const who = v.pids.map(id => E.P(id)?.vn).filter(Boolean).join(", ");
+        const gnames = (v.groupIds || []).map(id => E.D.groups.find(g => g.id === id)?.name).filter(Boolean) as string[];
+        const inGroups = new Set(E.D.players.filter(p => (p.groups || []).some(g => (v.groupIds || []).includes(g))).map(p => p.id));
+        const names = (ids: string[]) => ids.map(id => E.P(id)?.vn).filter(Boolean).join(", ");
+        const extra = v.pids.filter(id => !inGroups.has(id));
+        // Spieler (ohne Bearbeiten) sehen nur freigegebene Gruppen, nie die Namen anderer Empfänger
+        const who = gnames.length ? E.tf("vd_toGroups", { g: gnames.join(", ") }) + (onEdit && extra.length ? " + " + names(extra) : "") : onEdit ? names(v.pids) : "";
         return (
           <Row key={v.id} gap={10} testID={"video-" + v.id}>
             <Pressable accessibilityRole="link" accessibilityLabel={v.title} onPress={() => Linking.openURL(v.url).catch(() => undefined)} style={{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -129,6 +134,14 @@ function VideoForm({ video, defaults, onDone }: { video: Video | null; defaults?
   const [note, setNote] = useState(v0.note || "");
   const [vis, setVis] = useState(v0.vis ?? true);
   const [all, setAll] = useState(!(v0.pids || []).length);
+  const [gids, setGids] = useState<string[]>((v0.groupIds || []).filter(id => E.D.groups.some(g => g.id === id)));
+  const memberIds = (gid: string) => E.D.players.filter(p => (p.groups || []).includes(gid)).map(p => p.id);
+  /** Gruppe an/aus: Mitglieder werden Empfänger bzw. entfernt (wenn nicht über eine andere gewählte Gruppe dabei). */
+  const toggleGroup = (gid: string, on: boolean) => {
+    const next = on ? [...gids, gid] : gids.filter(x => x !== gid); setGids(next);
+    if (on) setPids([...new Set([...pids, ...memberIds(gid)])]);
+    else { const keep = new Set(next.flatMap(memberIds)); setPids(pids.filter(id => keep.has(id) || !memberIds(gid).includes(id))); }
+  };
   const okUrl = /^https?:\/\/\S+\.\S+/i.test(url.trim());
   const matches = E.D.matches.filter(m => m.date <= E.TODAY).slice(-12).reverse();
   return (
@@ -139,13 +152,18 @@ function VideoForm({ video, defaults, onDone }: { video: Video | null; defaults?
         <DateField label={t("f_date")} value={date} onChange={setDate} lang={E.tr.lang} style={{ flex: 1, minWidth: 140 }} />
         <Picker testID="vd-match" label={t("it_match")} value={matchId} onChange={setMatchId} options={[{ key: "", label: "–" }, ...matches.map(m => ({ key: m.id, label: `${E.de(m.date)} ${t("vs")} ${m.gegner}` }))]} style={{ flex: 1, minWidth: 180 }} />
       </Row>
-      <Check testID="vd-all" label={t("vd_all")} value={all} onChange={v => { setAll(v); if (v) setPids([]); }} />
-      {!all ? <Row wrap gap={10}>{E.D.players.map(p => <Check key={p.id} label={p.vn + " " + (p.nn || "")[0] + "."} value={pids.includes(p.id)} onChange={on => setPids(on ? [...pids, p.id] : pids.filter(x => x !== p.id))} />)}</Row> : null}
+      <Check testID="vd-all" label={t("vd_all")} value={all} onChange={v => { setAll(v); if (v) { setPids([]); setGids([]); } }} />
+      {!all && E.D.groups.length ? <Col gap={6}>
+        <T v="small" bold>{t("vd_groups")}</T>
+        <Row wrap gap={10}>{E.D.groups.map(g => <Check key={g.id} testID={"vd-group-" + g.id} label={`${g.name} (${memberIds(g.id).length})`} value={gids.includes(g.id)} onChange={on => toggleGroup(g.id, on)} />)}</Row>
+      </Col> : null}
+      {!all ? <Row wrap gap={10}>{E.D.players.map(p => <Check key={p.id} testID={"vd-p-" + p.id} label={p.vn + " " + (p.nn || "")[0] + "."} value={pids.includes(p.id)} onChange={on => setPids(on ? [...pids, p.id] : pids.filter(x => x !== p.id))} />)}</Row> : null}
+      {!all && !pids.length ? <Muted small>{t("vd_noneSel")}</Muted> : null}
       <Field label={t("vd_note")} value={note} onChangeText={setNote} multiline />
       <ToggleRow label={t("gm_visible")} desc={t("vd_visD")} value={vis} onChange={setVis} />
       <Row gap={8} wrap>
-        <Btn testID="vd-save" kind="primary" label={t("save")} disabled={!title.trim() || !okUrl} onPress={() => {
-          s.saveVideo({ id: video?.id || tmpId(), title: title.trim(), url: url.trim(), date, matchId: matchId || null, pids: all ? [] : pids, note: note.trim(), vis }); s.toast(t("t_saved")); onDone();
+        <Btn testID="vd-save" kind="primary" label={t("save")} disabled={!title.trim() || !okUrl || (!all && !pids.length)} onPress={() => {
+          s.saveVideo({ id: video?.id || tmpId(), title: title.trim(), url: url.trim(), date, matchId: matchId || null, pids: all ? [] : pids, groupIds: all ? [] : gids, note: note.trim(), vis }); s.toast(t("t_saved")); onDone();
         }} />
         {video ? <Btn kind="ghost" label={t("del")} onPress={() => { s.deleteVideo(video.id); onDone(); }} /> : null}
       </Row>

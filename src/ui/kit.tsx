@@ -125,12 +125,12 @@ export function Pill({ label, color }: { label: string; color: string }) {
 }
 
 // ---------- Eingaben ----------
-export function Field({ label, value, onChangeText, placeholder, keyboardType, multiline, secure, testID, hint, autoCapitalize, autoComplete, maxLength, style }: { label: string; value: string; onChangeText: (s: string) => void; placeholder?: string; keyboardType?: "default" | "numeric" | "number-pad" | "decimal-pad" | "email-address" | "numbers-and-punctuation" | "phone-pad"; multiline?: boolean; secure?: boolean; testID?: string; hint?: string; autoCapitalize?: "none" | "sentences" | "words" | "characters"; autoComplete?: TextInputProps["autoComplete"]; maxLength?: number; style?: StyleProp<ViewStyle> }) {
+export function Field({ label, value, onChangeText, onBlur, placeholder, keyboardType, multiline, secure, testID, hint, autoCapitalize, autoComplete, maxLength, style }: { label: string; value: string; onChangeText: (s: string) => void; onBlur?: () => void; placeholder?: string; keyboardType?: "default" | "numeric" | "number-pad" | "decimal-pad" | "email-address" | "numbers-and-punctuation" | "phone-pad"; multiline?: boolean; secure?: boolean; testID?: string; hint?: string; autoCapitalize?: "none" | "sentences" | "words" | "characters"; autoComplete?: TextInputProps["autoComplete"]; maxLength?: number; style?: StyleProp<ViewStyle> }) {
   const { c } = useTheme();
   return (
     <View style={[{ gap: 4 }, style]}>
       <Text style={{ fontSize: 13, fontWeight: "700", color: c.muted }}>{label}</Text>
-      <TextInput testID={testID} accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={c.muted}
+      <TextInput testID={testID} accessibilityLabel={label} value={value} onChangeText={onChangeText} onBlur={onBlur} placeholder={placeholder} placeholderTextColor={c.muted}
         keyboardType={keyboardType} multiline={multiline} numberOfLines={multiline ? 4 : undefined} secureTextEntry={secure} autoCapitalize={autoCapitalize} autoComplete={autoComplete} maxLength={maxLength}
         style={{ borderWidth: 1, borderColor: c.line, borderRadius: radius.m, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: c.bg, color: c.ink, fontSize: 16, minHeight: multiline ? 96 : 44, textAlignVertical: multiline ? "top" : "center" }} />
       {hint ? <Text style={{ fontSize: 12, color: c.muted }}>{hint}</Text> : null}

@@ -4,7 +4,7 @@ import { addDays, ageOn, diff, iso, monday, parse, rng } from "./dates";
 import { createEngine } from "./engine";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
-import type { Contact, Phase, PhaseKind, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles } from "./types";
+import type { Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles } from "./types";
 import { emptyTeamData } from "./types";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
@@ -186,7 +186,25 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoArchive(D, en);
   demoPhases(D, lang, TODAY);
   demoContacts(D, en);
+  demoGroups(D, en, TODAY);
+  const tw = D.players.filter(p => (p.groups || []).includes("g1")).map(p => p.id);
+  if (tw.length) D.videos.push({ id: "v" + (vid++), title: en ? "Goalkeepers: build-up under pressure – 6 clips" : "Torhüter: Spieleröffnung unter Druck – 6 Clips", url: "https://example.com/video/tw-aufbau", date: addDays(TODAY, -2), matchId: null, pids: tw, groupIds: ["g1"], note: en ? "Watch before Thursday's goalkeeper session." : "Bitte bis zum TW-Training am Donnerstag anschauen.", vis: true });
   D.videos.push({ id: "v" + (vid++), title: en ? "Pressing triggers – clips for the back line" : "Pressing-Auslöser – Clips für die Abwehrkette", url: "https://example.com/video/pressing", date: null, matchId: null, pids: ["p2", "p3", "p4"], note: "", vis: true });
+}
+
+/** Gruppen der Demo: Torhüter (alle TW), Reha (verletzt bzw. gerade zurück), Mannschaftsrat (drei Erfahrene). */
+function demoGroups(D: TeamData, en: boolean, TODAY: string): void {
+  const P = D.players;
+  if (!P.length) return;
+  const add = (id: string, name: string, kind: TeamGroup["kind"], vis: boolean, pids: string[]): void => {
+    D.groups.push({ id, name, kind, vis });
+    for (const p of P) if (pids.includes(p.id)) p.groups = [...(p.groups || []), id];
+  };
+  add("g1", en ? "Goalkeepers" : "Torhüter", "tw", true, P.filter(p => p.pos === "TW").map(p => p.id));
+  const reha = D.absences.filter(a => a.typ === "verletzung" && (!a.bis || a.bis >= addDays(TODAY, -21))).map(a => a.pid);
+  add("g2", en ? "Rehab group" : "Reha-Gruppe", "reha", true, [...new Set(reha)]);
+  const lead = [...P].filter(p => p.pos !== "TW").sort((a, b) => (a.geb || "") < (b.geb || "") ? -1 : 1).slice(0, 3).map(p => p.id);
+  add("g3", en ? "Team council" : "Mannschaftsrat", "lead", true, lead);
 }
 
 /** Kontaktliste der Demo (erfundene Namen und Nummern; 116 117 = ärztlicher Bereitschaftsdienst). */

@@ -1,12 +1,11 @@
 // Trainer – Verein & Mannschaft: Name, Vereinsfarbe, Altersklasse, Infotiefe, Sprache.
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { defaultPrinciples, groupOf } from "../../src/core/classes";
 import type { ClassKey, Depth } from "../../src/core/types";
 import { useEngine, useStore } from "../../src/data/store";
 import { ClassPicker, DepthPicker } from "../../src/ui/editors";
-import { Icon } from "../../src/ui/icons";
 import { Btn, Card, CardTitle, Field, Header, Row, Screen, Seg, T } from "../../src/ui/kit";
 import { useTheme } from "../../src/ui/theme";
 import { usePhotoUrl } from "../../src/ui/playerAvatar";

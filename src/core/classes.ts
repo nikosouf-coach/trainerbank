@@ -57,7 +57,7 @@ export function defaultPrinciples(grp: Group): Principles {
 export function defaultSettings(): TeamSettings {
   return {
     days: { 1: { zeit: "19:30", platz: "ganz", dauer: 90 }, 3: { zeit: "19:30", platz: "halb", dauer: 90 }, 4: { zeit: "19:30", platz: "halb", dauer: 90 }, 5: { zeit: "19:30", platz: "halb", dauer: 90 } },
-    dauer: 90, fix: true, spieltag: 0, anstoss: "15:00", playerAbs: true, groups: [], playerView: {},
+    dauer: 90, fix: true, spieltag: 0, anstoss: "15:00", playerAbs: true, playerView: {},
   };
 }
 

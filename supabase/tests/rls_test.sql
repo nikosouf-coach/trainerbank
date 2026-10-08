@@ -758,7 +758,7 @@ $$;
 commit;
 
 -- =====================================================================
--- T25 Baukasten: Absagen durch Spieler abschaltbar, Gruppen nur durch Staff
+-- T25 Baukasten: Absagen durch Spieler abschaltbar (Gruppen: T33)
 -- =====================================================================
 begin;
 update public.teams set settings = settings || '{"playerAbs": false}'::jsonb where id = tst.get('team_a')::uuid;
@@ -766,15 +766,11 @@ set local role authenticated;
 set local request.jwt.claim.sub = :'p1';
 select tst.throws(format($q$insert into public.absences (player_id, type, from_date) values (%L, 'urlaub', '2026-12-27')$q$, tst.get('max')),
                   'T25 P1 kann sich nicht abmelden, wenn Absagen per App aus sind', 'row-level security');
-select tst.throws(format($q$update public.players set groups = '{reha}' where id = %L$q$, tst.get('max')),
-                  'T25 P1 kann seine Gruppen nicht selbst ändern', 'forbidden');
 commit;
 
 begin;
 set local role authenticated;
 set local request.jwt.claim.sub = :'coachA';
-select tst.affects(format($q$update public.players set groups = '{reha}' where id = %L$q$, tst.get('max')), 1,
-                   'T25 Coach ordnet Spieler einer Gruppe zu');
 select tst.affects(format($q$insert into public.absences (player_id, type, from_date) values (%L, 'urlaub', '2026-12-27')$q$, tst.get('max')), 1,
                    'T25 Coach trägt Abwesenheit trotz abgeschalteter Spieler-Absagen ein');
 commit;
@@ -789,7 +785,6 @@ commit;
 -- Aufräumen, damit spätere Zählungen unverändert bleiben
 begin;
 delete from public.absences where player_id = tst.get('max')::uuid and from_date in ('2026-12-27', '2027-01-03');
-update public.players set groups = '{}' where id = tst.get('max')::uuid;
 commit;
 
 -- =====================================================================
@@ -1074,6 +1069,94 @@ commit;
 begin;
 delete from public.staff_profiles; delete from storage.objects where name like '%/logo.jpg';
 update public.teams set logo_path = null; update public.profiles set prefs = '{}';
+commit;
+
+-- =====================================================================
+-- T33 Gruppen (Paket 3): Staff verwaltet; Spieler sehen nur freigegebene
+-- Gruppen und nur die eigene Mitgliedschaft
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.team_groups (team_id, name, kind, visible) values (tst.get('team_a')::uuid, 'Reha', 'reha', false) returning id)
+select tst.put('grp_reha', id::text) from ins;
+with ins as (insert into public.team_groups (team_id, name, kind, visible) values (tst.get('team_a')::uuid, 'Torhüter', 'tw', true) returning id)
+select tst.put('grp_tw', id::text) from ins;
+select tst.affects(format($q$insert into public.group_members (group_id, player_id) values (%L, %L), (%L, %L), (%L, %L)$q$,
+                          tst.get('grp_reha'), tst.get('max'), tst.get('grp_tw'), tst.get('max'), tst.get('grp_tw'), tst.get('p2_player')),
+                   3, 'T33 Coach ordnet Spieler Gruppen zu');
+do $$ begin
+  perform tst.eq((select string_agg(distinct team_id::text, ',') from public.group_members), tst.get('team_a'), 'T33 Team der Mitgliedschaft kommt aus dem Spieler');
+end $$;
+select tst.throws(format($q$insert into public.team_groups (team_id, name) values (%L, '   ')$q$, tst.get('team_a')),
+                  'T33 leerer Gruppenname wird abgelehnt', 'check constraint');
+select tst.throws(format($q$insert into public.team_groups (team_id, name, kind) values (%L, 'X', 'geheim')$q$, tst.get('team_a')),
+                  'T33 unbekannte Gruppenart wird abgelehnt', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+with ins as (insert into public.team_groups (team_id, name) values (tst.get('team_b')::uuid, 'B-Gruppe') returning id)
+select tst.put('grp_b', id::text) from ins;
+select tst.throws(format($q$insert into public.group_members (group_id, player_id) values (%L, %L)$q$, tst.get('grp_b'), tst.get('max')),
+                  'T33 Spieler eines anderen Teams kann nicht zugeordnet werden', 'different_teams');
+do $$ begin
+  perform tst.eq((select count(*) from public.team_groups where team_id = tst.get('team_a')::uuid)::text, '0', 'T33 Coach B sieht keine Gruppen von Team A');
+  perform tst.eq((select count(*) from public.group_members)::text, '0', 'T33 Coach B sieht keine Mitgliedschaften von Team A');
+end $$;
+select tst.affects(format($q$update public.team_groups set visible = true where id = %L$q$, tst.get('grp_tw')), 0, 'T33 Coach B ändert keine fremde Gruppe');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select string_agg(name, ',' order by name) from public.team_groups), 'Torhüter', 'T33 P1 sieht nur freigegebene Gruppen, in denen er ist');
+  perform tst.eq((select count(*) from public.group_members)::text, '1', 'T33 P1 sieht nur die eigene Mitgliedschaft (nicht die von P2, nicht die verborgene)');
+end $$;
+select tst.throws(format($q$insert into public.group_members (group_id, player_id) values (%L, %L)$q$, tst.get('grp_tw'), tst.get('erik')),
+                  'T33 P1 kann keine Mitglieder eintragen', 'row-level security');
+select tst.affects(format($q$delete from public.group_members where player_id = %L$q$, tst.get('max')), 0, 'T33 P1 kann sich nicht austragen');
+select tst.affects(format($q$update public.team_groups set visible = true where id = %L$q$, tst.get('grp_reha')), 0, 'T33 P1 kann die Sichtbarkeit nicht ändern');
+select tst.throws(format($q$insert into public.team_groups (team_id, name) values (%L, 'Eigene')$q$, tst.get('team_a')),
+                  'T33 P1 kann keine Gruppe anlegen', 'row-level security');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.team_groups set visible = true where id = %L$q$, tst.get('grp_reha')), 1, 'T33 Coach gibt die Reha-Gruppe frei');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_groups)::text, '2', 'T33 nach Freigabe sieht P1 beide eigenen Gruppen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select string_agg(name, ',') from public.team_groups), 'Torhüter', 'T33 P2 sieht die Reha-Gruppe nicht (kein Mitglied)');
+  perform tst.eq((select count(*) from public.group_members)::text, '1', 'T33 P2 sieht nur sich selbst in der Torhüter-Gruppe');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$delete from public.team_groups where id = %L$q$, tst.get('grp_reha')), 1, 'T33 Coach löscht eine Gruppe');
+do $$ begin
+  perform tst.eq((select count(*) from public.group_members where group_id = tst.get('grp_reha')::uuid)::text, '0', 'T33 Mitgliedschaften verschwinden mit der Gruppe');
+end $$;
+commit;
+
+begin;
+delete from public.team_groups;
 commit;
 
 -- =====================================================================

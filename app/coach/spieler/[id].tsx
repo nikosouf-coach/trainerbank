@@ -7,9 +7,10 @@ import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { diff } from "../../../src/core/dates";
 import { useEngine, useStore } from "../../../src/data/store";
 import { LoadChart, Ring } from "../../../src/ui/charts";
-import { Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, StatusChip, T, Tag } from "../../../src/ui/kit";
+import { Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, StatusChip, T } from "../../../src/ui/kit";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
+import { GroupChip } from "../../../src/ui/squad/Groups";
 import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
 import { InjuryCard } from "../../../src/ui/injury";
 import { PerfCard } from "../../../src/ui/perf";
@@ -69,7 +70,7 @@ export default function Spieler() {
           <Row wrap gap={6}>
             {(mods.belastung || pr.st === "inj") && pr.st !== "none" ? <StatusChip status={pr.st} label={t("st_" + pr.st)} /> : null}
             {pr.reasons.filter(r => !r[1].startsWith("ACWR") && ![t("st_low"), t("st_crit"), t("st_warn")].includes(r[1])).map(([k, r], i) => <Chip key={i} label={r} color={statusColor(c, k.replace(/^k-/, ""))} />)}
-            {(p.groups || []).map(g => { const gg = (E.team.settings.groups || []).find(x => x.id === g); return gg ? <Tag key={g} label={gg.name} /> : null; })}
+            {(p.groups || []).map(g => { const gg = E.D.groups.find(x => x.id === g); return gg ? <GroupChip key={g} group={gg} /> : null; })}
             {p.neu ? <Chip label={t("newP")} color={c.low} /> : null}
           </Row>
           <Row gap={8} wrap>

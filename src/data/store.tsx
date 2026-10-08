@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { addDays, iso, monday } from "../core/dates";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
-import type { Modules, TeamSettings, StaffRoleKey,
+import type { StaffRoleKey, TeamGroup,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -248,7 +248,9 @@ function useStoreValue() {
     savePlayer: async (p: Player): Promise<Player> => {
       const { api, active, D } = ref.current; if (!D || !active) return p;
       const saved = await api.savePlayer(active.teamId, p);
-      const x = { ...saved, photo: saved.photo ?? p.photo };
+      // Gruppen liegen in einer eigenen Tabelle (setGroupMember) und bleiben hier unverändert
+      const prev = [...D.players, ...D.inactive].find(y => y.id === p.id);
+      const x = { ...saved, photo: saved.photo ?? p.photo, groups: prev?.groups || [] };
       // Aktive und inaktive Spieler getrennt halten (inaktive zählen in keiner Berechnung)
       D.players = D.players.filter(y => y.id !== p.id); D.inactive = D.inactive.filter(y => y.id !== p.id);
       if (x.active === false) D.inactive.push(x);
@@ -308,6 +310,23 @@ function useStoreValue() {
     savePhase: (x: SeasonPhase) => upsert("phases", x, (api, t) => api.savePhase(t, x), { plan: true }),
     saveContact: (x: Contact) => upsert("contacts", x, (api, t) => api.saveContact(t, x)),
     deleteContact: (id: string) => change(D => { D.contacts = D.contacts.filter(x => x.id !== id); }, api => api.deleteContact(id)),
+    // Gruppen
+    saveGroup: async (g: TeamGroup): Promise<TeamGroup> => {
+      const { api, active, D } = ref.current; if (!D || !active) return g;
+      const i0 = D.groups.findIndex(x => x.id === g.id);
+      if (i0 >= 0) { D.groups[i0] = g; set({ version: ref.current.version + 1 }); }
+      try {
+        const saved = await api.saveGroup(active.teamId, g);
+        const i = D.groups.findIndex(x => x.id === g.id || x.id === saved.id); if (i >= 0) D.groups[i] = saved; else D.groups.push(saved);
+        set({ version: ref.current.version + 1 }); return saved;
+      } catch (e) { toast(errText(e)); reload(); return g; }
+    },
+    deleteGroup: (id: string) => change(D => { D.groups = D.groups.filter(x => x.id !== id); for (const p of [...D.players, ...D.inactive]) if (p.groups?.includes(id)) p.groups = p.groups.filter(x => x !== id); },
+      api => api.deleteGroup(id)),
+    setGroupMember: (gid: string, pid: string, on: boolean) => change(D => {
+      const p = [...D.players, ...D.inactive].find(x => x.id === pid); if (!p) return;
+      const cur = p.groups || []; p.groups = on ? (cur.includes(gid) ? cur : [...cur, gid]) : cur.filter(x => x !== gid);
+    }, (api, t) => api.setGroupMember(t, gid, pid, on)),
     deletePhase: (id: string) => change(D => { D.phases = D.phases.filter(x => x.id !== id); }, api => api.deletePhase(id), { plan: true }),
     analyzeFinding: async (id: string, context: string): Promise<string> => {
       const { api, active, D, lang } = ref.current; if (!D || !active) throw new ApiError("server");

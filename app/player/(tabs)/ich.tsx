@@ -9,6 +9,7 @@ import { Icon } from "../../../src/ui/icons";
 import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, ListItem, Muted, NumField, Row, Screen, T } from "../../../src/ui/kit";
 import { GOLD, Goals } from "../../../src/ui/player/parts";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
+import { GroupChip } from "../../../src/ui/squad/Groups";
 import { useTheme } from "../../../src/ui/theme";
 
 export default function Ich() {
@@ -18,6 +19,8 @@ export default function Ich() {
   const [geb, setGeb] = useState<string | null>(p.geb || null); const [pos, setPos] = useState(p.pos);
   const [nr, setNr] = useState<number | null>(p.nr ?? null); const [kg, setKg] = useState<number | null>(p.kg ?? null);
   const [busy, setBusy] = useState(false);
+  // Nur freigegebene Gruppen (im echten Betrieb liefert der Server ohnehin nur diese)
+  const myGroups = E.D.groups.filter(g => g.vis && (p.groups || []).includes(g.id));
   const dirty = vn !== p.vn || nn !== p.nn || geb !== (p.geb || null) || pos !== p.pos || nr !== (p.nr ?? null) || kg !== (p.kg ?? null);
   const save = async () => {
     if (!vn.trim() || !nn.trim() || !geb) { s.toast(t("po_need")); return; }
@@ -47,6 +50,11 @@ export default function Ich() {
           </Col>
         </Row>
       </Card>
+      {myGroups.length ? <Card testID="me-groups">
+        <T v="h3">{t("my_groups")}</T>
+        <Row wrap gap={6}>{myGroups.map(g => <GroupChip key={g.id} group={g} testID={"me-group-" + g.id} />)}</Row>
+        <Muted small>{t("my_groupsD")}</Muted>
+      </Card> : null}
       <Card testID="me-profile">
         <T v="h3">{t("pl_profile")}</T>
         <Row wrap gap={10}>

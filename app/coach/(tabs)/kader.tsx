@@ -1,14 +1,15 @@
-// Trainer – Kader: Spieler mit Filtern (Position, Gruppe, Status), Abwesenheiten, eigene Gruppen.
+// Trainer – Kader: Spieler mit Filtern (Position, Gruppe, Status), Abwesenheiten, Gruppen (src/ui/squad/Groups).
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { posGroup } from "../../../src/core/classes";
-import type { Player, TeamGroup } from "../../../src/core/types";
-import { tmpId, useEngine, useStore } from "../../../src/data/store";
-import { Banner, Bar, Btn, Card, CardTitle, Check, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, Seg, Sheet, StatusChip, T, Tag } from "../../../src/ui/kit";
+import type { Player } from "../../../src/core/types";
+import { useEngine, useStore } from "../../../src/data/store";
+import { Banner, Bar, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, Seg, StatusChip, T, Tag } from "../../../src/ui/kit";
 import { TermInfo } from "../../../src/ui/termInfo";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
+import { GroupsTab } from "../../../src/ui/squad/Groups";
 import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
 import { radius, statusColor, useTheme } from "../../../src/ui/theme";
 
@@ -25,12 +26,10 @@ export default function Kader() {
   const [merge, setMerge] = useState<Player | null>(null);
   const [showPast, setShowPast] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
-  const [grpEdit, setGrpEdit] = useState<TeamGroup | null>(null);
-  const [grpName, setGrpName] = useState("");
   const sheets = usePlanSheets();
   useEffect(() => { if (params.filter) { setFilter(params.filter); setTab("spieler"); } if (params.tab === "abw" || params.tab === "gruppen") setTab(params.tab); }, [params.filter, params.tab]);
 
-  const mods = E.mods, groups = E.team.settings.groups || [];
+  const mods = E.mods, groups = E.D.groups;
   const prs = useMemo(() => E.D.players.map(p => E.profile(p.id)), [s.version, E]); // eslint-disable-line react-hooks/exhaustive-deps
   const neu = E.D.players.filter(p => p.neu);
   const keys = ["alle", "TW", "Abwehr", "Mittelfeld", "Sturm", ...groups.map(g => "g:" + g.id), ...(mods.belastung ? ["crit", "warn", "low"] : []), "inj"];
@@ -39,8 +38,6 @@ export default function Kader() {
     .filter(x => !q || E.name(x.p).toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => (a.p.active === false ? 1 : 0) - (b.p.active === false ? 1 : 0) || (a.p.nr ?? 99) - (b.p.nr ?? 99));
   const cols = width >= 1000 ? 4 : width >= 700 ? 3 : 2;
-
-  const saveGroups = (gs: TeamGroup[]) => s.updateTeam({ settings: { ...E.team.settings, groups: gs } });
 
   const spieler = (
     <>
@@ -115,49 +112,14 @@ export default function Kader() {
     return wide ? <Row align="flex-start" gap={18}>{left}{right}</Row> : <>{left}{right}</>;
   };
 
-  const gruppen = (
-    <>
-      <Card>
-        <CardTitle title={t("gr_pos")} info={<Info title={t("tab_gruppen")} text={t("gr_info")} />} />
-        {(["TW", "Abwehr", "Mittelfeld", "Sturm"] as const).map(g => {
-          const ps = E.D.players.filter(p => posGroup(p.pos) === g);
-          return <ListItem key={g} title={t("f_" + g)} sub={ps.map(p => p.vn).join(", ")} right={<Tag label={tf("gr_members", { n: ps.length })} />} onPress={() => { setFilter(g); setTab("spieler"); }} />;
-        })}
-      </Card>
-      <Card testID="groups-own">
-        <CardTitle title={t("gr_own")} />
-        {groups.length ? groups.map(g => {
-          const ps = E.D.players.filter(p => (p.groups || []).includes(g.id));
-          return <ListItem key={g.id} testID={"group-" + g.id} title={g.name} sub={ps.map(p => p.vn).join(", ") || "–"} onPress={() => setGrpEdit(g)} right={<Tag label={tf("gr_members", { n: ps.length })} />} />;
-        }) : <Muted>{t("gr_none")}</Muted>}
-        <Row gap={8} wrap align="flex-end">
-          <Field testID="group-name" label={t("gr_new")} value={grpName} onChangeText={setGrpName} placeholder={t("gr_namePh")} style={{ flex: 1, minWidth: 200 }} />
-          <Btn testID="group-add" kind="primary" label={t("pot_add")} disabled={!grpName.trim()} onPress={() => { const g = { id: tmpId().replace("tmp-", "g-"), name: grpName.trim() }; saveGroups([...groups, g]); setGrpName(""); setGrpEdit(g); }} />
-        </Row>
-      </Card>
-    </>
-  );
-
-  const ge = grpEdit ? groups.find(g => g.id === grpEdit.id) || grpEdit : null;
   return (
     <Screen testID="coach-kader">
       <Header eyebrow={`${E.team.name} · ${E.D.players.filter(p => p.active !== false).length} ${t("players")}`} title={t("nav_kader")}
         right={<Btn testID="kader-add" kind="primary" label={t("addPlayer")} onPress={() => setEdit(null)} />} />
       <Seg testID="kader-tab" value={tab} onChange={setTab} options={[{ key: "spieler", label: t("tab_spieler") }, ...(mods.beteiligung ? [{ key: "abw" as Tab, label: t("tab_abw") }] : []), { key: "gruppen", label: t("tab_gruppen") }]} />
-      {tab === "spieler" ? spieler : tab === "abw" ? abw() : gruppen}
+      {tab === "spieler" ? spieler : tab === "abw" ? abw() : <GroupsTab onFilter={g => { setFilter(g); setTab("spieler"); }} />}
       <PlayerSheet player={edit} onClose={() => setEdit(undefined)} />
       <MergeSheet newPlayer={merge} onClose={() => setMerge(null)} />
-      <Sheet visible={!!ge} onClose={() => setGrpEdit(null)} title={ge ? `${t("gr_edit")} · ${ge.name}` : ""} testID="group-sheet" closeLabel={t("cancel")}>
-        {ge ? <Col gap={10}>
-          {E.D.players.map(p => { const on = (p.groups || []).includes(ge.id); return (
-            <Check key={p.id} testID={"gm-" + p.id} label={`${E.name(p)} · ${p.pos}`} value={on} onChange={v => s.savePlayer({ ...p, groups: v ? [...(p.groups || []), ge.id] : (p.groups || []).filter(x => x !== ge.id) })} />
-          ); })}
-          <Row gap={8} wrap>
-            <Btn kind="primary" label={t("done")} onPress={() => setGrpEdit(null)} />
-            <Btn kind="ghost" testID="group-del" label={t("del")} onPress={() => { saveGroups(groups.filter(g => g.id !== ge.id)); E.D.players.filter(p => (p.groups || []).includes(ge.id)).forEach(p => s.savePlayer({ ...p, groups: (p.groups || []).filter(x => x !== ge.id) })); setGrpEdit(null); s.toast(t("t_del")); }} />
-          </Row>
-        </Col> : null}
-      </Sheet>
       {sheets.el}
     </Screen>
   );

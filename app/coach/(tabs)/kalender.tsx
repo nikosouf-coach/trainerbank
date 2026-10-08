@@ -11,7 +11,7 @@ import { Btn, Card, CardTitle, Header, Info, ListItem, Muted, Row, Screen, Seg, 
 import { CalNav } from "../../../src/ui/plan/CalNav";
 import { setCal, useCal } from "../../../src/ui/plan/calState";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
-import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
+import { rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
 /** Ein Eintrag in der Wochenansicht. */
 function Item({ kind, text, color, onPress, testID, off }: { kind: string; text: string; color: string; onPress?: () => void; testID?: string; off?: boolean }) {

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import type { AttStatus } from "../../../src/core/types";
 import { useEngine, useStore } from "../../../src/data/store";
-import { Btn, Card, CardTitle, Chip, Col, Header, Info, Muted, NumScale, Row, Screen, Sheet, T } from "../../../src/ui/kit";
+import { Btn, Card, CardTitle, Chip, Col, Header, Info, Muted, NumScale, Row, Screen, Sheet } from "../../../src/ui/kit";
 import { RatingBadge, RatingSheet, type RatingTarget } from "../../../src/ui/games";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";

@@ -19,13 +19,17 @@ export function PlayerForm({ player, onDone }: { player: Player | null; onDone: 
   const [active, setActive] = useState(player ? player.active !== false : true);
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
   const [ask, setAsk] = useState(false);
-  const own = E.team.settings.groups || [];
+  const own = E.D.groups;
   const save = async () => {
     if (!vn.trim() || !nn.trim()) { setMsg(t("pf_need")); return; }
     setBusy(true);
     try {
       const p: Player = { ...(player || { id: tmpId(), photo: null, userId: null, neu: false }), vn: vn.trim(), nn: nn.trim(), geb: geb || player?.geb || "", pos: pos || player?.pos || "ZM", nr, kg, groups, active } as Player;
-      const saved = await s.savePlayer(p); s.toast(t("pf_saved")); onDone(saved);
+      const saved = await s.savePlayer(p);
+      // Gruppen getrennt speichern (eigene Tabelle): nur Änderungen
+      const before = player?.groups || [];
+      for (const g of own) { const on = groups.includes(g.id); if (on !== before.includes(g.id)) await s.setGroupMember(g.id, saved.id, on); }
+      s.toast(t("pf_saved")); onDone(saved);
     } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
   return (

@@ -32,8 +32,6 @@ export interface TeamSettings {
   anstoss: string;
   /** Spieler dürfen Trainings selbst absagen / Abwesenheiten eintragen (Standard: ja). */
   playerAbs?: boolean;
-  /** Eigene Gruppen (z. B. „Reha-Gruppe“, „Kapitänsrat“); Zuordnung in Player.groups. */
-  groups?: TeamGroup[];
   /** Was Spieler in ihrer App sehen (Baukasten). Fehlender Schlüssel = Standard aus PLAYER_VIEW. */
   playerView?: Partial<Record<PlayerViewKey, boolean>>;
   /** Push-Erinnerungen für Spieler (Server: supabase/functions/_shared/schedule.ts → reminderSettings). */
@@ -49,7 +47,15 @@ export interface Reminders {
   /** Erinnerung ans Pausenprogramm (Mo und Do 17:00) */
   program?: boolean;
 }
-export interface TeamGroup { id: string; name: string }
+/** Gruppenart: bestimmt, ob und wie die Gruppe die Belastungssteuerung beeinflusst. */
+export type GroupKind = "reha" | "tw" | "growth" | "build" | "lead" | "talent" | "custom";
+export interface TeamGroup {
+  id: string; name: string;
+  /** Art (Standard: custom = nur Organisation) */
+  kind?: GroupKind;
+  /** Spieler sehen in ihrer App, dass sie in dieser Gruppe sind */
+  vis?: boolean;
+}
 export type PlayerViewKey = "plan" | "load" | "tips" | "ai" | "goals" | "att" | "ratings" | "stats" | "tests" | "videos" | "contacts" | "program";
 export interface Principle { kind: Kind; rpe: number }
 export type Principles = Record<string, Principle>;
@@ -88,7 +94,7 @@ export interface Player {
   userId?: string | null;
   neu?: boolean;
   active?: boolean;
-  /** IDs eigener Gruppen (TeamSettings.groups). */
+  /** IDs eigener Gruppen (TeamData.groups); Spieler sehen nur freigegebene. */
   groups?: string[];
 }
 export interface Match { id: string; date: string; zeit: string; gegner: string; heim: boolean; comp: "liga" | "pokal" | "test"; /** Ergebnis aus eigener Sicht */ result?: { own: number; opp: number } | null }
@@ -166,7 +172,9 @@ export interface Phase {
   vis: boolean; note: string;
 }
 
-export interface Video { id: string; title: string; url: string; date: string | null; matchId: string | null; pids: string[]; note: string; vis: boolean }
+export interface Video { id: string; title: string; url: string; date: string | null; matchId: string | null; pids: string[]; note: string; vis: boolean;
+  /** an Gruppen geschickt (Anzeige); die Mitglieder stehen beim Speichern in pids */
+  groupIds?: string[] }
 
 /** Alles, was die Fachlogik über ein Team wissen muss. */
 export interface TeamData {
@@ -199,6 +207,8 @@ export interface TeamData {
   staff: StaffProfile[];
   phases: Phase[];
   contacts: Contact[];
+  /** Eigene Gruppen (Reha, Torhüter, Mannschaftsrat …); Mitglieder in Player.groups */
+  groups: TeamGroup[];
   /** Inaktive Spieler (nur für das Trainerteam; nicht in Berechnungen) */
   inactive: Player[];
 }
@@ -207,6 +217,6 @@ export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
-    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], inactive: [],
+    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], inactive: [],
   };
 }
