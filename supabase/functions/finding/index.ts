@@ -40,11 +40,12 @@ Deno.serve(async (req: Request): Promise<Response> => {
   if (!UUID_RE.test(findingId) || !UUID_RE.test(teamId)) return json({ error: 'bad_request' }, 400);
 
   try {
-    // Befund mit den Rechten des Nutzers laden (RLS) und Staff-Rolle prüfen
+    // Befund mit den Rechten des Nutzers laden (RLS) und Recht „Befunde“ prüfen
     const { data: f, error: fErr } = await client.from('findings').select('*').eq('id', findingId).eq('team_id', teamId).maybeSingle();
     if (fErr) throw fErr;
     if (!f) return json({ error: 'not_found' }, 404);
-    const { data: isStaff, error: sErr } = await client.rpc('is_team_staff', { team: teamId });
+    // Nur Staff mit dem Recht „Befunde“ (medical) – der Owner hat es immer
+    const { data: isStaff, error: sErr } = await client.rpc('staff_can', { team: teamId, perm: 'medical' });
     if (sErr) throw sErr;
     if (isStaff !== true) return json({ error: 'forbidden' }, 403);
 

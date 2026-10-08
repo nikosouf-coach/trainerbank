@@ -2,7 +2,8 @@
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoExtras, demoTeam } from "../core/demo";
 import type { Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
-import { ApiError, type Api, type ConsentState, type Membership, type UserInfo, type UserPrefs } from "./api";
+import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
+import { ApiError, type Api, type ConsentState, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
 let n = 1;
 const newId = (id: string): string => (!id || id.startsWith("tmp-")) ? "demo-" + (n++) : id;
@@ -78,7 +79,19 @@ export class DemoApi implements Api {
   }
   async updateTeam() { /* lokal */ }
   async regenerateCodes() { return { joinCode: "DEMO-U19K", staffCode: "DEMO-STAF" }; }
-  async staffList() { return [{ userId: this.user.id, role: "owner" as const, displayName: this.user.displayName }]; }
+  /** Demo: Trainerteam = Trainerprofile (außer dem eigenen); Rechte je Profil (Vorlage der Funktion, änderbar) */
+  private perms: Record<string, string[] | null> = {};
+  async staffList(): Promise<StaffEntry[]> {
+    const others = (this.data?.staff || []).filter(x => x.id !== "s1");
+    return [{ userId: this.user.id, role: "owner" as const, displayName: this.user.displayName, perms: [...PERMS] },
+      ...others.map(x => ({ userId: "demo-" + x.id, role: accessRoleFor(x.role), displayName: x.name, perms: this.demoPerms(x.id) }))];
+  }
+  /** Wirksame Rechte eines Demo-Trainerprofils */
+  demoPerms(staffId: string): string[] {
+    const x = this.data?.staff.find(y => y.id === staffId); if (!x) return [];
+    return this.perms["demo-" + staffId] ?? PERM_PRESETS[x.role] ?? [];
+  }
+  async setStaffPerms(_t: string, userId: string, perms: string[] | null) { this.perms[userId] = perms; }
   async approveStaff() { /* lokal */ }
   async rejectStaff() { /* lokal */ }
   async saveMatch(_t: string, m: Match) { return { ...m, id: newId(m.id) }; }

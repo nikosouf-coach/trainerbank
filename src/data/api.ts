@@ -7,7 +7,9 @@ import type {
 export type Role = "owner" | "coach" | "physio" | "pending" | "player";
 export const isStaffRole = (r: Role | undefined | null): boolean => r === "owner" || r === "coach" || r === "physio";
 
-export interface Membership { teamId: string; club: string; name: string; role: Role; playerId?: string | null }
+export interface Membership { teamId: string; club: string; name: string; role: Role; playerId?: string | null;
+  /** Trainerteam: einzelne Rechte (null/fehlend = Standard der Rolle, core/perms) */
+  perms?: string[] | null }
 /** Persönliche Einstellungen eines Kontos (gelten auf allen Geräten). */
 export interface UserPrefs {
   /** Info-Buttons (i) anzeigen – Standard: an */
@@ -24,7 +26,7 @@ export interface CreateTeamInput {
 export interface JoinProfile { vn: string; nn: string; geb: string; pos: string; nr: number | null; kg: number | null }
 export type AiMode = "coach" | "player" | "session" | "potentials" | "kind";
 export interface AiRequest { mode: AiMode; prompt: string; context: string; lang: Lang; teamId: string }
-export interface StaffEntry { userId: string; role: Role; displayName: string }
+export interface StaffEntry { userId: string; role: Role; displayName: string; /** wirksame Rechte (core/perms) */ perms?: string[] }
 /** Vom Trainer veröffentlichter Wochenplan (für die Spieler-App). */
 export interface PublishedDay { date: string; kind: string; rpe: number; dauer: number; inhalt: string }
 export type TeamPatch = Partial<Pick<Team, "club" | "name" | "accent" | "cls" | "depth" | "settings" | "principles" | "modules" | "logo">>;
@@ -65,6 +67,8 @@ export interface Api {
   staffList(teamId: string): Promise<StaffEntry[]>;
   approveStaff(teamId: string, userId: string, role: "coach" | "physio"): Promise<void>;
   rejectStaff(teamId: string, userId: string): Promise<void>;
+  /** Nur Owner: Rechte eines Mitglieds setzen (null = Standard der Rolle) */
+  setStaffPerms(teamId: string, userId: string, perms: string[] | null): Promise<void>;
 
   // Kalender & Plan
   saveMatch(teamId: string, m: Match): Promise<Match>;

@@ -137,11 +137,11 @@ export class SupabaseApi implements Api {
   // ---------- Mitgliedschaften ----------
   async memberships(): Promise<Membership[]> {
     const { data } = await this.sb.auth.getSession(); const uid = data.session?.user.id; if (!uid) return [];
-    const staff = await q(this.sb.from("team_staff").select("team_id, role, teams(club, name)").eq("user_id", uid));
+    const staff = await q(this.sb.from("team_staff").select("team_id, role, perms, teams(club, name)").eq("user_id", uid));
     const players = await q(this.sb.from("players").select("id, team_id, teams(club, name)").eq("user_id", uid));
     const pending = await q(this.sb.rpc("my_pending_teams"));
     const out: Membership[] = [];
-    for (const s of staff) if (s.role !== "pending" && s.teams) out.push({ teamId: s.team_id, club: s.teams.club, name: s.teams.name, role: s.role as Role });
+    for (const s of staff) if (s.role !== "pending" && s.teams) out.push({ teamId: s.team_id, club: s.teams.club, name: s.teams.name, role: s.role as Role, perms: s.perms ?? null });
     for (const p of players) if (p.teams) out.push({ teamId: p.team_id, club: p.teams.club, name: p.teams.name, role: "player", playerId: p.id });
     for (const r of pending as Row[]) out.push({ teamId: r.team_id, club: r.club, name: r.name, role: "pending" });
     return out;
@@ -283,11 +283,12 @@ export class SupabaseApi implements Api {
     return { joinCode: rows[0].join_code, staffCode: rows[0].staff_code };
   }
   async staffList(teamId: string): Promise<StaffEntry[]> {
-    const rows = await q<Row[]>(this.sb.rpc("team_staff_list", { p_team: teamId }));
-    return rows.map(r => ({ userId: r.user_id, role: r.role, displayName: r.display_name || "" }));
+    const rows = await q<Row[]>(this.sb.rpc("team_staff_perms", { p_team: teamId }));
+    return rows.map(r => ({ userId: r.user_id, role: r.role, displayName: r.display_name || "", perms: r.perms || [] }));
   }
   async approveStaff(teamId: string, userId: string, role: "coach" | "physio") { await q(this.sb.rpc("approve_staff", { p_team: teamId, p_user: userId, p_role: role })); }
   async rejectStaff(teamId: string, userId: string) { await q(this.sb.rpc("reject_staff", { p_team: teamId, p_user: userId })); }
+  async setStaffPerms(teamId: string, userId: string, perms: string[] | null) { await q(this.sb.rpc("set_staff_perms", { p_team: teamId, p_user: userId, p_perms: perms })); }
 
   // ---------- Kalender & Plan ----------
   async saveMatch(teamId: string, m: Match) {

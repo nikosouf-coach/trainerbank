@@ -7,6 +7,7 @@ import { AppState } from "react-native";
 import { addDays, iso, monday } from "../core/dates";
 import { fineViolations, lateFinesToWaive, nextDutyDate, planRotation } from "../core/duties";
 import { applyOp, applyOutbox, enqueue, prune, withClientId, type OutboxItem, type OutboxOp } from "../core/outbox";
+import { PERMS, effectivePerms, teamPatchPerms, viewFor, type Perm } from "../core/perms";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
 import type { StaffRoleKey, TeamGroup, DayBlock, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
@@ -77,6 +78,14 @@ function useStoreValue() {
     outbox: [], offline: false, syncing: false, cachedAt: null,
   }));
   const ref = useRef(s); ref.current = s;
+  /** Rechte im aktiven Team (Trainerteam). Demo: Cheftrainer alle, Co-Trainer-Ansicht die Rechte des Profils. */
+  const permsNow = (st: State = ref.current): Set<Perm> => {
+    if (!st.active) return new Set();
+    if (st.api instanceof DemoApi) return st.demoStaff ? new Set(st.api.demoPerms(st.demoStaff) as Perm[]) : new Set(PERMS);
+    return effectivePerms(st.active.role, st.active.perms);
+  };
+  /** Wird gerade als Trainerteam gearbeitet (nicht Spieleransicht)? */
+  const asStaff = (st: State = ref.current): boolean => !!st.active && (st.api instanceof DemoApi ? st.demoView === "coach" : isStaffRole(st.active.role));
   /** Warteschlange als sofort aktuelle Quelle (State nur für die Anzeige – wird erst beim nächsten Rendern aktuell) */
   const obRef = useRef<OutboxItem[]>([]);
   const set = useCallback((p: Partial<State>) => setS(prev => ({ ...prev, ...p })), []);
@@ -114,7 +123,7 @@ function useStoreValue() {
     if (pending) scheduleFlush(400);
     if (staff) scheduleAutomation(300);
     try { await AsyncStorage.setItem(K_TEAM, m.teamId); } catch { /* optional */ }
-    if (isStaffRole(m.role) && api.kind === "supabase") afterCoachLoad(api, m, D);
+    if (isStaffRole(m.role) && api.kind === "supabase" && effectivePerms(m.role, m.perms).has("plan")) afterCoachLoad(api, m, D);
   }, [set]);
 
   const boot = useCallback(async () => {
@@ -206,7 +215,7 @@ function useStoreValue() {
     if (pubTimer.current) clearTimeout(pubTimer.current);
     pubTimer.current = setTimeout(async () => {
       const { api, active, D, lang } = ref.current;
-      if (!D || !active || !isStaffRole(active.role) || api.kind !== "supabase") return;
+      if (!D || !active || !isStaffRole(active.role) || api.kind !== "supabase" || !permsNow().has("plan")) return;
       const E = createEngine(D, { lang });
       for (let w = 0; w <= 2; w++) {
         const ws = addDays(monday(E.TODAY), 7 * w), wp = E.weekPlan(ws);
@@ -224,6 +233,9 @@ function useStoreValue() {
   const runAutomation = useCallback(async () => {
     const { api, active, D, lang } = ref.current;
     if (!D || !active || !isStaffRole(active.role) || autoBusy.current) return;
+    // Automatik braucht das Recht „Aufgaben“; Regeln zur Belastung zusätzlich „Gesundheit“ (sonst fehlen die RPE-Daten)
+    const pm = permsNow(); if (!pm.has("tasks")) return;
+    const healthOk = pm.has("health");
     const defs = D.team.settings.duties || [], rules = D.team.settings.fines || [];
     if (ref.current.offline || ref.current.cachedAt) return; // Automatik nur mit aktuellem Stand vom Server
     if (!defs.some(d => d.on) && !rules.some(r => r.on && r.trigger !== "manual") && !D.fines.some(f => f.auto && f.status === "open")) return;
@@ -231,7 +243,7 @@ function useStoreValue() {
     try {
       const E = createEngine(D, { lang }), hp = new Set(ref.current.healthPlayers);
       // 0. Offline rechtzeitig eingetragen, aber erst später gesendet: Strafe erlassen, offenen Strafdienst streichen
-      for (const f of lateFinesToWaive(E, rules, D.fines)) {
+      for (const f of healthOk ? lateFinesToWaive(E, rules, D.fines) : []) {
         const upd: FineEntry = { ...f, status: "waived", note: translator(lang).t("off_waived") };
         try { await api.saveFine(active.teamId, upd); } catch { continue; }
         Object.assign(f, upd);
@@ -239,7 +251,7 @@ function useStoreValue() {
         if (dIds.length) { await api.deleteDuties(dIds); D.duties = D.duties.filter(d => !dIds.includes(d.id)); }
       }
       // 1. Strafen aus Regeln (einmal je Spieler und Einheit), Dienst am nächsten passenden Termin
-      for (const v of fineViolations(E, rules, D.fines, pid => hp.has(pid))) {
+      for (const v of fineViolations(E, healthOk ? rules : rules.filter(r => r.trigger !== "late_rpe"), D.fines, pid => hp.has(pid))) {
         const def = v.rule.duty ? defs.find(d => d.id === v.rule.duty && d.on) : undefined;
         const dutyDate = def ? nextDutyDate(E, def) : null;
         let fine: FineEntry;
@@ -622,7 +634,50 @@ function useStoreValue() {
     },
   };
 
-  const engine: Engine | null = useMemo(() => s.D ? createEngine(s.D, { lang: s.lang }) : null, [s.D, s.version, s.lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ---------- Rechte: Aktionen des Trainerteams nur mit passendem Recht (Server prüft zusätzlich) ----------
+  const NEED: Partial<Record<keyof typeof actions, Perm | Perm[]>> = {
+    saveMatch: "plan", deleteMatch: "plan", saveEvent: "plan", deleteEvent: "plan", setCal: "plan", setOver: "plan", setWeekMode: "plan",
+    saveKind: "plan", deleteKind: "plan", savePhase: "plan", deletePhase: "plan", saveVideo: "plan", deleteVideo: "plan",
+    savePlayer: "squad", deletePlayer: "squad", mergePlayers: "squad", uploadPhoto: "squad", setAttendance: "squad",
+    saveGroup: "squad", deleteGroup: "squad", setGroupMember: "squad", saveContact: "squad", deleteContact: "squad",
+    saveAbsence: ["squad", "health"], deleteAbsence: ["squad", "health"],
+    saveRpe: "health", saveWellness: "health", saveExtra: "health", deleteExtra: "health", saveGrowth: "health",
+    uploadFinding: "medical", updateFinding: "medical", deleteFinding: "medical", analyzeFinding: "medical",
+    saveNote: "notes", savePotential: "notes", deletePotential: "notes", saveRating: "notes", deleteRating: "notes",
+    saveMessage: "messages", deleteMessage: "messages",
+    saveStat: "perf", saveTest: "perf", deleteTest: "perf",
+    saveDutyDefs: "tasks", saveFineRules: "tasks", saveDuty: "tasks", saveFine: "tasks", deleteFine: "tasks", saveTask: "tasks", deleteTask: "tasks",
+  };
+  const denied = (need: Perm[]): boolean => {
+    if (!asStaff() || !need.length) return false;
+    const pm = permsNow(); if (need.some(p => pm.has(p))) return false;
+    const tr0 = translator(ref.current.lang);
+    toast(tr0.tf("pm_denied", { p: need.map(p => tr0.t("pm_" + p)).join(" / ") }));
+    return true;
+  };
+  for (const k of Object.keys(NEED) as (keyof typeof actions)[]) {
+    const fn = actions[k] as unknown as (...a: unknown[]) => unknown, need = NEED[k]!;
+    // ohne Recht: nichts tun (Rückgabe wie „unverändert“ – das übergebene Objekt)
+    (actions as Record<string, unknown>)[k] = (...a: unknown[]) => denied(Array.isArray(need) ? need : [need]) ? Promise.resolve(a[a.length > 1 ? 1 : 0]) : fn(...a);
+  }
+  {
+    const upd = actions.updateTeam;
+    actions.updateTeam = (patch: TeamPatch) => {
+      const D = ref.current.D;
+      const need = D ? teamPatchPerms(patch as Record<string, unknown>, D.team as unknown as Record<string, unknown> & { settings: object }) : [];
+      for (const p of need) if (denied([p])) return Promise.resolve();
+      return upd(patch);
+    };
+  }
+
+  // Rechte und Sicht: ohne Recht wirken Module wie ausgeschaltet (Demo: Daten werden zusätzlich ausgeblendet wie vom Server)
+  const permKey = [...permsNow(s)].sort().join(",");
+  const perms = useMemo(() => new Set(permKey ? permKey.split(",") as Perm[] : []), [permKey]);
+  const staffView = asStaff(s);
+  const viewD: TeamData | null = useMemo(() => !s.D ? null : staffView ? viewFor(s.D, perms, s.api.kind === "demo") : s.D, [s.D, s.version, perms, staffView]); // eslint-disable-line react-hooks/exhaustive-deps
+  const engine: Engine | null = useMemo(() => viewD ? createEngine(viewD, { lang: s.lang }) : null, [viewD, s.version, s.lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  /** Hat die Person (Trainerteam) dieses Recht? Spieleransicht: immer false */
+  const can = (p: Perm): boolean => staffView && perms.has(p);
 
   // Rolle für die Oberfläche (im Demo-Modus umschaltbar)
   const isDemo = s.api.kind === "demo";
@@ -634,7 +689,7 @@ function useStoreValue() {
   const myStaff = !s.D ? null : isDemo && s.demoStaff ? s.D.staff.find(x => x.id === s.demoStaff) || null : s.user ? s.D.staff.find(x => x.userId === s.user!.id) || null : null;
   const prefs: UserPrefs = { info: true, ...(s.user?.prefs || {}) };
 
-  return { ...s, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs };
+  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, perms, can };
 }
 
 export type Store = ReturnType<typeof useStoreValue>;

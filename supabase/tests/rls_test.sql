@@ -1715,6 +1715,88 @@ $$;
 commit;
 
 -- =====================================================================
+-- T40 Rechte je Mitglied des Trainerteams (Paket 11.2)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.findings (player_id, date, title, path, mime, consent_source) values (%L, '2026-10-06', 'T40 Befund', %L, 'application/pdf', 'schriftlich')$q$,
+                          tst.get('max'), tst.get('team_a') || '/' || tst.get('max') || '/40404040-4040-4040-8040-404040404040.pdf'), 1, 'T40 Owner legt Befund an');
+insert into public.team_tasks (team_id, title) values (tst.get('team_a')::uuid, 'T40 Todo für alle Trainer');
+insert into public.team_tasks (team_id, title, player_id) values (tst.get('team_a')::uuid, 'T40 Spieleraufgabe', tst.get('max')::uuid);
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$
+declare t uuid := tst.get('team_a')::uuid;
+begin
+  perform tst.ok(public.staff_can(t, 'health') and public.staff_can(t, 'plan') and public.staff_can(t, 'squad') and public.staff_can(t, 'tasks'),
+                 'T40 Co-Trainer (Standard): Gesundheit, Planung, Kader, Aufgaben');
+  perform tst.ok(not public.staff_can(t, 'medical') and not public.staff_can(t, 'cash') and not public.staff_can(t, 'admin'),
+                 'T40 Co-Trainer (Standard): keine Befunde, keine Kasse, keine Team-Einstellungen');
+  perform tst.eq((select count(*) from public.findings)::text, '0', 'T40 Co-Trainer ohne Recht sieht keine Befunde');
+  perform tst.ok((select count(*) from public.rpe_entries) > 0, 'T40 Co-Trainer mit Recht sieht RPE-Daten');
+  perform tst.eq((select perms::text from public.team_staff_perms(t) where user_id = tst.uid('coachC')), '{health,plan,squad,perf,notes,messages,tasks}', 'T40 Rechteliste zeigt Standardrechte');
+end
+$$;
+select tst.throws(format($q$insert into storage.objects (bucket_id, name) values ('findings', %L)$q$, tst.get('team_a') || '/' || tst.get('max') || '/41414141-4141-4141-8141-414141414141.pdf'),
+                  'T40 Co-Trainer ohne Recht lädt keine Befund-Datei hoch', 'row-level security');
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{testRank}', '"best"') where id = %L$q$, tst.get('team_a')), 1, 'T40 Testeinstellung mit Recht „perf“');
+select tst.throws(format($q$update public.teams set settings = jsonb_set(settings, '{playerView}', '{"ratings": false}') where id = %L$q$, tst.get('team_a')), 'T40 was Spieler sehen nur mit „admin“', 'forbidden');
+select tst.throws(format($q$update public.teams set name = 'Umbenannt' where id = %L$q$, tst.get('team_a')), 'T40 Teamname nur mit „admin“', 'forbidden');
+select tst.throws(format($q$select public.set_staff_perms(%L, %L, '{health,cash,admin}')$q$, tst.get('team_a'), tst.uid('coachC')), 'T40 Rechte vergibt nur der Owner', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$select public.set_staff_perms(%L, %L, '{health,fliegen}')$q$, tst.get('team_a'), tst.uid('coachC')), 'T40 unbekanntes Recht wird abgelehnt', 'check constraint');
+select tst.throws(format($q$select public.set_staff_perms(%L, %L, '{health}')$q$, tst.get('team_a'), tst.uid('coachA')), 'T40 Owner-Zeile hat immer alle Rechte', 'not_found');
+select public.set_staff_perms(tst.get('team_a')::uuid, tst.uid('coachC'), array['squad', 'messages', 'squad']);
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$
+declare t uuid := tst.get('team_a')::uuid;
+begin
+  perform tst.eq((select perms::text from public.team_staff where user_id = tst.uid('coachC') and team_id = t), '{messages,squad}', 'T40 Owner setzt Rechte (sortiert, ohne Doppelte)');
+  perform tst.eq((select count(*) from public.rpe_entries)::text, '0', 'T40 ohne „health“ keine RPE-Daten');
+  perform tst.eq((select count(*) from public.wellness_entries)::text, '0', 'T40 ohne „health“ kein Morgen-Check');
+  perform tst.eq((select count(*) from public.coach_notes)::text, '0', 'T40 ohne „notes“ keine Trainernotizen');
+  perform tst.ok((select count(*) from public.players) > 0, 'T40 Kader sieht das ganze Trainerteam');
+end
+$$;
+select tst.throws(format($q$insert into public.rpe_entries (player_id, date, rpe, minutes) values (%L, current_date - 300, 5, 60)$q$, tst.get('max')), 'T40 ohne „health“ keine RPE eintragen', 'row-level security');
+select tst.throws(format($q$insert into public.team_events (team_id, date, title, type) values (%L, '2026-12-01', 'X', 'sonst')$q$, tst.get('team_a')), 'T40 ohne „plan“ keine Termine', 'row-level security');
+select tst.affects(format($q$insert into public.attendance (player_id, date, team_id, status) values (%L, '2026-12-02', %L, 'ent')$q$, tst.get('max'), tst.get('team_a')), 1, 'T40 mit „squad“ Anwesenheit eintragen');
+select tst.throws(format($q$insert into public.team_tasks (team_id, title) values (%L, 'X')$q$, tst.get('team_a')), 'T40 ohne „tasks“ keine Aufgaben anlegen', 'row-level security');
+select tst.affects($q$update public.team_tasks set done_at = now() where title = 'T40 Todo für alle Trainer'$q$, 1, 'T40 Todo für alle Trainer abhaken (ohne „tasks“)');
+select tst.throws($q$update public.team_tasks set title = 'Y' where title = 'T40 Todo für alle Trainer'$q$, 'T40 … aber nicht umbenennen', 'forbidden');
+select tst.affects($q$update public.team_tasks set done_at = now() where title = 'T40 Spieleraufgabe'$q$, 0, 'T40 Spieleraufgaben nicht abhaken (ohne „tasks“)');
+select tst.throws(format($q$update public.teams set settings = jsonb_set(settings, '{days}', '{}') where id = %L$q$, tst.get('team_a')), 'T40 Trainingstage nur mit „plan“', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select public.set_staff_perms(tst.get('team_a')::uuid, tst.uid('coachC'), null);
+do $$
+begin
+  perform tst.eq((select perms is null from public.team_staff where user_id = tst.uid('coachC'))::text, 'true', 'T40 zurück auf Standardrechte');
+  perform tst.ok((select count(*) from public.findings) = 1, 'T40 Owner sieht Befunde immer');
+end
+$$;
+delete from public.findings where title = 'T40 Befund';
+delete from public.attendance where date = '2026-12-02';
+delete from public.team_tasks where title like 'T40%';
+update public.teams set settings = settings - 'testRank' where id = tst.get('team_a')::uuid;
+commit;
+
+-- =====================================================================
 -- T17 Einwilligungen
 -- =====================================================================
 begin;

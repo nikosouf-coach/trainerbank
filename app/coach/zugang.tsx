@@ -6,15 +6,18 @@ import { Share, Text } from "react-native";
 import type { StaffEntry } from "../../src/data/api";
 import { useEngine, useStore } from "../../src/data/store";
 import { Banner, Btn, Card, CardTitle, Col, Header, Info, ListItem, Muted, Row, Screen, T, Tag } from "../../src/ui/kit";
+import { PermChips, PermSheet } from "../../src/ui/perms";
 import { useTheme } from "../../src/ui/theme";
 
 export default function Zugang() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
-  const teamId = s.active?.teamId || "", owner = s.active?.role === "owner";
+  // Demo: in der Co-Trainer-Ansicht wie ein Co-Trainer (kein Owner)
+  const teamId = s.active?.teamId || "", owner = s.active?.role === "owner" && !(s.isDemo && s.demoStaff);
   const [codes, setCodes] = useState<{ joinCode?: string; staffCode?: string }>({ joinCode: E.team.joinCode, staffCode: E.team.staffCode });
   const [staff, setStaff] = useState<StaffEntry[] | null>(null);
   const [ask, setAsk] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [edit, setEdit] = useState<StaffEntry | null>(null);
   const loadStaff = () => s.api.staffList(teamId).then(setStaff).catch(() => setStaff([]));
   useEffect(() => { loadStaff(); }, [teamId]); // eslint-disable-line react-hooks/exhaustive-deps
   const run = async (fn: () => Promise<unknown>) => { setBusy(true); try { await fn(); } catch (e) { s.toast(s.errText(e)); } finally { setBusy(false); } };
@@ -57,9 +60,16 @@ export default function Zugang() {
             </ListItem>
           ))}
         </Col> : null}
-        {staff == null ? <Muted>{t("loading")}</Muted> : team.map(x => <ListItem key={x.userId} title={x.displayName || "–"} right={<Tag label={t("role_" + x.role)} />} />)}
+        {staff == null ? <Muted>{t("loading")}</Muted> : team.map(x => (
+          <ListItem key={x.userId} testID={"staff-" + x.userId} title={x.displayName || "–"} right={<Tag label={t("role_" + x.role)} />}
+            sub={(s.isDemo && s.demoStaff ? x.userId === "demo-" + s.demoStaff : x.userId === s.user?.id && !owner) ? t("pm_mine") : undefined}>
+            {x.role === "owner" ? <Muted small>{t("pm_owner")}</Muted> : <PermChips perms={x.perms || []} testID={"perms-" + x.userId} />}
+            {owner && x.role !== "owner" ? <Btn small testID={"perm-edit-" + x.userId} label={"🔑 " + t("pm_edit")} onPress={() => setEdit(x)} style={{ alignSelf: "flex-start" }} /> : null}
+          </ListItem>
+        ))}
         {staff && team.length <= 1 && !pending.length ? <Muted small>{t("st_none")}</Muted> : null}
       </Card>
+      <PermSheet entry={edit} visible={!!edit} onClose={() => setEdit(null)} onSaved={() => { loadStaff(); if (s.isDemo) s.reload(); }} />
     </Screen>
   );
 }
