@@ -1,6 +1,7 @@
 // Trainer – Spielerprofil: Status, Kennzahlen, Empfehlung, Erholung, Wachstum, Belastung, Potenziale, Zusatzsport, Abwesenheiten, Notizen.
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { TermInfo } from "../../../src/ui/termInfo";
 import React, { useState } from "react";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { diff } from "../../../src/core/dates";
@@ -16,11 +17,11 @@ import { ExtraCard, GamesCard, PotCard, RecCard } from "../../../src/ui/squad/Pr
 import { radius, statusColor, useTheme } from "../../../src/ui/theme";
 import type { Player } from "../../../src/core/types";
 
-function Kpi({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
+function Kpi({ label, value, sub, color, term }: { label: string; value: string; sub?: string; color?: string; term?: string }) {
   const { c } = useTheme();
   return (
     <View style={{ flexGrow: 1, flexBasis: 130, backgroundColor: c.sunk, borderRadius: radius.m, padding: 10, gap: 2 }}>
-      <T v="eyebrow">{label}</T>
+      <Row gap={6}><T v="eyebrow">{label}</T>{term ? <TermInfo k={term} /> : null}</Row>
       <Text style={{ fontSize: 22, fontWeight: "800", color: color || c.ink, fontVariant: ["tabular-nums"] }}>{value}</Text>
       {sub ? <Muted small>{sub}</Muted> : null}
     </View>
@@ -80,9 +81,9 @@ export default function Spieler() {
       {adv && E.lvl(1) ? <T style={{ fontWeight: "600" }}>{adv}</T> : null}
       <Row wrap gap={8}>
         {mods.belastung && E.lvl(2) ? <>
-          <Kpi label={t("k_acwr")} value={m && m.acwr != null ? E.num(m.acwr, 2) : "–"} />
-          <Kpi label={t("k_7")} value={m ? E.int(m.wk) : "–"} />
-          <Kpi label={t("k_wk")} value={m ? E.int(m.chronic) : "–"} />
+          <Kpi label={t("k_acwr")} value={m && m.acwr != null ? E.num(m.acwr, 2) : "–"} term="acwr" />
+          <Kpi label={t("k_7")} value={m ? E.int(m.wk) : "–"} term="au" />
+          <Kpi label={t("k_wk")} value={m ? E.int(m.chronic) : "–"} term="acwr" />
         </> : null}
         {mods.beteiligung ? <Kpi label={t("k_att")} value={pr.att != null ? Math.round(pr.att * 100) + " %" : "–"} /> : null}
         {mods.belastung ? <>
@@ -127,7 +128,7 @@ export default function Spieler() {
       <LoadChart series={series} label={t("loadTitle")} dateLabel={E.de} />
       <Row wrap gap={14}>
         <Muted small><Text style={{ color: c.accent }}>■</Text> {t("lg_load")}</Muted>
-        <Muted small><Text style={{ color: c.ink }}>—</Text> {t("lg_acwr")}</Muted>
+        <Row gap={6}><Muted small><Text style={{ color: c.ink }}>—</Text> {t("lg_acwr")}</Muted><TermInfo k="acwr" testID="term-acwr-chart" /></Row>
         <Muted small><Text style={{ color: c.ok }}>■</Text> {t("lg_sweet")}</Muted>
       </Row>
     </Card>

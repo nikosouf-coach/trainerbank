@@ -12,12 +12,13 @@ import { Banner, Btn, Card, CardTitle, Col, Divider, Header, Info, ListItem, Mut
 import { usePhotoUrl } from "../src/ui/playerAvatar";
 import { ProfileFields, emptyProfile, profileName, type ProfileDraft } from "../src/ui/setupParts";
 import { StaffAvatar } from "../src/ui/teamLogo";
+import { DashEditor } from "../src/ui/dashboard";
 import { tmpId } from "../src/data/store";
 
 export default function Konto() {
   const s = useStore(); const { t } = s.tr; const router = useRouter();
   const [ask, setAsk] = useState<null | "delete" | ConsentKind>(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false); const [dash, setDash] = useState(false);
   const [push, setPush] = useState<PushStatus | null>(null);
   const isPlayer = s.viewAs === "player";
   // Eigenes Trainerprofil
@@ -85,7 +86,9 @@ export default function Konto() {
       <Card testID="ko-display">
         <CardTitle title={t("ko_display")} />
         <ToggleRow testID="ko-info" label={t("su_infoT")} desc={t("su_infoD")} value={s.prefs.info !== false} onChange={v => s.setPrefs({ info: v })} />
+        {!isPlayer && s.D ? <Btn small testID="ko-dash" label={"⚙ " + t("db_edit")} onPress={() => setDash(true)} style={{ alignSelf: "flex-start" }} /> : null}
       </Card>
+      <DashEditor visible={dash} onClose={() => setDash(false)} available={() => true} />
 
       {!s.isDemo ? <Card>
         <CardTitle title={t("ko_teams")} />

@@ -54,6 +54,18 @@ export const de_more: Dict = {
   ph_coachN: "Von {n}", pl_newRatingN: "Neue Bewertung von {n}",
   hi_morning: "Guten Morgen", hi_day: "Hallo", hi_evening: "Guten Abend", coach_from: "{n}",
 
+  // Startseite
+  db_title: "Startseite anpassen", db_hint: "Wähle, welche Karten du auf der Startseite siehst, und ihre Reihenfolge. Gilt für dein Konto auf allen Geräten.",
+  db_next: "Nächster Termin", db_tasks: "Meine Aufgaben", db_phase: "Vorbereitung & Pausen", db_status: "Ampel-Übersicht", db_attn: "Braucht Aufmerksamkeit",
+  db_absent: "Abwesend nächste Einheit", db_week: "Diese Woche", db_events: "Events", db_last: "Letzte Einheit", db_load: "Teamlast", db_ai: "KI-Coach",
+  db_na: "Mit deinen Modulen nicht verfügbar", db_up: "Nach oben", db_down: "Nach unten", db_reset: "Standard wiederherstellen", db_edit: "Startseite anpassen",
+  db_attnNone: "Alle im grünen Bereich.", db_absNone: "Alle verfügbar.", db_more: "+{n} weitere",
+
+  // Wiki
+  wk_title: "Begriffe erklärt", wk_sub: "Alle Fachbegriffe der App – kurz und verständlich. Tippe auf einen Begriff für Details und Quellen.",
+  wk_search: "Suchen", wk_searchPh: "z. B. ACWR, RPE, Taper", wk_none: "Nichts gefunden.", wk_src: "Quellen", wk_open: "Im Wiki öffnen", wk_menu: "Begriffe erklärt (Wiki)", wk_menuSub: "RPE, ACWR, Tests, Wachstum, Planung …",
+  wk_c_belastung: "Belastung", wk_c_erholung: "Erholung", wk_c_planung: "Planung", wk_c_leistung: "Leistung", wk_c_wachstum: "Wachstum", wk_c_gesundheit: "Gesundheit", wk_c_app: "App",
+
   // Inaktive Spieler
   in_title: "Inaktive Spieler ({n})", in_info: "Inaktive Spieler zählen in keiner Berechnung und sehen keine Teamdaten mehr. Ihre bisherigen Daten bleiben erhalten.",
   in_reactivate: "Reaktivieren", in_done: "{n} ist wieder im Kader", in_show: "Anzeigen", in_hide: "Ausblenden",

@@ -54,6 +54,18 @@ export const en_more: Dict = {
   ph_coachN: "From {n}", pl_newRatingN: "New rating from {n}",
   hi_morning: "Good morning", hi_day: "Hello", hi_evening: "Good evening", coach_from: "{n}",
 
+  // Home
+  db_title: "Customise home", db_hint: "Choose which cards you see on the home screen and their order. Applies to your account on all devices.",
+  db_next: "Next session", db_tasks: "My tasks", db_phase: "Pre-season & breaks", db_status: "Traffic light overview", db_attn: "Needs attention",
+  db_absent: "Absent next session", db_week: "This week", db_events: "Events", db_last: "Last session", db_load: "Team load", db_ai: "AI coach",
+  db_na: "Not available with your modules", db_up: "Move up", db_down: "Move down", db_reset: "Restore default", db_edit: "Customise home",
+  db_attnNone: "Everyone in the green zone.", db_absNone: "Everyone available.", db_more: "+{n} more",
+
+  // Wiki
+  wk_title: "Terms explained", wk_sub: "All technical terms of the app – short and clear. Tap a term for details and sources.",
+  wk_search: "Search", wk_searchPh: "e.g. ACWR, RPE, taper", wk_none: "Nothing found.", wk_src: "Sources", wk_open: "Open in wiki", wk_menu: "Terms explained (wiki)", wk_menuSub: "RPE, ACWR, tests, growth, planning …",
+  wk_c_belastung: "Load", wk_c_erholung: "Recovery", wk_c_planung: "Planning", wk_c_leistung: "Performance", wk_c_wachstum: "Growth", wk_c_gesundheit: "Health", wk_c_app: "App",
+
   // Inactive players
   in_title: "Inactive players ({n})", in_info: "Inactive players are not part of any calculation and no longer see team data. Their previous data is kept.",
   in_reactivate: "Reactivate", in_done: "{n} is back in the squad", in_show: "Show", in_hide: "Hide",

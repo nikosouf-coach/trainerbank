@@ -140,10 +140,13 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const first = dates[0], n = diff(first, TODAY), all: { d: string; L: number }[] = [];
     for (let i = 0; i <= n; i++) { const d = addDays(first, i); all.push({ d, L: dl[d] || 0 }); }
     const Ls = Array(27).fill(0).concat(all.map(x => x.L)) as number[];
-    const series = all.map((x, i) => { const j = i + 27, a7 = sum(Ls.slice(j - 6, j + 1)), c28 = sum(Ls.slice(j - 27, j + 1)) / 4; return { d: x.d, L: x.L, acwr: i >= 6 && c28 > 0 ? a7 / c28 : null }; });
+    // ACWR „entkoppelt“ (uncoupled): akute Woche (7 Tage) im Verhältnis zum Wochenmittel der drei Wochen davor
+    // (Tage 8–28). Die gekoppelte Variante (akute Woche in der chronischen enthalten) verzerrt das Verhältnis
+    // mathematisch (Lolli et al. 2019; Windt & Gabbett 2018).
+    const series = all.map((x, i) => { const j = i + 27, a7 = sum(Ls.slice(j - 6, j + 1)), c21 = sum(Ls.slice(j - 27, j - 6)) / 3; return { d: x.d, L: x.L, acwr: i >= 6 && c21 > 0 ? a7 / c21 : null }; });
     // Bezugstag = letzte Teameinheit, damit Ruhetage die Werte nicht verzerren
     const ref = lastSessionDate(), cut = Ls.length - Math.max(0, diff(ref, TODAY));
-    const loads = Ls.slice(cut - 28, cut), l7 = loads.slice(-7), p7 = loads.slice(-14, -7), wk = sum(l7), mean = wk / 7, pwk = sum(p7), chronic = sum(loads) / 4;
+    const loads = Ls.slice(cut - 28, cut), l7 = loads.slice(-7), p7 = loads.slice(-14, -7), wk = sum(l7), mean = wk / 7, pwk = sum(p7), chronic = sum(loads.slice(0, 21)) / 3;
     const sd = Math.sqrt(sum(l7.map(x => (x - mean) ** 2)) / 7);
     return { series, days: n + 1, wk, delta: pwk > 0 ? (wk - pwk) / pwk : null, chronic, acwr: chronic > 0 ? wk / chronic : null, mono: sd > 0 ? mean / sd : null };
   }

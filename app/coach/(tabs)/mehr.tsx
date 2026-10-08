@@ -25,6 +25,7 @@ export default function Mehr() {
         {E.mods.leistung ? <ListItem testID="mehr-leistung" title={t("lt_title")} sub={t("lt_sub")} right={chev} onPress={() => go("/coach/leistung")} /> : null}
         {E.mods.spielanalyse ? <ListItem testID="mehr-spiele" title={t("sp_list")} sub={t("sp_listSub")} right={chev} onPress={() => go("/coach/spiele")} /> : null}
         {E.mods.videos ? <ListItem testID="mehr-videos" title={t("sp_lib")} sub={t("sp_libSub")} right={chev} onPress={() => go("/coach/videos")} /> : null}
+        <ListItem testID="mehr-wiki" title={t("wk_menu")} sub={t("wk_menuSub")} right={chev} onPress={() => go("/wiki")} />
         <ListItem testID="mehr-zugang" title={t("mh_access")} sub={t("cd_title") + " · " + t("st_title2")} right={chev} onPress={() => go("/coach/zugang")} />
         <ListItem testID="mehr-konto" title={t("mh_account")} sub={[s.myStaff?.name, s.isDemo ? t("w_demoHint") : s.user?.email].filter(Boolean).join(" · ")} right={chev} onPress={() => go("/konto")} />
       </Card>

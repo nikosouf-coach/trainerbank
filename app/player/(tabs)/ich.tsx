@@ -66,6 +66,7 @@ export default function Ich() {
       {E.playerSees("goals") ? <Goals pid={p.id} /> : null}
       <Card style={{ paddingVertical: 4, gap: 0 }}>
         {E.mods.kontakte && E.playerSees("contacts") ? <ListItem testID="me-kontakte" title={t("ct_title")} sub={t("ct_sub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/kontakte")} /> : null}
+        <ListItem testID="me-wiki" title={t("wk_menu")} sub={t("wk_menuSub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/wiki")} />
         <ListItem testID="me-konto" title={t("pl_account")} sub={s.isDemo ? t("w_demoHint") : s.user?.email || ""} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/konto")} />
       </Card>
     </Screen>

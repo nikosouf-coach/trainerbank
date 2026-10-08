@@ -279,6 +279,28 @@ export function Info({ title, text, children, testID }: { title: string; text?: 
   );
 }
 
+/** Aufklappbare Karte: Kopfzeile mit Titel, Zahl und Pfeil; zugeklappt optional eine Kurzfassung. */
+export function Fold({ title, count, countColor, right, summary, children, testID, defaultOpen = false, style }: {
+  title: string; count?: number; countColor?: string; right?: React.ReactNode; summary?: React.ReactNode; children?: React.ReactNode; testID?: string; defaultOpen?: boolean; style?: StyleProp<ViewStyle>;
+}) {
+  const { c } = useTheme(); const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Card testID={testID} style={style}>
+      <Pressable testID={testID ? testID + "-toggle" : undefined} accessibilityRole="button" accessibilityState={{ expanded: open }} accessibilityLabel={title} onPress={() => setOpen(!open)}
+        style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 32 }}>
+        <T v="h2" style={{ flex: 1 }}>{title}</T>
+        {count != null ? <View style={{ minWidth: 28, height: 24, borderRadius: 12, paddingHorizontal: 8, backgroundColor: count ? withAlpha(countColor || c.accentTx, 0.14) : c.sunk, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ fontWeight: "800", fontSize: 13, color: count ? (countColor || c.accentTx) : c.muted, fontVariant: ["tabular-nums"] }}>{count}</Text>
+        </View> : null}
+        {right}
+        <View style={{ transform: [{ rotate: open ? "-90deg" : "90deg" }] }}><Icon name="chevron" size={16} color={c.muted} /></View>
+      </Pressable>
+      {!open && summary ? summary : null}
+      {open ? children : null}
+    </Card>
+  );
+}
+
 // ---------- Listen & Hinweise ----------
 export function ListItem({ left, title, sub, right, onPress, testID, children }: { left?: React.ReactNode; title: string; sub?: string; right?: React.ReactNode; onPress?: () => void; testID?: string; children?: React.ReactNode }) {
   const { c } = useTheme();

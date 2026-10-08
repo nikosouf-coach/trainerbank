@@ -1,12 +1,14 @@
-// Trainer – Heute: nächster Termin, KI-Coach, Woche, Ampel, Spieler mit Handlungsbedarf, letzte Einheit, Teamlast.
+// Trainer – Heute: frei anpassbare Startseite (Karten an/aus, Reihenfolge) – nächster Termin, Aufgaben, Ampel,
+// Braucht Aufmerksamkeit und Abwesende (aufklappbar), Woche, Events, letzte Einheit, Teamlast, KI-Coach.
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
-import { Pressable, Text, View, useWindowDimensions } from "react-native";
+import React, { useMemo, useState } from "react";
+import { Pressable, Text, View } from "react-native";
 import { addDays, monday, sum } from "../../../src/core/dates";
 import { useEngine, useStore } from "../../../src/data/store";
 import { AiPanel } from "../../../src/ui/ai";
 import { WeekBars, WeekStrip } from "../../../src/ui/charts";
-import { Bar, Btn, Card, CardTitle, Chip, Col, Divider, Header, Info, ListItem, Muted, Row, Screen, T } from "../../../src/ui/kit";
+import { Bar, Btn, Card, CardTitle, Chip, Col, Fold, Header, Info, ListItem, Muted, Row, Screen, T } from "../../../src/ui/kit";
+import { DashEditor, useDash } from "../../../src/ui/dashboard";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { teamLabel } from "../../../src/core/classes";
@@ -21,8 +23,8 @@ function HeroPill({ label }: { label: string }) {
 
 export default function Heute() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
-  const { width } = useWindowDimensions(); const wide = width >= 900;
   const sheets = usePlanSheets();
+  const dash = useDash(); const [editDash, setEditDash] = useState(false);
   const mods = E.mods, kids = E.grp === "u11";
 
   const data = useMemo(() => {
@@ -83,30 +85,36 @@ export default function Heute() {
     </Row>
   ) : null;
 
+  // ---------- Karten (Reihenfolge und Auswahl: „Startseite anpassen“) ----------
   const attnCard = (
-    <Card testID="today-attn" style={{ flex: wide ? 1 : undefined }}>
-      <CardTitle title={t("attn")} right={<Muted>{String(attn.length)}</Muted>} />
-      {attn.length ? attn.slice(0, 10).map(x => (
+    <Fold testID="today-attn" title={t("attn")} count={attn.length} countColor={attn.some(x => x.st === "crit") ? c.crit : attn.length ? c.warn : undefined}
+      summary={attn.length ? <Row gap={6} wrap>{attn.slice(0, 8).map(x => <PlayerAvatar key={x.p.id} p={x.p} size={30} status={x.st} />)}{attn.length > 8 ? <Muted small>{tf("db_more", { n: attn.length - 8 })}</Muted> : null}</Row> : <Muted small>{t("db_attnNone")}</Muted>}>
+      {attn.length ? attn.map(x => (
         <ListItem key={x.p.id} testID={"attn-" + x.p.id} title={`${E.name(x.p)}`} sub={`${E.age(x.p)} ${t("years")} · ${x.p.pos}`}
           left={<PlayerAvatar p={x.p} size={40} status={x.st} />} onPress={() => router.push("/coach/spieler/" + x.p.id)}>
           <Row wrap gap={4}>{x.reasons.map(([k, r], i) => <Chip key={i} label={r} color={statusColor(c, k.replace(/^k-/, ""))} />)}</Row>
         </ListItem>
       )) : <Muted>{t("allgreen")}</Muted>}
-    </Card>
+    </Fold>
   );
 
-  const sideCard = (
-    <Card testID="today-side" style={{ flex: wide ? 1 : undefined }}>
-      {absN.length && nx ? <Col gap={4}>
-        <T v="h3">{t("absentNext")}</T>
-        {absN.map(p => { const a = E.absenceOn(p.id, nx.date)!; return <ListItem key={p.id} title={E.name(p)} sub={t("ab_" + a.typ) + (a.bis ? " · " + t("until") + " " + E.de(a.bis) : "")} left={<PlayerAvatar p={p} size={32} />} onPress={() => router.push("/coach/spieler/" + p.id)} />; })}
-        <Divider />
-      </Col> : null}
-      {evUp.length ? <Col gap={4}>
-        <T v="h3">{t("upEvents")}</T>
-        {evUp.map(e => <ListItem key={e.id} title={`${E.wt(e.date)} ${E.de(e.date)}${e.zeit ? " · " + e.zeit : ""}`} sub={e.titel} onPress={() => sheets.open({ k: "add", date: e.date, type: "event", obj: e })} />)}
-        <Divider />
-      </Col> : null}
+  const absentCard = nx ? (
+    <Fold testID="today-absent" title={t("absentNext")} count={absN.length}
+      summary={absN.length ? <Muted small>{absN.slice(0, 5).map(p => p.vn + " " + (p.nn || " ")[0] + ".").join(", ")}{absN.length > 5 ? " " + tf("db_more", { n: absN.length - 5 }) : ""}</Muted> : <Muted small>{t("db_absNone")}</Muted>}>
+      {absN.length ? absN.map(p => { const a = E.absenceOn(p.id, nx.date)!; return <ListItem key={p.id} title={E.name(p)} sub={t("ab_" + a.typ) + (a.bis ? " · " + t("until") + " " + E.de(a.bis) : "")} left={<PlayerAvatar p={p} size={32} />} onPress={() => router.push("/coach/spieler/" + p.id)} />; })
+        : <Muted>{t("db_absNone")}</Muted>}
+    </Fold>
+  ) : null;
+
+  const eventsCard = evUp.length ? (
+    <Card testID="today-events">
+      <CardTitle title={t("upEvents")} />
+      {evUp.map(e => <ListItem key={e.id} title={`${E.wt(e.date)} ${E.de(e.date)}${e.zeit ? " · " + e.zeit : ""}`} sub={e.titel} onPress={() => sheets.open({ k: "add", date: e.date, type: "event", obj: e })} />)}
+    </Card>
+  ) : null;
+
+  const lastCard = (
+    <Card testID="today-last">
       {last ? <Col gap={10}>
         <Row between wrap><T v="h3">{t("last")}</T><Muted small>{E.wt(last.date)} {E.de(last.date)} · {last.typ === "Spiel" ? t("it_match") : t("it_training")}</Muted></Row>
         {mods.beteiligung ? <Col gap={6}><Row between><T>{t("part")}</T><T bold>{da} / {avl}</T></Row><Bar value={avl ? da / avl : 0} color={c.ok} /></Col> : null}
@@ -116,28 +124,39 @@ export default function Heute() {
         </Col> : null}
         {mods.beteiligung ? <Btn testID="today-att" label={t("viewAtt")} onPress={() => router.push("/coach/einheit/" + last.date)} style={{ alignSelf: "flex-start" }} /> : null}
       </Col> : <Muted>{t("noSession")}</Muted>}
-      {mods.belastung && E.lvl(2) ? <Col gap={6}>
-        <Divider />
-        <Row between><T v="h3">{t("teamLoad")}</T><Info title={t("teamLoad")} text={t("teamLoadNote")} /></Row>
-        <WeekBars data={team} label={t("teamLoad")} />
-      </Col> : null}
     </Card>
   );
+
+  const loadCard = mods.belastung && E.lvl(2) ? (
+    <Card testID="today-load">
+      <Row between><T v="h3">{t("teamLoad")}</T><Info title={t("teamLoad")} text={t("teamLoadNote")} /></Row>
+      <WeekBars data={team} label={t("teamLoad")} />
+    </Card>
+  ) : null;
+
+  const weekCard = (
+    <Card testID="today-week">
+      <CardTitle title={t("thisWeek")} right={<Btn small kind="ghost" label={(mods.planung ? t("nav_plan") : t("nav_kalender")) + " ›"} onPress={() => router.push(mods.planung ? "/coach/plan" : "/coach/kalender")} />} />
+      <WeekStrip days={wp.items.map(x => ({ label: E.wt(x.date), md: x.md, rpe: x.match ? 8 : x.train ? x.train.rpe : 0, match: !!x.match, today: x.date === E.TODAY }))} />
+    </Card>
+  );
+
+  const aiCard = mods.ki ? <AiPanel mode="coach" testID="ai" context={() => E.aiContext(pid => s.aiPlayers.includes(pid))} quick={["ki_q1", "ki_q2", "ki_q3"]} placeholder={t("ki_ph")} note={t("ki_note")}
+    onQuick={k => { if (k === "ki_q1" && nx?.train) { sheets.open({ k: "ai", date: nx.date }); return true; } return false; }} /> : null;
+
+  const cards: Record<string, React.ReactNode> = {
+    next: hero, tasks: null, phase: <CoachPhaseCard />, status: tiles, attn: attnCard, absent: absentCard,
+    week: weekCard, events: eventsCard, last: lastCard, load: loadCard, ai: aiCard,
+  };
+  const available = (k: string): boolean => ({ status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;
 
   return (
     <Screen testID="coach-heute">
       <Header eyebrow={`${E.wt(E.TODAY)} ${E.de(E.TODAY)} · ${teamLabel(E.team)}`} title={myName ? `${gruss}, ${myName}` : gruss}
         right={<TeamLogo size={46} />} />
-      {hero}
-      <CoachPhaseCard />
-      {mods.ki ? <AiPanel mode="coach" testID="ai" context={() => E.aiContext(pid => s.aiPlayers.includes(pid))} quick={["ki_q1", "ki_q2", "ki_q3"]} placeholder={t("ki_ph")} note={t("ki_note")}
-        onQuick={k => { if (k === "ki_q1" && nx?.train) { sheets.open({ k: "ai", date: nx.date }); return true; } return false; }} /> : null}
-      <Card>
-        <CardTitle title={t("thisWeek")} right={<Btn small kind="ghost" label={(mods.planung ? t("nav_plan") : t("nav_kalender")) + " ›"} onPress={() => router.push(mods.planung ? "/coach/plan" : "/coach/kalender")} />} />
-        <WeekStrip days={wp.items.map(x => ({ label: E.wt(x.date), md: x.md, rpe: x.match ? 8 : x.train ? x.train.rpe : 0, match: !!x.match, today: x.date === E.TODAY }))} />
-      </Card>
-      {tiles}
-      {wide ? <Row align="flex-start" gap={18}>{attnCard}{sideCard}</Row> : <>{attnCard}{sideCard}</>}
+      {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
+      <Btn small kind="ghost" testID="dash-edit" label={"⚙ " + t("db_edit")} onPress={() => setEditDash(true)} style={{ alignSelf: "center" }} />
+      <DashEditor visible={editDash} onClose={() => setEditDash(false)} available={available} />
       {sheets.el}
     </Screen>
   );

@@ -38,7 +38,7 @@ export const en: Dict = {
   "noSession": "No session yet.",
   "thisWeek": "This week",
   "absentNext": "Absent at next session",
-  "upEvents": "Coming up",
+  "upEvents": "Events",
   "players": "players",
   "addPlayer": "+ Player",
   "search": "Search players",

@@ -6,6 +6,7 @@ import { posGroup } from "../../../src/core/classes";
 import type { Player, TeamGroup } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { Banner, Bar, Btn, Card, CardTitle, Check, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, Seg, Sheet, StatusChip, T, Tag } from "../../../src/ui/kit";
+import { TermInfo } from "../../../src/ui/termInfo";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
@@ -73,7 +74,7 @@ export default function Kader() {
               <Row gap={4} wrap style={{ justifyContent: "center" }}><Tag label={x.p.pos} /><Tag label={`${E.age(x.p)} ${t("years")}`} />{x.p.neu ? <Chip label={t("newP")} color={c.low} /> : null}{x.p.active === false ? <Tag label={t("kd_inactive")} /> : null}</Row>
               {(mods.belastung || x.st === "inj") && x.st !== "none" ? <StatusChip status={x.st} label={t("st_" + x.st)} /> : x.ab ? <Chip label={t("ab_" + x.ab.typ)} color={c.build} /> : null}
               <Row gap={10} style={{ justifyContent: "center" }}>
-                {mods.belastung && E.lvl(2) ? <Muted small>ACWR <Text style={{ fontWeight: "800", color: c.ink }}>{x.m && x.m.acwr != null && x.st !== "inj" ? E.num(x.m.acwr, 2) : "–"}</Text></Muted> : null}
+                {mods.belastung && E.lvl(2) ? <Row gap={4}><Muted small>ACWR <Text style={{ fontWeight: "800", color: c.ink }}>{x.m && x.m.acwr != null && x.st !== "inj" ? E.num(x.m.acwr, 2) : "–"}</Text></Muted><TermInfo k="acwr" testID={"term-acwr-" + x.p.id} /></Row> : null}
                 {mods.beteiligung ? <Muted small>{t("attShort")} <Text style={{ fontWeight: "800", color: c.ink }}>{x.att != null ? Math.round(x.att * 100) + "%" : "–"}</Text></Muted> : null}
               </Row>
             </Pressable>

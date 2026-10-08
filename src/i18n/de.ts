@@ -38,7 +38,7 @@ export const de: Dict = {
   "noSession": "Noch keine Einheit.",
   "thisWeek": "Diese Woche",
   "absentNext": "Abwesend bei der nächsten Einheit",
-  "upEvents": "Demnächst",
+  "upEvents": "Events",
   "players": "Spieler",
   "addPlayer": "+ Spieler",
   "search": "Spieler suchen",
