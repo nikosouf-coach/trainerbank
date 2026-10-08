@@ -22,6 +22,14 @@ export const en_more: Dict = {
   rm_program: "Break programme", rm_programD: "Mondays and Thursdays at 5 pm while a break with a programme is running.",
   rm_needs: "Needs the “{m}” package.",
 
+  // Setup: modules and training times
+  su_preset: "Preset", su_presetHint: "The level preselects suitable modules. Afterwards you can switch each module on or off.",
+  su_mods: "Your modules", su_modsCount: "{n} of {m} modules active", su_modsLater: "You can change this any time under More → Modules.",
+  su_allOn: "All on", su_allOff: "All off", su_reset: "Restore preset",
+  dur_all: "Length of a training session", dur_allHint: "Applies to all training days – adjust single days below.",
+  days_pick: "Training days", su_noDays: "Choose at least one training day.",
+  su_daysT: "Training days and length", su_daysB: "On which days do you train, when and for how long? Match day and kick-off drive the weekly plan.",
+
   // Inactive players
   in_title: "Inactive players ({n})", in_info: "Inactive players are not part of any calculation and no longer see team data. Their previous data is kept.",
   in_reactivate: "Reactivate", in_done: "{n} is back in the squad", in_show: "Show", in_hide: "Hide",

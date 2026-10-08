@@ -1,7 +1,7 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoExtras, demoTeam } from "../core/demo";
-import type { Contact, Phase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { Contact, Phase, ClassKey, Modules, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { ApiError, type Api, type ConsentState, type Membership, type UserInfo } from "./api";
 
 let n = 1;
@@ -11,7 +11,7 @@ export class DemoApi implements Api {
   readonly kind = "demo" as const;
   private user: UserInfo;
   private consent: ConsentState = { privacy: true, health_data: true, parental: true, ai: true, staff_confidentiality: true, findings: true };
-  constructor(public cls: ClassKey = "u19", public depth: Depth = "basis", public lang: Lang = "de") {
+  constructor(public cls: ClassKey = "u19", public depth: Depth = "basis", public lang: Lang = "de", public over: { modules?: Modules; settings?: TeamSettings } = {}) {
     this.user = { id: "demo-user", email: "demo@trainerbank.app", displayName: lang === "en" ? "Demo coach" : "Demo-Trainer", lang };
   }
   async currentUser() { return this.user; }
@@ -33,7 +33,7 @@ export class DemoApi implements Api {
   private data: TeamData | null = null;
   async loadTeam(): Promise<TeamData> {
     if (this.data) return this.data;
-    const D = buildDemo(demoTeam(this.cls, this.depth, this.lang), this.lang, new Date());
+    const D = buildDemo(demoTeam(this.cls, this.depth, this.lang, this.over), this.lang, new Date());
     demoExtras(D, this.lang, new Date());
     // Ein Spieler hat sich zusätzlich selbst per App angemeldet (zeigt das Zusammenführen)
     const dup = D.players.find(p => p.vn === "Tim");

@@ -4,17 +4,19 @@ import { addDays, ageOn, diff, iso, monday, parse, rng } from "./dates";
 import { createEngine } from "./engine";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
-import type { Contact, Phase, PhaseKind, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult } from "./types";
+import type { Contact, Phase, PhaseKind, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings } from "./types";
 import { emptyTeamData } from "./types";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
 const OPP = ["SV Nordheim", "TuS Rheinblick", "FC Eintracht Waldau", "SpVgg Ostfeld", "VfR Lindenhof", "DJK Sonnenberg", "BV Hafenstadt", "SC Bergtal", "Rot-Weiß Auenfeld", "TSV Mühlbach", "SG Kirchdorf", "1. FC Talheim", "SV Grünwiese"];
 
-export function demoTeam(cls: ClassKey = "u19", depth: Depth = "basis", lang: Lang = "de"): Team {
+/** Demo-Team; `over` übernimmt die in der Einrichtung gewählten Module und Trainingstage. */
+export function demoTeam(cls: ClassKey = "u19", depth: Depth = "basis", lang: Lang = "de", over: { modules?: Modules; settings?: TeamSettings } = {}): Team {
   const c = classDef(cls);
   return {
     id: "demo", club: lang === "en" ? "My Club" : "Mein Verein", name: c.team ? c.team[lang] : cls.toUpperCase(), accent: "#0b3d91",
-    cls, depth, settings: defaultSettings(), principles: defaultPrinciples(groupOf(cls)), modules: modsFor(depth, cls), joinCode: "DEMO-U19K", staffCode: "DEMO-STAF",
+    cls, depth, settings: over.settings ? { ...defaultSettings(), ...over.settings } : defaultSettings(), principles: defaultPrinciples(groupOf(cls)),
+    modules: over.modules ? { ...over.modules } : modsFor(depth, cls), joinCode: "DEMO-U19K", staffCode: "DEMO-STAF",
   };
 }
 

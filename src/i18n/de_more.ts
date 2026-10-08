@@ -22,6 +22,14 @@ export const de_more: Dict = {
   rm_program: "Pausenprogramm", rm_programD: "Montags und donnerstags um 17 Uhr, solange eine Pause mit Programm läuft.",
   rm_needs: "Benötigt das Paket „{m}“.",
 
+  // Einrichtung: Module und Trainingszeiten
+  su_preset: "Vorauswahl", su_presetHint: "Die Stufe wählt passende Module vor. Danach kannst du jedes Modul einzeln an- oder abwählen.",
+  su_mods: "Deine Module", su_modsCount: "{n} von {m} Modulen aktiv", su_modsLater: "Später jederzeit änderbar unter Mehr → Baukasten.",
+  su_allOn: "Alle an", su_allOff: "Alle aus", su_reset: "Vorauswahl wiederherstellen",
+  dur_all: "Dauer einer Trainingseinheit", dur_allHint: "Gilt für alle Trainingstage – einzelne Tage kannst du unten anpassen.",
+  days_pick: "Trainingstage", su_noDays: "Wähle mindestens einen Trainingstag.",
+  su_daysT: "Trainingstage und Dauer", su_daysB: "An welchen Tagen trainiert ihr, wann und wie lange? Spieltag und Anstoß bestimmen die Wochenplanung.",
+
   // Inaktive Spieler
   in_title: "Inaktive Spieler ({n})", in_info: "Inaktive Spieler zählen in keiner Berechnung und sehen keine Teamdaten mehr. Ihre bisherigen Daten bleiben erhalten.",
   in_reactivate: "Reaktivieren", in_done: "{n} ist wieder im Kader", in_show: "Anzeigen", in_hide: "Ausblenden",

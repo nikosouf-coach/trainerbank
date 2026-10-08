@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { addDays, iso, monday } from "../core/dates";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
-import type {
+import type { Modules, TeamSettings,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -166,8 +166,8 @@ function useStoreValue() {
     signUp: (email: string, pw: string, name: string) => ref.current.api.signUp(email, pw, name, ref.current.lang),
     resetPassword: (email: string) => ref.current.api.resetPassword(email),
     signOut: async () => { await ref.current.api.signOut(); try { await AsyncStorage.removeItem(K_TEAM); } catch { /* optional */ } set({ phase: "signedOut", user: null, D: null, active: null, memberships: [] }); },
-    startDemo: async (cls: ClassKey = "u19", depth: Depth = "basis") => {
-      const api = new DemoApi(cls, depth, ref.current.lang);
+    startDemo: async (cls: ClassKey = "u19", depth: Depth = "basis", over: { modules?: Modules; settings?: TeamSettings } = {}) => {
+      const api = new DemoApi(cls, depth, ref.current.lang, over);
       const user = await api.currentUser(); const ms = await api.memberships();
       set({ api, user, memberships: ms }); await loadActive(api, ms[0], { api, user, memberships: ms, demoView: "coach", demoPlayer: null });
     },

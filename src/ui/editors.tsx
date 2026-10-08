@@ -45,16 +45,32 @@ export function DepthPicker({ value, onChange, tr, kids }: { value: Depth; onCha
 /** Bausteine, deren Bildschirme noch entstehen (Kennzeichnung „in Entwicklung“). */
 export const MODULES_SOON = new Set<keyof Modules>([]);
 
+/** Ist ein Modul für die Altersklasse möglich? (U11 ohne Belastungssteuerung; Wachstum nur im Wachstumsalter) */
+export function modAllowed(k: keyof Modules, cls: ClassKey): boolean {
+  const kids = groupOf(cls) === "u11";
+  return !((kids && ["belastung", "regeneration", "wachstum"].includes(k)) || (k === "wachstum" && !isGrowthAge(cls)));
+}
+/** Alle wählbaren Module der Pakete an- oder ausschalten. */
+export function allModules(value: Modules, cls: ClassKey, on: boolean): Modules {
+  const m = { ...value };
+  for (const pk of PACKAGES) for (const k of pk.mods) m[k] = on && modAllowed(k, cls);
+  return m;
+}
+/** Anzahl aktiver und wählbarer Module. */
+export function moduleCount(value: Modules, cls: ClassKey): { on: number; all: number } {
+  const ks = PACKAGES.flatMap(pk => pk.mods).filter(k => modAllowed(k, cls));
+  return { on: ks.filter(k => value[k]).length, all: ks.length };
+}
+
 /** Module nach Paketen gruppiert (Baukasten). */
 export function ModuleList({ value, onChange, tr, cls }: { value: Modules; onChange: (m: Modules) => void; tr: Translator; cls: ClassKey }) {
-  const kids = groupOf(cls) === "u11";
   return (
     <Col gap={18}>
       {PACKAGES.map(pk => (
         <Col key={pk.key} gap={10}>
           <Col gap={2}><T v="eyebrow">{tr.t("pk_" + pk.key)}</T>{tr.t("pkd_" + pk.key) !== "pkd_" + pk.key ? <Muted small>{tr.t("pkd_" + pk.key)}</Muted> : null}</Col>
           {pk.mods.map(k => {
-            const dis = (kids && ["belastung", "regeneration", "wachstum"].includes(k)) || (k === "wachstum" && !isGrowthAge(cls));
+            const dis = !modAllowed(k, cls);
             return <ToggleRow key={k} testID={"mod-" + k} label={tr.t("m_" + k)} desc={tr.t("md_" + k)} value={!!value[k] && !dis} disabled={dis} badge={MODULES_SOON.has(k) ? tr.t("dev") : undefined} onChange={v => onChange({ ...value, [k]: v })} />;
           })}
         </Col>
@@ -71,8 +87,29 @@ export function DaysEditor({ value, onChange, tr }: { value: TeamSettings; onCha
     if (patch === null) delete days[d]; else days[d] = { ...(days[d] || { zeit: "19:30", platz: "halb", dauer: value.dauer || 90 }), ...patch };
     onChange({ ...value, days });
   };
+  const setAllDur = (m: number) => {
+    const days = { ...value.days }; for (const d of Object.keys(days)) days[Number(d)] = { ...days[Number(d)], dauer: m };
+    onChange({ ...value, dauer: m, days });
+  };
+  const durs = [60, 75, 90, 105, 120];
   return (
     <Col gap={14}>
+      <Col gap={6}>
+        <T v="small" bold color={c.muted}>{tr.t("dur_all")}</T>
+        <Row wrap gap={6}>
+          {durs.map(m => {
+            const on = value.dauer === m && Object.values(value.days).every(x => (x.dauer || value.dauer) === m);
+            return (
+              <Pressable key={m} testID={"tdur-" + m} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => setAllDur(m)}
+                style={{ minWidth: 58, height: 40, paddingHorizontal: 10, borderRadius: radius.pill, borderWidth: 1.5, borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accent : c.surface, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontWeight: "800", color: on ? c.accentInk : c.ink }}>{m}′</Text>
+              </Pressable>
+            );
+          })}
+        </Row>
+        <Muted small>{tr.t("dur_allHint")}</Muted>
+      </Col>
+      <T v="small" bold color={c.muted}>{tr.t("days_pick")}</T>
       <Row wrap gap={6}>
         {order.map(d => {
           const on = !!value.days[d];
@@ -104,7 +141,8 @@ export function DaysEditor({ value, onChange, tr }: { value: TeamSettings; onCha
   );
 }
 function MinutesField({ label, value, onChange, testID }: { label: string; value: number; onChange: (m: number) => void; testID?: string }) {
-  const { c } = useTheme(); const [txt, setTxt] = useState(String(value));
+  const { c } = useTheme(); const [txt, setTxt] = useState(String(value)); const [last, setLast] = useState(value);
+  if (value !== last) { setLast(value); setTxt(String(value)); }
   return (
     <View style={{ gap: 4, width: 76 }}>
       <Text style={{ fontSize: 13, fontWeight: "700", color: c.muted }}>{label}</Text>
