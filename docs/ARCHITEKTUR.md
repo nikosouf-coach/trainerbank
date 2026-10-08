@@ -64,19 +64,31 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 
 | Tabelle | Spalten (Auszug) | Zugriff |
 |---|---|---|
-| `players.groups` | `text[]` – eigene Gruppen (`teams.settings.groups`) | ändert nur Staff |
 | `extra_activities.label`, `.program_item` | freie Bezeichnung; erledigter Programm-Baustein | wie Zusatzsport |
 | `match_stats` | pk(`match_id`,`player_id`), `minutes`, `goals`, `assists`, `started` | Staff; Spieler eigene, wenn `player_view(team,'stats')` |
 | `player_ratings` | `id`, `player_id`, `date`, `kind` (spiel/training), `rating` 1–10, `text`, `visible` | Staff; Spieler eigene freigegebene, wenn `player_view(team,'ratings')` |
-| `videos` | `id`, `title`, `url`, `date`, `match_id`, `player_ids` (leer = ganzes Team), `note`, `visible` | Staff; Mitglieder freigegebene (für sie bestimmte) |
+| `videos` | `id`, `title`, `url`, `date`, `match_id`, `player_ids` und `group_ids` (beide leer = ganzes Team), `note`, `visible` | Staff; Mitglieder freigegebene (für sie oder ihre Gruppe bestimmte) |
 | `performance_tests` | `id`, `player_id`, `test`, `date`, `value`, `note` | Staff; Spieler eigene, wenn `player_view(team,'tests')` |
 | `findings` | `id`, `player_id`, `date`, `title`, `path` (Bucket `findings`), `mime`, `consent` (app/schriftlich), `ai_text`, `ai_at` | Staff und der Spieler selbst; KI nur mit Einwilligung `findings` |
 | `exercises`, `session_templates`, `staff_profiles` | Übungen mit Zeichnung (jsonb) und Coachingpunkten, Einheiten-Vorlagen, Trainerprofile | nur Staff |
 | `season_phases` | `kind` (prep/break), `date_from`, `date_to`, `first_match`, `weeks` jsonb, `program` jsonb, `visible` | lesen Mitglieder, schreiben Staff |
 | `team_contacts` | `name`, `role`, `org`, `phone`, `email`, `address`, `note`, `visible` | Staff; Mitglieder freigegebene, wenn `player_view(team,'contacts')` |
+| `team_groups` (…0009) | `id`, `team_id`, `name`, `kind` (reha/tw/build/growth/lead/talent/custom), `visible` | Staff; Spieler nur freigegebene Gruppen, in denen sie Mitglied sind |
+| `group_members` (…0009) | pk(`group_id`,`player_id`), `team_id` (Trigger aus dem Spieler, gleiches Team erzwungen) | Staff; Spieler nur die eigene Mitgliedschaft in freigegebenen Gruppen (keine Mitgliederlisten) |
+| `wellness_entries.complaint_areas` (…0010) | `text[]` Körperregionen (`region` oder `region:l/r`, Format per Check), leer bei „keine Beschwerden“ | wie Wellness |
+| `session_blocks` (…0011) | `date`, `sort`, `title`, `minutes`, `staff_id` (zuständiger Trainer), `exercise_id`, `text`, `points` (Coachingpunkte), `drawing`, `photo_path` (Bucket `sketches`), `group_id`, `updated_by/at` | nur Staff |
+| `team_fines` (…0012) | `player_id`, `rule`, `date`, `ref_date` (Einheit der Automatik, eindeutig je Regel/Spieler), `amount`, `status` (open/done/waived), `auto`, `duty_date` | Staff; Spieler eigene |
+| `team_duties` (…0012) | `date`, `duty`, `player_id`, `source` (rotation/fine/manual), `fine_id`, `status`; unique(team,date,duty,player) | Staff; Spieler eigene |
+| `team_tasks` (…0012) | `title`, `note`, `due`, `staff_id` **oder** `player_id`, `group_id`, `done_at`, `done_by` | Staff; Spieler eigene und dürfen nur „erledigt“ setzen (Trigger) |
+| `absences.area` (…0014) | Körperregion der Verletzung (nur bei `type = 'verletzung'`, keine Krankheitsangaben) | wie Abwesenheiten |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
-in `teams.settings.reminders` und werden von `push-reminders` ausgewertet.
+in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
+mit Automatik-Regeln (`settings.fines`, jede Regel mit Startdatum `since` – nie rückwirkend) und die Ranglisten-Einstellung
+(`settings.testRank`: aus / eigener Platz / Platz + Teambestwert) liegen ebenfalls in `teams.settings`.
+
+Storage-Buckets: `avatars` (Profilbilder), `findings` (Befunde, Staff + Spieler selbst), `sketches` (Fotos von
+Trainingsskizzen, Pfad `{team_id}/{block_id}.jpg`, JPEG ≤ 4 MB, nur Trainerteam).
 
 ### Zugriffsregeln (RLS)
 
@@ -103,6 +115,12 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `join_staff(code)` → Team-ID (Rolle 'coach').
 - `regenerate_codes(team)` (nur Owner).
 - `team_by_join_code(code)` → Vereins-/Teamname zur Anzeige vor dem Beitritt (keine weiteren Daten).
+- `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen).
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v3`: Profil, Gesundheitsdaten,
+  freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste und Strafen.
+- `my_test_ranks(player)` – nur für den eigenen Spieler: Platz je Test unter den aktiven Spielern (jeweils letzter
+  Wert der letzten 365 Tage, ab 5 Werten) und – wenn eingestellt – der Teambestwert. Werte oder Namen anderer Spieler
+  werden nie ausgegeben.
 
 ## Fachlogik (`src/core`)
 
@@ -115,7 +133,17 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `perf.ts` – Leistungstests, Normwerte je Altersgruppe, CMJ-Ermüdungscheck, Fitnessindex, Laufvorgaben aus dem 30-15 IFT.
 - `prep.ts` – Vorbereitung und Pausen: Wochenaufbau (Einstieg, Aufbau, 3:1-Entlastung, Taper), Spielerprogramm,
   angebrochene Wochen, Umsetzung.
-- `game.ts` – XP, Level, Serie, Wochenringe, Abzeichen (belohnt Regelmäßigkeit, nicht Belastung).
+- `game.ts` – Zuverlässigkeit (Eintragsquote), Serie, Wochenringe, Meilensteine (belohnt Regelmäßigkeit, nicht
+  Belastung; keine XP/Level).
+- `groups.ts` – Gruppenarten, Vorschläge aus den Daten (Reha, Belastungsaufbau, Wachstumsschub …) und ihre Wirkung
+  auf die Planung.
+- `indiv.ts` – individuelle Zielbelastung je Spieler und Einheit (Startelf → Regeneration, wenig Spielzeit →
+  Spielersatz, Reha-/Rückkehrstufe, Aufbau, Torhüter, Wachstumsschub, Beschwerden).
+- `body.ts` – Körperregionen (Seite links/rechts) für Beschwerden und Verletzungen, regionsbezogene Steuerung.
+- `day.ts` – Trainingstag: verfügbare Spieler, Blöcke, Zuständigkeiten.
+- `duties.ts` – Dienste reihum (fair nach Gesamtzahl), Strafenkatalog mit Automatik (z. B. RPE zu spät → Dienst im
+  nächsten Training), nur ab Startdatum der Regel.
+- `reha.ts` – Reha-Pläne nach Region und Rückkehrstufe (kriterienbasiert).
 - `demo.ts` – Demo-Mannschaft (für Demo-Modus, Tests und „Beispieldaten laden“).
 - Tests: `src/core/__tests__` (`node --test`).
 
@@ -124,4 +152,6 @@ Gabbett 2016 (ACWR), Hooper & Mackinnon 1995 (Wellness), Ratel et al. 2006, Néd
 Fell & Williams 2008 (Erholung), Akenhead et al. 2016, Martín-García et al. 2018 (Spieltags-Logik),
 Bosquet et al. 2007, Mujika 2003 (Tapering), Mujika & Padilla 2000, Bangsbo 2008 (Training in Pausen),
 Buchheit 2008 (30-15 IFT), Claudino et al. 2017 (CMJ), Helgerud et al. 2001 (Intervalle), van Dyk et al. 2019, Thorborg et al. 2017, Lloyd et al. 2014 (Kraft/Prävention),
-Maughan et al. 2018, Thomas et al. 2016 (Ernährung).
+Maughan et al. 2018, Thomas et al. 2016 (Ernährung), Ardern et al. 2016 (Return to Play), Mendiguchia et al. 2017,
+van der Horst et al. 2015 (Hamstrings), Vuurberg et al. 2018 (Sprunggelenk), Hölmich 2010, Harøy et al. 2019 (Leiste),
+Patricios et al. 2023 (Gehirnerschütterung).

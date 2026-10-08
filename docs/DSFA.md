@@ -76,7 +76,11 @@ Siehe Tabelle in `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 4. Zusammengefasst:
 - **Teamdaten:** Verein, Team, Kalender, Wochenpläne, Einheiten, Einstellungen.
 - **Anwesenheit und Abwesenheiten** (inkl. Krankheit/Verletzung, Rückkehrstufe, Notiz).
 - **Gesundheitsdaten (Art. 9):** RPE und Minuten, Wohlbefinden (Schlaf, Müdigkeit, Muskelkater, Stress,
-  Beschwerden mit Körperregion), Zusatzsport, Größe, Gewicht, berechnete Kennzahlen.
+  Beschwerden mit Körperregionen), Zusatzsport, Größe, Gewicht, Verletzungsregion, berechnete Kennzahlen und
+  individuelle Zielbelastung; wie Gesundheitsdaten behandelt: Mitgliedschaft in Reha-, Aufbau- und
+  Wachstumsschub-Gruppen, Leistungstests und Platzierung.
+- **Organisation:** Gruppen und Mitgliedschaften, Aufgaben, Dienste, Strafen (Katalog mit Automatik-Regeln),
+  Ablauf des Trainingstags mit Zuständigkeiten und Skizzen-Fotos.
 - **Freitexte:** Trainernotizen, Potenziale, Nachrichten, Abwesenheitsnotizen, KI-Anfragen.
 - **Technische Daten:** Push-Token, KI-Nutzungszähler, Server-Protokolle.
 - **Einwilligungsnachweise** inkl. E-Mail der Erziehungsberechtigten.
@@ -93,7 +97,7 @@ Siehe Tabelle in `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 4. Zusammengefasst:
  Supabase – Region Frankfurt (AWS eu-central-1)
    ├─ Auth (E-Mail/Passwort, Passwort-Hash)
    ├─ Postgres mit Row Level Security (alle Tabellen in Schema public)
-   ├─ Storage (Profilfotos)
+   ├─ Storage (privat: avatars, findings, sketches)
    └─ Edge Functions
         ├─ ai ──────────────── TLS ──► Anthropic Claude API (USA)
         │    Anfrage + reduzierter Kontext (Vorname, Alter, Trainingsdaten)
@@ -118,6 +122,11 @@ Siehe Tabelle in `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 4. Zusammengefasst:
 | `coach_notes` | alles | nein | nein | dto. |
 | `consents` | lesen (eigene Spieler) | eigene | nein | dto. |
 | `push_tokens`, `profiles`, `ai_usage` | nur eigene | nur eigene | nein | dto. |
+| `team_groups`, `group_members` | alles im Team | nur freigegebene Gruppen mit eigener Mitgliedschaft (keine Mitgliederlisten) | nein | dto. |
+| `team_tasks` | alles im Team | eigene lesen, nur „erledigt“ setzen (Trigger) | nein | dto. |
+| `team_duties`, `team_fines` | alles im Team | eigene lesen | nein | dto. |
+| `session_blocks`, Bucket `sketches` | alles im Team | nein | nein | dto. |
+| `my_test_ranks` (RPC) | – | eigener Platz je Test (ab 5 Werten), optional Teambestwert ohne Namen | nein | – |
 
 Die Rollen Owner, Coach und Physio haben laut Architektur dieselben Datenrechte; nur `regenerate_codes` ist dem
 Owner vorbehalten.
@@ -239,6 +248,10 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R19 | **Befunde** (Arztbriefe als Bild/PDF): sehr sensible Dokumente; Offenlegung durch falsche Zugriffsregeln, Weitergabe an die KI ohne Einwilligung, Dateien bleiben nach Löschung des Spielers im Speicher | verletzte Spieler | Offenlegung von Diagnosen, Nachteile bei Vereinswechsel | 2 | 4 | **hoch** |
 | R20 | KI-Zusammenfassung eines Befunds wird als ärztliche Aussage verstanden (z. B. zu früher Wiedereinstieg) | verletzte Spieler | körperlicher Schaden | 2 | 4 | **hoch** |
 | R21 | Daten Dritter in der Kontaktliste (Telefon, Adresse) ohne deren Wissen | Ansprechpersonen | unerwünschte Kontaktaufnahme | 2 | 2 | gering |
+| R22 | **Gruppen offenbaren Gesundheit:** Mitgliedschaft in „Reha“, „Belastungsaufbau“ oder „Wachstumsschub“ wird für Mitspieler sichtbar (Mitgliederliste, an die Gruppe gerichtete Videos/Aufgaben) | verletzte Spieler, Jugendliche im Wachstum | Offenlegung von Gesundheitsinformationen, Stigmatisierung | 2 | 3 | Risiko |
+| R23 | **Strafen und Dienste als Druckmittel:** Sanktion für fehlende Gesundheitseinträge setzt Spieler unter Druck, Daten zu liefern oder einzuwilligen; rückwirkende Strafen; öffentliche Bloßstellung | Spieler, v. a. Jugendliche | unfreiwillige Preisgabe von Gesundheitsdaten, psychischer Druck | 3 | 3 | **hoch** |
+| R24 | **Ranglisten in Leistungstests:** sozialer Vergleich, Rückschluss auf Werte anderer (z. B. über Teambestwert bei kleinen Teams) | Spieler | Druck, Offenlegung von Leistungsdaten anderer | 2 | 2 | gering |
+| R25 | Skizzen-Fotos zeigen Personen oder Kinder bzw. enthalten Standortdaten | Personen auf Fotos | Identifizierung | 1 | 2 | gering |
 
 ---
 
@@ -266,6 +279,11 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | Transparenz | Info-Texte mit sportwissenschaftlichen Quellen; Hinweis „kein Medizinprodukt“ | R16 |
 | Verfügbarkeit / Missbrauch | Tageslimit für KI-Anfragen (`ai_usage`) | R6, R7 |
 | Kinderschutz | Nachrichten nur vom Staff an einzelne Spieler, strukturierte Typen; kein Chat zwischen Spielern; alle Staff-Mitglieder sehen alle Nachrichten | R12 |
+| Vertraulichkeit | Gruppen: Spieler sehen nur freigegebene Gruppen und nur die eigene Mitgliedschaft (`group_visible_to_me`, RLS); nie Mitgliederlisten; Wachstumsschub, Talent und eigene Gruppen standardmäßig verborgen; Trigger erzwingt gleiches Team für Gruppe und Spieler; Videos an Gruppen gehen an die Mitglieder zum Zeitpunkt des Versands (`player_ids`) (RLS-Test T33) | R22 |
+| Freiwilligkeit | Strafenkatalog ist optional, Automatik-Regeln sind standardmäßig aus und schlagen Dienste statt Geld vor; jede Automatik-Regel wirkt erst ab dem Einschalten (`since`), nie rückwirkend; höchstens ein Eintrag je Regel, Spieler und Einheit (Unique-Index); „Belastung nicht eingetragen“ prüft nur das Vorhandensein eines Eintrags und gilt nur für Spieler mit Konto **und** Gesundheits-Einwilligung – ohne Einwilligung keine Strafe; Trainerteam kann jede Strafe erlassen; Spieler sehen nur eigene Einträge, bei Aufgaben nur „erledigt“ änderbar (RLS-Test T36); veraltete erledigte Einträge löscht `purge_stale_health_data` nach 12 Monaten (T24) | R23, R5, R8 |
+| Datenminimierung | Platzierung serverseitig (`my_test_ranks`): nur für die eigene Spielerzeile, erst ab 5 Werten, nie Werte oder Namen anderer; Teambestwert nur, wenn das Trainerteam es einstellt; abschaltbar (RLS-Test T37) | R24 |
+| Vertraulichkeit | Skizzen-Fotos im privaten Bucket `sketches` (nur Staff, Pfad `{team}/{block}.jpg`, nur JPEG ≤ 4 MB), Neukodierung vor dem Upload entfernt EXIF/GPS, Löschung mit dem Block und beim Löschen des Teams (RLS-Test T35) | R25 |
+| Intervenierbarkeit | Export v3 enthält Gruppen (nur freigegebene), Aufgaben, Dienste und Strafen; Zusammenführen doppelter Spieler übernimmt diese Daten ohne Konflikte | – |
 
 ### 6.2 Zusätzliche Maßnahmen (geplant)
 
@@ -323,6 +341,10 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | R16 | 1 | 3 | gering | vorsichtige Darstellung, Zweckbestimmung |
 | R17 | 1 | 2 | gering | Rollenmodell festgelegt |
 | R18 | 2 | 2 | Risiko | nach M-23 (P2) gering |
+| R22 | 1 | 3 | gering | nur eigene Mitgliedschaft sichtbar, serverseitig durchgesetzt |
+| R23 | 2 | 2 | gering | optional, nicht rückwirkend, nur mit Einwilligung, erlassbar; Restrisiko liegt im Umgang des Trainerteams (Leitfaden M-18) |
+| R24 | 1 | 2 | gering | nur eigener Platz, Mindestanzahl, abschaltbar |
+| R25 | 1 | 2 | gering | privater Bucket, Metadaten entfernt |
 
 **Bewertung:** Nach Umsetzung aller P1-Maßnahmen verbleibt **kein hohes Restrisiko**. Eine vorherige Konsultation der
 Aufsichtsbehörde nach Art. 36 DSGVO ist dann voraussichtlich nicht erforderlich.
@@ -402,3 +424,4 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 |---|---|---|---|
 | 0.1 | [TT.MM.JJJJ] | Erstentwurf auf Basis ARCHITEKTUR.md | [ ] |
 | 0.2 | [TT.MM.JJJJ] | Ergänzt: Spieldaten/Noten, Leistungstests, Befunde mit KI-Auswertung (R19, R20), Vorbereitung/Pausen, Kontaktliste (R21). Umgesetzte Maßnahmen: privater Bucket `findings` mit Pfad- und Zeilenprüfung, eigene Einwilligung `findings` (serverseitig geprüft), Löschung der Dateien bei Spieler-, Konto- und Teamlöschung, Export v2, Sichtbarkeit je Bereich im Baukasten | [ ] |
+| 0.3 | [TT.MM.JJJJ] | Ergänzt: Gruppen mit Sichtbarkeit (R22), Aufgaben/Dienste/Strafen mit Automatik (R23), Platzierung in Tests (R24), Trainingstag mit Skizzen-Fotos (R25), Körperregionen bei Beschwerden und Verletzungen. Umgesetzte Maßnahmen: Gruppen-Sichtbarkeit nur eigene Mitgliedschaft (RLS), Automatik nur ab Einschalten und nur mit Gesundheits-Einwilligung, `my_test_ranks` ohne fremde Werte (ab 5), privater Bucket `sketches`, Export v3 | [ ] |

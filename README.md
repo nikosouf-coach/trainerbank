@@ -12,24 +12,26 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 
 | Bereich | Trainer | Spieler |
 |---|---|---|
-| Heute | nächster Termin, Ampel, Spieler mit Handlungsbedarf, Teamlast, KI-Coach, laufende Pause/Vorbereitung | Level, XP, Serie, Wochenringe, Abzeichen, Aufgaben, nächste Termine, Ziele |
-| Kalender & Planung | Woche/Monat, Spieltags-Prinzipien (MD−4 … MD+1), Aufbau-/Entlastungswochen, Erholungscheck pro Spieler | Wochenplan (wenn freigegeben) |
-| Belastung | Session-RPE, ACWR, Hooper-Morgencheck, Erholungsmodell nach Alter, Zusatzsport | RPE und Morgen-Check eintragen, eigene Sportarten |
-| Kader | Positionen (TW, RV, IV, LV, DM, ZM, OM, LM, RM, ST), Positionsgruppen und eigene Gruppen, Profilbilder, inaktive Spieler | eigenes Profil und Profilbild |
-| Spiele | Minuten, Tore, Assists, Noten 1–10 mit Feedback, Videos zu Spielen | Noten, Statistik, Videos |
-| Leistungsdiagnostik | Testbatterie (Sprint, CMJ, 30-15 IFT, Yo-Yo, 505 …), Normwerte, persönliche Laufstrecken; CMJ-Abfall und Fitness verfeinern die Erholung | eigene Tests und Bestwerte |
-| Verletzungen | Rückkehr in 4 Stufen, Befunde scannen (Foto/PDF), KI-Zusammenfassung mit Einwilligung | eigene Befunde |
+| Heute | nächster Termin → Trainingstag, Ampel, Spieler mit Handlungsbedarf, Teamlast, eigene Aufgaben, KI-Coach, laufende Pause/Vorbereitung; Bereiche einklapp- und anpassbar | Zuverlässigkeit, Serie, Wochenringe, Meilensteine, Aufgaben und Dienste, persönliches Tagesziel, Reha-Plan, nächste Termine |
+| Kalender & Planung | Woche/Monat, Spieltags-Prinzipien (MD−4 … MD+1), Aufbau-/Erhalt-/Entlastungswochen, Pausen, geplanter RPE (Zukunft) und Ø RPE (Vergangenheit), individuelle Ziele je Spieler (Regeneration, Spielersatz, Reha, Aufbau) | Wochenplan (wenn freigegeben) mit persönlichem Ziel |
+| Belastung | Session-RPE, ACWR, Hooper-Morgencheck mit Beschwerden nach Körperregion, Erholungsmodell nach Alter, Zusatzsport | RPE und Morgen-Check eintragen (Körperkarte), eigene Sportarten, persönliche Ernährungs- und Schlaftipps |
+| Kader | Positionen (TW, RV, IV, LV, DM, ZM, OM, LM, RM, ST), Gruppen (Reha, Torhüter, Aufbau, Wachstumsschub, Mannschaftsrat, Talent, eigene) mit Vorschlägen und Sichtbarkeit, Profilbilder, inaktive Spieler | eigenes Profil, eigene freigegebene Gruppen |
+| Spiele | Minuten, Tore, Assists, Noten 1–10 mit Feedback, Videos für Team, Spieler oder Gruppen | Noten (gute hervorgehoben), Statistik, Videos |
+| Leistungsdiagnostik | Testbatterie (Sprint, CMJ, 30-15 IFT, Yo-Yo, 505 …), Normwerte, persönliche Laufstrecken; CMJ-Abfall und Fitness verfeinern die Erholung; Platzierung für Spieler an/aus | eigene Tests, Bestwerte und eigener Platz (ohne Werte anderer) |
+| Verletzungen | Rückkehr in 4 Stufen, Reha-Plan nach Körperregion und Stufe, Befunde scannen (Foto/PDF), KI-Zusammenfassung mit Einwilligung | eigener Reha-Plan, eigene Befunde |
+| Trainingstag | verfügbare Spieler, Ablauf in Blöcken mit Zuständigkeit je Trainer, Coachingpunkten und Skizzen (auch als Foto), Dienste, Todos | – |
 | Trainingsplanung | Taktiktafel, Übungsarchiv mit Coachingpunkten, Einheiten-Vorlagen mit Intensitätscheck, Trainerprofile | – |
-| Vorbereitung & Pausen | Wochenaufbau mit Ziel-Last, Testtagen, Taper; Pausen ohne Mannschaftstraining; Umsetzung je Spieler | Programm für die freie Zeit mit Anleitungen und XP |
+| Vorbereitung & Pausen | Wochenaufbau mit Ziel-Last, Testtagen, Taper; Pausen ohne Mannschaftstraining; Umsetzung je Spieler | persönliches Programm für die freie Zeit (angepasst bei Verletzung/Aufbau) mit Anleitungen |
 | Kommunikation | Kontaktliste (Koordinator, Vorstand, Physio, Ärzte), Push-Erinnerungen, Nachrichten | Kontakte, Erinnerungen |
-| Baukasten | Pakete an/aus, was Spieler sehen, Absagen per App an/aus | – |
+| Aufgaben & Dienste | Todos für Trainer und Spieler, Dienste reihum (fair), milder Strafenkatalog mit Automatik (nur mit Zustimmung, nie rückwirkend) | eigene Aufgaben, Dienste, Strafen |
+| Baukasten | Pakete an/aus, was Spieler sehen, Absagen per App an/aus, Ranglisten-Modus | – |
 
 ## Ordner
 
 | Pfad | Inhalt |
 |---|---|
 | `app/` | Bildschirme (Expo Router): `coach/…`, `player/…`, Anmeldung, Konto |
-| `src/core/` | Fachlogik ohne React und Datenbank (Wochenplan, Erholung, Leistung, Pausen, Gamification) mit Tests |
+| `src/core/` | Fachlogik ohne React und Datenbank (Wochenplan, Erholung, Leistung, Pausen, Gruppen, Reha, Dienste, Gamification) mit Tests |
 | `src/data/` | Datenzugriff: Supabase oder Demo-Modus im Speicher |
 | `src/ui/` | Bausteine der Oberfläche |
 | `src/i18n/` | Texte Deutsch/Englisch |

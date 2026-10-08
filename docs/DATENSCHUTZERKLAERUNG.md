@@ -32,7 +32,8 @@
   **Gesundheitsdaten**. Die speichern wir nur, wenn du ausdrücklich zustimmst. Bist du jünger als 16, müssen deine
   Eltern zustimmen.
 - **Du siehst nur deine eigenen Daten.** Deine Mitspieler sehen deine Daten nicht. Dein Trainerteam (Trainer,
-  Co-Trainer, Physio) sieht die Daten aller Spieler im Team.
+  Co-Trainer, Physio) sieht die Daten aller Spieler im Team. Bei Leistungstests siehst du höchstens deinen eigenen
+  Platz – nie die Werte oder Namen anderer.
 - Die Daten liegen auf Servern in der EU (Frankfurt). Es gibt **keine Werbung, kein Tracking und keinen Verkauf** von Daten.
 - Der KI-Coach ist freiwillig. Wenn du ihn nutzt, geht deine Frage an einen KI-Anbieter in den USA.
 - Du kannst deine Daten jederzeit in der App herunterladen und dein Konto mit allen Gesundheitsdaten löschen.
@@ -99,9 +100,9 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.3 | Spieler-Stammdaten | Vor- und Nachname, Geburtsdatum, Position, Rückennummer; optional Körpergewicht und Profilfoto | du oder das Trainerteam | Name und Geburtsdatum Pflicht; Gewicht und Foto freiwillig |
 | 4.4 | Team- und Kalenderdaten | Verein, Teamname, Altersklasse, Teameinstellungen und Spielprinzipien; Spiele (Datum, Uhrzeit, Gegner, Heim/Auswärts, Wettbewerb), Termine, Trainingszeiten, Absagen und Zusatztrainings, Wochenpläne, eigene Trainingsarten, durchgeführte Einheiten | Trainerteam | – |
 | 4.5 | Anwesenheit | Status je Termin (anwesend, entschuldigt, unentschuldigt) | Trainerteam; automatisch „anwesend“, wenn eine Belastung eingetragen wird | – |
-| 4.6 | Abwesenheiten | Art (Urlaub, krank, Verletzung, Schule, Arbeit, Sonstiges), Zeitraum, Stufe der Rückkehr ins Training (1–4), Notiz, ob selbst gemeldet | du oder das Trainerteam | freiwillig |
+| 4.6 | Abwesenheiten | Art (Urlaub, krank, Verletzung, Schule, Arbeit, Sonstiges), Zeitraum, Stufe der Rückkehr ins Training (1–4), bei Verletzungen die betroffene Körperregion (z. B. „Sprunggelenk rechts“, keine Diagnose), Notiz, ob selbst gemeldet | du oder das Trainerteam | freiwillig |
 | 4.7 | Trainingsbelastung | Belastungsempfinden je Einheit (Session-RPE, Skala 0–10) und Dauer in Minuten | du oder das Trainerteam | freiwillig, Einwilligung erforderlich |
-| 4.8 | Morgendliches Wohlbefinden | Schlafdauer, Schlafqualität, Müdigkeit, Muskelkater, Stress, Beschwerden (keine, leicht, deutlich) und betroffene Körperregion | du | freiwillig, Einwilligung erforderlich |
+| 4.8 | Morgendliches Wohlbefinden | Schlafdauer, Schlafqualität, Müdigkeit, Muskelkater, Stress, Beschwerden (keine, leicht, deutlich) und betroffene Körperregionen (aus einer festen Liste, ggf. mit Seite links/rechts) | du | freiwillig, Einwilligung erforderlich |
 | 4.9 | Zusatzsport | Art (z. B. Fitnessstudio, Schulsport, Laufen, anderer Verein), Dauer, Belastungsempfinden | du | freiwillig, Einwilligung erforderlich |
 | 4.10 | Wachstum und Körperdaten | Körpergröße mit Messdatum, Körpergewicht | du oder das Trainerteam | freiwillig, Einwilligung erforderlich |
 | 4.11 | Inhalte des Trainerteams | Trainernotizen (nur für das Trainerteam sichtbar), Potenziale und Ziele (für dich sichtbar, wenn freigegeben; Quelle Trainer, Datenhinweis oder KI-Vorschlag), Nachrichten des Trainers an dich (Art, Text, Gültigkeit) | Trainerteam | – |
@@ -116,23 +117,44 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.20 | Befunde | Fotos oder PDF-Dateien von Arztbriefen und Befunden, Titel, Datum, Art der Einwilligung; auf Wunsch eine KI-Zusammenfassung | Trainerteam | freiwillig, gesonderte Einwilligung |
 | 4.21 | Vorbereitung und Pausen | Zeiträume, Wochenaufbau, Trainingsprogramm für die freie Zeit; welche Programm-Einheiten du abgehakt hast (Dauer, Belastungsempfinden) | Trainerteam, du | freiwillig |
 | 4.22 | Kontaktliste des Teams | Name, Funktion, Telefon, E-Mail, Adresse und Hinweise von Ansprechpersonen (z. B. Koordinator, Physio, Arztpraxis) | Trainerteam | – |
-| 4.23 | Trainingsplanung | Übungen mit Zeichnungen und Coachingpunkten, gespeicherte Einheiten, Profile des Trainerteams (Name, Rolle, Aufgaben, Kontakt) | Trainerteam | – |
+| 4.23 | Trainingsplanung | Übungen mit Zeichnungen und Coachingpunkten, gespeicherte Einheiten, Profile des Trainerteams (Name, Rolle, Aufgaben, Kontakt); Ablauf eines Trainingstags in Blöcken mit zuständigem Trainer, Coachingpunkten, Zeichnungen und Fotos von Skizzen | Trainerteam | – |
+| 4.24 | Gruppen | Gruppen des Teams (Name, Art wie Reha, Torhüter, Belastungsaufbau, Wachstumsschub, Mannschaftsrat, Talent oder eigene; ob für Spieler sichtbar) und wer Mitglied ist; an Gruppen gerichtete Videos und Aufgaben | Trainerteam (Vorschläge der App aus den Daten, Entscheidung durch das Trainerteam) | – |
+| 4.25 | Aufgaben, Dienste und Strafen | Aufgaben (Titel, Hinweis, Fälligkeit, erledigt am/von), eingeteilte Dienste (z. B. Material, Bälle; Datum, Herkunft: reihum, Strafe oder von Hand, Status), Strafen aus dem Strafenkatalog des Teams (Regel, Datum, betroffene Einheit, ggf. Betrag, Status, automatisch oder von Hand) | Trainerteam; automatisch aus Regeln, die das Trainerteam einschaltet | – |
+| 4.26 | Platzierung in Leistungstests | dein Platz je Test unter den aktiven Spielern deines Teams und – wenn das Trainerteam es einstellt – der Teambestwert ohne Namen | berechnet aus 4.19 | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
 Rückkehrstufe und Notiz (4.6), Befunde und ihre Zusammenfassung (4.20), abgehakte Programm-Einheiten (4.21) sowie die
-daraus berechneten Werte (4.12). Leistungstests (4.19) behandeln wir genauso vertraulich, weil sie Rückschlüsse auf
-die körperliche Verfassung zulassen.
+daraus berechneten Werte (4.12). Leistungstests (4.19) und die Platzierung (4.26) behandeln wir genauso vertraulich,
+weil sie Rückschlüsse auf die körperliche Verfassung zulassen. Die Mitgliedschaft in Gruppen der Arten **Reha**,
+**Belastungsaufbau** und **Wachstumsschub** (4.24) verrät etwas über die Gesundheit und wird ebenfalls wie ein
+Gesundheitsdatum behandelt: Mitspieler erfahren davon nie etwas; du selbst siehst nur deine eigene Mitgliedschaft
+(Reha und Belastungsaufbau standardmäßig, damit du deinen Plan findest; Wachstumsschub nur, wenn das Trainerteam es
+freigibt).
+
+**Gruppen (4.24):** Das Trainerteam entscheidet, ob Spieler eine Gruppe sehen. Spieler sehen nur freigegebene Gruppen,
+in denen sie selbst Mitglied sind – nie die Mitgliederliste und nie Gruppen, die verborgen sind. Vorschläge der App
+(z. B. „Belastungsaufbau“ nach einer Verletzung) sind nur Vorschläge; erst die Entscheidung des Trainerteams ordnet zu.
+
+**Aufgaben, Dienste und Strafen (4.25):** Ein Strafenkatalog ist freiwillig und soll im Team vereinbart sein (z. B. mit
+dem Mannschaftsrat). Automatische Regeln wirken nur ab dem Tag, an dem das Trainerteam sie einschaltet – nie
+rückwirkend. Die Regel „Belastung nicht eingetragen“ prüft nur, **ob** innerhalb von 24 Stunden nach der Einheit ein
+Eintrag vorliegt, nicht dessen Inhalt, und gilt nur für Spieler mit eigenem Konto und Einwilligung in die Verarbeitung
+von Gesundheitsdaten. Wer nicht einwilligt, kann deshalb nie eine solche Strafe erhalten. Das Trainerteam kann jede
+Strafe erlassen. Mitspieler sehen weder deine Dienste noch deine Strafen.
+
+**Platzierung (4.26):** Du siehst nur deinen eigenen Platz (z. B. „Platz 3 von 18“), erst wenn mindestens fünf Spieler
+einen Wert haben. Werte oder Namen anderer Spieler werden nie angezeigt. Das Trainerteam kann die Platzierung abschalten.
 
 **Kontaktliste (4.22):** Die Daten der Ansprechpersonen trägt das Trainerteam ein. Es ist dafür verantwortlich, dass
 die Personen einverstanden sind, und legt fest, welche Kontakte Spieler sehen. Bei Ärzten und Praxen genügen in der
 Regel die öffentlich angegebenen Praxisdaten.
 
-**Kamera und Fotos:** Die App nutzt die Kamera bzw. deine Fotoauswahl nur, wenn du selbst ein Profilbild oder einen
-Befund aufnimmst oder auswählst. Es gibt keinen Zugriff im Hintergrund. Auch Trainernotizen, Potenziale und
+**Kamera und Fotos:** Die App nutzt die Kamera bzw. deine Fotoauswahl nur, wenn du selbst ein Profilbild, einen
+Befund oder (als Trainer) das Foto einer Trainingsskizze aufnimmst oder auswählst. Es gibt keinen Zugriff im Hintergrund. Auch Trainernotizen, Potenziale und
 Nachrichten (4.11) können Gesundheitsbezug haben, wenn das Trainerteam darin z. B. Beschwerden erwähnt.
 
-Die „Körperregion“ bei Beschwerden ist eine Angabe wie „Oberschenkel hinten“. Trainerbank erfasst **keinen
+Die „Körperregion“ bei Beschwerden oder Verletzungen ist eine Angabe wie „Oberschenkel hinten links“. Trainerbank erfasst **keinen
 Standort** (keine GPS- oder Ortungsdaten).
 
 > **Prüfhinweis:** Abgleichen, ob die App weitere Daten verarbeitet (z. B. Absturzberichte, App-Version, Zeitzone des
@@ -143,8 +165,8 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen | 4.2–4.6, 4.11 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
-| Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen | 4.2–4.6, 4.11, 4.23–4.25 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
 | Push-Erinnerungen und Team-Mitteilungen | 4.14 | Art. 6 Abs. 1 lit. b DSGVO; Zugriff auf das Endgerät nach § 25 Abs. 2 Nr. 2 TDDDG (vom Nutzer ausdrücklich gewünschter Dienst) nach Freigabe in den Systemeinstellungen |
 | Nachweis von Einwilligungen | 4.13 | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 DSGVO |
@@ -258,6 +280,11 @@ bleibt unberührt.
 | Potenziale und Ziele | wenn freigegeben | ja | nein | nein |
 | Nachrichten des Trainers an dich | ja | ja | nein | nein |
 | Trainernotizen | nein | ja | nein | nein |
+| deine Gruppen | nur freigegebene, nur die eigene Mitgliedschaft | ja | nein | nein |
+| deine Aufgaben, Dienste und Strafen | ja | ja | nein | nein |
+| deine Leistungstests | wenn freigegeben | ja | nein | nein |
+| deine Platzierung in Tests | wenn eingeschaltet (nur eigener Platz, ab 5 Werten) | ja (sieht alle Werte) | nein | nein |
+| Ablauf des Trainingstags, Skizzen | nein | ja | nein | nein |
 | deine Einwilligungen | ja | ja (als Nachweis) | nein | nein |
 
 Diese Regeln setzt die Datenbank selbst durch (zeilenbasierte Zugriffsregeln), nicht nur die Oberfläche der App.
@@ -269,7 +296,7 @@ die Daten in unserem Auftrag und nach unseren Weisungen verarbeiten (Auftragsver
 
 | Dienstleister | Zweck | Daten | Ort der Verarbeitung | Garantien |
 |---|---|---|---|---|
-| Supabase [Vertragspartner und Anschrift laut Auftragsverarbeitungsvertrag] | Datenbank, Anmeldung, Dateispeicher (Profilfotos), Serverfunktionen (Weiterleitung an den KI-Coach, Push-Erinnerungen) | alle in der App gespeicherten Daten, Server-Protokolle | Rechenzentrum in der EU: Frankfurt am Main (AWS eu-central-1) | Auftragsverarbeitungsvertrag [abgeschlossen am …]; zu prüfen: Zugriffe des Anbieters oder seiner Unterauftragsverarbeiter aus Drittländern (z. B. Support) und die dafür geltenden Garantien |
+| Supabase [Vertragspartner und Anschrift laut Auftragsverarbeitungsvertrag] | Datenbank, Anmeldung, Dateispeicher (Profilfotos, Befunde, Skizzen-Fotos), Serverfunktionen (Weiterleitung an den KI-Coach, Push-Erinnerungen) | alle in der App gespeicherten Daten, Server-Protokolle | Rechenzentrum in der EU: Frankfurt am Main (AWS eu-central-1) | Auftragsverarbeitungsvertrag [abgeschlossen am …]; zu prüfen: Zugriffe des Anbieters oder seiner Unterauftragsverarbeiter aus Drittländern (z. B. Support) und die dafür geltenden Garantien |
 | Anthropic [Vertragspartner und Anschrift laut Vertrag] | KI-Coach (Claude API) – nur mit deiner Einwilligung | Text deiner Anfrage und reduzierter Kontext (Abschnitt 11) | USA | zu prüfen, siehe Abschnitt 10 |
 | Expo (650 Industries, Inc.) [Anschrift prüfen] | Versand von Push-Mitteilungen | Push-Token, Plattform, Text der Mitteilung | USA | zu prüfen, siehe Abschnitt 10 |
 | Apple (Apple Push Notification Service) bzw. Google (Firebase Cloud Messaging) | Zustellung von Push-Mitteilungen auf dein Gerät | Push-Token, Text der Mitteilung | [zu prüfen] | Rolle und Garantien zu prüfen |
@@ -424,6 +451,9 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Anwesenheit und Abwesenheiten ohne Gesundheitsbezug | mit dem Spielerprofil bzw. Team; spätestens [24] Monate nach dem Eintrag |
 | Nachrichten des Trainers | [12] Monate nach Ablauf ihrer Gültigkeit |
 | Trainernotizen, Potenziale | bei Löschung durch das Trainerteam, Löschung des Spielerprofils oder des Teams |
+| Gruppenmitgliedschaften | sofort beim Entfernen aus der Gruppe, beim Löschen der Gruppe, des Spielerprofils oder des Teams |
+| Aufgaben, Dienste und Strafen | bei Löschung durch das Trainerteam, Löschung des Spielerprofils oder des Teams; automatisch 12 Monate nach dem Datum: vergangene Dienste, erledigte oder erlassene Strafen und erledigte Aufgaben (offene Strafen bleiben, bis das Trainerteam entscheidet) |
+| Ablauf des Trainingstags und Skizzen-Fotos | bei Löschung des Blocks durch das Trainerteam oder Löschung des Teams |
 | Einwilligungsnachweise | für die Dauer der Verarbeitung und danach [3] Jahre (Verjährungsfrist, Nachweispflicht nach Art. 7 Abs. 1 DSGVO), danach Löschung |
 | Push-Token | bei Abmeldung, wenn der Token ungültig wird, spätestens nach [6] Monaten ohne Aktualisierung |
 | Zähler für KI-Anfragen | nach [30] Tagen |
@@ -543,8 +573,14 @@ master data (name, date of birth, position, shirt number, optional weight and ph
 sessions; attendance; absences including illness or injury and return-to-play stage; session RPE and minutes; morning
 wellness (sleep hours and quality, fatigue, muscle soreness, stress, complaints and body region); extra sport; height
 measurements; coach notes, potentials/goals and coach messages; derived metrics (e.g. acute:chronic workload, traffic
-light); consent records (incl. a parent's e-mail address for players under 16); push tokens; AI usage counters;
-technical server logs. Load, wellness, complaints, injury, illness, height and weight are **health data** (Art. 9 GDPR).
+light); match stats, ratings and videos; performance tests and – if enabled – your own rank (never other players'
+values or names, only from 5 results); medical findings (separate consent); team groups and memberships (players see
+only their own membership in groups released by the staff); tasks, duties and fines from the team's catalogue
+(automatic rules apply only from the day they are switched on and only check *whether* load was logged, for players
+who consented); session plans, coaching points and sketch photos (staff only); consent records (incl. a parent's
+e-mail address for players under 16); push tokens; AI usage counters; technical server logs. Load, wellness,
+complaints and body regions, injury, illness, height and weight, rehab/load-build/growth group membership and test
+results are treated as **health data** (Art. 9 GDPR).
 
 **Legal bases:** account and app features – contract (Art. 6(1)(b)); data entered by coaching staff about players and
 players without an account – legitimate interests in organising training and matches (Art. 6(1)(f)); health data and

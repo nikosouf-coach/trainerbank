@@ -507,6 +507,13 @@ select tst.affects(format($q$insert into public.performance_tests (player_id, te
                           tst.get('p1_player')), 1, 'T05c Leistungstest an der Beitritts-Zeile');
 select tst.affects(format($q$insert into public.player_ratings (player_id, date, kind, rating, visible) values (%L, '2026-10-03', 'training', 7.5, true)$q$,
                           tst.get('p1_player')), 1, 'T05c Note an der Beitritts-Zeile');
+-- Gruppe, Aufgabe, Dienst und Strafe an der Beitritts-Zeile (Pakete 3 und 7)
+with g as (insert into public.team_groups (team_id, name, kind, visible) values (tst.get('team_a')::uuid, 'Merge-Gruppe', 'custom', true) returning id)
+select tst.put('grp_merge', id::text) from g;
+select tst.affects(format($q$insert into public.group_members (group_id, player_id) values (%L, %L)$q$, tst.get('grp_merge'), tst.get('p1_player')), 1, 'T05c Gruppe an der Beitritts-Zeile');
+select tst.affects(format($q$insert into public.team_tasks (team_id, title, player_id) values (%L, 'Pass mitbringen', %L)$q$, tst.get('team_a'), tst.get('p1_player')), 1, 'T05c Aufgabe an der Beitritts-Zeile');
+select tst.affects(format($q$insert into public.team_duties (team_id, date, duty, player_id) values (%L, '2026-10-20', 'material', %L)$q$, tst.get('team_a'), tst.get('p1_player')), 1, 'T05c Dienst an der Beitritts-Zeile');
+select tst.affects(format($q$insert into public.team_fines (team_id, player_id, rule, amount) values (%L, %L, 'late', 2)$q$, tst.get('team_a'), tst.get('p1_player')), 1, 'T05c Strafe an der Beitritts-Zeile');
 commit;
 
 begin;
@@ -555,8 +562,14 @@ begin
                  'T05c Leistungstest wurde verschoben');
   perform tst.eq((select count(*) from public.player_ratings where player_id = tst.get('max')::uuid)::text, '1',
                  'T05c Note wurde verschoben');
+  perform tst.eq((select count(*) from public.group_members where player_id = tst.get('max')::uuid)::text || '/' ||
+                 (select count(*) from public.team_tasks where player_id = tst.get('max')::uuid)::text || '/' ||
+                 (select count(*) from public.team_duties where player_id = tst.get('max')::uuid)::text || '/' ||
+                 (select count(*) from public.team_fines where player_id = tst.get('max')::uuid)::text, '1/1/1/1',
+                 'T05c Gruppe, Aufgabe, Dienst und Strafe wurden verschoben');
   delete from public.performance_tests where player_id = tst.get('max')::uuid;
   delete from public.player_ratings where player_id = tst.get('max')::uuid;
+  delete from public.team_tasks; delete from public.team_duties; delete from public.team_fines; delete from public.team_groups;
 end
 $$;
 commit;
@@ -1910,7 +1923,8 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v2', 'T21b Exportformat v2');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v3', 'T21b Exportformat v3');
+  perform tst.ok(x ?& array['groups', 'tasks', 'duties', 'fines'], 'T21b Export enthält Gruppen, Aufgaben, Dienste, Strafen');
   perform tst.eq(jsonb_array_length(x -> 'players')::text, '1', 'T21b Export: eigene Spielerzeile');
   perform tst.eq(jsonb_array_length(x -> 'consents')::text, '4', 'T21b Export: eigene Einwilligungen');
   perform tst.eq(jsonb_array_length(x -> 'rpe_entries')::text, '3', 'T21b Export: eigene RPE-Einträge');
@@ -2022,6 +2036,19 @@ insert into public.extra_activities (player_id, date, type, minutes)
 values (tst.get('p2_player')::uuid, (current_date - interval '25 months')::date, 'lauf', 30);
 insert into public.push_log (user_id, kind, day)
 values (:'p2', 'rpe', current_date - 31), (:'p2', 'rpe', current_date - 1);
+-- Aufgaben, Dienste, Strafen: erledigte/vergangene nach 12 Monaten weg, offene Strafen bleiben
+insert into public.team_fines (team_id, player_id, rule, date, status)
+select public.player_team(tst.get('p2_player')::uuid), tst.get('p2_player')::uuid, v.r, v.d, v.s
+  from (values ('purge_done', (current_date - interval '13 months')::date, 'done'),
+               ('purge_open', (current_date - interval '13 months')::date, 'open'),
+               ('purge_new',  (current_date - interval '11 months')::date, 'waived')) v(r, d, s);
+insert into public.team_duties (team_id, date, duty, player_id, source)
+select public.player_team(tst.get('p2_player')::uuid), v.d, 'purge', tst.get('p2_player')::uuid, 'manual'
+  from (values ((current_date - interval '13 months')::date), ((current_date - interval '11 months')::date)) v(d);
+insert into public.team_tasks (team_id, title, player_id, done_at)
+select public.player_team(tst.get('p2_player')::uuid), v.t, tst.get('p2_player')::uuid, v.d
+  from (values ('purge alt erledigt', now() - interval '13 months'), ('purge offen', null::timestamptz),
+               ('purge neu erledigt', now() - interval '1 month')) v(t, d);
 
 begin;
 set local role authenticated;
@@ -2043,6 +2070,17 @@ begin
   perform tst.eq((select count(*) from public.rpe_entries where player_id = pid)::text, '3',
                  'T24 jüngere RPE (inkl. 23 Monate) bleiben erhalten');
   perform tst.eq((select count(*) from public.push_log)::text, '1', 'T24 jüngeres push_log bleibt');
+  perform tst.eq(r ->> 'team_fines', '1', 'T24 erledigte Strafe älter als 12 Monate gelöscht');
+  perform tst.eq((select string_agg(rule, ',' order by rule) from public.team_fines where rule like 'purge%'), 'purge_new,purge_open',
+                 'T24 offene alte Strafe und jüngere erlassene bleiben');
+  perform tst.eq(r ->> 'team_duties', '1', 'T24 Dienst älter als 12 Monate gelöscht');
+  perform tst.eq((select count(*) from public.team_duties where duty = 'purge')::text, '1', 'T24 jüngerer Dienst bleibt');
+  perform tst.eq(r ->> 'team_tasks', '1', 'T24 erledigte Aufgabe älter als 12 Monate gelöscht');
+  perform tst.eq((select string_agg(title, ',' order by title) from public.team_tasks where title like 'purge%'), 'purge neu erledigt,purge offen',
+                 'T24 offene und jüngere erledigte Aufgabe bleiben');
+  delete from public.team_fines where rule like 'purge%';
+  delete from public.team_duties where duty = 'purge';
+  delete from public.team_tasks where title like 'purge%';
 end
 $$;
 commit;

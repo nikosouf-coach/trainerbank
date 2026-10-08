@@ -14,16 +14,24 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `migrations/…04_storage.sql` | Privater Bucket `avatars` (JPEG, max. 2 MB) und Policies |
 | `migrations/…05_cron.sql` | `pg_cron` + `pg_net`: `push-reminders` alle 15 Minuten |
 | `migrations/…06_hardening.sql` | Datenschutz-Härtung: Staff-Freigabe (`pending`), kein Auto-Verknüpfen + `merge_players`, Einwilligungen als Nachweis + Pflicht für Gesundheitsdaten, Löschfristen (`purge_stale_health_data`, täglich 03:30 UTC), Datenexport `my_data_export` |
-| `migrations/20261008…01_baukasten.sql` | Gruppen je Spieler, Absagen durch Spieler schaltbar (`team_setting_bool`), freie Bezeichnung für Zusatzsport |
+| `migrations/20261008…01_baukasten.sql` | Gruppen je Spieler (ab `…09` eigene Tabellen), Absagen durch Spieler schaltbar (`team_setting_bool`), freie Bezeichnung für Zusatzsport |
 | `migrations/20261008…02_spiele.sql` | `match_stats` (Minuten, Tore, Assists), `player_ratings` (Note 1–10 + Text), `videos`; Sichtbarkeit für Spieler über `player_view(team, key)` |
 | `migrations/20261008…03_leistung.sql` | `performance_tests` (Sprint, CMJ, 30-15 IFT, Yo-Yo, 505, Slalom, Standweitsprung) |
 | `migrations/20261008…04_befunde.sql` | `findings` + privater Bucket `findings` (Bilder/PDF bis 10 MB), Einwilligung `findings` |
 | `migrations/20261008…05_archiv.sql` | `exercises` (mit Zeichnung, Coachingpunkten), `session_templates`, `staff_profiles` – nur Trainerteam |
 | `migrations/20261008…06_vorbereitung.sql` | `season_phases` (Vorbereitung/Pause, Wochenaufbau, Spielerprogramm), `extra_activities.program_item` |
 | `migrations/20261008…07_kontakte.sql` | `team_contacts`; `merge_players` und `my_data_export` (v2) für alle neuen Tabellen; Befund-Dateizugriff nach dem Zusammenführen |
+| `migrations/20261008…08_profil.sql` | `profiles.prefs` (Info-Buttons, Startseite), Vereinslogo `teams.logo_path`, Trainerprofil mit Konto-Verknüpfung, Lizenz, Foto; `team_coaches(team)` ohne Kontaktdaten für Spieler |
+| `migrations/20261008…09_gruppen.sql` | `team_groups` + `group_members` (Spieler sehen nur freigegebene Gruppen und die eigene Mitgliedschaft), `videos.group_ids`, Übernahme der alten Gruppen, `players.groups` entfernt |
+| `migrations/20261008…10_beschwerden.sql` | `wellness_entries.complaint_areas` (Körperregionen mit Seite, Format per Check) |
+| `migrations/20261008…11_trainingstag.sql` | `session_blocks` (Ablauf, Zuständigkeit, Coachingpunkte, Zeichnung) + privater Bucket `sketches` (JPEG ≤ 4 MB, nur Trainerteam) |
+| `migrations/20261008…12_aufgaben.sql` | `team_fines`, `team_duties`, `team_tasks`; Spieler sehen eigene, setzen bei Aufgaben nur „erledigt“ |
+| `migrations/20261008…13_testplatz.sql` | `my_test_ranks(player)` – eigener Platz je Test ohne Werte anderer (ab 5 Werten) |
+| `migrations/20261008…14_reha.sql` | `absences.area` (Region der Verletzung, nur bei Verletzung) |
+| `migrations/20261008…15_datenschutz.sql` | `merge_players` und `my_data_export` (v3) für Gruppen, Aufgaben, Dienste, Strafen; Löschfristen um Aufgaben/Dienste/Strafen (12 Monate) erweitert |
 | `functions/finding` | Befund-Auswertung: prüft Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
-| `functions/delete-account` | Konto löschen (Fotos, Befund-Dateien, verwaiste Teams, Auth-Nutzer ⇒ Cascade) |
+| `functions/delete-account` | Konto löschen (Fotos, Befund-Dateien, Skizzen verwaister Teams, verwaiste Teams, Auth-Nutzer ⇒ Cascade) |
 | `functions/push-reminders` | RPE-Erinnerung nach Einheiten, Morgen-Check, Pausenprogramm – Zeiten je Team in `settings.reminders`, Pausen werden beachtet (Expo Push) |
 | `functions/_shared` | CORS/JSON, Supabase-Clients, Systemprompts, Zeitlogik (ohne Abhängigkeiten) |
 | `tests/run.sh` | Lokale Tests: Wegwerf-Postgres + Supabase-Platzhalter + alle Migrationen + `rls_test.sql` + Unit-Tests |

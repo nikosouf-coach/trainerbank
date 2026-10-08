@@ -127,10 +127,12 @@ Knöpfe: **„Einwilligen und weiter“** · **„Ohne Gesundheitsdaten fortfahr
 > **Einwilligung in die Verarbeitung deiner Gesundheitsdaten**
 >
 > **Welche Daten?** Dein Belastungsempfinden nach Training und Spiel (RPE) und die Dauer; dein morgendliches
-> Wohlbefinden (Schlafdauer, Schlafqualität, Müdigkeit, Muskelkater, Stress, Beschwerden und betroffene Körperregion);
-> Zusatzsport; Körpergröße und Gewicht; Abwesenheiten wegen Krankheit oder Verletzung mit Rückkehrstufe und Notiz;
-> sowie die daraus berechneten Werte (z. B. Belastungsverlauf, Ampel, Erholungsstatus). Die Einwilligung gilt auch
-> für solche Angaben, die das Trainerteam für dich einträgt.
+> Wohlbefinden (Schlafdauer, Schlafqualität, Müdigkeit, Muskelkater, Stress, Beschwerden und betroffene
+> Körperregionen); Zusatzsport; Körpergröße und Gewicht; Abwesenheiten wegen Krankheit oder Verletzung mit
+> Rückkehrstufe, verletzter Körperregion und Notiz; deine Zugehörigkeit zu Gruppen wie „Reha“, „Belastungsaufbau“ oder
+> „Wachstumsschub“; sowie die daraus berechneten Werte (z. B. Belastungsverlauf, Ampel, Erholungsstatus, dein
+> persönliches Belastungsziel, Reha-Plan und Tipps). Die Einwilligung gilt auch für solche Angaben, die das Trainerteam
+> für dich einträgt.
 >
 > **Wozu?** Damit dein Trainerteam Training, Belastung und Erholung an dich anpassen kann – zum Beispiel nach einem
 > intensiven Spiel, bei einer stufenweisen Rückkehr nach einer Verletzung oder in Wachstumsphasen.
@@ -146,7 +148,8 @@ Knöpfe: **„Einwilligen und weiter“** · **„Ohne Gesundheitsdaten fortfahr
 >
 > **Freiwillig.** Ohne Einwilligung kannst du die App weiter nutzen (Kalender, Wochenplan, Nachrichten, Abwesenheiten
 > ohne Gesundheitsangaben). Die Eingabe von Belastung, Wohlbefinden, Zusatzsport und Körperdaten ist dann gesperrt.
-> Deine Teilnahme an Training und Spielen darf nicht von der Einwilligung abhängen.
+> Deine Teilnahme an Training und Spielen darf nicht von der Einwilligung abhängen. Ohne Einwilligung gibt es auch
+> keine Strafen oder Dienste wegen fehlender Einträge.
 >
 > **Kein Medizinprodukt.** Trainerbank stellt keine Diagnosen und gibt keine Therapieempfehlungen. Bei Schmerzen,
 > Krankheit oder Verletzung wende dich an eine Ärztin oder einen Arzt.
@@ -170,10 +173,11 @@ Buttons: **"Consent and continue"** · **"Continue without health data"**
 > **Consent to the processing of your health data**
 >
 > **What data?** Your perceived exertion after training and matches (RPE) and the duration; your morning wellness
-> (sleep hours, sleep quality, fatigue, muscle soreness, stress, complaints and affected body region); extra sport;
-> height and weight; absences due to illness or injury with return-to-play stage and note; and the values calculated
-> from them (e.g. load trend, traffic light, recovery status). This consent also covers such data entered for you by
-> the coaching staff.
+> (sleep hours, sleep quality, fatigue, muscle soreness, stress, complaints and affected body regions); extra sport;
+> height and weight; absences due to illness or injury with return-to-play stage, injured body region and note; your
+> membership in groups such as "rehab", "load build-up" or "growth spurt"; and the values calculated from them (e.g.
+> load trend, traffic light, recovery status, your personal load target, rehab plan and tips). This consent also
+> covers such data entered for you by the coaching staff.
 >
 > **Why?** So that your coaching staff can adapt training, load and recovery to you – for example after an intense
 > match, during a gradual return after an injury, or during growth phases.
@@ -188,7 +192,7 @@ Buttons: **"Consent and continue"** · **"Continue without health data"**
 >
 > **Voluntary.** Without consent you can still use the app (calendar, weekly plan, messages, absences without health
 > details). Entering load, wellness, extra sport and body data is then disabled. Your participation in training and
-> matches must not depend on this consent.
+> matches must not depend on this consent. Without consent there are no fines or duties for missing entries either.
 >
 > **Not a medical device.** Trainerbank does not diagnose or recommend treatment. If you have pain, illness or an
 > injury, please see a doctor.
@@ -241,8 +245,9 @@ Knöpfe: **„Einwilligen“** · **„Abbrechen“**
 >
 > **Welche Daten:** Konto (E-Mail-Adresse, Anzeigename), Vor- und Nachname, Geburtsdatum, Position, Rückennummer,
 > optional Foto und Gewicht. Außerdem **Gesundheitsdaten**: Belastungsempfinden und Trainingsminuten, Schlaf,
-> Müdigkeit, Muskelkater, Stress, Beschwerden und betroffene Körperregion, Zusatzsport, Körpergröße und Gewicht,
-> Abwesenheiten wegen Krankheit oder Verletzung mit Rückkehrstufe sowie daraus berechnete Werte. Die Einwilligung gilt
+> Müdigkeit, Muskelkater, Stress, Beschwerden und betroffene Körperregionen, Zusatzsport, Körpergröße und Gewicht,
+> Abwesenheiten wegen Krankheit oder Verletzung mit Rückkehrstufe und verletzter Körperregion, Zugehörigkeit zu
+> Gruppen wie „Reha“ oder „Wachstumsschub“ sowie daraus berechnete Werte. Die Einwilligung gilt
 > auch für solche Angaben, die das Trainerteam für Ihr Kind einträgt.
 >
 > **Wer sieht die Daten:** Ihr Kind und das Trainerteam seiner Mannschaft (Trainer, Co-Trainer, Physio). Mitspieler
@@ -310,8 +315,9 @@ Buttons: **"Consent"** · **"Cancel"**
 >
 > **Which data:** account (e-mail address, display name), first and last name, date of birth, position, shirt number,
 > optional photo and weight. Also **health data**: perceived exertion and training minutes, sleep, fatigue, muscle
-> soreness, stress, complaints and affected body region, extra sport, height and weight, absences due to illness or
-> injury with return-to-play stage, and values calculated from these. The consent also covers such data entered for
+> soreness, stress, complaints and affected body regions, extra sport, height and weight, absences due to illness or
+> injury with return-to-play stage and injured body region, membership in groups such as "rehab" or "growth spurt",
+> and values calculated from these. The consent also covers such data entered for
 > your child by the coaching staff.
 >
 > **Who sees it:** your child and their team's coaching staff (coach, assistant coach, physio). Team-mates never see
