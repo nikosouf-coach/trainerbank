@@ -10,7 +10,7 @@ import type { Contact, Phase,
 import { emptyTeamData } from "../core/types";
 import {
   ApiError, CONSENT_VERSION, type AiRequest, type Api, type ConsentKind, type ConsentState, type CreateTeamInput,
-  type JoinProfile, type Membership, type PublishedDay, type Role, type StaffEntry, type TeamPatch, type UserInfo,
+  type JoinProfile, type Membership, type PublishedDay, type Role, type StaffEntry, type TeamPatch, type UserInfo, type UserPrefs,
 } from "./api";
 import { supabase } from "./supabase";
 
@@ -53,7 +53,7 @@ function mapTeam(r: Row): Team {
     settings: { ...base, ...(r.settings || {}), days: (r.settings && r.settings.days) || base.days },
     principles: { ...defaultPrinciples(groupOf(cls)), ...(r.principles || {}) },
     modules: { ...modsFor(depth, cls), ...(r.modules || {}) },
-    joinCode: r.join_code, staffCode: r.staff_code, timezone: r.timezone,
+    joinCode: r.join_code, staffCode: r.staff_code, timezone: r.timezone, logo: r.logo_path || null,
   };
 }
 const mapPlayer = (r: Row): Player => ({
@@ -69,7 +69,8 @@ const mapFinding = (r: Row): Finding => ({ id: r.id, pid: r.player_id, absenceId
 const mapExercise = (r: Row): Exercise => ({ id: r.id, title: r.title, cat: r.category, themes: r.themes || [], dur: r.duration ?? 15, players: r.players || "", area: r.area || "",
   rpe: r.rpe != null ? Number(r.rpe) : null, desc: r.description || "", points: r.points || [], drawing: r.drawing || null, video: r.video_url || "" });
 const mapTemplate = (r: Row): SessionTemplate => ({ id: r.id, title: r.title, theme: r.theme || "", blocks: r.blocks || [], notes: r.notes || "" });
-const mapStaff = (r: Row): StaffProfile => ({ id: r.id, name: r.name, role: r.role, areas: r.areas || [], phone: r.phone || "", email: r.email || "", note: r.note || "" });
+const mapStaff = (r: Row): StaffProfile => ({ id: r.id, name: r.name, role: r.role, areas: r.areas || [], phone: r.phone || "", email: r.email || "", note: r.note || "",
+  userId: r.user_id || null, birth: r.birthdate || null, license: r.license || "", photo: r.photo_path || null });
 const mapVideo = (r: Row): Video => ({ id: r.id, title: r.title, url: r.url, date: r.date || null, matchId: r.match_id || null, pids: r.player_ids || [], note: r.note || "", vis: !!r.visible });
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
 const mapAbs = (r: Row): Absence => ({ id: r.id, pid: r.player_id, typ: r.type, von: r.from_date, bis: r.to_date, stufe: r.stage, notiz: r.note || "", by: r.reported_by_player ? "player" : "coach" });
@@ -91,8 +92,8 @@ export class SupabaseApi implements Api {
   // ---------- Konto ----------
   private async userInfo(u: { id: string; email?: string | null; user_metadata?: Row } | null): Promise<UserInfo | null> {
     if (!u) return null;
-    const { data } = await this.sb.from("profiles").select("display_name, lang").eq("id", u.id).maybeSingle();
-    return { id: u.id, email: u.email || "", displayName: data?.display_name || u.user_metadata?.display_name || "", lang: (data?.lang || u.user_metadata?.lang || "de") as Lang };
+    const { data } = await this.sb.from("profiles").select("display_name, lang, prefs").eq("id", u.id).maybeSingle();
+    return { id: u.id, email: u.email || "", displayName: data?.display_name || u.user_metadata?.display_name || "", lang: (data?.lang || u.user_metadata?.lang || "de") as Lang, prefs: (data?.prefs || {}) as UserPrefs };
   }
   async currentUser() { const { data } = await this.sb.auth.getSession(); return this.userInfo(data.session?.user ?? null); }
   onAuthChange(cb: (u: UserInfo | null) => void) {
@@ -110,6 +111,8 @@ export class SupabaseApi implements Api {
   }
   async resetPassword(email: string) { const { error } = await this.sb.auth.resetPasswordForEmail(email.trim()); if (error) fail(error); }
   async signOut() { await this.sb.auth.signOut(); }
+  async savePrefs(prefs: UserPrefs) { const { data } = await this.sb.auth.getSession(); const id = data.session?.user.id; if (id) await q(this.sb.from("profiles").update({ prefs }).eq("id", id)); }
+  async setDisplayName(name: string) { const { data } = await this.sb.auth.getSession(); const id = data.session?.user.id; if (id) await q(this.sb.from("profiles").update({ display_name: name.slice(0, 80) }).eq("id", id)); }
   async setLanguage(lang: Lang) { const { data } = await this.sb.auth.getSession(); const id = data.session?.user.id; if (id) await q(this.sb.from("profiles").update({ lang }).eq("id", id)); }
 
   // ---------- Mitgliedschaften ----------
@@ -200,7 +203,8 @@ export class SupabaseApi implements Api {
         q(sb.from("findings").select("*").eq("team_id", tid).order("date", { ascending: false }).limit(300)),
         staff ? q(sb.from("exercises").select("*").eq("team_id", tid).order("created_at")) : Promise.resolve([] as Row[]),
         staff ? q(sb.from("session_templates").select("*").eq("team_id", tid).order("created_at")) : Promise.resolve([] as Row[]),
-        staff ? q(sb.from("staff_profiles").select("*").eq("team_id", tid).order("created_at")) : Promise.resolve([] as Row[]),
+        // Spieler sehen vom Trainerteam nur Name, Rolle, Aufgaben und Foto (Funktion team_coaches)
+        staff ? q(sb.from("staff_profiles").select("*").eq("team_id", tid).order("created_at")) : q(sb.rpc("team_coaches", { p_team: tid })),
         q(sb.from("season_phases").select("*").eq("team_id", tid).gte("date_to", addDays(today, -400)).order("date_from")),
         q(sb.from("team_contacts").select("*").eq("team_id", tid).order("name")),
       ]);
@@ -229,6 +233,7 @@ export class SupabaseApi implements Api {
     if (p.club != null) row.club = p.club; if (p.name != null) row.name = p.name; if (p.accent != null) row.accent = p.accent;
     if (p.cls != null) row.age_class = p.cls; if (p.depth != null) row.depth = p.depth;
     if (p.settings) row.settings = p.settings; if (p.principles) row.principles = p.principles; if (p.modules) row.modules = p.modules;
+    if (p.logo !== undefined) row.logo_path = p.logo;
     await q(this.sb.from("teams").update(row).eq("id", teamId));
   }
   async regenerateCodes(teamId: string) {
@@ -305,6 +310,14 @@ export class SupabaseApi implements Api {
     const { error } = await this.sb.storage.from("avatars").upload(path, buf, { contentType: "image/jpeg", upsert: true });
     if (error) fail(error);
     await q(this.sb.from("players").update({ photo_path: path }).eq("id", pid));
+    return path;
+  }
+  async uploadTeamImage(teamId: string, name: "logo" | `staff-${string}`, uri: string) {
+    const img = await manipulateAsync(uri, [{ resize: { width: 512 } }], { compress: 0.8, format: SaveFormat.JPEG });
+    const buf = await (await fetch(img.uri)).arrayBuffer();
+    const path = `${teamId}/${name}.jpg`;
+    const { error } = await this.sb.storage.from("avatars").upload(path, buf, { contentType: "image/jpeg", upsert: true });
+    if (error) fail(error);
     return path;
   }
   async photoUrl(path: string) {
@@ -389,7 +402,8 @@ export class SupabaseApi implements Api {
   }
   async deleteTemplate(id: string) { await q(this.sb.from("session_templates").delete().eq("id", id)); }
   async saveStaff(teamId: string, x: StaffProfile) {
-    const row: Row = { team_id: teamId, name: x.name, role: x.role, areas: x.areas, phone: x.phone || null, email: x.email || null, note: x.note || null };
+    const row: Row = { team_id: teamId, name: x.name, role: x.role, areas: x.areas, phone: x.phone || null, email: x.email || null, note: x.note || null,
+      user_id: x.userId || null, birthdate: x.birth || null, license: x.license || null, photo_path: x.photo || null };
     const r = isTmp(x.id) ? await q<Row>(this.sb.from("staff_profiles").insert(row).select().single()) : await q<Row>(this.sb.from("staff_profiles").update(row).eq("id", x.id).select().single());
     return mapStaff(r);
   }

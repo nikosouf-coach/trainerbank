@@ -30,6 +30,30 @@ export const de_more: Dict = {
   days_pick: "Trainingstage", su_noDays: "Wähle mindestens einen Trainingstag.",
   su_daysT: "Trainingstage und Dauer", su_daysB: "An welchen Tagen trainiert ihr, wann und wie lange? Spieltag und Anstoß bestimmen die Wochenplanung.",
 
+  // Einrichtung (Schritte)
+  su_s_me: "Über dich", su_s_meB: "Dein Trainerprofil – so spricht dich die App an, und so sehen dich Spieler und Trainerteam.",
+  su_s_team: "Dein Team", su_s_teamB: "Altersklasse, Verein, Mannschaft und Logo.",
+  su_logo: "Vereinslogo", su_color: "Vereinsfarbe",
+  su_s_mods: "Funktionen", su_infoT: "Info-Buttons (i) anzeigen", su_infoD: "Kleine (i)-Knöpfe erklären Begriffe wie ACWR oder RPE genau dort, wo sie auftauchen. Jederzeit änderbar unter Mehr → Konto.",
+  su_s_orga: "Spieler & Trainerteam", su_s_orgaB: "Was Spieler in ihrer App sehen und dürfen – und wer mit dir trainiert.",
+  su_pvT: "Spieler-App", su_staffT: "Weitere Trainer", su_staffD: "Co-, Torwart- und Athletiktrainer, Physio. Sie bekommen später einen eigenen Zugang mit ihren Aufgaben.", su_addStaff: "Trainer hinzufügen",
+  su_s_load: "Erinnerungen", su_s_loadB: "Push-Nachrichten, damit die Spieler ihre Daten eintragen.",
+  su_s_science: "Sportwissenschaft", su_s_scienceB: "Wie genau die App rechnet und welche Tests dein Team macht.",
+  su_testsT: "Testbatterie", su_testsD: "Diese Tests erscheinen in der Leistungsdiagnostik. Empfohlen: zu Beginn und am Ende der Vorbereitung sowie in der Winterpause.",
+  su_fixD: "Aus: Die App darf in Aufbau- und Entlastungswochen auch die Dauer anpassen, nicht nur die Intensität.",
+  su_s_sum: "Alles bereit", su_meT: "Trainer", su_info: "Info-Buttons",
+  su_demoNote: "Demo: Deine Angaben bleiben nur auf diesem Gerät und verschwinden beim Beenden der Demo.",
+  su_needName: "Bitte Vor- und Nachnamen eintragen.", su_needClub: "Bitte den Vereinsnamen eintragen.",
+  // Trainerprofil
+  pf_photo: "Foto", pf_role: "Deine Rolle", pf_license: "Trainerlizenz", pf_birth: "Geburtsdatum (optional)", pf_phone: "Telefon (optional)",
+  pf_privacy: "Telefon und Foto sieht nur, wem du sie freigibst (Kontaktliste). Das Geburtsdatum sieht nur das Trainerteam.",
+  pf_title: "Mein Trainerprofil", pf_saved: "Profil gespeichert",
+  ko_display: "Anzeige", sf_edit: "Bearbeiten",
+  lic_none: "Keine / noch keine", lic_kinder: "Kindertrainer-Zertifikat", lic_c: "Trainer-C-Lizenz", lic_b: "Trainer-B-Lizenz", lic_bplus: "B+ / Elite-Jugend-Lizenz",
+  lic_a: "Trainer-A-Lizenz", lic_pro: "Fußball-Lehrer / UEFA Pro", lic_tw: "Torwarttrainer-Lizenz", lic_athletik: "Athletiktrainer-Lizenz", lic_other: "Andere Qualifikation",
+  ph_coachN: "Von {n}", pl_newRatingN: "Neue Bewertung von {n}",
+  hi_morning: "Guten Morgen", hi_day: "Hallo", hi_evening: "Guten Abend", coach_from: "{n}",
+
   // Inaktive Spieler
   in_title: "Inaktive Spieler ({n})", in_info: "Inaktive Spieler zählen in keiner Berechnung und sehen keine Teamdaten mehr. Ihre bisherigen Daten bleiben erhalten.",
   in_reactivate: "Reaktivieren", in_done: "{n} ist wieder im Kader", in_show: "Anzeigen", in_hide: "Ausblenden",

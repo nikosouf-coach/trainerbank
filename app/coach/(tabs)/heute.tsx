@@ -9,6 +9,9 @@ import { WeekBars, WeekStrip } from "../../../src/ui/charts";
 import { Bar, Btn, Card, CardTitle, Chip, Col, Divider, Header, Info, ListItem, Muted, Row, Screen, T } from "../../../src/ui/kit";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
+import { teamLabel } from "../../../src/core/classes";
+import { firstName, greetKey } from "../../../src/core/people";
+import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
 import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
@@ -39,7 +42,7 @@ export default function Heute() {
   }, [s.version, E]); // eslint-disable-line react-hooks/exhaustive-deps
   const { nx, last, da, avl, missing, attn, wp, evUp, team, count } = data;
 
-  const hr = E.NOW.getHours(), gruss = hr < 11 ? t("g_m") : hr < 18 ? t("g_d") : t("g_e");
+  const gruss = t(greetKey(E.NOW.getHours())), myName = firstName(s.myStaff?.name || s.user?.displayName);
   const absN = nx ? E.absentOn(nx.date) : [];
   const nxTitle = nx ? (nx.match ? `${t("vs")} ${nx.match.gegner}` : E.kn(nx.train!.kind)) : "";
   const nxSub = nx?.train ? nx.train.inhalt : "";
@@ -123,7 +126,8 @@ export default function Heute() {
 
   return (
     <Screen testID="coach-heute">
-      <Header eyebrow={`${E.wt(E.TODAY)} ${E.de(E.TODAY)} · ${E.team.club} ${E.team.name}`} title={`${gruss}, ${t("coach")}`} />
+      <Header eyebrow={`${E.wt(E.TODAY)} ${E.de(E.TODAY)} · ${teamLabel(E.team)}`} title={myName ? `${gruss}, ${myName}` : gruss}
+        right={<TeamLogo size={46} />} />
       {hero}
       <CoachPhaseCard />
       {mods.ki ? <AiPanel mode="coach" testID="ai" context={() => E.aiContext(pid => s.aiPlayers.includes(pid))} quick={["ki_q1", "ki_q2", "ki_q3"]} placeholder={t("ki_ph")} note={t("ki_note")}

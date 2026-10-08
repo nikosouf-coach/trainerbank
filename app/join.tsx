@@ -1,7 +1,7 @@
 // Spieler treten mit dem Team-Code bei: Code → Profil → Einwilligungen.
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { POS } from "../src/core/classes";
+import { teamLabel, POS } from "../src/core/classes";
 import { ageOn } from "../src/core/dates";
 import { useStore } from "../src/data/store";
 import { Banner, Btn, Card, Check, ChoiceChips, Col, DateField, Field, Header, Info, Muted, NumField, Row, Screen, T } from "../src/ui/kit";
@@ -17,7 +17,7 @@ export default function Join() {
   const under16 = geb ? ageOn(geb, new Date()) < 16 : false;
   const check = async () => {
     setBusy(true); setMsg("");
-    try { const r = await s.api.teamByCode(code); if (!r) { setMsg(t("err_invalid_code")); return; } setTeamName(`${r.club} · ${r.name}`); setStep(1); }
+    try { const r = await s.api.teamByCode(code); if (!r) { setMsg(t("err_invalid_code")); return; } setTeamName(teamLabel(r)); setStep(1); }
     catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
   const go = async () => {

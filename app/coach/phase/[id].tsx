@@ -1,6 +1,7 @@
 // Trainer – Phase (Vorbereitung oder Pause): Wochenaufbau mit Ziel-Last und geplanter Last, Testtage, Spiele,
 // Übernahme in die Wochenplanung, Spielerprogramm, Umsetzung durch die Spieler, KI-Fragen.
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { teamLabel } from "../../../src/core/classes";
 import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { addDays, monday, sum } from "../../../src/core/dates";
@@ -55,7 +56,7 @@ export default function PhaseDetail() {
   const avg = comp.length ? Math.round(comp.reduce((a, x) => a + (x.c.pct || 0), 0) / comp.length * 100) : null;
 
   const aiContext = (): string => {
-    const L = [`${t("vb_kind_" + ph.kind)}: ${ph.title}, ${ph.from} – ${ph.to} (${n} ${t("vb_weeks").replace("{n} ", "")})`, `${E.team.club} ${E.team.name}, ${E.grp}`];
+    const L = [`${t("vb_kind_" + ph.kind)}: ${ph.title}, ${ph.from} – ${ph.to} (${n} ${t("vb_weeks").replace("{n} ", "")})`, `${teamLabel(E.team)}, ${E.grp}`];
     if (ph.firstMatch) L.push(`${t("vb_firstMatch")}: ${ph.firstMatch}`);
     sk.forEach((w, i) => L.push(`W${w.i} ${w.ws}: ${t("vb_r_" + w.role)}${prep ? `, ${t("vb_target").replace("{p}", String(wOf(w.ws).pct ?? w.pct))}, ${planned[i]} AU` : ""}${(wOf(w.ws).test ?? w.test) ? ", " + t("vb_test") : ""}`));
     L.push(`${t("vb_ref").replace("{au}", String(ref))}`);

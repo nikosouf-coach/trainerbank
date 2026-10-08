@@ -30,6 +30,30 @@ export const en_more: Dict = {
   days_pick: "Training days", su_noDays: "Choose at least one training day.",
   su_daysT: "Training days and length", su_daysB: "On which days do you train, when and for how long? Match day and kick-off drive the weekly plan.",
 
+  // Setup (steps)
+  su_s_me: "About you", su_s_meB: "Your coach profile – how the app addresses you and how players and staff see you.",
+  su_s_team: "Your team", su_s_teamB: "Age group, club, team and logo.",
+  su_logo: "Club logo", su_color: "Club colour",
+  su_s_mods: "Features", su_infoT: "Show info buttons (i)", su_infoD: "Small (i) buttons explain terms like ACWR or RPE right where they appear. Change any time under More → Account.",
+  su_s_orga: "Players & staff", su_s_orgaB: "What players see and may do in their app – and who coaches with you.",
+  su_pvT: "Player app", su_staffT: "More coaches", su_staffD: "Assistant, goalkeeper and fitness coaches, physio. They get their own access with their tasks later.", su_addStaff: "Add coach",
+  su_s_load: "Reminders", su_s_loadB: "Push messages so players log their data.",
+  su_s_science: "Sports science", su_s_scienceB: "How precisely the app calculates and which tests your team does.",
+  su_testsT: "Test battery", su_testsD: "These tests appear in performance testing. Recommended: at the start and end of pre-season and in the winter break.",
+  su_fixD: "Off: in build-up and deload weeks the app may also adjust duration, not only intensity.",
+  su_s_sum: "All set", su_meT: "Coach", su_info: "Info buttons",
+  su_demoNote: "Demo: your entries stay on this device only and disappear when you leave the demo.",
+  su_needName: "Please enter first and last name.", su_needClub: "Please enter the club name.",
+  // Coach profile
+  pf_photo: "Photo", pf_role: "Your role", pf_license: "Coaching licence", pf_birth: "Date of birth (optional)", pf_phone: "Phone (optional)",
+  pf_privacy: "Phone and photo are only visible where you share them (contact list). Only the coaching staff sees the date of birth.",
+  pf_title: "My coach profile", pf_saved: "Profile saved",
+  ko_display: "Display", sf_edit: "Edit",
+  lic_none: "None yet", lic_kinder: "Children's coach certificate", lic_c: "C licence", lic_b: "B licence", lic_bplus: "B+ / elite youth licence",
+  lic_a: "A licence", lic_pro: "UEFA Pro", lic_tw: "Goalkeeper coach licence", lic_athletik: "Fitness coach licence", lic_other: "Other qualification",
+  ph_coachN: "From {n}", pl_newRatingN: "New rating from {n}",
+  hi_morning: "Good morning", hi_day: "Hello", hi_evening: "Good evening", coach_from: "{n}",
+
   // Inactive players
   in_title: "Inactive players ({n})", in_info: "Inactive players are not part of any calculation and no longer see team data. Their previous data is kept.",
   in_reactivate: "Reactivate", in_done: "{n} is back in the squad", in_show: "Show", in_hide: "Hide",

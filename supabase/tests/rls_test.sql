@@ -1039,6 +1039,44 @@ update public.teams set settings = settings - 'playerView' where id = tst.get('t
 commit;
 
 -- =====================================================================
+-- T32 Trainerprofil, Logo, Einstellungen (Paket 1)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.staff_profiles (team_id, name, role, user_id, license, birthdate) values (%L, 'Coach Anna', 'chef', %L, 'bplus', '1990-05-01')$q$, tst.get('team_a'), tst.uid('coachA')),
+                   1, 'T32 Coach legt eigenes, verknüpftes Profil an');
+select tst.throws(format($q$insert into public.staff_profiles (team_id, name, role, user_id) values (%L, 'Fremd', 'co', %L)$q$, tst.get('team_a'), tst.uid('p1')),
+                  'T32 Verknüpfung mit einem Spielerkonto wird abgelehnt', 'invalid_staff_user');
+select tst.throws(format($q$insert into public.staff_profiles (team_id, name, role, user_id) values (%L, 'Doppelt', 'co', %L)$q$, tst.get('team_a'), tst.uid('coachA')),
+                  'T32 ein Konto nur einmal pro Team', 'duplicate key');
+select tst.affects(format($q$update public.teams set logo_path = %L where id = %L$q$, tst.get('team_a') || '/logo.jpg', tst.get('team_a')), 1, 'T32 Coach setzt Vereinslogo');
+select tst.throws(format($q$update public.teams set logo_path = 'x/logo.jpg' where id = %L$q$, tst.get('team_a')), 'T32 Logo-Pfad muss im Teamordner liegen', 'check constraint');
+select tst.affects(format($q$insert into storage.objects (bucket_id, name) values ('avatars', %L)$q$, tst.get('team_a') || '/logo.jpg'), 1, 'T32 Coach lädt Logo hoch');
+select tst.affects($q$update public.profiles set prefs = '{"info": false}' where id = auth.uid()$q$, 1, 'T32 eigene Einstellungen speichern');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select name || '/' || role from public.team_coaches(tst.get('team_a')::uuid) limit 1), 'Coach Anna/chef', 'T32 Spieler sieht Name und Rolle des Trainers');
+  perform tst.eq((select count(*) from public.staff_profiles)::text, '0', 'T32 Spieler liest keine vollständigen Trainerprofile (Telefon, Geburtsdatum)');
+  perform tst.eq((select count(*) from storage.objects where name = tst.get('team_a') || '/logo.jpg')::text, '1', 'T32 Spieler sieht das Vereinslogo');
+  perform tst.eq((select count(*) from public.team_coaches(tst.get('team_b')::uuid))::text, '0', 'T32 fremdes Trainerteam bleibt verborgen');
+end $$;
+select tst.throws(format($q$insert into storage.objects (bucket_id, name) values ('avatars', %L)$q$, tst.get('team_a') || '/staff-' || gen_random_uuid() || '.jpg'),
+                  'T32 Spieler kann kein Trainerfoto hochladen', 'row-level security');
+select tst.affects(format($q$update storage.objects set owner = owner where name = %L$q$, tst.get('team_a') || '/logo.jpg'), 0, 'T32 Spieler kann das Logo nicht überschreiben');
+select tst.affects($q$update public.profiles set prefs = '{"info": true}' where id <> auth.uid()$q$, 0, 'T32 fremde Einstellungen sind tabu');
+commit;
+
+begin;
+delete from public.staff_profiles; delete from storage.objects where name like '%/logo.jpg';
+update public.teams set logo_path = null; update public.profiles set prefs = '{}';
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

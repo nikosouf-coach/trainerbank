@@ -3,12 +3,13 @@
 
 import { CONTENT } from "./content";
 import {
-  BANDS, KIND_RPE, MATCHMIN, MDS, PLAYER_VIEW, bandOf, capOf, classDef, classLabel, groupOf, isGrowthAge, sleepTarget, DEPTH,
+  BANDS, KIND_RPE, MATCHMIN, MDS, PLAYER_VIEW, bandOf, capOf, classDef, classLabel, groupOf, isGrowthAge, sleepTarget, DEPTH, teamLabel,
 } from "./classes";
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
 import { translator } from "./i18n";
 import { cmjDrop, fitnessIndex } from "./perf";
 import { phaseOn } from "./prep";
+import { headCoach } from "./people";
 import type {
   Absence, AttStatus, CoachMsg, Complaint, CustomKind, Kind, Lang, Match, Pitch, Player, PotCat, Session, Status,
   TeamData, TeamEvent, Wellness, WeekMode, MsgType, PlayerViewKey, Rating, Video,
@@ -561,7 +562,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const plan = wp.items.map(x => `${wt(x.date)} ${de(x.date)}: ${x.match ? "Spiel " + t("vs") + " " + x.match.gegner : x.train ? (x.train.md || "-") + ", " + kn(x.train.kind) + ", RPE " + x.train.rpe + ", " + x.train.dauer + " Min., " + t("p_" + x.train.platz) : "frei"}`).join("\n");
     const flagged = D.players.map(p => profile(p.id)).filter(x => x.reasons.length).slice(0, 10)
       .map((x, i) => `${aiOk(x.p.id) ? x.p.vn : "Spieler " + (i + 1)} (${age(x.p)} J., ${x.p.pos}): ${x.reasons.map(r => r[1]).join(", ")}`).join("\n");
-    return `Mannschaft: ${team.club} ${team.name}, Altersklasse ${classLabel(c, opts.lang)}, ${D.players.length} Spieler.
+    return `Mannschaft: ${teamLabel(team)}, Altersklasse ${classLabel(c, opts.lang)}, ${D.players.length} Spieler.
 Infotiefe des Trainers: ${t("dp_" + team.depth)}.
 Trainingstage: ${Object.entries(S.days).map(([d, v]) => tl("wd")[+d] + " " + v.zeit + ", " + (v.dauer || S.dauer) + " Min. (" + t("p_" + v.platz) + ")").join("; ")}.
 Trainingsprinzipien: ${["MD", ...MDS].filter(md => team.principles[md]).map(md => md + " " + kn(team.principles[md].kind) + " RPE " + team.principles[md].rpe).join("; ")}.
@@ -618,6 +619,8 @@ Empfehlung des Trainers: ${activeMsgs(p.id).map(m => t("ry_" + m.typ) + ": " + m
     playerState, playerSessions, playerOpenSession, tipRegen, tipGym, tipExtra, tipFood, tipSleep,
     aiContext, aiSessionPrompt, potPrompt, playerAiContext,
     wt, de, isGrowthAge: () => isGrowthAge(team.cls), playerSees, seasonStats, ratingsOf, videosFor,
+    /** Name des Cheftrainers (für die Spieler-App), leer wenn unbekannt */
+    coachName: (): string => headCoach(D)?.name || "",
   };
 }
 

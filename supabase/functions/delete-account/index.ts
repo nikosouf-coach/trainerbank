@@ -5,7 +5,8 @@
 //
 // Ablauf (mit service_role):
 //   1. Fotos der eigenen Spielerzeilen aus dem Bucket "avatars" und Befund-Dateien
-//      (Bucket "findings", Pfade aus der Tabelle findings) entfernen
+//      (Bucket "findings", Pfade aus der Tabelle findings) entfernen; eigene Trainerprofile
+//      samt Foto löschen
 //   2. Teams löschen, in denen das Konto das einzige (bestätigte) Staff-Mitglied ist
 //      (inkl. aller Fotos und Befund-Dateien des Teams; offene Anfragen 'pending' zählen nicht und
 //      verfallen mit dem Team). Bleiben andere Staff-Mitglieder übrig und war das
@@ -83,6 +84,16 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const { data: files, error: filesError } = await admin.from('findings').select('path').in('player_id', ownIds);
       if (filesError) throw filesError;
       await removeObjects(admin, FINDINGS, ((files ?? []) as { path: string }[]).map((f) => f.path));
+    }
+
+    // 1b. Eigene Trainerprofile (Geburtsdatum, Telefon, Foto) – Foto entfernen, Profil löschen
+    const { data: myProfiles, error: profError } = await admin.from('staff_profiles').select('id, photo_path').eq('user_id', uid);
+    if (profError) throw profError;
+    const profPhotos = ((myProfiles ?? []) as { id: string; photo_path: string | null }[]).map((x) => x.photo_path).filter((x): x is string => !!x);
+    await removeObjects(admin, AVATARS, profPhotos);
+    if ((myProfiles ?? []).length) {
+      const { error } = await admin.from('staff_profiles').delete().eq('user_id', uid);
+      if (error) throw error;
     }
 
     // 2. Teams, in denen das Konto Staff ist

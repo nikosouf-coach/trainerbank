@@ -30,7 +30,7 @@ export default function PlayerHeute() {
       </Row> : null}
       <PlayerProgramCard pid={p.id} />
       <NewRating pid={p.id} />
-      {msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}
+      {msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}
       {seesLoad && (E.mods.belastung || E.mods.regeneration) ? <Card testID="player-body" tone={stCol}>
         <Row gap={14}>
           <View><Ring pct={st.k === "ready" ? 100 : st.k === "easy" ? 60 : 20} color={stCol} size={64} /></View>

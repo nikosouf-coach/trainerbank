@@ -38,6 +38,8 @@ export interface TeamSettings {
   playerView?: Partial<Record<PlayerViewKey, boolean>>;
   /** Push-Erinnerungen für Spieler (Server: supabase/functions/_shared/schedule.ts → reminderSettings). */
   reminders?: Reminders;
+  /** Testbatterie des Teams (Leistungsdiagnostik); leer/fehlend = alle für die Altersgruppe empfohlenen */
+  tests?: TestKey[];
 }
 export interface Reminders {
   /** Morgen-Check an/aus und Uhrzeit "HH:MM" (Standard 08:00) */
@@ -71,6 +73,8 @@ export interface Team {
   joinCode?: string;
   staffCode?: string;
   timezone?: string;
+  /** Vereinslogo (Speicherpfad bzw. lokale Adresse in der Demo) */
+  logo?: string | null;
 }
 export interface Player {
   id: string;
@@ -129,7 +133,15 @@ export interface TemplateBlock { exId: string | null; text: string; min: number;
 export interface SessionTemplate { id: string; title: string; theme: string; blocks: TemplateBlock[]; notes: string }
 /** Trainerprofil mit Aufgabenbereichen (auch für Personen ohne App-Konto). */
 export type StaffRoleKey = "chef" | "co" | "tw" | "athletik" | "physio" | "betreuer" | "analyst";
-export interface StaffProfile { id: string; name: string; role: StaffRoleKey; areas: string[]; phone: string; email: string; note: string }
+export interface StaffProfile {
+  id: string; name: string; role: StaffRoleKey; areas: string[]; phone: string; email: string; note: string;
+  /** verknüpftes Konto (eigenes Profil bzw. Co-Trainer mit App-Zugang) */
+  userId?: string | null;
+  birth?: string | null;
+  /** Trainerlizenz (LICENSES) */
+  license?: string;
+  photo?: string | null;
+}
 /** Leistungstests (Katalog in perf.ts) */
 export type TestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit";
 export interface TestResult { id: string; pid: string; test: TestKey; date: string; value: number; note?: string }

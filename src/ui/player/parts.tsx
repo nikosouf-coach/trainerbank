@@ -228,7 +228,7 @@ export function NewRating({ pid }: { pid: string }) {
         <Row gap={12} align="flex-start">
           <RatingBadge value={r.rating} size="l" />
           <Col gap={3} style={{ flex: 1 }}>
-            <T v="eyebrow">{t("pl_newRating")}</T>
+            <T v="eyebrow">{E.coachName() ? E.tf("pl_newRatingN", { n: E.coachName() }) : t("pl_newRating")}</T>
             <Text style={{ fontWeight: "800", fontSize: 15, color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}</Text>
             {r.text ? <Text style={{ fontSize: 14, color: c.ink }}>{r.text}</Text> : null}
           </Col>

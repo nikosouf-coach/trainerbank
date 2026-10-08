@@ -253,20 +253,23 @@ export function Sheet({ visible, onClose, title, children, testID, closeLabel }:
 interface InfoState { title: string; body: React.ReactNode }
 const InfoCtx = createContext<(i: InfoState) => void>(() => undefined);
 /** Stellt die Info-Blätter bereit (einmal im Root-Layout). */
-export function InfoHost({ children, closeLabel }: { children?: React.ReactNode; closeLabel: string }) {
+const InfoOn = createContext(true);
+/** Stellt die Info-Blätter bereit; enabled = false blendet alle Info-Buttons aus (Einstellung des Nutzers). */
+export function InfoHost({ children, closeLabel, enabled = true }: { children?: React.ReactNode; closeLabel: string; enabled?: boolean }) {
   const [info, setInfo] = useState<InfoState | null>(null);
   return (
-    <InfoCtx.Provider value={setInfo}>
+    <InfoCtx.Provider value={setInfo}><InfoOn.Provider value={enabled}>
       {children}
       <Sheet visible={!!info} onClose={() => setInfo(null)} title={info?.title} testID="info-sheet" closeLabel={closeLabel}>
         {typeof info?.body === "string" ? <T>{info.body}</T> : info?.body}
       </Sheet>
-    </InfoCtx.Provider>
+    </InfoOn.Provider></InfoCtx.Provider>
   );
 }
 /** Kleiner ⓘ-Knopf: Erklärungen nur bei Bedarf. */
 export function Info({ title, text, children, testID }: { title: string; text?: string | string[]; children?: React.ReactNode; testID?: string }) {
-  const { c } = useTheme(); const show = useContext(InfoCtx);
+  const { c } = useTheme(); const show = useContext(InfoCtx); const on = useContext(InfoOn);
+  if (!on) return null;
   const body = children || (Array.isArray(text) ? <Col gap={10}>{text.filter(Boolean).map((x, i) => <T key={i}>{x}</T>)}</Col> : text);
   return (
     <Pressable testID={testID || "info"} accessibilityRole="button" accessibilityLabel={"Info: " + title} onPress={() => show({ title, body })} hitSlop={8}

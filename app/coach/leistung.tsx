@@ -12,7 +12,8 @@ import { useTheme } from "../../src/ui/theme";
 
 export default function Leistung() {
   const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
-  const tests = testsFor(E.grp);
+  const all = testsFor(E.grp), sel = E.team.settings.tests;
+  const tests = sel && sel.length ? all.filter(x => sel.includes(x.key)) : all;
   const [k, setK] = useState<TestKey>(tests[0].key);
   const [day, setDay] = useState(false);
   const d = testDef(k);

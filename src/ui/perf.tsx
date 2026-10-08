@@ -76,7 +76,8 @@ export function TestDaySheet({ visible, onClose, only, test }: { visible: boolea
 }
 function TestDayForm({ only, test, onDone }: { only?: string; test?: TestKey; onDone: () => void }) {
   const s = useStore(); const E = useEngine(); const { t, tf } = E;
-  const tests = testsFor(E.grp);
+  const sel = E.team.settings.tests, all = testsFor(E.grp);
+  const tests = sel && sel.length ? all.filter(x => sel.includes(x.key)) : all;
   const [k, setK] = useState<TestKey>(test || tests[0].key);
   const [date, setDate] = useState<string | null>(E.TODAY);
   const [vals, setVals] = useState<Record<string, number | null>>({});

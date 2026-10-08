@@ -1,5 +1,6 @@
 // Trainer – Spieler-App & Trainerteam: Team-Codes teilen/erneuern, Co-Trainer-Anfragen annehmen.
 import { useRouter } from "expo-router";
+import { teamLabel } from "../../src/core/classes";
 import React, { useEffect, useState } from "react";
 import { Share, Text } from "react-native";
 import type { StaffEntry } from "../../src/data/api";
@@ -17,7 +18,7 @@ export default function Zugang() {
   const loadStaff = () => s.api.staffList(teamId).then(setStaff).catch(() => setStaff([]));
   useEffect(() => { loadStaff(); }, [teamId]); // eslint-disable-line react-hooks/exhaustive-deps
   const run = async (fn: () => Promise<unknown>) => { setBusy(true); try { await fn(); } catch (e) { s.toast(s.errText(e)); } finally { setBusy(false); } };
-  const share = (code: string) => Share.share({ message: tf("cd_shareText", { t: `${E.team.club} ${E.team.name}`, c: code }) }).catch(() => undefined);
+  const share = (code: string) => Share.share({ message: tf("cd_shareText", { t: teamLabel(E.team), c: code }) }).catch(() => undefined);
   const codeBox = (label: string, code: string | undefined, id: string) => (
     <Col gap={6}>
       <T v="small" bold color={c.muted}>{label}</T>

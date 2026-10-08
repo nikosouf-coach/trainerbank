@@ -17,6 +17,9 @@ export const capOf = (k: ClassKey): number => ({ akt: 8, u19: 8, u15: 7, u11: 5 
 export const isGrowthAge = (k: ClassKey): boolean => ["u16", "u15", "u14", "u13", "u12"].includes(k);
 export const DEPTH: Record<Depth, number> = { org: 0, basis: 1, pro: 2 };
 
+/** Anzeigename „Verein Mannschaft“ – ohne Vereinsnamen nur die Mannschaft. */
+export const teamLabel = (t: { club?: string | null; name?: string | null }): string => [t.club, t.name].map(x => (x || "").trim()).filter(Boolean).join(" ");
+
 export function modsFor(depth: Depth, k: ClassKey): Modules {
   const grp = groupOf(k);
   const m: Modules = {

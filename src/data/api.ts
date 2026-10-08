@@ -8,7 +8,14 @@ export type Role = "owner" | "coach" | "physio" | "pending" | "player";
 export const isStaffRole = (r: Role | undefined | null): boolean => r === "owner" || r === "coach" || r === "physio";
 
 export interface Membership { teamId: string; club: string; name: string; role: Role; playerId?: string | null }
-export interface UserInfo { id: string; email: string; displayName: string; lang: Lang }
+/** Persönliche Einstellungen eines Kontos (gelten auf allen Geräten). */
+export interface UserPrefs {
+  /** Info-Buttons (i) anzeigen – Standard: an */
+  info?: boolean;
+  /** Startseite: Reihenfolge und Sichtbarkeit der Karten */
+  dash?: { k: string; on: boolean }[];
+}
+export interface UserInfo { id: string; email: string; displayName: string; lang: Lang; prefs?: UserPrefs }
 export type ConsentKind = "privacy" | "health_data" | "parental" | "ai" | "staff_confidentiality" | "findings";
 export type ConsentState = Record<ConsentKind, boolean>;
 export interface CreateTeamInput {
@@ -20,7 +27,7 @@ export interface AiRequest { mode: AiMode; prompt: string; context: string; lang
 export interface StaffEntry { userId: string; role: Role; displayName: string }
 /** Vom Trainer veröffentlichter Wochenplan (für die Spieler-App). */
 export interface PublishedDay { date: string; kind: string; rpe: number; dauer: number; inhalt: string }
-export type TeamPatch = Partial<Pick<Team, "club" | "name" | "accent" | "cls" | "depth" | "settings" | "principles" | "modules">>;
+export type TeamPatch = Partial<Pick<Team, "club" | "name" | "accent" | "cls" | "depth" | "settings" | "principles" | "modules" | "logo">>;
 
 /** Fehler mit maschinenlesbarem Code (z. B. invalid_code, consent_required, limit). */
 export class ApiError extends Error {
@@ -113,6 +120,12 @@ export interface Api {
   saveTemplate(teamId: string, x: SessionTemplate): Promise<SessionTemplate>;
   deleteTemplate(id: string): Promise<void>;
   saveStaff(teamId: string, x: StaffProfile): Promise<StaffProfile>;
+  /** Vereinslogo bzw. Trainerfoto hochladen; liefert den Speicherpfad */
+  uploadTeamImage(teamId: string, name: "logo" | `staff-${string}`, uri: string): Promise<string>;
+  /** Persönliche Einstellungen speichern */
+  savePrefs(prefs: UserPrefs): Promise<void>;
+  /** Anzeigename des Kontos setzen */
+  setDisplayName(name: string): Promise<void>;
   deleteStaff(id: string): Promise<void>;
 
   // Vorbereitung & Pausen

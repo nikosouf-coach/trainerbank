@@ -6,12 +6,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { addDays, iso, monday } from "../core/dates";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
-import type { Modules, TeamSettings,
+import type { Modules, TeamSettings, StaffRoleKey,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
-import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo } from "./api";
-import { DemoApi } from "./demoApi";
+import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo, type UserPrefs } from "./api";
+import { DemoApi, type DemoSetup } from "./demoApi";
 import { hasSupabase } from "./supabase";
 import { forgetPhoto } from "../ui/playerAvatar";
 
@@ -166,7 +166,7 @@ function useStoreValue() {
     signUp: (email: string, pw: string, name: string) => ref.current.api.signUp(email, pw, name, ref.current.lang),
     resetPassword: (email: string) => ref.current.api.resetPassword(email),
     signOut: async () => { await ref.current.api.signOut(); try { await AsyncStorage.removeItem(K_TEAM); } catch { /* optional */ } set({ phase: "signedOut", user: null, D: null, active: null, memberships: [] }); },
-    startDemo: async (cls: ClassKey = "u19", depth: Depth = "basis", over: { modules?: Modules; settings?: TeamSettings } = {}) => {
+    startDemo: async (cls: ClassKey = "u19", depth: Depth = "basis", over: DemoSetup = {}) => {
       const api = new DemoApi(cls, depth, ref.current.lang, over);
       const user = await api.currentUser(); const ms = await api.memberships();
       set({ api, user, memberships: ms }); await loadActive(api, ms[0], { api, user, memberships: ms, demoView: "coach", demoPlayer: null });
@@ -174,7 +174,48 @@ function useStoreValue() {
     leaveDemo: () => { set({ api: makeApi(), phase: "loading", D: null, active: null, user: null }); setTimeout(() => boot(), 0); },
     setDemoView: (v: "coach" | "player", pid?: string | null) => set({ demoView: v, demoPlayer: pid ?? ref.current.demoPlayer }),
     selectTeam: async (m: Membership) => { set({ phase: "loading" }); try { await loadActive(ref.current.api, m); } catch (e) { toast(errText(e)); } },
-    createTeam: async (input: CreateTeamInput) => { const id = await ref.current.api.createTeam(input); const ms = await ref.current.api.memberships(); await loadActive(ref.current.api, ms.find(m => m.teamId === id) || null, { memberships: ms }); return id; },
+    createTeam: async (input: CreateTeamInput & { me?: Partial<StaffProfile>; staff?: { name: string; role: StaffRoleKey }[]; logoUri?: string | null; prefs?: UserPrefs }) => {
+      const api = ref.current.api;
+      const id = await api.createTeam(input); const ms = await api.memberships();
+      await loadActive(api, ms.find(m => m.teamId === id) || null, { memberships: ms });
+      // Danach: eigenes Trainerprofil (mit Konto verknüpft), Anzeigename, Logo, weitere Trainer, Einstellungen
+      const uid = ref.current.user?.id || null;
+      if (input.me?.name?.trim()) {
+        const me: StaffProfile = { id: tmpId(), name: input.me.name.trim(), role: input.me.role || "chef", areas: input.me.areas || [], phone: input.me.phone || "", email: input.me.email || ref.current.user?.email || "", note: "",
+          userId: uid, birth: input.me.birth || null, license: input.me.license || "", photo: null };
+        const saved = await api.saveStaff(id, me);
+        if (input.me.photo) { const path = await api.uploadTeamImage(id, `staff-${saved.id}`, input.me.photo); await api.saveStaff(id, { ...saved, photo: path }); }
+        await api.setDisplayName(me.name).catch(() => undefined);
+      }
+      for (const x of (input.staff || []).filter(y => y.name.trim())) await api.saveStaff(id, { id: tmpId(), name: x.name.trim(), role: x.role, areas: [], phone: "", email: "", note: "" });
+      if (input.logoUri) { const path = await api.uploadTeamImage(id, "logo", input.logoUri); await api.updateTeam(id, { logo: path }); }
+      if (input.prefs) { const u = ref.current.user; if (u) { const prefs = { ...(u.prefs || {}), ...input.prefs }; await api.savePrefs(prefs).catch(() => undefined); set({ user: { ...u, prefs } }); } }
+      await reload();
+      return id;
+    },
+    /** Persönliche Einstellungen (Info-Buttons, Startseite) */
+    setPrefs: async (p: Partial<UserPrefs>) => {
+      const u = ref.current.user; if (!u) return;
+      const prefs = { ...(u.prefs || {}), ...p }; set({ user: { ...u, prefs } });
+      try { await ref.current.api.savePrefs(prefs); } catch (e) { toast(errText(e)); }
+    },
+    /** Vereinslogo setzen (null = entfernen) */
+    setLogo: async (uri: string | null) => {
+      const { api, active, D } = ref.current; if (!D || !active) return;
+      const path = uri ? await api.uploadTeamImage(active.teamId, "logo", uri) : null;
+      if (path) forgetPhoto(path);
+      D.team.logo = path; set({ version: ref.current.version + 1 });
+      await api.updateTeam(active.teamId, { logo: path });
+    },
+    /** Eigenes bzw. fremdes Trainerprofil inkl. Foto speichern */
+    saveStaffWithPhoto: async (x: StaffProfile, photoUri?: string | null) => {
+      const { api, active, D } = ref.current; if (!D || !active) return x;
+      let saved = await api.saveStaff(active.teamId, x);
+      if (photoUri) { const path = await api.uploadTeamImage(active.teamId, `staff-${saved.id}`, photoUri); forgetPhoto(path); saved = await api.saveStaff(active.teamId, { ...saved, photo: path }); }
+      const i = D.staff.findIndex(y => y.id === x.id || y.id === saved.id); if (i >= 0) D.staff[i] = saved; else D.staff.push(saved);
+      if (saved.userId && saved.userId === ref.current.user?.id) { await api.setDisplayName(saved.name).catch(() => undefined); const u = ref.current.user; if (u) set({ user: { ...u, displayName: saved.name } }); }
+      set({ version: ref.current.version + 1 }); return saved;
+    },
     joinTeam: async (code: string, p: JoinProfile) => { const pid = await ref.current.api.joinTeam(code, p); const ms = await ref.current.api.memberships(); await loadActive(ref.current.api, ms.find(m => m.playerId === pid) || ms[0] || null, { memberships: ms }); return pid; },
     joinStaff: async (code: string) => { await ref.current.api.joinStaff(code); const ms = await ref.current.api.memberships(); await loadActive(ref.current.api, ms.find(m => m.role === "pending") || ms[0] || null, { memberships: ms }); },
     giveConsent: async (kind: ConsentKind, o?: { parentEmail?: string; playerId?: string }) => { await ref.current.api.giveConsent(kind, o); set({ consents: await ref.current.api.consents() }); },
@@ -290,7 +331,11 @@ function useStoreValue() {
   const viewAs: "coach" | "player" | null = !s.active ? null : isDemo ? s.demoView : role === "player" ? "player" : isStaffRole(role) ? "coach" : null;
   const mePid = isDemo ? s.demoPlayer : s.active?.playerId || null;
 
-  return { ...s, ...actions, tr, engine, isDemo, viewAs, mePid };
+  // Eigenes Trainerprofil (Staff mit verknüpftem Konto)
+  const myStaff = s.D && s.user ? s.D.staff.find(x => x.userId === s.user!.id) || null : null;
+  const prefs: UserPrefs = { info: true, ...(s.user?.prefs || {}) };
+
+  return { ...s, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs };
 }
 
 export type Store = ReturnType<typeof useStoreValue>;

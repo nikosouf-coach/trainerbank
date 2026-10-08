@@ -1,19 +1,34 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoExtras, demoTeam } from "../core/demo";
-import type { Contact, Phase, ClassKey, Modules, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
-import { ApiError, type Api, type ConsentState, type Membership, type UserInfo } from "./api";
+import type { Contact, Phase, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import { ApiError, type Api, type ConsentState, type Membership, type UserInfo, type UserPrefs } from "./api";
 
 let n = 1;
 const newId = (id: string): string => (!id || id.startsWith("tmp-")) ? "demo-" + (n++) : id;
+
+/** Angaben aus der Einrichtung, die die Demo übernimmt. */
+export interface DemoSetup {
+  modules?: Modules; settings?: TeamSettings; principles?: Principles;
+  club?: string; team?: string; accent?: string; logo?: string | null;
+  /** eigenes Trainerprofil */
+  me?: Partial<StaffProfile>;
+  /** weitere Trainer (ersetzen die Beispiel-Trainer der Reihe nach) */
+  staff?: { name: string; role: StaffRoleKey }[];
+  prefs?: UserPrefs;
+}
 
 export class DemoApi implements Api {
   readonly kind = "demo" as const;
   private user: UserInfo;
   private consent: ConsentState = { privacy: true, health_data: true, parental: true, ai: true, staff_confidentiality: true, findings: true };
-  constructor(public cls: ClassKey = "u19", public depth: Depth = "basis", public lang: Lang = "de", public over: { modules?: Modules; settings?: TeamSettings } = {}) {
-    this.user = { id: "demo-user", email: "demo@trainerbank.app", displayName: lang === "en" ? "Demo coach" : "Demo-Trainer", lang };
+  constructor(public cls: ClassKey = "u19", public depth: Depth = "basis", public lang: Lang = "de", public over: DemoSetup = {}) {
+    const name = over.me?.name?.trim() || (lang === "en" ? "Demo coach" : "Demo-Trainer");
+    this.user = { id: "demo-user", email: "demo@trainerbank.app", displayName: name, lang, prefs: { info: true, ...(over.prefs || {}) } };
   }
+  async savePrefs(prefs: UserPrefs) { this.user = { ...this.user, prefs }; }
+  async setDisplayName(name: string) { this.user = { ...this.user, displayName: name }; }
+  async uploadTeamImage(_t: string, _n: string, uri: string) { return uri; }
   async currentUser() { return this.user; }
   onAuthChange() { return () => undefined; }
   async signIn() { throw new ApiError("demo"); }
@@ -22,10 +37,10 @@ export class DemoApi implements Api {
   async signOut() { /* Demo verlassen übernimmt die Sitzung */ }
   async setLanguage(lang: Lang) { this.lang = lang; this.user = { ...this.user, lang }; }
   async memberships(): Promise<Membership[]> {
-    const t = demoTeam(this.cls, this.depth, this.lang);
+    const t = demoTeam(this.cls, this.depth, this.lang, this.over);
     return [{ teamId: "demo", club: t.club, name: t.name, role: "owner" }];
   }
-  async teamByCode(code: string) { return code.replace(/[^A-Z0-9]/gi, "").toUpperCase() === "DEMOU19K" ? { club: "Mein Verein", name: "U19" } : null; }
+  async teamByCode(code: string) { return code.replace(/[^A-Z0-9]/gi, "").toUpperCase() === "DEMOU19K" ? { club: this.over.club || "", name: this.over.team || "U19" } : null; }
   async createTeam() { return "demo"; }
   async joinTeam() { return "p6"; }
   async joinStaff() { return "demo"; }
@@ -35,6 +50,15 @@ export class DemoApi implements Api {
     if (this.data) return this.data;
     const D = buildDemo(demoTeam(this.cls, this.depth, this.lang, this.over), this.lang, new Date());
     demoExtras(D, this.lang, new Date());
+    // Trainerprofil aus der Einrichtung = s1 (verknüpft mit dem Demo-Konto); weitere Trainer ersetzen die Beispiele
+    const s1 = D.staff.find(x => x.id === "s1");
+    if (s1) Object.assign(s1, { ...(this.over.me || {}), id: "s1", userId: this.user.id, name: this.over.me?.name?.trim() || s1.name });
+    (this.over.staff || []).filter(x => x.name.trim()).forEach((x, i) => {
+      const slot = D.staff[i + 1];
+      if (slot) Object.assign(slot, { name: x.name.trim(), role: x.role });
+      else D.staff.push({ id: "s" + (D.staff.length + 1), name: x.name.trim(), role: x.role, areas: [], phone: "", email: "", note: "" });
+    });
+    for (const c of D.contacts) if (c.role === "trainer") { const st = D.staff.find(x => x.role === "co"); if (st) c.name = st.name; }
     // Ein Spieler hat sich zusätzlich selbst per App angemeldet (zeigt das Zusammenführen)
     const dup = D.players.find(p => p.vn === "Tim");
     if (dup) D.players.push({ ...dup, id: "p-app-1", nr: null, kg: null, photo: null, userId: "demo-user-tim", neu: true, groups: [] });

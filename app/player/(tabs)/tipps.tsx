@@ -34,7 +34,7 @@ export default function Tipps() {
   return (
     <Screen testID="player-tipps">
       <Header title={t("pn_tipps")} />
-      {msgs.map(m => <Msg key={m.id} eyebrow={`${t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}
+      {msgs.map(m => <Msg key={m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}
       {E.playerSees("tips") ? <>
         <TipCard testID="tip-regen" icon="moon" color="#16a3a3" title={t("pt_regen")} head={reg.head} items={reg.items} info={t("rt_note")} />
         <TipCard testID="tip-gym" icon="bolt" color="#f0762b" title={t("pt_gym")} head={gym.head} info={gym.source}>

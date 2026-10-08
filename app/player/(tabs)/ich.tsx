@@ -3,7 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, Text } from "react-native";
-import { POS } from "../../../src/core/classes";
+import { teamLabel, POS } from "../../../src/core/classes";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Icon } from "../../../src/ui/icons";
 import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, ListItem, Muted, NumField, Row, Screen, T } from "../../../src/ui/kit";
@@ -43,7 +43,7 @@ export default function Ich() {
           <Col gap={4} style={{ flex: 1, minWidth: 180 }}>
             <T v="eyebrow">#{p.nr ?? "–"} · {p.pos} · {E.age(p)} {t("years")}</T>
             <T v="h1" style={{ fontSize: 26 }}>{E.name(p)}</T>
-            <Muted small>{E.team.club} · {E.team.name}</Muted>
+            <Muted small>{teamLabel(E.team)}</Muted>
           </Col>
         </Row>
       </Card>

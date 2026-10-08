@@ -13,15 +13,15 @@ function Shell() {
   usePush();
   return (
     <ThemeProvider accent={s.D?.team.accent || "#0b3d91"}>
-      <Body toast={s.toastMsg} closeLabel={s.tr.t("cancel")} />
+      <Body toast={s.toastMsg} closeLabel={s.tr.t("cancel")} info={s.prefs.info !== false} />
     </ThemeProvider>
   );
 }
-function Body({ toast, closeLabel }: { toast: string | null; closeLabel: string }) {
+function Body({ toast, closeLabel, info }: { toast: string | null; closeLabel: string; info: boolean }) {
   const { c, dark } = useTheme();
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <InfoHost closeLabel={closeLabel}>
+      <InfoHost closeLabel={closeLabel} enabled={info}>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }} />
         <Toast text={toast} />
       </InfoHost>
