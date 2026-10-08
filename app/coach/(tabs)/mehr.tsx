@@ -18,6 +18,7 @@ export default function Mehr() {
       <Card style={{ paddingVertical: 4, gap: 0 }}>
         <ListItem testID="mehr-team" title={t("mh_team")} sub={`${teamLabel(team)} · ${classLabel(classDef(team.cls), E.tr.lang)} · ${t("dp_" + team.depth)}`} right={chev} onPress={() => go("/coach/team")} />
         <ListItem testID="mehr-training" title={t("mh_training")} sub={tf("mh_trainingSub", { n: nDays })} right={chev} onPress={() => go("/coach/training")} />
+        <ListItem testID="mehr-aufgaben" title={t("tk_title2")} sub={t("tk_menuSub")} right={chev} onPress={() => go("/coach/aufgaben")} />
         <ListItem testID="mehr-baukasten" title={t("bk_title")} sub={t("bk_sub")} right={chev} onPress={() => go("/coach/baukasten")} />
         {E.mods.kontakte ? <ListItem testID="mehr-kontakte" title={t("ct_title")} sub={t("ct_sub")} right={chev} onPress={() => go("/coach/kontakte")} /> : null}
         {E.mods.vorbereitung ? <ListItem testID="mehr-vorbereitung" title={t("vb_title")} sub={t("vb_sub")} right={chev} onPress={() => go("/coach/vorbereitung")} /> : null}

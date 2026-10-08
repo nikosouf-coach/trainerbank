@@ -11,6 +11,7 @@ import { TemplatePicker } from "../../../src/ui/archive";
 import { BoardView } from "../../../src/ui/board";
 import { BlockSheet, SketchImage, StaffDot } from "../../../src/ui/day/BlockSheet";
 import { IndivSummary } from "../../../src/ui/indiv";
+import { DayTasks } from "../../../src/ui/tasks/widgets";
 import { Banner, Btn, Card, CardTitle, Chip, Col, Header, Info, Muted, Row, Screen, T, Tag } from "../../../src/ui/kit";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
@@ -140,6 +141,9 @@ export default function Trainingstag() {
           ); })}
         </Col> : <Muted small>{t("day_all")}</Muted>}
       </Card> : null}
+
+      {/* Aufgaben & Dienste */}
+      <DayTasks date={date} />
 
       <BlockSheet block={edit} onClose={() => setEdit(undefined)} />
       <TemplatePicker visible={tpl} onClose={() => setTpl(false)} onPick={async tp => {

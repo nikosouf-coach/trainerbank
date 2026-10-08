@@ -1,7 +1,7 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoExtras, demoTeam } from "../core/demo";
-import type { Contact, Phase, TeamGroup, DayBlock, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { ApiError, type Api, type ConsentState, type Membership, type UserInfo, type UserPrefs } from "./api";
 
 let n = 1;
@@ -145,6 +145,16 @@ export class DemoApi implements Api {
   async uploadSketch(_t: string, _b: string, uri: string) { return uri; }
   async sketchUrl(path: string) { return path; }
   async removeSketch() { /* lokal */ }
+  async saveFine(_t: string, f: FineEntry) { return { ...f, id: newId(f.id) }; }
+  async deleteFine() { /* lokal */ }
+  async addDuties(_t: string, ds: DutyEntry[]) { return ds.map(d => ({ ...d, id: newId(d.id) })); }
+  async saveDuty(_t: string, d: DutyEntry) { return { ...d, id: newId(d.id) }; }
+  async deleteDuties() { /* lokal */ }
+  async saveTask(_t: string, x: TeamTask) { return { ...x, id: newId(x.id) }; }
+  async deleteTask() { /* lokal */ }
+  async setTaskDone() { /* lokal */ }
+  /** Demo: alle Spieler gelten als eingewilligt */
+  async healthConsentPlayers() { return (this.data?.players || []).map(p => p.id); }
   async consents() { return { ...this.consent }; }
   async giveConsent(kind: keyof ConsentState) { this.consent[kind] = true; }
   async withdrawConsent(kind: keyof ConsentState) { this.consent[kind] = false; }

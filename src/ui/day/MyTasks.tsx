@@ -4,20 +4,22 @@ import React from "react";
 import { Pressable, Text } from "react-native";
 import { dayBlocks, myBlocks, timeline } from "../../core/day";
 import { useEngine, useStore } from "../../data/store";
-import { Card, CardTitle, Col, Muted, Row } from "../kit";
+import { Btn, Card, CardTitle, Col, Muted, Row, T } from "../kit";
+import { MyTodos } from "../tasks/widgets";
 import { radius, useTheme, withAlpha } from "../theme";
 
 export function MyTasksCard() {
   const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
   const me = s.myStaff;
-  if (!me) return null;
-  const mine = myBlocks(E.D, me.id, E.TODAY, 7);
+  const mine = me ? myBlocks(E.D, me.id, E.TODAY, 7) : [];
   const dates = [...new Set(mine.map(b => b.date))];
   return (
     <Card testID="today-tasks">
-      <CardTitle title={t("td_myBlocks")} />
+      <CardTitle title={t("tk_mineCoach")} right={<Btn small kind="ghost" testID="today-tasks-all" label={t("tk_all") + " ›"} onPress={() => router.push("/coach/aufgaben")} />} />
+      <MyTodos />
+      {me ? <T v="eyebrow">{t("td_myBlocks")}</T> : null}
       {dates.length ? dates.map(d => {
-        const tl = timeline(dayBlocks(E.D, d), E.zeitOf(d)).filter(x => x.b.staffId === me.id);
+        const tl = timeline(dayBlocks(E.D, d), E.zeitOf(d)).filter(x => x.b.staffId === me?.id);
         return (
           <Pressable key={d} testID={"my-day-" + d} accessibilityRole="button" onPress={() => router.push("/coach/tag/" + d)}
             style={{ borderLeftWidth: 4, borderLeftColor: c.accent, backgroundColor: withAlpha(c.accent, 0.06), borderRadius: radius.s, paddingVertical: 8, paddingHorizontal: 10, gap: 4 }}>
@@ -35,7 +37,7 @@ export function MyTasksCard() {
             ))}
           </Pressable>
         );
-      }) : <Muted small>{t("td_myBlocksNone")}</Muted>}
+      }) : me ? <Muted small>{t("td_myBlocksNone")}</Muted> : null}
     </Card>
   );
 }

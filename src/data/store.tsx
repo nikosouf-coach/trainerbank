@@ -4,9 +4,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { addDays, iso, monday } from "../core/dates";
+import { fineViolations, nextDutyDate, planRotation } from "../core/duties";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
-import type { StaffRoleKey, TeamGroup, DayBlock,
+import type { StaffRoleKey, TeamGroup, DayBlock, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -32,6 +33,8 @@ interface State {
   lang: Lang;
   consents: ConsentState | null;
   aiPlayers: string[];
+  /** Spieler mit Einwilligung in Gesundheitsdaten (Automatik „RPE zu spät“ gilt nur für sie) */
+  healthPlayers: string[];
   toastMsg: string | null;
   /** Nur im Demo-Modus: Trainer- oder Spieleransicht und gewählter Spieler. */
   demoView: "coach" | "player";
@@ -56,7 +59,7 @@ function makeApi(): Api {
 function useStoreValue() {
   const [s, setS] = useState<State>(() => ({
     phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(),
-    consents: null, aiPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
+    consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
   }));
   const ref = useRef(s); ref.current = s;
   const set = useCallback((p: Partial<State>) => setS(prev => ({ ...prev, ...p })), []);
@@ -79,8 +82,11 @@ function useStoreValue() {
     if (!m) { set({ phase: "noTeam", active: null, D: null, ...extra }); return; }
     if (m.role === "pending") { set({ phase: "pending", active: m, D: null, ...extra }); return; }
     const D = await api.loadTeam(m);
-    const [consents, aiPlayers] = await Promise.all([api.consents(), isStaffRole(m.role) ? api.aiConsentPlayers(m.teamId).catch(() => []) : Promise.resolve([])]);
-    set({ phase: "ready", active: m, D, version: ref.current.version + 1, consents, aiPlayers, ...extra });
+    const staff = isStaffRole(m.role);
+    const [consents, aiPlayers, healthPlayers] = await Promise.all([api.consents(), staff ? api.aiConsentPlayers(m.teamId).catch(() => []) : Promise.resolve([]),
+      staff ? api.healthConsentPlayers(m.teamId).catch(() => [] as string[]) : Promise.resolve([] as string[])]);
+    set({ phase: "ready", active: m, D, version: ref.current.version + 1, consents, aiPlayers, healthPlayers, ...extra });
+    if (staff) scheduleAutomation(300);
     try { await AsyncStorage.setItem(K_TEAM, m.teamId); } catch { /* optional */ }
     if (isStaffRole(m.role) && api.kind === "supabase") afterCoachLoad(api, m, D);
   }, [set]);
@@ -143,14 +149,47 @@ function useStoreValue() {
     }, 1500);
   }, []);
 
+  // ---------- Trainer: Automatik für Strafen und Dienste (reihum) ----------
+  const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autoBusy = useRef(false);
+  const runAutomation = useCallback(async () => {
+    const { api, active, D, lang } = ref.current;
+    if (!D || !active || !isStaffRole(active.role) || autoBusy.current) return;
+    const defs = D.team.settings.duties || [], rules = D.team.settings.fines || [];
+    if (!defs.some(d => d.on) && !rules.some(r => r.on && r.trigger !== "manual")) return;
+    autoBusy.current = true;
+    try {
+      const E = createEngine(D, { lang }), hp = new Set(ref.current.healthPlayers);
+      // 1. Strafen aus Regeln (einmal je Spieler und Einheit), Dienst am nächsten passenden Termin
+      for (const v of fineViolations(E, rules, D.fines, pid => hp.has(pid))) {
+        const def = v.rule.duty ? defs.find(d => d.id === v.rule.duty && d.on) : undefined;
+        const dutyDate = def ? nextDutyDate(E, def) : null;
+        let fine: FineEntry;
+        try { fine = await api.saveFine(active.teamId, { id: tmpId(), pid: v.pid, rule: v.rule.id, date: E.TODAY, ref: v.ref, amount: v.rule.amount, note: "", status: "open", auto: true, dutyDate }); }
+        catch { continue; } // schon vorhanden (anderes Gerät)
+        D.fines.push(fine);
+        if (def && dutyDate) D.duties.push(...await api.addDuties(active.teamId, [{ id: tmpId(), date: dutyDate, duty: def.id, pid: v.pid, source: "fine", fineId: fine.id, status: "open" }]));
+      }
+      // 2. Dienste reihum für die nächsten 14 Tage
+      const plan = planRotation(E, defs, D.duties);
+      if (plan.remove.length) { await api.deleteDuties(plan.remove); D.duties = D.duties.filter(x => !plan.remove.includes(x.id)); }
+      if (plan.add.length) D.duties.push(...await api.addDuties(active.teamId, plan.add.map(x => ({ ...x, id: tmpId() }))));
+      setS(prev => ({ ...prev, version: prev.version + 1 }));
+    } catch { /* nächster Versuch bei der nächsten Änderung */ } finally { autoBusy.current = false; }
+  }, []);
+  const scheduleAutomation = useCallback((ms = 1200) => {
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+    autoTimer.current = setTimeout(() => { runAutomation(); }, ms);
+  }, [runAutomation]);
+
   // ---------- Änderungen ----------
   /** Lokal ändern, neu rechnen, speichern; bei Fehler Meldung und neu laden. */
   const change = useCallback(async (local: (D: TeamData) => void, remote: (api: Api, teamId: string) => Promise<unknown>, opts: { plan?: boolean; ok?: string } = {}) => {
     const { D, active, api } = ref.current; if (!D || !active) return;
     local(D); setS(prev => ({ ...prev, version: prev.version + 1 }));
-    try { await remote(api, active.teamId); setS(prev => ({ ...prev, version: prev.version + 1 })); if (opts.ok) toast(opts.ok); if (opts.plan) publishPlans(); }
+    try { await remote(api, active.teamId); setS(prev => ({ ...prev, version: prev.version + 1 })); if (opts.ok) toast(opts.ok); if (opts.plan) { publishPlans(); scheduleAutomation(); } }
     catch (e) { toast(errText(e)); reload(); }
-  }, [toast, errText, reload, publishPlans]);
+  }, [toast, errText, reload, publishPlans, scheduleAutomation]);
 
   const replaceIn = <T extends { id: string }>(arr: T[], tmpObj: T, saved: T): void => { const i = arr.findIndex(x => x.id === tmpObj.id); if (i >= 0) arr[i] = saved; };
   /** Eintrag in einer Liste von TeamData anlegen oder ersetzen und speichern. */
@@ -312,6 +351,40 @@ function useStoreValue() {
     savePhase: (x: SeasonPhase) => upsert("phases", x, (api, t) => api.savePhase(t, x), { plan: true }),
     saveContact: (x: Contact) => upsert("contacts", x, (api, t) => api.saveContact(t, x)),
     deleteContact: (id: string) => change(D => { D.contacts = D.contacts.filter(x => x.id !== id); }, api => api.deleteContact(id)),
+    // Aufgaben, Dienste, Strafen
+    saveDutyDefs: (defs: DutyDef[]) => actions.updateTeam({ settings: { ...ref.current.D!.team.settings, duties: defs } }),
+    saveFineRules: (rules: FineRule[]) => actions.updateTeam({ settings: { ...ref.current.D!.team.settings, fines: rules } }),
+    runAutomation,
+    saveDuty: async (d: DutyEntry): Promise<DutyEntry> => {
+      const { api, active, D } = ref.current; if (!D || !active) return d;
+      const saved = await api.saveDuty(active.teamId, d);
+      const i = D.duties.findIndex(x => x.id === d.id); if (i >= 0) D.duties[i] = saved; else D.duties.push(saved);
+      set({ version: ref.current.version + 1 }); return saved;
+    },
+    saveFine: async (f: FineEntry, withDuty = true): Promise<FineEntry> => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) return f;
+      const saved = await api.saveFine(active.teamId, f);
+      const i = D.fines.findIndex(x => x.id === f.id); if (i >= 0) D.fines[i] = saved; else D.fines.push(saved);
+      // neue Strafe mit Dienst: am nächsten passenden Termin einteilen
+      const def = withDuty && f.id.startsWith("tmp-") ? (D.team.settings.duties || []).find(d => d.id === (D.team.settings.fines || []).find(r => r.id === f.rule)?.duty && d.on) : undefined;
+      if (def) {
+        const E = createEngine(D, { lang }), dd = nextDutyDate(E, def);
+        if (dd) { D.duties.push(...await api.addDuties(active.teamId, [{ id: tmpId(), date: dd, duty: def.id, pid: f.pid, source: "fine", fineId: saved.id, status: "open" }])); saved.dutyDate = dd; await api.saveFine(active.teamId, saved); }
+      }
+      // erlassen: zugehörigen Dienst streichen
+      if (saved.status === "waived") { const ids = D.duties.filter(x => x.fineId === saved.id && x.status === "open").map(x => x.id); if (ids.length) { await api.deleteDuties(ids); D.duties = D.duties.filter(x => !ids.includes(x.id)); } }
+      set({ version: ref.current.version + 1 }); scheduleAutomation(); return saved;
+    },
+    deleteFine: (id: string) => change(D => { D.fines = D.fines.filter(x => x.id !== id); D.duties = D.duties.filter(x => x.fineId !== id); }, api => api.deleteFine(id)),
+    saveTask: async (x: TeamTask): Promise<TeamTask> => {
+      const { api, active, D } = ref.current; if (!D || !active) return x;
+      const saved = await api.saveTask(active.teamId, x);
+      const i = D.tasks.findIndex(y => y.id === x.id); if (i >= 0) D.tasks[i] = saved; else D.tasks.push(saved);
+      set({ version: ref.current.version + 1 }); return saved;
+    },
+    deleteTask: (id: string) => change(D => { D.tasks = D.tasks.filter(x => x.id !== id); }, api => api.deleteTask(id)),
+    setTaskDone: (id: string, done: boolean) => change(D => { const x = D.tasks.find(y => y.id === id); if (x) { x.done = done; x.doneAt = done ? new Date().toISOString() : null; } }, api => api.setTaskDone(id, done)),
+
     // Trainingstag (Ablauf)
     saveBlock: async (b: DayBlock): Promise<DayBlock> => {
       const { api, active, D } = ref.current; if (!D || !active) return b;

@@ -1254,6 +1254,78 @@ delete from public.session_blocks; delete from storage.objects where bucket_id =
 commit;
 
 -- =====================================================================
+-- T36 Aufgaben, Dienste, Strafen (Paket 7)
+-- =====================================================================
+begin;
+with ins as (insert into public.players (team_id, first_name, last_name, birthdate) values (tst.get('team_b')::uuid, 'Bea', 'Fremd', '2007-01-01') returning id)
+select tst.put('bea', id::text) from ins;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.team_fines (team_id, player_id, rule, ref_date, auto, duty_date) values (tst.get('team_a')::uuid, tst.get('max')::uuid, 'late_rpe', '2026-10-06', true, '2026-10-12') returning id)
+select tst.put('fine1', id::text) from ins;
+select tst.throws(format($q$insert into public.team_fines (team_id, player_id, rule, ref_date, auto) values (%L, %L, 'late_rpe', '2026-10-06', true)$q$, tst.get('team_a'), tst.get('max')),
+                  'T36 Automatik-Strafe je Regel/Spieler/Einheit nur einmal', 'duplicate key');
+select tst.affects(format($q$insert into public.team_duties (team_id, date, duty, player_id, source, fine_id) values (%L, '2026-10-12', 'material', %L, 'fine', %L)$q$, tst.get('team_a'), tst.get('max'), tst.get('fine1')), 1, 'T36 Dienst als Strafe');
+select tst.affects(format($q$insert into public.team_duties (team_id, date, duty, player_id) values (%L, '2026-10-12', 'material', %L)$q$, tst.get('team_a'), tst.get('p2_player')), 1, 'T36 Dienst reihum');
+select tst.affects(format($q$insert into public.team_tasks (team_id, title, player_id, due) values (%L, 'Pass mitbringen', %L, '2026-10-18')$q$, tst.get('team_a'), tst.get('max')), 1, 'T36 Aufgabe für Spieler');
+select tst.affects(format($q$insert into public.team_tasks (team_id, title) values (%L, 'Hütchen bestellen')$q$, tst.get('team_a')), 1, 'T36 Trainer-Aufgabe');
+select tst.throws(format($q$insert into public.team_tasks (team_id, title, player_id) values (%L, 'Fremd', %L)$q$, tst.get('team_a'), tst.get('bea')),
+                  'T36 Spieler eines anderen Teams', 'different_teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_fines)::text, '1', 'T36 P1 sieht eigene Strafe');
+  perform tst.eq((select count(*) from public.team_duties)::text, '1', 'T36 P1 sieht nur eigenen Dienst');
+  perform tst.eq((select count(*) from public.team_tasks)::text, '1', 'T36 P1 sieht nur eigene Aufgabe (keine Trainer-Todos)');
+end $$;
+select tst.affects($q$update public.team_tasks set done_at = now()$q$, 1, 'T36 P1 hakt eigene Aufgabe ab');
+do $$ begin
+  perform tst.eq((select done_by::text from public.team_tasks where title = 'Pass mitbringen'), tst.uid('p1')::text, 'T36 erledigt von P1');
+end $$;
+select tst.throws($q$update public.team_tasks set title = 'Kein Pass nötig'$q$, 'T36 P1 kann den Titel nicht ändern', 'forbidden');
+select tst.affects($q$update public.team_fines set status = 'waived'$q$, 0, 'T36 P1 kann Strafe nicht erlassen');
+select tst.affects($q$delete from public.team_duties$q$, 0, 'T36 P1 kann sich nicht austragen');
+select tst.throws(format($q$insert into public.team_tasks (team_id, title, player_id) values (%L, 'Selbst', %L)$q$, tst.get('team_a'), tst.get('max')),
+                  'T36 P1 legt keine Aufgaben an', 'row-level security');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_fines)::text, '0', 'T36 P2 sieht keine fremden Strafen');
+  perform tst.eq((select count(*) from public.team_duties)::text, '1', 'T36 P2 sieht eigenen Dienst');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_fines)::text || '/' || (select count(*) from public.team_duties)::text || '/' || (select count(*) from public.team_tasks)::text, '0/0/0', 'T36 Coach B sieht nichts von Team A');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$delete from public.team_fines where id = %L$q$, tst.get('fine1')), 1, 'T36 Strafe löschen');
+do $$ begin
+  perform tst.eq((select count(*) from public.team_duties where source = 'fine')::text, '0', 'T36 zugehöriger Dienst verschwindet mit');
+end $$;
+commit;
+
+begin;
+delete from public.team_duties; delete from public.team_tasks; delete from public.team_fines;
+delete from public.players where id = tst.get('bea')::uuid;
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

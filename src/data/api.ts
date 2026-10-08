@@ -1,6 +1,6 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
 import type {
-  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock,
+  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 
@@ -145,6 +145,19 @@ export interface Api {
   uploadSketch(teamId: string, blockId: string, uri: string): Promise<string>;
   sketchUrl(path: string): Promise<string | null>;
   removeSketch(path: string): Promise<void>;
+  // Aufgaben, Dienste, Strafen
+  saveFine(teamId: string, f: FineEntry): Promise<FineEntry>;
+  deleteFine(id: string): Promise<void>;
+  /** Dienste anlegen (vorhandene gleiche Einteilungen werden übersprungen); liefert die neuen Zeilen */
+  addDuties(teamId: string, ds: DutyEntry[]): Promise<DutyEntry[]>;
+  saveDuty(teamId: string, d: DutyEntry): Promise<DutyEntry>;
+  deleteDuties(ids: string[]): Promise<void>;
+  saveTask(teamId: string, t: TeamTask): Promise<TeamTask>;
+  deleteTask(id: string): Promise<void>;
+  /** Aufgabe erledigt/offen (Spieler: nur eigene) */
+  setTaskDone(id: string, done: boolean): Promise<void>;
+  /** Spieler mit App-Konto und Einwilligung in Gesundheitsdaten (dürfen RPE eintragen) */
+  healthConsentPlayers(teamId: string): Promise<string[]>;
 
   // Einwilligungen, Push, Datenschutz
   consents(): Promise<ConsentState>;

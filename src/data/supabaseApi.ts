@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "../core/classes";
 import { cleanAreas } from "../core/body";
 import { addDays, iso, monday } from "../core/dates";
-import type { Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing,
+import type { Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -74,6 +74,10 @@ const mapStaff = (r: Row): StaffProfile => ({ id: r.id, name: r.name, role: r.ro
   userId: r.user_id || null, birth: r.birthdate || null, license: r.license || "", photo: r.photo_path || null });
 const mapBlock = (r: Row): DayBlock => ({ id: r.id, date: r.date, sort: r.sort ?? 0, title: r.title, min: r.minutes ?? 15, staffId: r.staff_id || null, exId: r.exercise_id || null,
   text: r.text || "", points: Array.isArray(r.points) ? r.points.map(String) : [], drawing: (r.drawing as Drawing) || null, photo: r.photo_path || null, groupId: r.group_id || null });
+const mapFine = (r: Row): FineEntry => ({ id: r.id, pid: r.player_id, rule: r.rule, date: r.date, ref: r.ref_date || null, amount: r.amount != null ? Number(r.amount) : null, note: r.note || "",
+  status: (r.status || "open") as EntryStatus, auto: !!r.auto, dutyDate: r.duty_date || null });
+const mapDuty = (r: Row): DutyEntry => ({ id: r.id, date: r.date, duty: r.duty, pid: r.player_id, source: r.source, fineId: r.fine_id || null, status: (r.status || "open") as EntryStatus });
+const mapTask = (r: Row): TeamTask => ({ id: r.id, title: r.title, note: r.note || "", due: r.due || null, staffId: r.staff_id || null, pid: r.player_id || null, groupId: r.group_id || null, done: !!r.done_at, doneAt: r.done_at || null });
 const mapGroup = (r: Row): TeamGroup => ({ id: r.id, name: r.name, kind: (r.kind || "custom") as GroupKind, vis: !!r.visible });
 const mapVideo = (r: Row): Video => ({ id: r.id, title: r.title, url: r.url, date: r.date || null, matchId: r.match_id || null, pids: r.player_ids || [], groupIds: r.group_ids || [], note: r.note || "", vis: !!r.visible });
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
@@ -202,7 +206,7 @@ export class SupabaseApi implements Api {
     {
       // Teamweite Daten – auch ohne Spieler (neues Team: Trainerprofil, Kontakte, Gruppen, Übungen)
       // Spieldaten, Noten, Videos (für Spieler filtern die Zugriffsregeln auf eigene, freigegebene Einträge)
-      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases, contacts, groups, members, blocks] = await Promise.all([
+      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases, contacts, groups, members, blocks, duties, fines, tasks] = await Promise.all([
         all((a, b) => sb.from("match_stats").select("*").eq("team_id", tid).range(a, b)),
         all((a, b) => sb.from("player_ratings").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).range(a, b)),
         q(sb.from("videos").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
@@ -219,8 +223,12 @@ export class SupabaseApi implements Api {
         all((a, b) => sb.from("group_members").select("group_id, player_id").eq("team_id", tid).range(a, b)),
         // Ablauf der Trainingstage (nur Trainerteam; Spieler haben keinen Zugriff)
         staff ? all((a, b) => sb.from("session_blocks").select("*").eq("team_id", tid).gte("date", addDays(today, -28)).order("date").order("sort").range(a, b)) : Promise.resolve([] as Row[]),
+        // Dienste, Strafen, Aufgaben (Spieler: nur eigene – Zugriffsregeln)
+        all((a, b) => sb.from("team_duties").select("*").eq("team_id", tid).gte("date", addDays(today, -60)).order("date").range(a, b)),
+        all((a, b) => sb.from("team_fines").select("*").eq("team_id", tid).or(`status.eq.open,date.gte.${addDays(today, -120)}`).order("date").range(a, b)),
+        all((a, b) => sb.from("team_tasks").select("*").eq("team_id", tid).or(`done_at.is.null,created_at.gte.${addDays(today, -30)}`).order("created_at").range(a, b)),
       ]);
-      D.blocks = blocks.map(mapBlock);
+      D.blocks = blocks.map(mapBlock); D.duties = duties.map(mapDuty); D.fines = fines.map(mapFine); D.tasks = tasks.map(mapTask);
       D.groups = groups.map(mapGroup);
       const byId = new Map([...D.players, ...D.inactive].map(p => [p.id, p] as const));
       for (const r of members) { const p = byId.get(r.player_id); if (p) (p.groups ||= []).push(r.group_id); }
@@ -457,6 +465,41 @@ export class SupabaseApi implements Api {
   }
   async sketchUrl(path: string) { const { data } = await this.sb.storage.from("sketches").createSignedUrl(path, 3600); return data?.signedUrl || null; }
   async removeSketch(path: string) { await this.sb.storage.from("sketches").remove([path]); }
+
+  // ---------- Aufgaben, Dienste, Strafen ----------
+  async saveFine(teamId: string, f: FineEntry) {
+    const row: Row = { team_id: teamId, player_id: f.pid, rule: f.rule, date: f.date, ref_date: f.ref, amount: f.amount, note: f.note || null, status: f.status, auto: f.auto, duty_date: f.dutyDate };
+    const r = isTmp(f.id) ? await q<Row>(this.sb.from("team_fines").insert(row).select().single()) : await q<Row>(this.sb.from("team_fines").update(row).eq("id", f.id).select().single());
+    return mapFine(r);
+  }
+  async deleteFine(id: string) { await q(this.sb.from("team_fines").delete().eq("id", id)); }
+  async addDuties(teamId: string, ds: DutyEntry[]) {
+    if (!ds.length) return [];
+    const rows = ds.map(d => ({ team_id: teamId, date: d.date, duty: d.duty, player_id: d.pid, source: d.source, fine_id: d.fineId, status: d.status }));
+    const r = await q<Row[]>(this.sb.from("team_duties").upsert(rows, { onConflict: "team_id,date,duty,player_id", ignoreDuplicates: true }).select());
+    return r.map(mapDuty);
+  }
+  async saveDuty(teamId: string, d: DutyEntry) {
+    const row: Row = { team_id: teamId, date: d.date, duty: d.duty, player_id: d.pid, source: d.source, fine_id: d.fineId, status: d.status };
+    const r = isTmp(d.id) ? await q<Row>(this.sb.from("team_duties").insert(row).select().single()) : await q<Row>(this.sb.from("team_duties").update(row).eq("id", d.id).select().single());
+    return mapDuty(r);
+  }
+  async deleteDuties(ids: string[]) { if (ids.length) await q(this.sb.from("team_duties").delete().in("id", ids)); }
+  async saveTask(teamId: string, x: TeamTask) {
+    const done = x.done ? (x.doneAt || new Date().toISOString()) : null;
+    const row: Row = { team_id: teamId, title: x.title.trim(), note: x.note || null, due: x.due, staff_id: x.staffId, player_id: x.pid, group_id: x.groupId, done_at: done };
+    const r = isTmp(x.id) ? await q<Row>(this.sb.from("team_tasks").insert(row).select().single()) : await q<Row>(this.sb.from("team_tasks").update(row).eq("id", x.id).select().single());
+    return mapTask(r);
+  }
+  async deleteTask(id: string) { await q(this.sb.from("team_tasks").delete().eq("id", id)); }
+  async setTaskDone(id: string, done: boolean) { await q(this.sb.from("team_tasks").update({ done_at: done ? new Date().toISOString() : null }).eq("id", id)); }
+  async healthConsentPlayers(teamId: string) {
+    const rows = await q(this.sb.from("consents").select("user_id, kind").in("kind", ["health_data", "parental"]).is("withdrawn_at", null));
+    const players = await q(this.sb.from("players").select("id, user_id, birthdate").eq("team_id", teamId).not("user_id", "is", null));
+    const has = (uid: string, kind: string): boolean => rows.some(r => r.user_id === uid && r.kind === kind);
+    const u16 = (b: string | null): boolean => !!b && b > addDays(iso(new Date()), -16 * 365.25 | 0);
+    return players.filter(p => has(p.user_id, "health_data") && (!u16(p.birthdate) || has(p.user_id, "parental"))).map(p => p.id as string);
+  }
 
   // ---------- Gruppen ----------
   async saveGroup(teamId: string, g: TeamGroup) {

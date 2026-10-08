@@ -34,6 +34,10 @@ export interface TeamSettings {
   playerAbs?: boolean;
   /** Was Spieler in ihrer App sehen (Baukasten). Fehlender Schlüssel = Standard aus PLAYER_VIEW. */
   playerView?: Partial<Record<PlayerViewKey, boolean>>;
+  /** Dienste (Materialdienst, Leibchen …), reihum verteilt */
+  duties?: DutyDef[];
+  /** Strafenkatalog mit optionalen Automatiken */
+  fines?: FineRule[];
   /** Push-Erinnerungen für Spieler (Server: supabase/functions/_shared/schedule.ts → reminderSettings). */
   reminders?: Reminders;
   /** Testbatterie des Teams (Leistungsdiagnostik); leer/fehlend = alle für die Altersgruppe empfohlenen */
@@ -137,6 +141,21 @@ export interface Exercise {
   rpe: number | null; desc: string; points: CoachPoint[]; drawing: Drawing | null; video: string;
 }
 export interface TemplateBlock { exId: string | null; text: string; min: number; staffId?: string | null }
+/** Dienst (z. B. Materialdienst): wann und wie viele Spieler */
+export type DutyWhen = "training" | "match" | "both";
+export interface DutyDef { id: string; name: string; when: DutyWhen; count: number; on: boolean }
+/** Strafe im Katalog. Automatik: RPE nicht binnen 24 h (nur mit Einwilligung) bzw. unentschuldigt gefehlt. */
+export type FineTrigger = "manual" | "late_rpe" | "unexcused";
+export interface FineRule { id: string; name: string; trigger: FineTrigger; duty: string | null; amount: number | null; note: string; on: boolean;
+  /** Automatik gilt erst für Einheiten ab diesem Tag (Einschalten) */
+  since?: string }
+export type EntryStatus = "open" | "done" | "waived";
+/** Eingeteilter Dienst an einem Tag */
+export interface DutyEntry { id: string; date: string; duty: string; pid: string; source: "rotation" | "fine" | "manual"; fineId: string | null; status: EntryStatus }
+/** Vergebene Strafe */
+export interface FineEntry { id: string; pid: string; rule: string; date: string; ref: string | null; amount: number | null; note: string; status: EntryStatus; auto: boolean; dutyDate: string | null }
+/** Aufgabe für einen Trainer (staffId), alle Trainer (beides null) oder einen Spieler (pid) */
+export interface TeamTask { id: string; title: string; note: string; due: string | null; staffId: string | null; pid: string | null; groupId: string | null; done: boolean; doneAt: string | null }
 /** Ablauf eines Trainingstags: ein Block (Aufwärmen, Passform …) mit Zuständigkeit, Coachingpunkten und Skizze. */
 export interface DayBlock {
   id: string; date: string; sort: number; title: string; min: number;
@@ -228,6 +247,8 @@ export interface TeamData {
   groups: TeamGroup[];
   /** Ablauf der Trainingstage (nur Trainerteam) */
   blocks: DayBlock[];
+  /** Dienste, Strafen, Aufgaben (Spieler sehen nur eigene) */
+  duties: DutyEntry[]; fines: FineEntry[]; tasks: TeamTask[];
   /** Inaktive Spieler (nur für das Trainerteam; nicht in Berechnungen) */
   inactive: Player[];
 }
@@ -236,6 +257,6 @@ export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
-    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], inactive: [],
+    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], duties: [], fines: [], tasks: [], inactive: [],
   };
 }

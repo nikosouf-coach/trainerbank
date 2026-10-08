@@ -1,6 +1,7 @@
 // Demo-Mannschaft: für den Demo-Modus, für Tests und für „Beispieldaten laden“ (App-Review).
 import { classDef, defaultPrinciples, defaultSettings, groupOf, isGrowthAge, modsFor, sleepTarget } from "./classes";
 import { addDays, ageOn, diff, iso, monday, parse, rng } from "./dates";
+import { dutySuggest, fineSuggest } from "./duties";
 import { createEngine } from "./engine";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
@@ -192,9 +193,29 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoContacts(D, en);
   demoGroups(D, en, TODAY);
   demoBlocks(D, lang, now);
+  demoTasks(D, lang, TODAY);
   const tw = D.players.filter(p => (p.groups || []).includes("g1")).map(p => p.id);
   if (tw.length) D.videos.push({ id: "v" + (vid++), title: en ? "Goalkeepers: build-up under pressure – 6 clips" : "Torhüter: Spieleröffnung unter Druck – 6 Clips", url: "https://example.com/video/tw-aufbau", date: addDays(TODAY, -2), matchId: null, pids: tw, groupIds: ["g1"], note: en ? "Watch before Thursday's goalkeeper session." : "Bitte bis zum TW-Training am Donnerstag anschauen.", vis: true });
   D.videos.push({ id: "v" + (vid++), title: en ? "Pressing triggers – clips for the back line" : "Pressing-Auslöser – Clips für die Abwehrkette", url: "https://example.com/video/pressing", date: null, matchId: null, pids: ["p2", "p3", "p4"], note: "", vis: true });
+}
+
+/** Dienste, Strafenkatalog (Automatik seit 3 Tagen an) und Beispiel-Aufgaben. */
+function demoTasks(D: TeamData, lang: Lang, TODAY: string): void {
+  const en = lang === "en", S = D.team.settings;
+  if (!S.duties) S.duties = dutySuggest(lang);
+  if (!S.fines) S.fines = fineSuggest(lang).map(r => r.trigger !== "manual" ? { ...r, on: true, since: addDays(TODAY, -3) } : r);
+  let n = 1; const id = (): string => "tk" + (n++);
+  const nextMatch = D.matches.filter(m => m.date >= TODAY).sort((a, b) => a.date < b.date ? -1 : 1)[0];
+  const task = (title: string, due: string | null, staffId: string | null, pid: string | null, done = false, note = ""): void => {
+    D.tasks.push({ id: id(), title, note, due, staffId, pid, groupId: null, done, doneAt: done ? TODAY + "T08:00:00Z" : null });
+  };
+  task(en ? "Reorder bibs (2 sets)" : "Leibchen nachbestellen (2 Sätze)", addDays(TODAY, 2), "s1", null);
+  task(en ? "Cut set-piece clips" : "Standard-Clips schneiden", addDays(TODAY, 1), "s2", null);
+  task(en ? "Check goalkeeper gloves" : "TW-Handschuhe prüfen", addDays(TODAY, 3), "s3", null);
+  if (nextMatch) task(en ? "Fill in team sheet" : "Spielbericht vorbereiten", nextMatch.date, null, null);
+  const ps = D.players.slice(0, 4);
+  ps.forEach((p, i) => task(en ? "Bring your player pass" : "Spielerpass mitbringen", nextMatch?.date || addDays(TODAY, 5), null, p.id, i === 0,
+    en ? "For the cup match the referee checks passes." : "Beim Pokalspiel kontrolliert der Schiri die Pässe."));
 }
 
 /** Ablauf der nächsten zwei Trainingstage mit Zuständigkeiten (Co-Trainer, TW-Trainer, Physio). */
