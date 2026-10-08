@@ -240,6 +240,13 @@ export class SupabaseApi implements Api {
       D.ratings = ratings.map(mapRating);
       D.videos = videos.map(mapVideo);
     }
+    if (!staff && m.playerId) {
+      // Eigene Platzierungen in Tests (Server rechnet, ohne Werte anderer)
+      try {
+        const rk = await q<Row[]>(sb.rpc("my_test_ranks", { p_player: m.playerId }));
+        D.ranks = {}; for (const r of rk) D.ranks[r.test as TestKey] = { rank: r.rank, n: r.n, best: r.best != null ? Number(r.best) : null };
+      } catch { D.ranks = {}; }
+    }
     if (!staff) {
       // Spieler sehen den vom Trainer veröffentlichten Plan. Er wird als Vorgabe übernommen,
       // damit Intensitäten und Inhalte in der Spieler-App genau dem Plan des Trainers entsprechen.

@@ -1326,6 +1326,53 @@ delete from public.players where id = tst.get('bea')::uuid;
 commit;
 
 -- =====================================================================
+-- T37 Platzierung in Tests (Paket 8): eigener Platz ohne Werte anderer
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.performance_tests (team_id, player_id, test, date, value) values
+  (%1$L, %2$L, 'sprint10', '2026-10-01', 1.80), (%1$L, %3$L, 'sprint10', '2026-10-01', 1.75), (%1$L, %4$L, 'sprint10', '2026-10-01', 1.90),
+  (%1$L, %5$L, 'sprint10', '2026-10-01', 1.70), (%1$L, %6$L, 'sprint10', '2026-10-01', 1.85),
+  (%1$L, %2$L, 'cmj', '2026-10-01', 40), (%1$L, %3$L, 'cmj', '2026-10-01', 42)$q$,
+  tst.get('team_a'), tst.get('max'), tst.get('erik'), tst.get('tom'), tst.get('p2_player'), tst.get('p4_player')), 7, 'T37 Testwerte für 5 Spieler');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select string_agg(test || ':' || rank || '/' || n || ':' || coalesce(best::text, '-'), ',') from public.my_test_ranks(tst.get('max')::uuid)), 'sprint10:3/5:-',
+                 'T37 eigener Platz (3 von 5), ohne Teambestwert, CMJ erst ab 5 Werten');
+  perform tst.eq((select count(*) from public.my_test_ranks(tst.get('p2_player')::uuid))::text, '0', 'T37 kein Platz für fremde Spieler');
+  perform tst.eq((select count(*) from public.performance_tests where player_id <> tst.get('max')::uuid)::text, '0', 'T37 Werte anderer bleiben verborgen');
+end $$;
+commit;
+
+begin;
+update public.teams set settings = settings || '{"testRank": "best"}'::jsonb where id = tst.get('team_a')::uuid;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select best::text from public.my_test_ranks(tst.get('max')::uuid) where test = 'sprint10'), '1.70', 'T37 mit Freigabe: Teambestwert ohne Namen');
+end $$;
+commit;
+
+begin;
+update public.teams set settings = settings || '{"testRank": "off"}'::jsonb where id = tst.get('team_a')::uuid;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.my_test_ranks(tst.get('max')::uuid))::text, '0', 'T37 Platzierung abgeschaltet');
+end $$;
+commit;
+
+begin;
+update public.teams set settings = settings - 'testRank' where id = tst.get('team_a')::uuid;
+delete from public.performance_tests where date = '2026-10-01' and test in ('sprint10', 'cmj');
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

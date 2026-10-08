@@ -5,7 +5,6 @@ import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { addDays, diff } from "../core/dates";
-import { XP } from "../core/game";
 import { runTargets } from "../core/perf";
 import {
   CAT_COLOR, FREE_LIB, artOf, catOf, compliance, defaultProgram, freeDef, phaseOn, phaseWeeks, progWeek, upcomingPhase, weekIndex,
@@ -111,11 +110,8 @@ export function LogSheet({ it, ph, pid, onClose }: { it: ProgItem | null; ph: Ph
   const okDate = !!ph && date >= ph.from && date <= ph.to && date <= E.TODAY;
   const save = async () => {
     if (!it || !ph || !min || !rpe) return;
-    // XP wie in gameOf: +5 für den ersten Zusatz des Tages, +10 je Programm-Einheit (höchstens zwei pro Tag)
-    const same = (E.D.extra[pid] || []).filter(x => x.date === date);
-    const xp = (same.length ? 0 : XP.extra) + (same.filter(x => x.prog).length < 2 ? XP.prog : 0);
     await s.saveExtra(pid, { id: tmpId(), date, art: artOf(it), min, rpe, label: itemTitle(t, it).slice(0, 60), prog: it.id });
-    s.toast(tf("pg_logged", { xp })); onClose();
+    s.toast(t("pg_logged")); onClose();
   };
   return (
     <Sheet visible={!!it} onClose={onClose} title={t("pg_log")} testID="pg-log" closeLabel={t("cancel")}>
@@ -128,7 +124,7 @@ export function LogSheet({ it, ph, pid, onClose }: { it: ProgItem | null; ph: Ph
         {!okDate ? <Muted small>{E.de(ph!.from)} – {E.de(ph!.to)}</Muted> : null}
         <Col gap={6}><T v="small" bold color={c.muted}>{t("pg_rpe")}{rpe ? `: ${rpe} · ${E.intWord(rpe)}` : ""}</T>
           <NumScale testID="pg-log-rpe" value={rpe} min={1} max={10} color={n => rpeColor(c, n)} onChange={setRpe} /></Col>
-        <Btn testID="pg-log-save" kind="primary" icon="check" label={t("pg_done") + " · +" + XP.prog + " XP"} disabled={!okDate || !min || !rpe} onPress={save} style={{ alignSelf: "flex-start" }} />
+        <Btn testID="pg-log-save" kind="primary" icon="check" label={t("pg_done")} disabled={!okDate || !min || !rpe} onPress={save} style={{ alignSelf: "flex-start" }} />
       </>) : null}
     </Sheet>
   );

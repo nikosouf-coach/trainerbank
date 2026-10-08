@@ -1,18 +1,17 @@
-// Spielerische Elemente der Spieler-App: Erfahrungspunkte (XP), Level, Serie, Wochenringe, Abzeichen.
-// Belohnt wird regelmäßiges Eintragen und Dabeisein – nicht hohe Belastung (keine Anreize zur Überlastung).
+// Rückmeldung in der Spieler-App: Zuverlässigkeit (Angaben der letzten 4 Wochen), Serie, Wochenziele, Meilensteine.
+// Professionell statt verspielt: keine Punkte oder Level. Belohnt wird vollständiges, ehrliches Eintragen und
+// Dabeisein – nicht hohe Belastung (keine Anreize zur Überlastung oder zum Schönen von Angaben).
 import { addDays, diff, monday } from "./dates";
 import type { Engine } from "./engine";
 import { testDef } from "./perf";
 import { phaseWeeks, progWeek } from "./prep";
 
-export const XP = { well: 10, rpe: 15, att: 10, extra: 5, prog: 10 } as const;
-/** Benötigte XP für Level L (L1 = 0, L2 = 100, L3 = 300, L4 = 600, L5 = 1000 …). */
-export const xpFor = (level: number): number => 50 * level * (level - 1);
-
 export interface Badge { key: string; earned: boolean; progress: number }
 export interface Ring { done: number; total: number }
 export interface GameState {
-  xp: number; level: number; levelStart: number; levelNext: number; pct: number;
+  /** Anteil der erwarteten Angaben der letzten 28 Tage (Morgen-Check je Tag, RPE je besuchter Einheit); null = zu wenig Daten */
+  reliability: number | null;
+  rel: { checkins: Ring; rpe: Ring };
   streak: number; bestStreak: number; checkedToday: boolean;
   week: { checkins: Ring; rpe: Ring; att: Ring };
   badges: Badge[];
@@ -24,15 +23,16 @@ export function gameOf(E: Engine, pid: string): GameState {
   const wellDays = Object.keys(well).filter(d => d <= TODAY).sort();
   const attended = D.sessions.filter(s => s.date <= TODAY && E.attStatus(s.date, pid) === "da");
 
-  // XP: Einträge und Anwesenheit; Zusatzsport höchstens einmal pro Tag
-  const extraDays = new Set(extra.filter(x => x.date <= TODAY).map(x => x.date));
-  // Programm-Einheiten aus Pause/Vorbereitung: +10 je Einheit, höchstens zwei pro Tag
-  const progDay: Record<string, number> = {};
-  for (const x of extra) if (x.prog && x.date <= TODAY) progDay[x.date] = Math.min(2, (progDay[x.date] || 0) + 1);
-  const xp = wellDays.length * XP.well + Object.keys(rpe).filter(d => d <= TODAY).length * XP.rpe + attended.length * XP.att + extraDays.size * XP.extra
-    + Object.values(progDay).reduce((a, n) => a + n, 0) * XP.prog;
-  let level = 1; while (xp >= xpFor(level + 1)) level++;
-  const levelStart = xpFor(level), levelNext = xpFor(level + 1);
+  // Zuverlässigkeit: 28 Tage – Morgen-Checks (seit dem ersten Eintrag bzw. Teambeitritt) und RPE je besuchter Einheit
+  const first = wellDays[0] || Object.keys(rpe).sort()[0] || TODAY;
+  const span = Math.min(28, diff(first, TODAY) + 1);
+  const absentDays = Array.from({ length: span }, (_, k) => addDays(TODAY, -k)).filter(d => { const a = E.absenceOn(pid, d); return !!a && ["verletzung", "krank"].includes(a.typ); }).length;
+  const chkTotal = Math.max(0, span - absentDays), chkDone = Math.min(chkTotal, wellDays.filter(d => diff(d, TODAY) < span).length);
+  const att28 = attended.filter(s => (diff(s.date, TODAY) <= 28 && s.date < TODAY) || (s.date === TODAY && !!rpe[s.date]));
+  const rpeDone = att28.filter(s => rpe[s.date]).length;
+  const rel = { checkins: { done: chkDone, total: chkTotal }, rpe: { done: rpeDone, total: att28.length } };
+  const parts = [rel.checkins.total >= 5 ? rel.checkins.done / rel.checkins.total : null, rel.rpe.total >= 2 ? rel.rpe.done / rel.rpe.total : null].filter((x): x is number => x != null);
+  const reliability = parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : null;
 
   // Serie: aufeinanderfolgende Tage mit Morgen-Check (bis heute oder gestern)
   const has = new Set(wellDays);
@@ -92,5 +92,5 @@ export function gameOf(E: Engine, pid: string): GameState {
     const ss = E.seasonStats(pid);
     badges.push(b("goal", ss.goals ? 1 : 0), b("assist", ss.assists ? 1 : 0), b("top", ss.best != null ? Math.min(1, ss.best / 8) : 0));
   }
-  return { xp, level, levelStart, levelNext, pct: (xp - levelStart) / Math.max(1, levelNext - levelStart), streak, bestStreak, checkedToday, week, badges };
+  return { reliability, rel, streak, bestStreak, checkedToday, week, badges };
 }

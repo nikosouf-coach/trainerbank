@@ -13,14 +13,17 @@ export function ratingColor(r: number | null | undefined): string {
   if (r == null) return "#8b939e";
   return r >= 9 ? "#2f6fde" : r >= 8 ? "#13854f" : r >= 7 ? "#2fae5f" : r >= 6.5 ? "#c9a400" : r >= 6 ? "#e8820c" : "#d9452f";
 }
+/** Spieler-Ansicht: nur gute Noten (ab 7,0) farbig hervorheben, alle anderen neutral dunkel. */
+export const SOFT_NEUTRAL = "#4a5361";
+export const softRatingColor = (r: number | null | undefined): string => r != null && r >= 7 ? ratingColor(r) : SOFT_NEUTRAL;
 export const fmtRating = (r: number, lang: "de" | "en"): string => lang === "en" ? r.toFixed(1) : r.toFixed(1).replace(".", ",");
 
 /** Farbiges Notenkästchen. */
-export function RatingBadge({ value, size = "m" }: { value: number | null; size?: "s" | "m" | "l" }) {
-  const E = useEngine();
+export function RatingBadge({ value, size = "m", soft }: { value: number | null; size?: "s" | "m" | "l"; soft?: boolean }) {
+  const E = useEngine(); const bg = soft ? softRatingColor(value) : ratingColor(value);
   const w = size === "l" ? 58 : size === "s" ? 34 : 42, fs = size === "l" ? 22 : size === "s" ? 12.5 : 15;
   return (
-    <View accessibilityLabel={value != null ? "Note " + fmtRating(value, E.tr.lang) : "–"} style={{ minWidth: w, height: w * 0.72, borderRadius: 7, backgroundColor: ratingColor(value), alignItems: "center", justifyContent: "center", paddingHorizontal: 5 }}>
+    <View accessibilityLabel={value != null ? "Note " + fmtRating(value, E.tr.lang) : "–"} style={{ minWidth: w, height: w * 0.72, borderRadius: 7, backgroundColor: bg, alignItems: "center", justifyContent: "center", paddingHorizontal: 5 }}>
       <Text style={{ color: "#fff", fontWeight: "800", fontSize: fs, fontVariant: ["tabular-nums"] }}>{value != null ? fmtRating(value, E.tr.lang) : "–"}</Text>
     </View>
   );

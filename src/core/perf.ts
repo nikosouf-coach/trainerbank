@@ -1,7 +1,7 @@
 // Leistungsdiagnostik: Testkatalog, Orientierungswerte, Bewertung, CMJ-Ermüdungscheck, Fitnessfaktor, Laufvorgaben.
 // Reine Berechnung auf TeamData – ohne UI und ohne Datenbank.
 import { diff } from "./dates";
-import type { Group, TeamData, TestKey, TestResult } from "./types";
+import type { Group, TeamData, TestKey, TestRank, TestResult } from "./types";
 
 export interface TestDef {
   key: TestKey;
@@ -93,4 +93,20 @@ export function runTargets(D: TeamData, pid: string): { vift: number; d15_90: nu
   const r = resultsOf(D, pid, "ift")[0]; if (!r) return null;
   const m = (pct: number, sec: number) => Math.round(r.value / 3.6 * pct * sec);
   return { vift: r.value, d15_90: m(0.9, 15), d15_95: m(0.95, 15), d30_85: m(0.85, 30), date: r.date };
+}
+
+/** Mindestzahl Spieler mit Wert, ab der eine Platzierung gezeigt wird (sonst ließen sich Werte anderer erschließen) */
+export const RANK_MIN = 5;
+/**
+ * Platzierung eines Spielers im Team: jeweils letzter Wert der letzten 365 Tage je aktivem Spieler.
+ * Gleiche Werte teilen sich den Platz. `null` bei zu wenigen Werten oder ohne eigenen Wert.
+ */
+export function testRank(D: TeamData, pid: string, key: TestKey, today: string, withBest: boolean): TestRank | null {
+  const lo = testDef(key).lower;
+  const latest = D.players.map(p => resultsOf(D, p.id, key).find(r => diff(r.date, today) <= 365)).filter((r): r is TestResult => !!r);
+  if (latest.length < RANK_MIN) return null;
+  const mine = latest.find(r => r.pid === pid); if (!mine) return null;
+  const better = latest.filter(r => lo ? r.value < mine.value : r.value > mine.value).length;
+  const best = lo ? Math.min(...latest.map(r => r.value)) : Math.max(...latest.map(r => r.value));
+  return { rank: better + 1, n: latest.length, best: withBest ? best : null };
 }

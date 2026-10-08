@@ -48,7 +48,7 @@ export default function Tipps() {
           <Muted small>{t("px_note")}</Muted>
         </TipCard> : null}
         <TipCard testID="tip-food" icon="star" color="#2f9e44" title={t("pt_food")} head={food.head} items={food.items} info={food.source} />
-        <TipCard testID="tip-sleep" icon="moon" color="#3a6db5" title={t("pt_sleep")} head={sl.head} items={sl.items} />
+        <TipCard testID="tip-sleep" icon="moon" color="#3a6db5" title={t("pt_sleep")} head={sl.head} items={sl.items} info={sl.source} />
       </> : null}
       {E.playerSees("ai") ? (s.consents?.ai
         ? <AiPanel mode="player" testID="pai" context={() => E.playerAiContext(p)} quick={["pt_ki_q1", "pt_ki_q2", "pt_ki_q3"]} placeholder={t("pt_kiPh")} />

@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { diff } from "../../../src/core/dates";
-import { XP } from "../../../src/core/game";
+import { gameOf } from "../../../src/core/game";
 import type { AbsenceType, Complaint, ExtraType, WellnessItems } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, Info, ListItem, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T } from "../../../src/ui/kit";
@@ -33,7 +33,9 @@ function RpeForm() {
     const m = Math.max(1, min || defMin); s.saveRpe(p.id, cur.date, { rpe, min: m });
     const au = rpe * m, need = rpe >= 7 && E.mods.regeneration ? E.recoveryNeed(p, { typ: cur.typ, rpe, min: m }).h : null;
     setFb(tf("pe_fb", { au: E.int(au) }) + (need ? " " + tf("pe_fbRec", { h: need }) : ""));
-    s.toast(`${tf("pe_saved", { au: E.int(au) })}${done ? "" : " · " + tf("gm_plusXp", { x: XP.rpe })}`);
+    // Rückmeldung: RPE-Quote der letzten 4 Wochen (inkl. dieses Eintrags)
+    const g = gameOf(E, p.id), q = g.rel.rpe.total ? Math.round(Math.min(1, (g.rel.rpe.done + (done ? 0 : 1)) / Math.max(g.rel.rpe.total, 1)) * 100) : null;
+    s.toast(`${tf("pe_saved", { au: E.int(au) })}${!done && q != null ? " · " + tf("gm_rpeQuote", { q }) : ""}`);
   };
   return (
     <Card testID="form-rpe">
@@ -76,7 +78,8 @@ function WellForm({ onDone }: { onDone: () => void }) {
     if (pain !== "none" && !cleanAreas(areas).length) { s.toast(t("pw_regionNeed")); return; }
     const it = items as WellnessItems;
     s.saveWellness(p.id, E.TODAY, { sum: it.sq + it.fat + it.doms + it.stress, schlaf: sleep, beschw: pain, ort: pain !== "none" ? ort.trim() : "", items: it, areas: pain !== "none" ? cleanAreas(areas) : [] });
-    s.toast(`${t("pw_saved")}${today ? "" : " · " + tf("gm_plusXp", { x: XP.well })}`); onDone();
+    const streak = gameOf(E, p.id).streak + (today ? 0 : 1);
+    s.toast(`${t("pw_saved")}${!today && streak > 1 ? " · " + tf("gm_streak", { n: streak }) : ""}`); onDone();
   };
   return (
     <Card testID="form-well">
@@ -119,9 +122,9 @@ function ExtraForm() {
   const L = (E.D.extra[p.id] || []).filter(x => diff(x.date, E.TODAY) <= 7 && x.date <= E.TODAY).sort((a, b) => a.date < b.date ? 1 : -1);
   const save = () => {
     if (art === "sonst" && !label.trim()) { s.toast(t("pl_otherLabel")); return; }
-    const d = !date || date > E.TODAY ? E.TODAY : date, first = !(E.D.extra[p.id] || []).some(x => x.date === d);
+    const d = !date || date > E.TODAY ? E.TODAY : date;
     s.saveExtra(p.id, { id: tmpId(), date: d, art, min: Math.max(5, min || 60), rpe, label: art === "sonst" ? label.trim() : undefined });
-    s.toast(`${t("px_saved")}${first ? " · " + tf("gm_plusXp", { x: XP.extra }) : ""}`); setLabel("");
+    s.toast(t("px_saved")); setLabel("");
   };
   return (
     <>

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { addDays } from "../dates";
 import { buildDemo, demoTeam } from "../demo";
 import { createEngine } from "../engine";
-import { bandOfValue, cmjDrop, runTargets } from "../perf";
+import { bandOfValue, cmjDrop, runTargets, testRank } from "../perf";
 
 const NOW = new Date(2026, 9, 7, 18, 0), TODAY = "2026-10-07";
 
@@ -34,4 +34,18 @@ test("Laufvorgaben aus V_IFT", () => {
   const rt = runTargets(D, "p3")!;
   assert.equal(rt.d15_90, 75);   // 20 km/h = 5,56 m/s × 0,9 × 15 s
   assert.equal(rt.d30_85, 142);
+});
+
+test("Platzierung: eigener Platz, Gleichstand teilt Platz, erst ab 5 Werten, Teambestwert optional", () => {
+  const D = buildDemo(demoTeam("u19", "pro"), "de", new Date(2026, 9, 8, 9, 0));
+  D.tests = [];
+  const vals = [1.80, 1.75, 1.90, 1.70, 1.75];
+  D.players.slice(0, 5).forEach((p, i) => D.tests.push({ id: "t" + i, pid: p.id, test: "sprint10", date: "2026-10-01", value: vals[i] }));
+  const [a, b, , d, e] = D.players;
+  assert.deepEqual(testRank(D, a.id, "sprint10", "2026-10-08", false), { rank: 4, n: 5, best: null });
+  assert.equal(testRank(D, b.id, "sprint10", "2026-10-08", true)!.rank, 2);
+  assert.equal(testRank(D, e.id, "sprint10", "2026-10-08", true)!.rank, 2, "gleiche Zeit = gleicher Platz");
+  assert.equal(testRank(D, d.id, "sprint10", "2026-10-08", true)!.best, 1.70);
+  D.tests.pop();
+  assert.equal(testRank(D, a.id, "sprint10", "2026-10-08", false), null, "unter 5 Werten keine Platzierung");
 });

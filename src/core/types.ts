@@ -42,6 +42,8 @@ export interface TeamSettings {
   reminders?: Reminders;
   /** Testbatterie des Teams (Leistungsdiagnostik); leer/fehlend = alle für die Altersgruppe empfohlenen */
   tests?: TestKey[];
+  /** Platzierung in Tests für Spieler: aus, nur eigener Platz (Standard), Platz + Teambestwert (ohne Namen) */
+  testRank?: "off" | "rank" | "best";
 }
 export interface Reminders {
   /** Morgen-Check an/aus und Uhrzeit "HH:MM" (Standard 08:00) */
@@ -141,6 +143,8 @@ export interface Exercise {
   rpe: number | null; desc: string; points: CoachPoint[]; drawing: Drawing | null; video: string;
 }
 export interface TemplateBlock { exId: string | null; text: string; min: number; staffId?: string | null }
+/** Platz im Team in einem Test (bester = 1), Anzahl Spieler mit Wert, optional Teambestwert */
+export interface TestRank { rank: number; n: number; best: number | null }
 /** Dienst (z. B. Materialdienst): wann und wie viele Spieler */
 export type DutyWhen = "training" | "match" | "both";
 export interface DutyDef { id: string; name: string; when: DutyWhen; count: number; on: boolean }
@@ -247,6 +251,8 @@ export interface TeamData {
   groups: TeamGroup[];
   /** Ablauf der Trainingstage (nur Trainerteam) */
   blocks: DayBlock[];
+  /** Nur Spieler-App: eigene Platzierungen in Tests (vom Server berechnet, ohne Werte anderer) */
+  ranks?: Partial<Record<TestKey, TestRank>>;
   /** Dienste, Strafen, Aufgaben (Spieler sehen nur eigene) */
   duties: DutyEntry[]; fines: FineEntry[]; tasks: TeamTask[];
   /** Inaktive Spieler (nur für das Trainerteam; nicht in Berechnungen) */

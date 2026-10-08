@@ -91,7 +91,7 @@ export const en_prep: Dict = {
 
   // Player
   pg_ready: "Your programme is ready – take a look.", pg_title: "My programme", pg_week: "Week {i} of {n}", pg_startsIn: "Starts on {d}",
-  pg_done: "Done", pg_log: "Log session", pg_logged: "Logged – great! +{xp} XP",
+  pg_done: "Done", pg_log: "Log session", pg_logged: "Logged – great!",
   pg_all: "Full programme", pg_allDone: "Week complete – really strong!",
   pg_progress: "{d} of {t} sessions", pg_left: "{n} left this week",
   pg_own: "Log your own activities (e.g. football with friends) under “Log” as extra – they count too.",

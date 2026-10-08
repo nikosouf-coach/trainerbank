@@ -1,4 +1,4 @@
-// Bausteine der Spieler-App: Level-Karte, Wochenringe, Abzeichen, Aufgaben, Termine, Ziele, Einwilligung.
+// Bausteine der Spieler-App: Kopf mit Zuverlässigkeit, Wochenziele, Meilensteine, Aufgaben, Termine, Ziele, Einwilligung.
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
@@ -10,7 +10,7 @@ import { useEngine, useStore } from "../../data/store";
 import { Icon, type IconName } from "../icons";
 import { Btn, Card, Col, Info, Muted, Row, T } from "../kit";
 import { PlayerAvatar } from "../playerAvatar";
-import { RatingBadge, ratingColor, StatTile, VideoList } from "../games";
+import { RatingBadge, softRatingColor, StatTile, VideoList } from "../games";
 import { MyTarget } from "../indiv";
 import { potColor } from "../squad/ProfileCards";
 import { radius, space, useTheme, withAlpha } from "../theme";
@@ -18,38 +18,38 @@ import { radius, space, useTheme, withAlpha } from "../theme";
 /** Belohnungsfarbe (Gold) – in beiden Themen gut sichtbar. */
 export const GOLD = "#f2b705";
 
-/** Kopf mit Bild, Level, XP-Balken und Serie. */
-export function LevelHero({ p, g }: { p: Player; g: GameState }) {
-  const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
-  const names = E.tl("gm_lv"), lvName = names[Math.min(names.length - 1, g.level - 1)] || "";
+/** Kopf mit Bild, Begrüßung, Serie und Zuverlässigkeit (Angaben der letzten 4 Wochen). */
+export function PlayerHero({ p, g }: { p: Player; g: GameState }) {
+  const E = useEngine(); const { t, tf } = E;
+  const rel = g.reliability, pct = rel != null ? Math.round(rel * 100) : null;
   return (
-    <View testID="player-hero" style={{ backgroundColor: c.accent, borderRadius: radius.xl, padding: space.l + 2, gap: 14, overflow: "hidden" }}>
+    <View testID="player-hero" style={{ backgroundColor: E.team.accent || "#0b3d91", borderRadius: radius.xl, padding: space.l + 2, gap: 14, overflow: "hidden" }}>
       <View style={{ position: "absolute", right: -40, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(255,255,255,0.08)" }} />
-      <View style={{ position: "absolute", right: 40, bottom: -60, width: 120, height: 120, borderRadius: 60, backgroundColor: "rgba(255,255,255,0.06)" }} />
       <Row gap={14}>
-        <View style={{ borderWidth: 3, borderColor: GOLD, borderRadius: 40 }}><PlayerAvatar p={p} size={62} /></View>
+        <View style={{ borderWidth: 2, borderColor: "rgba(255,255,255,0.7)", borderRadius: 40 }}><PlayerAvatar p={p} size={62} /></View>
         <Col gap={3} style={{ flex: 1 }}>
           <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" }}>{E.wt(E.TODAY)} {E.de(E.TODAY)} · {E.team.name}</Text>
           <Text numberOfLines={1} style={{ color: "#fff", fontSize: 26, fontWeight: "800", textTransform: "uppercase" }}>{tf("ph_hi", { n: p.vn })}</Text>
-          <Row gap={6} wrap>
-            <View style={{ backgroundColor: GOLD, borderRadius: radius.pill, paddingHorizontal: 9, paddingVertical: 2 }}><Text style={{ color: "#1a1300", fontWeight: "800", fontSize: 12 }}>{tf("gm_level", { n: g.level })}</Text></View>
-            <Text numberOfLines={1} style={{ color: "#fff", fontWeight: "700", fontSize: 13, flexShrink: 1 }}>{lvName}</Text>
-          </Row>
+          {p.nr != null || p.pos ? <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: "700" }}>{[p.nr != null ? "#" + p.nr : "", p.pos].filter(Boolean).join(" · ")}</Text> : null}
         </Col>
         <View testID="player-streak" accessibilityLabel={g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} style={{ alignItems: "center", backgroundColor: "rgba(255,255,255,0.14)", borderRadius: radius.l, paddingHorizontal: 10, paddingVertical: 8, minWidth: 62 }}>
-          <Icon name="flame" size={24} color={g.streak ? "#ff9f1c" : "rgba(255,255,255,0.6)"} strokeWidth={2} />
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 20, fontVariant: ["tabular-nums"] }}>{g.streak}</Text>
+          <Icon name="flame" size={22} color={g.streak ? "#ffb703" : "rgba(255,255,255,0.6)"} strokeWidth={2} />
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 19, fontVariant: ["tabular-nums"] }}>{g.streak}</Text>
+          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10, fontWeight: "700" }}>{t("gm_days")}</Text>
         </View>
       </Row>
-      <Col gap={6}>
-        <View style={{ height: 12, borderRadius: 99, backgroundColor: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
-          <View style={{ width: `${Math.max(4, g.pct * 100)}%`, height: "100%", backgroundColor: GOLD, borderRadius: 99 }} />
-        </View>
+      {E.mods.belastung ? <Col gap={6} testID="player-reliability">
         <Row between>
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13, fontVariant: ["tabular-nums"] }}>{tf("gm_xp", { x: E.int(g.xp) })}</Text>
-          <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12.5 }}>{tf("gm_toNext", { x: E.int(g.levelNext - g.xp), n: g.level + 1 })}</Text>
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>{t("gm_rel")}</Text>
+          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13, fontVariant: ["tabular-nums"] }}>{pct != null ? pct + " %" : "–"}</Text>
         </Row>
-      </Col>
+        <View style={{ height: 10, borderRadius: 99, backgroundColor: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
+          <View style={{ width: `${Math.max(3, pct ?? 0)}%`, height: "100%", backgroundColor: pct != null && pct >= 90 ? GOLD : "#fff", borderRadius: 99 }} />
+        </View>
+        <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12.5 }}>
+          {pct == null ? t("gm_relFew") : tf("gm_relD", { c: g.rel.checkins.done, ct: g.rel.checkins.total, r: g.rel.rpe.done, rt: g.rel.rpe.total })}{pct != null && pct >= 90 ? " · " + t("gm_relTop") : ""}
+        </Text>
+      </Col> : null}
     </View>
   );
 }
@@ -125,9 +125,9 @@ export function Badges({ g, compact }: { g: GameState; compact?: boolean }) {
   );
 }
 
-/** Große Aufgaben-Kachel mit XP-Belohnung. */
-export function TodoTile({ icon, title, sub, xp, done, onPress, testID, color }: { icon: IconName; title: string; sub?: string; xp: number; done?: boolean; onPress: () => void; testID?: string; color: string }) {
-  const { c } = useTheme(); const E = useEngine();
+/** Große Aufgaben-Kachel (Morgen-Check, RPE). */
+export function TodoTile({ icon, title, sub, done, onPress, testID, color }: { icon: IconName; title: string; sub?: string; done?: boolean; onPress: () => void; testID?: string; color: string }) {
+  const { c } = useTheme();
   const col = done ? c.ok : color;
   return (
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={title} onPress={onPress}
@@ -139,7 +139,7 @@ export function TodoTile({ icon, title, sub, xp, done, onPress, testID, color }:
         <Text style={{ fontWeight: "800", fontSize: 16, color: done ? c.ink : "#fff" }}>{title}</Text>
         {sub ? <Text numberOfLines={1} style={{ fontSize: 12.5, color: done ? c.muted : "rgba(255,255,255,0.85)" }}>{sub}</Text> : null}
       </Col>
-      {!done ? <View style={{ backgroundColor: GOLD, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 }}><Text style={{ fontWeight: "800", fontSize: 12, color: "#1a1300" }}>{E.tf("gm_plusXp", { x: xp })}</Text></View> : null}
+      {!done ? <Icon name="chevron" size={20} color="#fff" /> : null}
     </Pressable>
   );
 }
@@ -231,9 +231,9 @@ export function NewRating({ pid }: { pid: string }) {
   const m = r.kind === "spiel" ? E.D.matches.find(x => x.date === r.date) : null;
   return (
     <Pressable testID="player-newrating" accessibilityRole="button" onPress={() => router.push("/player/daten")}>
-      <Card tone={ratingColor(r.rating)}>
+      <Card tone={r.rating != null && r.rating >= 7 ? softRatingColor(r.rating) : undefined}>
         <Row gap={12} align="flex-start">
-          <RatingBadge value={r.rating} size="l" />
+          <RatingBadge value={r.rating} size="l" soft />
           <Col gap={3} style={{ flex: 1 }}>
             <T v="eyebrow">{E.coachName() ? E.tf("pl_newRatingN", { n: E.coachName() }) : t("pl_newRating")}</T>
             <Text style={{ fontWeight: "800", fontSize: 15, color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}</Text>
@@ -262,13 +262,13 @@ export function MySeason({ pid }: { pid: string }) {
         </Row>
       </Card> : null}
       {E.playerSees("ratings") && rs.length ? <Card testID="pd-ratings">
-        <Row between><T v="h3">{t("pl_ratings")}</T>{ss.avg != null ? <Row gap={6}><Muted small>{t("sp_avg")}</Muted><RatingBadge value={Math.round(ss.avg * 10) / 10} size="s" /></Row> : null}</Row>
+        <Row between><T v="h3">{t("pl_ratings")}</T>{ss.avg != null ? <Row gap={6}><Muted small>{t("sp_avg")}</Muted><RatingBadge value={Math.round(ss.avg * 10) / 10} size="s" soft /></Row> : null}</Row>
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 4, height: 70 }}>
-          {rs.filter(r => r.rating != null).slice(0, 12).reverse().map(r => <View key={r.id} style={{ flex: 1, height: `${Math.max(10, (r.rating! - 3) / 7 * 100)}%`, backgroundColor: ratingColor(r.rating), borderRadius: 4 }} />)}
+          {rs.filter(r => r.rating != null).slice(0, 12).reverse().map(r => <View key={r.id} style={{ flex: 1, height: `${Math.max(10, (r.rating! - 3) / 7 * 100)}%`, backgroundColor: softRatingColor(r.rating), borderRadius: 4, opacity: r.rating! >= 7 ? 1 : 0.55 }} />)}
         </View>
         {rs.slice(0, 8).map(r => { const m = r.kind === "spiel" ? E.D.matches.find(x => x.date === r.date) : null; return (
           <Row key={r.id} gap={10} align="flex-start">
-            <RatingBadge value={r.rating} size="s" />
+            <RatingBadge value={r.rating} size="s" soft />
             <Col gap={1} style={{ flex: 1 }}>
               <Text style={{ fontSize: 13, fontWeight: "700", color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}</Text>
               {r.text ? <Text style={{ fontSize: 13.5, color: c.ink }}>{r.text}</Text> : null}

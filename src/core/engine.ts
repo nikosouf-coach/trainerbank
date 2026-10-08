@@ -8,12 +8,12 @@ import {
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
 import { translator } from "./i18n";
 import { areaLabel, cleanAreas, complaintEffect, type BodyEffect } from "./body";
-import { cmjDrop, fitnessIndex } from "./perf";
+import { cmjDrop, fitnessIndex, testRank } from "./perf";
 import { phaseOn } from "./prep";
 import { headCoach } from "./people";
 import type {
   Absence, AttStatus, CoachMsg, Complaint, CustomKind, Kind, Lang, Match, Pitch, Player, PotCat, Session, Status,
-  TeamData, TeamEvent, Wellness, WeekMode, MsgType, PlayerViewKey, Rating, Video,
+  TeamData, TeamEvent, Wellness, WeekMode, MsgType, PlayerViewKey, Rating, Video, TestKey, TestRank,
 } from "./types";
 
 export interface EngineOptions {
@@ -559,20 +559,62 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const exMin = sum((D.extra[p.id] || []).filter(x => x.date >= monday(TODAY) && x.date <= TODAY).map(x => x.min));
     return { head: t(noRoom ? "tx_warn" : k), items: [t("px_note")], budget, done: exMin ? tf("tx_done", { m: exMin }) : "", source: t("tx_src") };
   }
+  /** Ernährung – persönlich nach Tagestyp (Spiel, Vorspieltag, harte/mittlere/leichte Einheit, frei), Zustand und Gewicht. */
   function tipFood(p: Player): Tip {
-    const kg = Number(p.kg) || null, md = mdOf(TODAY).md, x = weekPlan(monday(TODAY)).items.find(i => i.date === TODAY), hard = !!(x && x.train && x.train.rpe >= 7), L: string[] = [];
-    const carb = kg ? tf("tf_kgCarb", { a: Math.round(kg * 6), b: Math.round(kg * 8) }) : "", pro = kg ? tf("tf_kgPro", { p: Math.round(kg * 0.3) }) : "";
-    if (md === "MD-1") L.push(tf("tf_md1", { kg: carb }));
-    else if (md === "MD") { L.push(t("tf_md")); L.push(tf("tf_post", { pro })); }
-    else if (hard) { L.push(t("tf_hard")); L.push(tf("tf_post", { pro })); }
+    const kg = Number(p.kg) || null, md = mdOf(TODAY).md, ab = absenceOn(p.id, TODAY), w = D.well[p.id]?.[TODAY];
+    const x = weekPlan(monday(TODAY)).items.find(i => i.date === TODAY), tmD = addDays(TODAY, 1);
+    const tm = weekPlan(monday(tmD)).items.find(i => i.date === tmD);
+    const ill = (ab && ab.typ === "krank") || (w && cleanAreas(w.areas).includes("ill_down"));
+    const injured = !!ab && ab.typ === "verletzung";
+    const rpeToday = x?.match ? matchRpe() : x?.train && x.train.kind !== "frei" ? x.train.rpe : 0;
+    const type = ill ? "sick" : injured ? "inj" : x?.match ? "match" : md === "MD-1" ? "md1" : rpeToday >= 7 ? "hard" : rpeToday >= 5 ? "mod" : rpeToday > 0 ? "easy" : "rest";
+    const CARB: Record<string, [number, number]> = { match: [6, 8], md1: [6, 8], hard: [6, 8], mod: [5, 7], easy: [3, 5], rest: [3, 5], inj: [3, 5], sick: [3, 5] };
+    const [ca, cb] = CARB[type], pro = injured ? [1.6, 2.0] : [1.2, 1.6];
+    const g = (v: number): number => Math.round(v / 10) * 10;
+    const head = tf("tf2_" + type, { r: rpeToday }) + (kg && type !== "sick" ? " " + tf("tf2_carbKg", { a: g(ca * kg), b: g(cb * kg), x: ca, y: cb }) : " " + tf("tf2_carb", { x: ca, y: cb }));
+    const L: string[] = [];
+    if (type === "match") { L.push(t("tf_md")); L.push(tf("tf_post", { pro: kg ? tf("tf_kgPro", { p: Math.round(kg * 0.3) }) : "" })); }
+    else if (type === "md1") L.push(tf("tf_md1", { kg: "" }));
+    else if (type === "hard") { L.push(t("tf_hard")); L.push(tf("tf_post", { pro: kg ? tf("tf_kgPro", { p: Math.round(kg * 0.3) }) : "" })); }
+    else if (type === "mod") L.push(t("tf2_pre"));
+    else if (type === "sick") L.push(t("tf2_sickD"));
+    else if (type === "inj") L.push(t("tf2_injD"));
     else L.push(t("tf_rest"));
+    L.push(kg ? tf("tf2_protein", { a: Math.round(pro[0] * kg), b: Math.round(pro[1] * kg), m: Math.round(kg * 0.3) }) : t("tf2_proteinGen"));
+    // Zustand: müde/Muskelkater, harter Tag gestern, morgen hart, Belastung über dem Gewohnten, Wachstum, Erkältung
+    const tired = !!w?.items && (w.items.fat >= 5 || w.items.doms >= 5), yd = daily(p.id)[addDays(TODAY, -1)] || 0;
+    if (tired || yd >= 600) L.push(t("tf2_recover"));
+    if (tm && (tm.match || (tm.train && tm.train.rpe >= 7)) && type !== "md1") L.push(t("tf2_tomorrowHard"));
+    const m = mods.belastung ? metrics(p.id) : null;
+    if (m && m.days >= 21 && m.acwr != null && m.acwr > 1.3) L.push(t("tf2_loadUp"));
+    if (growthInfo(p.id)?.spurt) L.push(t("tf2_growth"));
+    if (w && cleanAreas(w.areas).includes("ill_up")) L.push(t("tf2_cold"));
     L.push(tf("tf_drink", { ml: kg ? tf("tf_ml", { a: Math.round(kg * 5 / 50) * 50, b: Math.round(kg * 7 / 50) * 50 }) : t("tf_mlGen") }));
     L.push(t("tf_supp"));
-    return { head: "", items: L, source: t("tf_src") };
+    return { head, items: L, source: t("tf_src") };
   }
+  /** Schlaf – persönlich nach Alter, letzten Nächten, Schlafqualität, Müdigkeit und Terminen. */
   function tipSleep(pr: Profile): Tip {
-    const tg = pr.tg;
-    return { head: tf("ts_t", { a: tg[0], b: tg[1] }) + (pr.sl != null ? " " + tf("ts_avg", { s: num(pr.sl, 1) }) : ""), items: [t("ts1"), t("ts2"), t("ts3")] };
+    const tg = pr.tg, sl = pr.sl, p = pr.p, w = D.well[p.id]?.[TODAY];
+    const L: string[] = [];
+    const head = sl == null ? tf("ts_t", { a: tg[0], b: tg[1] })
+      : sl < tg[0] ? tf("ts2_short", { s: num(sl, 1), a: tg[0], b: tg[1], d: num((tg[0] - sl) * 7, 0) })
+        : tf("ts2_ok", { s: num(sl, 1), a: tg[0], b: tg[1] });
+    // Schlafenszeit für 7:00 Uhr Aufstehen (Schule/Arbeit) im Zielbereich
+    const bed = 7 * 60 - tg[0] * 60 - 15, hh = ((Math.floor(bed / 60) % 24) + 24) % 24, mm = ((bed % 60) + 60) % 60;
+    L.push(tf("ts2_bed", { t: `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`, h: tg[0] }));
+    const x = weekPlan(monday(TODAY)).items.find(i => i.date === TODAY), late = (x?.match && x.match.zeit >= "17:00") || (x?.train && x.train.kind !== "frei" && zeitOf(TODAY) >= "18:30");
+    if (late) L.push(t("ts3"));
+    const tmD = addDays(TODAY, 1), tm = weekPlan(monday(tmD)).items.find(i => i.date === tmD);
+    if (tm?.match) L.push(tf("ts2_beforeMatch", { b: tg[1] }));
+    else if (tm?.train && tm.train.rpe >= 7) L.push(tf("ts2_beforeHard", { b: tg[1] }));
+    if ((w?.items && w.items.fat >= 5) || (sl != null && sl < tg[0])) L.push(t("ts2_nap"));
+    if (w?.items && w.items.sq >= 5) L.push(t("ts2_quality"));
+    else L.push(t("ts2"));
+    if (pr.gr && pr.gr.spurt) L.push(t("ts2_growth"));
+    if (w && cleanAreas(w.areas).some(a => a.startsWith("ill"))) L.push(t("ts2_ill"));
+    L.push(t("ts1"));
+    return { head, items: L, source: t("ts2_src") };
   }
 
   // ---------- KI-Kontext (ohne Nachnamen, nur Vornamen der Spieler, die zugestimmt haben) ----------
@@ -638,6 +680,12 @@ Empfehlung des Trainers: ${activeMsgs(p.id).map(m => t("ry_" + m.typ) + ": " + m
     playerState, playerSessions, playerOpenSession, tipRegen, tipGym, tipExtra, tipFood, tipSleep,
     aiContext, aiSessionPrompt, potPrompt, playerAiContext,
     wt, de, isGrowthAge: () => isGrowthAge(team.cls), playerSees, seasonStats, ratingsOf, videosFor,
+    /** Platzierung im Team (Spieler-App: vom Server geliefert; Trainer/Demo: berechnet). null = keine Anzeige */
+    rankOf: (pid: string, key: TestKey): TestRank | null => {
+      const mode = S.testRank || "rank"; if (mode === "off") return null;
+      if (D.ranks) return D.ranks[key] || null;
+      return testRank(D, pid, key, TODAY, mode === "best");
+    },
     /** Name des Cheftrainers (für die Spieler-App), leer wenn unbekannt */
     coachName: (): string => headCoach(D)?.name || "",
   };

@@ -1,12 +1,12 @@
-// Spieler – Heute: Level & Serie, Körperstatus, Aufgaben mit XP, Trainer-Nachrichten, Wochenringe, Termine, Ziele, Abzeichen.
+// Spieler – Heute: Zuverlässigkeit & Serie, Morgen-Check/RPE, Aufgaben, Trainer-Nachrichten, Körperstatus, Wochenziele, Termine, Ziele, Meilensteine.
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { View } from "react-native";
-import { gameOf, XP } from "../../../src/core/game";
+import { gameOf } from "../../../src/core/game";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Ring } from "../../../src/ui/charts";
 import { Card, Col, Msg, Row, Screen, T } from "../../../src/ui/kit";
-import { Badges, Goals, LevelHero, NewRating, NextDates, TodoTile, WeekRings } from "../../../src/ui/player/parts";
+import { Badges, Goals, NewRating, NextDates, PlayerHero, TodoTile, WeekRings } from "../../../src/ui/player/parts";
 import { PlayerProgramCard } from "../../../src/ui/prep";
 import { msgColor } from "../../../src/ui/squad/ProfileCards";
 import { PlayerTasksCard } from "../../../src/ui/tasks/widgets";
@@ -24,10 +24,10 @@ export default function PlayerHeute() {
 
   return (
     <Screen testID="player-heute">
-      <LevelHero p={p} g={g} />
+      <PlayerHero p={p} g={g} />
       {E.mods.belastung ? <Row wrap gap={10}>
-        <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} xp={XP.well} done={wellDone} color="#16a3a3" onPress={() => router.push("/player/eintragen?tab=well")} />
-        <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} xp={XP.rpe} done={!open} color="#f0762b" onPress={() => router.push("/player/eintragen?tab=rpe")} />
+        <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} done={wellDone} color="#16a3a3" onPress={() => router.push("/player/eintragen?tab=well")} />
+        <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} done={!open} color="#f0762b" onPress={() => router.push("/player/eintragen?tab=rpe")} />
       </Row> : null}
       <PlayerTasksCard pid={p.id} />
       <PlayerProgramCard pid={p.id} />

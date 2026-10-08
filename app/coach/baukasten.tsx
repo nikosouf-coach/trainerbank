@@ -5,7 +5,7 @@ import { PLAYER_VIEW } from "../../src/core/classes";
 import type { PlayerViewKey } from "../../src/core/types";
 import { useEngine, useStore } from "../../src/data/store";
 import { ModuleList } from "../../src/ui/editors";
-import { Card, CardTitle, Col, Header, Info, Screen, ToggleRow } from "../../src/ui/kit";
+import { Card, CardTitle, Col, Header, Info, Muted, Screen, Seg, T, ToggleRow } from "../../src/ui/kit";
 import { ReminderFields, TestPicker } from "../../src/ui/setupParts";
 
 export default function Baukasten() {
@@ -38,6 +38,12 @@ export default function Baukasten() {
       {team.modules.leistung ? <Card testID="bk-tests">
         <CardTitle title={t("su_testsT")} info={<Info title={t("su_testsT")} text={t("su_testsD")} />} />
         <TestPicker value={team.settings.tests} onChange={v => s.updateTeam({ settings: { ...team.settings, tests: v } })} grp={E.grp} tr={E.tr} />
+        <Col gap={6} testID="bk-rank">
+          <T v="small" bold>{t("lt_rankSet")}</T>
+          <Seg testID="bk-rank-mode" value={team.settings.testRank || "rank"} onChange={(v: "off" | "rank" | "best") => s.updateTeam({ settings: { ...team.settings, testRank: v } })}
+            options={[{ key: "off", label: t("lt_rankOff") }, { key: "rank", label: t("lt_rankOnly") }, { key: "best", label: t("lt_rankBest") }]} wrap />
+          <Muted small>{t("lt_rankD")}</Muted>
+        </Col>
       </Card> : null}
     </Screen>
   );

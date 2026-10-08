@@ -45,12 +45,15 @@ export function PerfCard({ p, editable }: { p: Player; editable?: boolean }) {
         right={editable ? <Btn small kind="ghost" icon="plus" testID="perf-add" label={t("lt_add")} onPress={() => setAdd(true)} /> : undefined} />
       {list.length ? list.map(d => {
         const L = resultsOf(E.D, p.id, d.key), last = L[0], pb = bestOf(E.D, p.id, d.key)!, tr = trendOf(E.D, p.id, d.key);
-        const band = bandOfValue(d.key, E.grp, last.value), isPb = pb.id === last.id && L.length > 1;
+        const band = bandOfValue(d.key, E.grp, last.value), isPb = pb.id === last.id && L.length > 1, rk = E.rankOf(p.id, d.key);
         return (
           <View key={d.key} testID={"perf-" + d.key} style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: c.line }}>
             <Col gap={2} style={{ flex: 1 }}>
               <Row gap={6}><Text style={{ fontWeight: "700", fontSize: 14, color: c.ink }}>{t("ts_" + d.key)}</Text><TestInfo k={d.key} /></Row>
               <Row gap={6} wrap><BandChip band={band} />{isPb ? <Text style={{ fontSize: 11.5, fontWeight: "800", color: "#c99400" }}>★ {t("pl_pb")}</Text> : <Muted small>{t("lt_pb")}: {fmtTest(d.key, pb.value, E.tr.lang)}</Muted>}</Row>
+              {rk ? <Text testID={"rank-" + d.key} style={{ fontSize: 12, fontWeight: "700", color: rk.rank <= 3 ? c.accentTx : c.muted }}>
+                {E.tf("lt_rank", { r: rk.rank, n: rk.n })}{rk.best != null ? " · " + E.tf("lt_teamBest", { v: fmtTest(d.key, rk.best, E.tr.lang), u: d.unit }) : ""}
+              </Text> : null}
             </Col>
             <Col gap={0} style={{ alignItems: "flex-end" }}>
               <Text style={{ fontSize: 20, fontWeight: "800", color: c.ink, fontVariant: ["tabular-nums"] }}>{fmtTest(d.key, last.value, E.tr.lang)} <Text style={{ fontSize: 12, color: c.muted }}>{d.unit}</Text></Text>
