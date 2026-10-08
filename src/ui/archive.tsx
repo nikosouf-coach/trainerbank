@@ -1,8 +1,9 @@
 // Übungsarchiv-Bausteine: Übungskarte, Einheiten-Vorlage (Blatt), Vorlagen-Auswahl, Trainerprofile (Blatt).
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { addDays, monday } from "../core/dates";
 import type { Exercise, SessionTemplate, StaffProfile, StaffRoleKey, TemplateBlock } from "../core/types";
+import type { StaffEntry } from "../data/api";
 import { tmpId, useEngine, useStore } from "../data/store";
 import { BoardView } from "./board";
 import { Banner, Btn, ChoiceChips, Col, Field, ListItem, Muted, NumField, Picker, Row, Sheet, T, Tag } from "./kit";
@@ -145,6 +146,11 @@ function StaffForm({ prof, onDone }: { prof: StaffProfile | null; onDone: () => 
   const [area, setArea] = useState("");
   const [phone, setPhone] = useState(prof?.phone || ""); const [email, setEmail] = useState(prof?.email || ""); const [note, setNote] = useState(prof?.note || "");
   const pts = prof ? E.D.exercises.flatMap(ex => ex.points.filter(p => p.staffId === prof.id).map(p => ({ ex, p }))) : [];
+  const [userId, setUserId] = useState<string>(prof?.userId || "");
+  const [accounts, setAccounts] = useState<StaffEntry[] | null>(null);
+  useEffect(() => { if (s.active) s.api.staffList(s.active.teamId).then(setAccounts).catch(() => setAccounts([])); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // Konten des Trainerteams, die noch mit keinem anderen Profil verknüpft sind
+  const free = (accounts || []).filter(a => a.role !== "pending" && (a.userId === prof?.userId || !E.D.staff.some(x => x.userId === a.userId)));
   return (
     <Col gap={12}>
       <Field testID="sf-name" label={t("sf_name")} value={name} onChangeText={setName} />
@@ -160,12 +166,21 @@ function StaffForm({ prof, onDone }: { prof: StaffProfile | null; onDone: () => 
         <Field label={t("sf_email")} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" style={{ flex: 1, minWidth: 180 }} />
       </Row>
       <Field label={t("sf_note")} value={note} onChangeText={setNote} multiline />
+      <Col gap={4}>
+        {free.length ? <Picker testID="sf-account" label={t("sf_account")} value={userId} onChange={setUserId}
+          options={[{ key: "", label: t("sf_noAccount") }, ...free.map(a => ({ key: a.userId, label: `${a.displayName || "–"} · ${t("role_" + a.role)}` }))]} />
+          : <><T v="small" bold color={c.muted}>{t("sf_account")}</T><Muted small>{accounts == null ? t("loading") : t("sf_accountNone")}</Muted></>}
+        <Muted small>{t("sf_accountD")}</Muted>
+      </Col>
       {prof ? <Col gap={6}>
         <T v="h3">{t("sf_points")}</T>
         {pts.length ? pts.map(({ ex, p }, i) => <Row key={i} gap={8} align="flex-start"><Text style={{ color: c.accentTx }}>•</Text><Col gap={0} style={{ flex: 1 }}><Text style={{ color: c.ink, fontSize: 14 }}>{p.text}</Text><Text style={{ color: c.muted, fontSize: 12 }}>{ex.title}</Text></Col></Row>) : <Muted small>{t("sf_noPoints")}</Muted>}
       </Col> : null}
       <Row gap={8} wrap>
-        <Btn testID="sf-save" kind="primary" label={t("save")} disabled={!name.trim()} onPress={() => { s.saveStaff({ id: prof?.id || tmpId(), name: name.trim(), role, areas, phone: phone.trim(), email: email.trim(), note: note.trim() }); s.toast(t("sf_saved")); onDone(); }} />
+        <Btn testID="sf-save" kind="primary" label={t("save")} disabled={!name.trim()} onPress={() => {
+          // übrige Felder (Geburtsdatum, Lizenz, Foto) bleiben erhalten
+          s.saveStaff({ ...(prof || {}), id: prof?.id || tmpId(), name: name.trim(), role, areas, phone: phone.trim(), email: email.trim(), note: note.trim(), userId: userId || null }); s.toast(t("sf_saved")); onDone();
+        }} />
         {prof ? <Btn kind="ghost" label={t("sf_del")} onPress={() => { s.deleteStaff(prof.id); onDone(); }} /> : null}
       </Row>
     </Col>

@@ -191,9 +191,44 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoPhases(D, lang, TODAY);
   demoContacts(D, en);
   demoGroups(D, en, TODAY);
+  demoBlocks(D, lang, now);
   const tw = D.players.filter(p => (p.groups || []).includes("g1")).map(p => p.id);
   if (tw.length) D.videos.push({ id: "v" + (vid++), title: en ? "Goalkeepers: build-up under pressure – 6 clips" : "Torhüter: Spieleröffnung unter Druck – 6 Clips", url: "https://example.com/video/tw-aufbau", date: addDays(TODAY, -2), matchId: null, pids: tw, groupIds: ["g1"], note: en ? "Watch before Thursday's goalkeeper session." : "Bitte bis zum TW-Training am Donnerstag anschauen.", vis: true });
   D.videos.push({ id: "v" + (vid++), title: en ? "Pressing triggers – clips for the back line" : "Pressing-Auslöser – Clips für die Abwehrkette", url: "https://example.com/video/pressing", date: null, matchId: null, pids: ["p2", "p3", "p4"], note: "", vis: true });
+}
+
+/** Ablauf der nächsten zwei Trainingstage mit Zuständigkeiten (Co-Trainer, TW-Trainer, Physio). */
+function demoBlocks(D: TeamData, lang: Lang, now: Date): void {
+  if (groupOf(D.team.cls) === "u11" || !D.exercises.length) return;
+  const E = createEngine(D, { lang, now }), TODAY = iso(now), en = lang === "en", days: string[] = [];
+  for (let w = 0; w <= 1 && days.length < 2; w++) for (const x of E.weekPlan(addDays(monday(TODAY), 7 * w)).items)
+    if (x.date >= TODAY && x.train && x.train.kind !== "frei" && days.length < 2) days.push(x.date);
+  let n = 1;
+  const ex = (id: string) => D.exercises.find(e => e.id === id)!;
+  const fromEx = (date: string, sort: number, exId: string, staffId: string | null, min?: number, groupId: string | null = null): void => {
+    const e = ex(exId);
+    D.blocks.push({ id: "bl" + (n++), date, sort, title: e.title, min: min ?? e.dur, staffId, exId, text: e.desc, points: e.points.map(p => p.text), drawing: e.drawing, photo: null, groupId });
+  };
+  const free = (date: string, sort: number, title: string, min: number, staffId: string | null, text: string, points: string[]): void => {
+    D.blocks.push({ id: "bl" + (n++), date, sort, title, min, staffId, exId: null, text, points, drawing: null, photo: null, groupId: null });
+  };
+  const tw = D.groups.find(g => g.kind === "tw")?.id || null;
+  if (days[0]) {
+    fromEx(days[0], 0, "e1", "s2");
+    fromEx(days[0], 1, "e5", "s4");
+    fromEx(days[0], 2, "e3", "s1");
+    fromEx(days[0], 3, "e6", "s3", 20, tw);
+    free(days[0], 4, en ? "Final game 8 v 8" : "Abschlussspiel 8 gegen 8", 25, "s1", en ? "8 v 8 on two goals with keepers, 2 × 10 min." : "8 gegen 8 auf zwei Tore mit Torhütern, 2 × 10 Min.",
+      en ? ["Win the ball back within 6 seconds", "Switch play after winning the ball"] : ["Ballgewinn innerhalb von 6 Sekunden", "Nach Ballgewinn schnell verlagern"]);
+    fromEx(days[0], 5, "e7", "s4");
+  }
+  if (days[1]) {
+    fromEx(days[1], 0, "e1", "s2", 10);
+    fromEx(days[1], 1, "e2", "s1", 20);
+    fromEx(days[1], 2, "e6", "s3", 15, tw);
+    fromEx(days[1], 3, "e4", "s1", 15);
+    fromEx(days[1], 4, "e7", "s4");
+  }
 }
 
 /** Gruppen der Demo: Torhüter (alle TW), Reha (verletzt bzw. gerade zurück), Mannschaftsrat (drei Erfahrene). */

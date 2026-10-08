@@ -1,6 +1,6 @@
 // Blätter (Dialoge) für Kalender und Planung: Tagesansicht, Termin anlegen/bearbeiten, Spielplan-Import,
 // Abwesenheit eintragen und KI-Einheit. Ein Bildschirm nutzt sie über usePlanSheets().
-import { useRouter } from "expo-router";
+import { usePathname, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { CONTENT } from "../../core/content";
@@ -39,10 +39,14 @@ function DayBody({ date, open, close }: { date: string; open: (s: SheetState) =>
   const n = E.D.players.length, ab = E.absentOn(date), past = date < E.TODAY, sess = E.D.sessions.find(z => z.date === date);
   const showI = E.lvl(1) && E.grp !== "u11", pro = E.lvl(2) && E.grp !== "u11", tr = x.train, mods = E.mods;
   const cal = E.D.cal[date] || {};
+  const onTagPage = (usePathname() || "").startsWith("/coach/tag/");
   const saved = (msg?: string) => { jumpTo(date); s.toast(msg || tf("saved_on", { d: E.wt(date) + " " + E.de(date) })); };
   return (
     <Col gap={12}>
-      <Col gap={2}><T v="eyebrow">{(x.md ? x.md + " · " : "") + t("kw") + " " + kwOf(date)}</T><T v="h2">{E.wt(date)} {E.de(date)}</T></Col>
+      <Row between wrap gap={8}>
+        <Col gap={2}><T v="eyebrow">{(x.md ? x.md + " · " : "") + t("kw") + " " + kwOf(date)}</T><T v="h2">{E.wt(date)} {E.de(date)}</T></Col>
+        {!onTagPage ? <Btn small kind="primary" testID="day-open-tag" label={t("td_open") + " ›"} onPress={() => { close(); router.push("/coach/tag/" + date); }} /> : null}
+      </Row>
       {x.match ? <Sec color={c.accentTx}>
         <T bold>{t("it_match")} {t("vs")} {x.match.gegner}</T>
         <Muted small>{x.match.zeit} · {x.match.heim ? t("home") : t("away")} · {t("comp_" + x.match.comp)}{pro ? ` · ${E.int(E.matchLoad())} AU` : ""}</Muted>

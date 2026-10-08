@@ -21,6 +21,7 @@ import { adminClient, authenticate } from '../_shared/supabase.ts';
 
 const AVATARS = 'avatars';
 const FINDINGS = 'findings';
+const SKETCHES = 'sketches';
 
 interface StaffRow {
   user_id: string;
@@ -119,6 +120,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
         // Einziges Staff-Mitglied: Team mit allen Daten löschen (Cascade) – vorher die Fotos
         await removeObjects(admin, AVATARS, await listObjects(admin, AVATARS, teamId));
         await removeObjects(admin, FINDINGS, await listObjects(admin, FINDINGS, teamId, 2));
+        await removeObjects(admin, SKETCHES, await listObjects(admin, SKETCHES, teamId));
         const { error } = await admin.from('teams').delete().eq('id', teamId);
         if (error) throw error;
         continue;

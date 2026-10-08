@@ -1198,6 +1198,62 @@ delete from public.wellness_entries where player_id = tst.get('max')::uuid and d
 commit;
 
 -- =====================================================================
+-- T35 Trainingstag: Ablauf-Blöcke und Skizzen (Paket 6) – nur Trainerteam
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.staff_profiles (team_id, name, role) values (tst.get('team_a')::uuid, 'Co Tom', 'co') returning id)
+select tst.put('staff_co', id::text) from ins;
+with ins as (insert into public.session_blocks (team_id, date, sort, title, minutes, staff_id, points)
+             values (tst.get('team_a')::uuid, '2026-10-15', 0, 'Rondo', 12, tst.get('staff_co')::uuid, '["Offene Körperstellung"]') returning id)
+select tst.put('block1', id::text) from ins;
+do $$ begin
+  perform tst.eq((select updated_by::text from public.session_blocks where id = tst.get('block1')::uuid), tst.uid('coachA')::text, 'T35 Bearbeiter wird gesetzt');
+end $$;
+select tst.affects(format($q$update public.session_blocks set photo_path = %L where id = %L$q$, tst.get('team_a') || '/' || tst.get('block1') || '.jpg', tst.get('block1')), 1, 'T35 Foto-Pfad im Teamordner');
+select tst.throws(format($q$update public.session_blocks set photo_path = 'x/y.jpg' where id = %L$q$, tst.get('block1')), 'T35 fremder Foto-Pfad wird abgelehnt', 'check constraint');
+select tst.affects(format($q$insert into storage.objects (bucket_id, name) values ('sketches', %L)$q$, tst.get('team_a') || '/' || tst.get('block1') || '.jpg'), 1, 'T35 Coach lädt Skizze hoch');
+select tst.throws(format($q$insert into storage.objects (bucket_id, name) values ('sketches', %L)$q$, tst.get('team_a') || '/skizze.png'), 'T35 nur Bilder mit Block-ID', 'row-level security');
+select tst.throws(format($q$insert into public.session_blocks (team_id, date, title, minutes) values (%L, '2026-10-15', '  ', 10)$q$, tst.get('team_a')), 'T35 leerer Titel wird abgelehnt', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+select tst.throws(format($q$insert into public.session_blocks (team_id, date, title, minutes, staff_id) values (%L, '2026-10-15', 'X', 10, %L)$q$, tst.get('team_b'), tst.get('staff_co')),
+                  'T35 Trainer eines anderen Teams kann nicht zugeteilt werden', 'different_teams');
+do $$ begin
+  perform tst.eq((select count(*) from public.session_blocks)::text, '0', 'T35 Coach B sieht keine Blöcke von Team A');
+  perform tst.eq((select count(*) from storage.objects where bucket_id = 'sketches')::text, '0', 'T35 Coach B sieht keine Skizzen von Team A');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.session_blocks)::text, '0', 'T35 Spieler sieht den Ablauf nicht');
+  perform tst.eq((select count(*) from storage.objects where bucket_id = 'sketches')::text, '0', 'T35 Spieler sieht keine Skizzen');
+end $$;
+select tst.throws(format($q$insert into public.session_blocks (team_id, date, title, minutes) values (%L, '2026-10-15', 'Eigener Block', 10)$q$, tst.get('team_a')),
+                  'T35 Spieler kann keinen Block anlegen', 'row-level security');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$delete from public.staff_profiles where id = %L$q$, tst.get('staff_co')), 1, 'T35 Trainerprofil löschen');
+do $$ begin
+  perform tst.eq((select coalesce(staff_id::text, 'null') from public.session_blocks where id = tst.get('block1')::uuid), 'null', 'T35 Block bleibt, Zuständigkeit wird geleert');
+end $$;
+commit;
+
+begin;
+delete from public.session_blocks; delete from storage.objects where bucket_id = 'sketches'; delete from public.staff_profiles;
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

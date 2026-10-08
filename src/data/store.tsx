@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { addDays, iso, monday } from "../core/dates";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
-import type { StaffRoleKey, TeamGroup,
+import type { StaffRoleKey, TeamGroup, DayBlock,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -36,6 +36,8 @@ interface State {
   /** Nur im Demo-Modus: Trainer- oder Spieleransicht und gewählter Spieler. */
   demoView: "coach" | "player";
   demoPlayer: string | null;
+  /** Nur im Demo-Modus: als Co-Trainer ansehen (StaffProfile.id), sonst null = Cheftrainer */
+  demoStaff: string | null;
 }
 
 function systemLang(): Lang {
@@ -54,7 +56,7 @@ function makeApi(): Api {
 function useStoreValue() {
   const [s, setS] = useState<State>(() => ({
     phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(),
-    consents: null, aiPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null,
+    consents: null, aiPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
   }));
   const ref = useRef(s); ref.current = s;
   const set = useCallback((p: Partial<State>) => setS(prev => ({ ...prev, ...p })), []);
@@ -169,10 +171,10 @@ function useStoreValue() {
     startDemo: async (cls: ClassKey = "u19", depth: Depth = "basis", over: DemoSetup = {}) => {
       const api = new DemoApi(cls, depth, ref.current.lang, over);
       const user = await api.currentUser(); const ms = await api.memberships();
-      set({ api, user, memberships: ms }); await loadActive(api, ms[0], { api, user, memberships: ms, demoView: "coach", demoPlayer: null });
+      set({ api, user, memberships: ms }); await loadActive(api, ms[0], { api, user, memberships: ms, demoView: "coach", demoPlayer: null, demoStaff: null });
     },
     leaveDemo: () => { set({ api: makeApi(), phase: "loading", D: null, active: null, user: null }); setTimeout(() => boot(), 0); },
-    setDemoView: (v: "coach" | "player", pid?: string | null) => set({ demoView: v, demoPlayer: pid ?? ref.current.demoPlayer }),
+    setDemoView: (v: "coach" | "player", pid?: string | null, staffId?: string | null) => set({ demoView: v, demoPlayer: pid ?? ref.current.demoPlayer, demoStaff: v === "coach" ? (staffId ?? null) : ref.current.demoStaff }),
     selectTeam: async (m: Membership) => { set({ phase: "loading" }); try { await loadActive(ref.current.api, m); } catch (e) { toast(errText(e)); } },
     createTeam: async (input: CreateTeamInput & { me?: Partial<StaffProfile>; staff?: { name: string; role: StaffRoleKey }[]; logoUri?: string | null; prefs?: UserPrefs }) => {
       const api = ref.current.api;
@@ -310,6 +312,29 @@ function useStoreValue() {
     savePhase: (x: SeasonPhase) => upsert("phases", x, (api, t) => api.savePhase(t, x), { plan: true }),
     saveContact: (x: Contact) => upsert("contacts", x, (api, t) => api.saveContact(t, x)),
     deleteContact: (id: string) => change(D => { D.contacts = D.contacts.filter(x => x.id !== id); }, api => api.deleteContact(id)),
+    // Trainingstag (Ablauf)
+    saveBlock: async (b: DayBlock): Promise<DayBlock> => {
+      const { api, active, D } = ref.current; if (!D || !active) return b;
+      const i0 = D.blocks.findIndex(x => x.id === b.id), prevPhoto = i0 >= 0 ? D.blocks[i0].photo : null;
+      if (i0 >= 0) D.blocks[i0] = b; else D.blocks.push(b);
+      // entferntes Skizzen-Foto auch aus dem Speicher löschen
+      if (prevPhoto && prevPhoto !== b.photo) api.removeSketch(prevPhoto).catch(() => undefined);
+      set({ version: ref.current.version + 1 });
+      try {
+        const saved = await api.saveBlock(active.teamId, b);
+        const i = D.blocks.findIndex(x => x.id === b.id || x.id === saved.id); if (i >= 0) D.blocks[i] = saved; else D.blocks.push(saved);
+        set({ version: ref.current.version + 1 }); return saved;
+      } catch (e) { toast(errText(e)); reload(); throw e; }
+    },
+    deleteBlock: (b: DayBlock) => change(D => { D.blocks = D.blocks.filter(x => x.id !== b.id); }, api => api.deleteBlock(b)),
+    /** Foto einer Skizze für einen (ggf. neuen) Block hochladen */
+    uploadSketch: async (b: DayBlock, uri: string): Promise<DayBlock> => {
+      const { api, active } = ref.current; if (!active) return b;
+      const saved = b.id.startsWith("tmp-") ? await actions.saveBlock(b) : b;
+      const path = await api.uploadSketch(active.teamId, saved.id, uri); forgetPhoto(path);
+      return actions.saveBlock({ ...saved, photo: path });
+    },
+
     // Gruppen
     saveGroup: async (g: TeamGroup): Promise<TeamGroup> => {
       const { api, active, D } = ref.current; if (!D || !active) return g;
@@ -351,7 +376,7 @@ function useStoreValue() {
   const mePid = isDemo ? s.demoPlayer : s.active?.playerId || null;
 
   // Eigenes Trainerprofil (Staff mit verknüpftem Konto)
-  const myStaff = s.D && s.user ? s.D.staff.find(x => x.userId === s.user!.id) || null : null;
+  const myStaff = !s.D ? null : isDemo && s.demoStaff ? s.D.staff.find(x => x.id === s.demoStaff) || null : s.user ? s.D.staff.find(x => x.userId === s.user!.id) || null : null;
   const prefs: UserPrefs = { info: true, ...(s.user?.prefs || {}) };
 
   return { ...s, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs };

@@ -87,4 +87,23 @@ export const de_steer: Dict = {
   bd_none_clear: "Deutliche Beschwerden: heute kein Training, das die betroffene Stelle belastet. Kurz mit Trainerteam oder Physio abstimmen.",
   pw_regions: "Wo genau?", pw_regionsD: "Tippe alle betroffenen Stellen an – die App passt deine Vorgabe daran an.", pw_side: "Seite", pw_note: "Notiz (optional)", pw_notePh: "z. B. seit dem Sprint am Dienstag",
   pw_regionNeed: "Bitte tippe an, wo die Beschwerden sind.",
+  // Trainingstag
+  td_none: "Diesen Tag gibt es nicht.", td_free: "Kein Training", td_freeD: "An diesem Tag ist kein Mannschaftstraining geplant. Über „Tag bearbeiten“ kannst du ein Training, ein Spiel oder einen Termin eintragen.",
+  td_editDay: "Tag bearbeiten", td_blocks: "Ablauf", td_blocksInfo: "Plane die Einheit in Blöcken: Aufwärmen, Passform, Spielform … Jeder Block bekommt eine Dauer, einen zuständigen Trainer, Coachingpunkte und eine Skizze. Blöcke für eine Gruppe (z. B. Torhüter) laufen parallel. Co-Trainer sehen zuerst ihre eigenen Blöcke.",
+  td_mine: "Nur meine", td_mineOn: "Nur meine ✓", td_coHint: "{n}, hier siehst du deine Blöcke mit Coachingpunkten. „Nur meine“ ausschalten zeigt den ganzen Ablauf.",
+  td_parallel: "parallel", td_points: "{n} Coachingpunkte", td_noBlocks: "Noch kein Ablauf. Lege Blöcke an oder übernimm eine Vorlage aus dem Archiv.", td_noMine: "Dir ist an diesem Tag kein Block zugeteilt.",
+  td_total: "{a} von {b} Min. verplant", td_tooLong: "länger als geplant", td_add: "Block", td_tw: "{n} Torhüter", td_field: "{n} Feldspieler", td_absent: "Fehlen",
+  td_open: "Trainingstag öffnen", td_myBlocks: "Deine Blöcke", td_myBlocksNone: "In den nächsten 7 Tagen ist dir kein Block zugeteilt.",
+  // Blöcke
+  blk_new: "Neuer Block", blk_edit: "Block bearbeiten", blk_fromEx: "Übung aus dem Archiv", blk_title: "Titel", blk_titlePh: "z. B. Aufwärmen, Passform, Spielform 8 gegen 8", blk_untitled: "Block",
+  blk_staff: "Zuständig", blk_group: "Für", blk_allTeam: "ganze Mannschaft", blk_parallel: "Läuft parallel zum vorherigen Mannschaftsblock (z. B. Torwarttraining).",
+  blk_text: "Ablauf und Organisation", blk_points: "Coachingpunkte", blk_pointAdd: "Coachingpunkt", blk_sketch: "Skizze",
+  blk_draw: "Skizze zeichnen", blk_drawEdit: "Skizze bearbeiten", blk_drawDone: "Fertig gezeichnet", blk_drawDel: "Skizze entfernen",
+  blk_photo: "Foto einer Skizze hochladen", blk_photoNew: "Anderes Foto", blk_photoDel: "Foto entfernen", blk_photoSaved: "Foto gespeichert",
+  blk_photoD: "Z. B. eine Zeichnung auf Papier oder am Whiteboard. Nur das Trainerteam sieht die Fotos.", blk_delQ: "Block löschen?",
+  // Konto verknüpfen
+  sf_account: "App-Konto", sf_accountD: "Verknüpfe das Profil mit dem Konto des Trainers. Dann sieht er in seiner App seine Blöcke und Aufgaben.", sf_noAccount: "nicht verknüpft",
+  sf_accountNone: "Noch keine weiteren Trainer mit App-Konto. Einladen über Mehr → Zugang & Codes.",
+  demo_co: "Co-Trainer",
+  td_dayLink: "Trainingstag ›",
 };

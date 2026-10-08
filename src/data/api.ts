@@ -1,6 +1,6 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
 import type {
-  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup,
+  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 
@@ -138,6 +138,13 @@ export interface Api {
   saveGroup(teamId: string, g: TeamGroup): Promise<TeamGroup>;
   deleteGroup(id: string): Promise<void>;
   setGroupMember(teamId: string, groupId: string, playerId: string, on: boolean): Promise<void>;
+  // Trainingstag: Ablauf-Blöcke und Skizzen-Fotos (nur Trainerteam)
+  saveBlock(teamId: string, b: DayBlock): Promise<DayBlock>;
+  deleteBlock(b: DayBlock): Promise<void>;
+  /** Foto einer Skizze hochladen; liefert den Speicherpfad */
+  uploadSketch(teamId: string, blockId: string, uri: string): Promise<string>;
+  sketchUrl(path: string): Promise<string | null>;
+  removeSketch(path: string): Promise<void>;
 
   // Einwilligungen, Push, Datenschutz
   consents(): Promise<ConsentState>;

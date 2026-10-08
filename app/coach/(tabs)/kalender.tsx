@@ -33,13 +33,14 @@ export default function Kalender() {
 
   const wp = useMemo(() => E.weekPlan(cal.week), [s.version, cal.week, E]); // eslint-disable-line react-hooks/exhaustive-deps
   const up = E.D.matches.filter(m => m.date >= E.TODAY).sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 5);
-  const openTrain = (d: string) => { const sess = E.D.sessions.find(x => x.date === d); if (sess && d < E.TODAY && mods.beteiligung) router.push("/coach/einheit/" + d); else sheets.open({ k: "day", date: d }); };
+  // Tag antippen → Trainingstag (Einheit, Ablauf, Kader, Aufgaben); bearbeiten über „Tag bearbeiten“ oder „+“
+  const openDay = (d: string) => router.push("/coach/tag/" + d);
 
   const dayRow = (x: PlanItem) => {
     const its: React.ReactNode[] = [];
     if (x.match) its.push(<Item key="m" testID={"cal-match-" + x.date} kind={t("it_match")} color={c.accentTx} text={`${x.match.zeit} · ${t("vs")} ${x.match.gegner} (${x.match.heim ? t("home") : t("away")}${x.match.comp !== "liga" ? ", " + t("comp_" + x.match.comp) : ""})`} onPress={() => x.date <= E.TODAY && mods.spielanalyse ? router.push("/coach/spiel/" + x.match!.id) : sheets.open({ k: "add", date: x.date, type: "match", obj: x.match! })} />);
     if (x.train && x.train.kind === "frei") its.push(<Item key="r" kind={t("k_frei")} color={c.ok} text={tf("restDay", { md: x.md })} onPress={() => sheets.open({ k: "day", date: x.date })} />);
-    else if (x.train) its.push(<Item key="t" testID={"cal-train-" + x.date} kind={t("it_training")} color={rpeColor(c, showI ? x.train.rpe : 5)} text={`${E.zeitOf(x.date)} · ${E.kn(x.train.kind)}${showI ? " · " + E.intWord(x.train.rpe) : ""}`} onPress={() => openTrain(x.date)} />);
+    else if (x.train) its.push(<Item key="t" testID={"cal-train-" + x.date} kind={t("it_training")} color={rpeColor(c, showI ? x.train.rpe : 5)} text={`${E.zeitOf(x.date)} · ${E.kn(x.train.kind)}${showI ? " · " + E.intWord(x.train.rpe) : ""}`} onPress={() => openDay(x.date)} />);
     if (x.cancelled) its.push(<Item key="c" off kind={t("it_training")} color={c.muted} text={t("cancelled")} onPress={() => sheets.open({ k: "day", date: x.date })} />);
     if (x.brk && E.regularDay(x.date)) { const ph = phaseOn(E.D, x.date); its.push(<Item key="b" kind={t("vb_breakDay")} color="#16a3a3" text={ph?.title || ""} onPress={() => ph ? router.push("/coach/phase/" + ph.id) : sheets.open({ k: "day", date: x.date })} />); }
     x.events.forEach(e => its.push(<Item key={e.id} kind={t("it_event")} color={c.event} text={(e.zeit ? e.zeit + " · " : "") + e.titel} onPress={() => sheets.open({ k: "add", date: x.date, type: "event", obj: e })} />));
@@ -48,7 +49,7 @@ export default function Kalender() {
     const today = x.date === E.TODAY, flash = cal.flash === x.date;
     return (
       <View key={x.date} testID={"cal-day-" + x.date} style={{ flexDirection: "row", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.line, backgroundColor: flash ? withAlpha(c.warn, 0.15) : today ? withAlpha(c.accent, 0.05) : "transparent", borderRadius: flash || today ? 8 : 0, paddingHorizontal: flash || today ? 6 : 0 }}>
-        <Pressable testID={"cal-dl-" + x.date} accessibilityRole="button" accessibilityLabel={`${E.wt(x.date)} ${E.de(x.date)}`} onPress={() => sheets.open({ k: "day", date: x.date })} style={{ width: 54, gap: 2 }}>
+        <Pressable testID={"cal-dl-" + x.date} accessibilityRole="button" accessibilityLabel={`${E.wt(x.date)} ${E.de(x.date)}`} onPress={() => openDay(x.date)} style={{ width: 54, gap: 2 }}>
           <Text style={{ fontWeight: "800", fontSize: 15, color: today ? c.accentTx : c.ink }}>{E.wt(x.date)}</Text>
           <Text style={{ fontSize: 12, color: c.muted }}>{E.de(x.date)}</Text>
           {x.md ? <Text style={{ fontSize: 10.5, fontWeight: "700", color: c.muted }}>{x.md}</Text> : null}
@@ -93,7 +94,7 @@ export default function Kalender() {
       x.events.forEach(e => L.push(tx("e" + e.id, "● " + e.titel, c.event)));
       const today = d === E.TODAY;
       cells.push(
-        <Pressable key={d} testID={"mcell-" + d} accessibilityRole="button" accessibilityLabel={`${E.wt(d)} ${E.de(d)}`} onPress={() => sheets.open({ k: "day", date: d })}
+        <Pressable key={d} testID={"mcell-" + d} accessibilityRole="button" accessibilityLabel={`${E.wt(d)} ${E.de(d)}`} onPress={() => openDay(d)}
           style={{ width: `${100 / 7}%`, minHeight: narrow ? 82 : 104, padding: 2 }}>
           <View style={{ flex: 1, borderRadius: 7, borderWidth: today ? 2 : 1, borderColor: today ? c.accent : c.line, backgroundColor: inM ? c.surface : c.sunk, padding: narrow ? 3 : 5, gap: 2, opacity: inM ? 1 : 0.55, overflow: "hidden" }}>
             <Row between gap={2}><Text style={{ fontWeight: "800", fontSize: narrow ? 11 : 13, color: today ? c.accentTx : c.ink }}>{parse(d).getDate()}</Text>{x.md && !narrow ? <Text style={{ fontSize: 9.5, color: c.muted, fontWeight: "700" }}>{x.md}</Text> : null}</Row>

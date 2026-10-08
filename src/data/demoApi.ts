@@ -1,7 +1,7 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoExtras, demoTeam } from "../core/demo";
-import type { Contact, Phase, TeamGroup, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { Contact, Phase, TeamGroup, DayBlock, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { ApiError, type Api, type ConsentState, type Membership, type UserInfo, type UserPrefs } from "./api";
 
 let n = 1;
@@ -140,6 +140,11 @@ export class DemoApi implements Api {
   async saveGroup(_t: string, g: TeamGroup) { return { ...g, id: newId(g.id) }; }
   async deleteGroup() { /* lokal */ }
   async setGroupMember() { /* lokal */ }
+  async saveBlock(_t: string, b: DayBlock) { return { ...b, id: newId(b.id) }; }
+  async deleteBlock() { /* lokal */ }
+  async uploadSketch(_t: string, _b: string, uri: string) { return uri; }
+  async sketchUrl(path: string) { return path; }
+  async removeSketch() { /* lokal */ }
   async consents() { return { ...this.consent }; }
   async giveConsent(kind: keyof ConsentState) { this.consent[kind] = true; }
   async withdrawConsent(kind: keyof ConsentState) { this.consent[kind] = false; }

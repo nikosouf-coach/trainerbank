@@ -13,6 +13,7 @@ import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { teamLabel } from "../../../src/core/classes";
 import { firstName, greetKey } from "../../../src/core/people";
+import { MyTasksCard } from "../../../src/ui/day/MyTasks";
 import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
 import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
@@ -51,7 +52,7 @@ export default function Heute() {
   const when = nx ? (nx.i === 0 ? t("today") : nx.i === 1 ? t("tomorrow") : E.wt(nx.date) + " " + E.de(nx.date)) : "";
 
   const hero = nx ? (
-    <Pressable testID="today-next" accessibilityRole="button" onPress={() => sheets.open({ k: "day", date: nx.date })}
+    <Pressable testID="today-next" accessibilityRole="button" onPress={() => router.push("/coach/tag/" + nx.date)}
       style={{ backgroundColor: c.accent, borderRadius: radius.xl, padding: space.l + 2, gap: 10 }}>
       <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" }}>{nx.match ? t("nextMatch") : t("next")} · {when}</Text>
       <Text numberOfLines={2} style={{ color: "#fff", fontSize: 26, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.3 }}>{nxTitle}</Text>
@@ -145,7 +146,7 @@ export default function Heute() {
     onQuick={k => { if (k === "ki_q1" && nx?.train) { sheets.open({ k: "ai", date: nx.date }); return true; } return false; }} /> : null;
 
   const cards: Record<string, React.ReactNode> = {
-    next: hero, tasks: null, phase: <CoachPhaseCard />, status: tiles, attn: attnCard, absent: absentCard,
+    next: hero, tasks: <MyTasksCard />, phase: <CoachPhaseCard />, status: tiles, attn: attnCard, absent: absentCard,
     week: weekCard, events: eventsCard, last: lastCard, load: loadCard, ai: aiCard,
   };
   const available = (k: string): boolean => ({ status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;

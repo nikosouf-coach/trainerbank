@@ -137,6 +137,21 @@ export interface Exercise {
   rpe: number | null; desc: string; points: CoachPoint[]; drawing: Drawing | null; video: string;
 }
 export interface TemplateBlock { exId: string | null; text: string; min: number; staffId?: string | null }
+/** Ablauf eines Trainingstags: ein Block (Aufwärmen, Passform …) mit Zuständigkeit, Coachingpunkten und Skizze. */
+export interface DayBlock {
+  id: string; date: string; sort: number; title: string; min: number;
+  /** zuständiger Trainer (StaffProfile.id) */
+  staffId: string | null;
+  /** Übung aus dem Archiv (Titel, Beschreibung und Skizze werden beim Übernehmen kopiert) */
+  exId: string | null;
+  text: string; points: string[];
+  /** Skizze mit dem Zeichentool */
+  drawing: Drawing | null;
+  /** hochgeladenes Foto einer Skizze (Speicherpfad im Bucket „sketches“) */
+  photo: string | null;
+  /** nur für eine Gruppe (z. B. Torhüter); null = alle */
+  groupId: string | null;
+}
 /** Gespeicherte Einheit (Vorlage) aus Übungen oder freien Blöcken. */
 export interface SessionTemplate { id: string; title: string; theme: string; blocks: TemplateBlock[]; notes: string }
 /** Trainerprofil mit Aufgabenbereichen (auch für Personen ohne App-Konto). */
@@ -211,6 +226,8 @@ export interface TeamData {
   contacts: Contact[];
   /** Eigene Gruppen (Reha, Torhüter, Mannschaftsrat …); Mitglieder in Player.groups */
   groups: TeamGroup[];
+  /** Ablauf der Trainingstage (nur Trainerteam) */
+  blocks: DayBlock[];
   /** Inaktive Spieler (nur für das Trainerteam; nicht in Berechnungen) */
   inactive: Player[];
 }
@@ -219,6 +236,6 @@ export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
-    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], inactive: [],
+    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], inactive: [],
   };
 }

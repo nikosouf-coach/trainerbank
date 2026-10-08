@@ -1,5 +1,5 @@
 // Trainer – Planung: Wochenplan aus Spieltags-Prinzipien, Wochentyp (Aufbau/Entlastung), Tage anpassen, KI-Einheit, Wochenbilanz.
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Text, View } from "react-native";
 import { addDays, kwOf, monday } from "../../../src/core/dates";
@@ -22,7 +22,7 @@ const chgTxt = (c: Change, arrow: string): string => c.from === "" ? `${c.what}:
 
 export default function Plan() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
-  const cal = useCal(); const sheets = usePlanSheets();
+  const cal = useCal(); const sheets = usePlanSheets(); const router = useRouter();
   const params = useLocalSearchParams<{ date: string }>();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [kindTarget, setKindTarget] = useState<KindEditorTarget | null>(null);
@@ -83,7 +83,10 @@ export default function Plan() {
   const why = (p: PlanTrain): string[] => [E.whyOf(p), ...(p.notes.length ? [[...new Set(p.notes)].map(k => t(k)).join(" ")] : [])];
 
   const dayCard = (x: PlanItem) => {
-    const head = (extra?: React.ReactNode) => <Row wrap gap={8}><T bold>{E.wt(x.date)} {E.de(x.date)}</T>{x.md ? <Tag label={x.md} /> : null}{extra}</Row>;
+    const head = (extra?: React.ReactNode) => <Row wrap gap={8}>
+      <T bold>{E.wt(x.date)} {E.de(x.date)}</T>{x.md ? <Tag label={x.md} /> : null}{extra}
+      <Btn small kind="ghost" testID={"plan-tag-" + x.date} label={t("td_dayLink")} onPress={() => router.push("/coach/tag/" + x.date)} style={{ marginLeft: "auto", paddingHorizontal: 4 }} />
+    </Row>;
     if (x.match) return (
       <Sec key={x.date} color={c.accentTx} testID={"plan-day-" + x.date}>
         {head(<Chip label={t("it_match")} color={c.accentTx} />)}

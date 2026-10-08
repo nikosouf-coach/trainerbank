@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "../core/classes";
 import { cleanAreas } from "../core/body";
 import { addDays, iso, monday } from "../core/dates";
-import type { Contact, Phase, TeamGroup, GroupKind,
+import type { Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -72,6 +72,8 @@ const mapExercise = (r: Row): Exercise => ({ id: r.id, title: r.title, cat: r.ca
 const mapTemplate = (r: Row): SessionTemplate => ({ id: r.id, title: r.title, theme: r.theme || "", blocks: r.blocks || [], notes: r.notes || "" });
 const mapStaff = (r: Row): StaffProfile => ({ id: r.id, name: r.name, role: r.role, areas: r.areas || [], phone: r.phone || "", email: r.email || "", note: r.note || "",
   userId: r.user_id || null, birth: r.birthdate || null, license: r.license || "", photo: r.photo_path || null });
+const mapBlock = (r: Row): DayBlock => ({ id: r.id, date: r.date, sort: r.sort ?? 0, title: r.title, min: r.minutes ?? 15, staffId: r.staff_id || null, exId: r.exercise_id || null,
+  text: r.text || "", points: Array.isArray(r.points) ? r.points.map(String) : [], drawing: (r.drawing as Drawing) || null, photo: r.photo_path || null, groupId: r.group_id || null });
 const mapGroup = (r: Row): TeamGroup => ({ id: r.id, name: r.name, kind: (r.kind || "custom") as GroupKind, vis: !!r.visible });
 const mapVideo = (r: Row): Video => ({ id: r.id, title: r.title, url: r.url, date: r.date || null, matchId: r.match_id || null, pids: r.player_ids || [], groupIds: r.group_ids || [], note: r.note || "", vis: !!r.visible });
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
@@ -200,7 +202,7 @@ export class SupabaseApi implements Api {
     {
       // Teamweite Daten – auch ohne Spieler (neues Team: Trainerprofil, Kontakte, Gruppen, Übungen)
       // Spieldaten, Noten, Videos (für Spieler filtern die Zugriffsregeln auf eigene, freigegebene Einträge)
-      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases, contacts, groups, members] = await Promise.all([
+      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases, contacts, groups, members, blocks] = await Promise.all([
         all((a, b) => sb.from("match_stats").select("*").eq("team_id", tid).range(a, b)),
         all((a, b) => sb.from("player_ratings").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).range(a, b)),
         q(sb.from("videos").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
@@ -215,7 +217,10 @@ export class SupabaseApi implements Api {
         // Spieler erhalten nur freigegebene Gruppen und die eigene Mitgliedschaft (Zugriffsregeln)
         q(sb.from("team_groups").select("*").eq("team_id", tid).order("created_at")),
         all((a, b) => sb.from("group_members").select("group_id, player_id").eq("team_id", tid).range(a, b)),
+        // Ablauf der Trainingstage (nur Trainerteam; Spieler haben keinen Zugriff)
+        staff ? all((a, b) => sb.from("session_blocks").select("*").eq("team_id", tid).gte("date", addDays(today, -28)).order("date").order("sort").range(a, b)) : Promise.resolve([] as Row[]),
       ]);
+      D.blocks = blocks.map(mapBlock);
       D.groups = groups.map(mapGroup);
       const byId = new Map([...D.players, ...D.inactive].map(p => [p.id, p] as const));
       for (const r of members) { const p = byId.get(r.player_id); if (p) (p.groups ||= []).push(r.group_id); }
@@ -430,6 +435,28 @@ export class SupabaseApi implements Api {
     return mapContact(r);
   }
   async deleteContact(id: string) { await q(this.sb.from("team_contacts").delete().eq("id", id)); }
+
+  // ---------- Trainingstag ----------
+  async saveBlock(teamId: string, b: DayBlock) {
+    const row: Row = { team_id: teamId, date: b.date, sort: b.sort, title: b.title.trim().slice(0, 120) || "–", minutes: Math.max(1, Math.min(180, Math.round(b.min))), staff_id: b.staffId,
+      exercise_id: b.exId && !isTmp(b.exId) ? b.exId : null, text: b.text || null, points: b.points.filter(x => x.trim()).slice(0, 12), drawing: b.drawing, photo_path: b.photo, group_id: b.groupId };
+    const r = isTmp(b.id) ? await q<Row>(this.sb.from("session_blocks").insert(row).select().single()) : await q<Row>(this.sb.from("session_blocks").update(row).eq("id", b.id).select().single());
+    return mapBlock(r);
+  }
+  async deleteBlock(b: DayBlock) {
+    if (b.photo) await this.sb.storage.from("sketches").remove([b.photo]);
+    await q(this.sb.from("session_blocks").delete().eq("id", b.id));
+  }
+  async uploadSketch(teamId: string, blockId: string, uri: string) {
+    const img = await manipulateAsync(uri, [{ resize: { width: 1400 } }], { compress: 0.8, format: SaveFormat.JPEG });
+    const buf = await (await fetch(img.uri)).arrayBuffer();
+    const path = `${teamId}/${blockId}.jpg`;
+    const { error } = await this.sb.storage.from("sketches").upload(path, buf, { contentType: "image/jpeg", upsert: true });
+    if (error) fail(error);
+    return path;
+  }
+  async sketchUrl(path: string) { const { data } = await this.sb.storage.from("sketches").createSignedUrl(path, 3600); return data?.signedUrl || null; }
+  async removeSketch(path: string) { await this.sb.storage.from("sketches").remove([path]); }
 
   // ---------- Gruppen ----------
   async saveGroup(teamId: string, g: TeamGroup) {
