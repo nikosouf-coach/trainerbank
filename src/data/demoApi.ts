@@ -1,7 +1,7 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoExtras, demoTeam } from "../core/demo";
-import type { Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ConsentState, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -170,6 +170,9 @@ export class DemoApi implements Api {
   async saveTask(_t: string, x: TeamTask) { return { ...x, id: newId(x.id) }; }
   async deleteTask() { /* lokal */ }
   async setTaskDone() { this.net(); }
+  async saveCash(_t: string, e: CashEntry) { this.net(); return { ...e, id: newId(e.id) }; }
+  async deleteCash() { this.net(); }
+  async setWaiver() { this.net(); }
   /** Demo: alle Spieler gelten als eingewilligt */
   async healthConsentPlayers() { return (this.data?.players || []).map(p => p.id); }
   async consents() { return { ...this.consent }; }

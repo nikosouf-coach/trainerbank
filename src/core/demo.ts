@@ -3,9 +3,10 @@ import { classDef, defaultPrinciples, defaultSettings, groupOf, isGrowthAge, mod
 import { addDays, ageOn, diff, iso, monday, parse, rng } from "./dates";
 import { dutySuggest, fineSuggest } from "./duties";
 import { createEngine } from "./engine";
+import { duePeriods, periodStart, seasonStart } from "./kasse";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
-import type { Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles } from "./types";
+import type { FeeDef, FineEntry, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles } from "./types";
 import { emptyTeamData } from "./types";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
@@ -203,7 +204,9 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
 function demoTasks(D: TeamData, lang: Lang, TODAY: string): void {
   const en = lang === "en", S = D.team.settings;
   if (!S.duties) S.duties = dutySuggest(lang);
-  if (!S.fines) S.fines = fineSuggest(lang).map(r => r.trigger !== "manual" ? { ...r, on: true, since: addDays(TODAY, -3) } : r);
+  const money = groupOf(D.team.cls) === "akt";
+  if (!S.fines) S.fines = fineSuggest(lang, money).map(r => r.trigger !== "manual" ? { ...r, on: true, since: addDays(TODAY, -3) } : r);
+  demoKasse(D, lang, TODAY, money);
   let n = 1; const id = (): string => "tk" + (n++);
   const nextMatch = D.matches.filter(m => m.date >= TODAY).sort((a, b) => a.date < b.date ? -1 : 1)[0];
   const task = (title: string, due: string | null, staffId: string | null, pid: string | null, done = false, note = ""): void => {
@@ -216,6 +219,38 @@ function demoTasks(D: TeamData, lang: Lang, TODAY: string): void {
   const ps = D.players.slice(0, 4);
   ps.forEach((p, i) => task(en ? "Bring your player pass" : "Spielerpass mitbringen", nextMatch?.date || addDays(TODAY, 5), null, p.id, i === 0,
     en ? "For the cup match the referee checks passes." : "Beim Pokalspiel kontrolliert der Schiri die Pässe."));
+}
+
+/** Mannschaftskasse: Monatsbeitrag seit Saisonbeginn, Zahlungen, Ausgaben; Senioren zusätzlich Geldstrafen. */
+function demoKasse(D: TeamData, lang: Lang, TODAY: string, money: boolean): void {
+  const en = lang === "en", S = D.team.settings;
+  const from = seasonStart(TODAY) < addDays(TODAY, -60) ? seasonStart(TODAY) : addDays(TODAY, -60);
+  const fee: FeeDef = { id: "fee1", name: en ? "Team kitty" : "Mannschaftskasse", amount: money ? 10 : 5, every: "month", from: from.slice(0, 8) + "01" };
+  S.kasse = { on: true, currency: "EUR", money, showBalance: true, treasurer: null, payInfo: en ? "Cash at training (Daniel) – please bring the exact amount." : "Bar beim Training bei Daniel – bitte passend mitbringen.", fees: [fee] };
+  let n = 1; const id = (): string => "ca" + (n++);
+  const periods = duePeriods(fee, TODAY);
+  D.players.forEach((p, i) => periods.forEach((per, j) => {
+    // die meisten zahlen pünktlich, einige hängen 1–2 Monate hinterher
+    const late = i % 6 === 2 ? 2 : i % 5 === 4 ? 1 : 0;
+    if (j < periods.length - late) D.cash.push({ id: id(), date: periodStart(fee, per) > TODAY ? TODAY : addDays(periodStart(fee, per), 3 + (i % 5)), amount: fee.amount, kind: "in", cat: "fee", pid: p.id, feeId: fee.id, period: per, fineId: null, note: "" });
+  }));
+  if (D.players[7]) D.waivers.push({ pid: D.players[7].id, feeId: fee.id, period: "*" });
+  D.cash.push({ id: id(), date: addDays(TODAY, -40), amount: 50, kind: "in", cat: "donation", pid: null, feeId: null, period: null, fineId: null, note: en ? "Sponsor: bakery Müller" : "Sponsor: Bäckerei Müller" });
+  D.cash.push({ id: id(), date: addDays(TODAY, -18), amount: 64.5, kind: "out", cat: "event", pid: null, feeId: null, period: null, fineId: null, note: en ? "Team evening – pizza" : "Mannschaftsabend – Pizza" });
+  D.cash.push({ id: id(), date: addDays(TODAY, -9), amount: 23.9, kind: "out", cat: "material", pid: null, feeId: null, period: null, fineId: null, note: en ? "Tape and first-aid spray" : "Tape und Eisspray" });
+  if (money) {
+    const give = (pid: string, rule: string, days: number, paid: boolean): void => {
+      const r = (S.fines || []).find(x => x.id === rule); if (!r?.amount) return;
+      const f: FineEntry = { id: "fm" + (n++), pid, rule, date: addDays(TODAY, -days), ref: null, amount: r.amount, note: "", status: paid ? "done" : "open", auto: false, dutyDate: null };
+      D.fines.push(f);
+      if (paid) D.cash.push({ id: id(), date: addDays(TODAY, -days + 2), amount: r.amount, kind: "in", cat: "fine", pid, feeId: null, period: null, fineId: f.id, note: "" });
+    };
+    const P = D.players;
+    if (P[3]) give(P[3].id, "late", 12, true);
+    if (P[9]) give(P[9].id, "yellow_talk", 6, false);
+    if (P[2]) give(P[2].id, "kit", 4, false);
+    if (P[12]) give(P[12].id, "late_match", 20, true);
+  }
 }
 
 /** Ablauf der nächsten zwei Trainingstage mit Zuständigkeiten (Co-Trainer, TW-Trainer, Physio). */

@@ -10,7 +10,7 @@ import { applyOp, applyOutbox, enqueue, prune, withClientId, type OutboxItem, ty
 import { PERMS, effectivePerms, teamPatchPerms, viewFor, type Perm } from "../core/perms";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
-import type { StaffRoleKey, TeamGroup, DayBlock, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
+import type { CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, DayBlock, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -569,7 +569,24 @@ function useStoreValue() {
       if (saved.status === "waived") { const ids = D.duties.filter(x => x.fineId === saved.id && x.status === "open").map(x => x.id); if (ids.length) { await api.deleteDuties(ids); D.duties = D.duties.filter(x => !ids.includes(x.id)); } }
       set({ version: ref.current.version + 1 }); scheduleAutomation(); return saved;
     },
-    deleteFine: (id: string) => change(D => { D.fines = D.fines.filter(x => x.id !== id); D.duties = D.duties.filter(x => x.fineId !== id); }, api => api.deleteFine(id)),
+    deleteFine: (id: string) => change(D => { D.fines = D.fines.filter(x => x.id !== id); D.duties = D.duties.filter(x => x.fineId !== id); D.cash.forEach(e => { if (e.fineId === id) e.fineId = null; }); }, api => api.deleteFine(id)),
+
+    // Mannschaftskasse (Trainerteam mit Recht „Kasse“ oder Kassenwart)
+    saveKasse: (k: KasseSettings) => { const D = ref.current.D; if (!D) return Promise.resolve(); return actions.updateTeam({ settings: { ...D.team.settings, kasse: k } }); },
+    saveCash: (e: CashEntry) => change(D => {
+      const i = D.cash.findIndex(x => x.id === e.id); if (i >= 0) D.cash[i] = e; else D.cash.push(e);
+      // wie in der Datenbank: Zahlung einer Strafe ⇒ bezahlt
+      if (e.fineId) { const f = D.fines.find(x => x.id === e.fineId); if (f && f.status === "open") f.status = "done"; }
+    }, async (api, t) => { const saved = await api.saveCash(t, e); replaceIn(ref.current.D!.cash, e, saved); }),
+    deleteCash: (id: string) => change(D => {
+      const e = D.cash.find(x => x.id === id); D.cash = D.cash.filter(x => x.id !== id);
+      if (e?.fineId) { const f = D.fines.find(x => x.id === e.fineId); if (f && f.status === "done") f.status = "open"; }
+    }, api => api.deleteCash(id)),
+    /** Mehrere Posten auf einmal als bezahlt buchen (je Posten ein Kassenbuch-Eintrag) */
+    payItems: async (entries: CashEntry[]) => { for (const e of entries) await actions.saveCash(e); },
+    setWaiver: (w: CashWaiver, on: boolean) => change(D => {
+      D.waivers = D.waivers.filter(x => !(x.pid === w.pid && x.feeId === w.feeId && x.period === w.period)); if (on) D.waivers.push(w);
+    }, (api, t) => api.setWaiver(t, w, on)),
     saveTask: async (x: TeamTask): Promise<TeamTask> => {
       const { api, active, D } = ref.current; if (!D || !active) return x;
       const saved = await api.saveTask(active.teamId, x);
@@ -647,6 +664,7 @@ function useStoreValue() {
     saveMessage: "messages", deleteMessage: "messages",
     saveStat: "perf", saveTest: "perf", deleteTest: "perf",
     saveDutyDefs: "tasks", saveFineRules: "tasks", saveDuty: "tasks", saveFine: "tasks", deleteFine: "tasks", saveTask: "tasks", deleteTask: "tasks",
+    saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
   };
   const denied = (need: Perm[]): boolean => {
     if (!asStaff() || !need.length) return false;

@@ -5,7 +5,7 @@ import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "
 import { cleanAreas } from "../core/body";
 import { isClientId, isNetworkMessage } from "../core/outbox";
 import { addDays, iso, monday } from "../core/dates";
-import type { Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus,
+import type { Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -80,6 +80,8 @@ const mapStaff = (r: Row): StaffProfile => ({ id: r.id, name: r.name, role: r.ro
   userId: r.user_id || null, birth: r.birthdate || null, license: r.license || "", photo: r.photo_path || null });
 const mapBlock = (r: Row): DayBlock => ({ id: r.id, date: r.date, sort: r.sort ?? 0, title: r.title, min: r.minutes ?? 15, staffId: r.staff_id || null, exId: r.exercise_id || null,
   text: r.text || "", points: Array.isArray(r.points) ? r.points.map(String) : [], drawing: (r.drawing as Drawing) || null, photo: r.photo_path || null, groupId: r.group_id || null });
+const mapCash = (r: Row): CashEntry => ({ id: r.id, date: r.date, amount: Number(r.amount), kind: r.kind, cat: r.cat, pid: r.player_id || null,
+  feeId: r.fee_id || null, period: r.period || null, fineId: r.fine_id || null, note: r.note || "" });
 const mapFine = (r: Row): FineEntry => ({ id: r.id, pid: r.player_id, rule: r.rule, date: r.date, ref: r.ref_date || null, amount: r.amount != null ? Number(r.amount) : null, note: r.note || "",
   status: (r.status || "open") as EntryStatus, auto: !!r.auto, dutyDate: r.duty_date || null });
 const mapDuty = (r: Row): DutyEntry => ({ id: r.id, date: r.date, duty: r.duty, pid: r.player_id, source: r.source, fineId: r.fine_id || null, status: (r.status || "open") as EntryStatus });
@@ -217,7 +219,7 @@ export class SupabaseApi implements Api {
     {
       // Teamweite Daten – auch ohne Spieler (neues Team: Trainerprofil, Kontakte, Gruppen, Übungen)
       // Spieldaten, Noten, Videos (für Spieler filtern die Zugriffsregeln auf eigene, freigegebene Einträge)
-      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases, contacts, groups, members, blocks, duties, fines, tasks] = await Promise.all([
+      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases, contacts, groups, members, blocks, duties, fines, tasks, cash, waivers] = await Promise.all([
         all((a, b) => sb.from("match_stats").select("*").eq("team_id", tid).range(a, b)),
         all((a, b) => sb.from("player_ratings").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).range(a, b)),
         q(sb.from("videos").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
@@ -238,8 +240,14 @@ export class SupabaseApi implements Api {
         all((a, b) => sb.from("team_duties").select("*").eq("team_id", tid).gte("date", addDays(today, -60)).order("date").range(a, b)),
         all((a, b) => sb.from("team_fines").select("*").eq("team_id", tid).or(`status.eq.open,date.gte.${addDays(today, -120)}`).order("date").range(a, b)),
         all((a, b) => sb.from("team_tasks").select("*").eq("team_id", tid).or(`done_at.is.null,created_at.gte.${addDays(today, -30)}`).order("created_at").range(a, b)),
+        // Mannschaftskasse (Kasse/Kassenwart: alles; Spieler: eigene Zahlungen und Befreiungen – Zugriffsregeln)
+        all((a, b) => sb.from("cash_entries").select("*").eq("team_id", tid).order("date").order("created_at").range(a, b)),
+        all((a, b) => sb.from("cash_waivers").select("*").eq("team_id", tid).range(a, b)),
       ]);
       D.blocks = blocks.map(mapBlock); D.duties = duties.map(mapDuty); D.fines = fines.map(mapFine); D.tasks = tasks.map(mapTask);
+      D.cash = cash.map(mapCash); D.waivers = waivers.map(r => ({ pid: r.player_id, feeId: r.fee_id, period: r.period }));
+      D.cashBalance = null;
+      if (!staff && D.team.settings.kasse?.on) { try { const b = await q<unknown>(sb.rpc("team_cash_balance", { p_team: tid })); D.cashBalance = b == null ? null : Number(b); } catch { D.cashBalance = null; } }
       D.groups = groups.map(mapGroup);
       const byId = new Map([...D.players, ...D.inactive].map(p => [p.id, p] as const));
       for (const r of members) { const p = byId.get(r.player_id); if (p) (p.groups ||= []).push(r.group_id); }
@@ -523,6 +531,16 @@ export class SupabaseApi implements Api {
     return mapTask(r);
   }
   async deleteTask(id: string) { await q(this.sb.from("team_tasks").delete().eq("id", id)); }
+  async saveCash(teamId: string, e: CashEntry) {
+    const row: Row = { team_id: teamId, date: e.date, amount: e.amount, kind: e.kind, cat: e.cat, player_id: e.pid, fee_id: e.feeId, period: e.period, fine_id: e.fineId, note: e.note.trim() || null };
+    const r = isTmp(e.id) ? await q<Row>(this.sb.from("cash_entries").insert(row).select().single()) : await q<Row>(this.sb.from("cash_entries").update(row).eq("id", e.id).select().single());
+    return mapCash(r);
+  }
+  async deleteCash(id: string) { await q(this.sb.from("cash_entries").delete().eq("id", id)); }
+  async setWaiver(teamId: string, w: CashWaiver, on: boolean) {
+    if (on) await q(this.sb.from("cash_waivers").upsert({ team_id: teamId, player_id: w.pid, fee_id: w.feeId, period: w.period }, { onConflict: "team_id,player_id,fee_id,period", ignoreDuplicates: true }));
+    else await q(this.sb.from("cash_waivers").delete().eq("team_id", teamId).eq("player_id", w.pid).eq("fee_id", w.feeId).eq("period", w.period));
+  }
   async setTaskDone(id: string, done: boolean, at?: string | null) { await q(this.sb.from("team_tasks").update({ done_at: done ? (at || new Date().toISOString()) : null }).eq("id", id)); }
   async healthConsentPlayers(teamId: string) {
     const rows = await q(this.sb.from("consents").select("user_id, kind").in("kind", ["health_data", "parental"]).is("withdrawn_at", null));

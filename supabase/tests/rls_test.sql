@@ -1797,6 +1797,96 @@ update public.teams set settings = settings - 'testRank' where id = tst.get('tea
 commit;
 
 -- =====================================================================
+-- T41 Mannschaftskasse (Paket 11.3): Kasse/Kassenwart verwalten, Spieler sehen nur Eigenes
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{kasse}', '{"on": true, "currency": "EUR", "money": true, "showBalance": false, "fees": [{"id": "fee1", "name": "Kasse", "amount": 5, "every": "month", "from": "2026-08-01"}]}') where id = %L$q$, tst.get('team_a')),
+                   1, 'T41 Owner richtet die Kasse ein');
+select tst.affects(format($q$insert into public.cash_entries (team_id, date, amount, kind, cat, player_id, fee_id, period) values (%L, '2026-08-03', 5, 'in', 'fee', %L, 'fee1', '2026-08')$q$, tst.get('team_a'), tst.get('max')),
+                   1, 'T41 Beitrag von Max gebucht');
+select tst.throws(format($q$insert into public.cash_entries (team_id, date, amount, kind, cat, player_id, fee_id, period) values (%L, '2026-08-04', 5, 'in', 'fee', %L, 'fee1', '2026-08')$q$, tst.get('team_a'), tst.get('max')),
+                  'T41 derselbe Zeitraum nur einmal', 'duplicate key');
+select tst.affects(format($q$insert into public.cash_entries (team_id, date, amount, kind, cat, note) values (%L, '2026-08-10', 50, 'in', 'donation', 'Sponsor'), (%L, '2026-08-20', 20, 'out', 'event', 'Pizza')$q$, tst.get('team_a'), tst.get('team_a')),
+                   2, 'T41 Spende und Ausgabe gebucht');
+select tst.throws(format($q$insert into public.cash_entries (team_id, amount, kind, cat, player_id, fee_id) values (%L, 5, 'in', 'fee', %L, 'fee1')$q$, tst.get('team_a'), tst.get('max')),
+                  'T41 Beitragszahlung braucht einen Zeitraum', 'check constraint');
+select tst.throws(format($q$insert into public.cash_entries (team_id, amount, kind, cat) values (%L, 0, 'in', 'other')$q$, tst.get('team_a')),
+                  'T41 Betrag muss positiv sein', 'check constraint');
+insert into public.team_fines (team_id, player_id, rule, amount) values (tst.get('team_a')::uuid, tst.get('max')::uuid, 't41', 5);
+select tst.throws(format($q$insert into public.cash_entries (team_id, amount, kind, cat, player_id, fine_id) values (%L, 5, 'in', 'fine', %L, (select id from public.team_fines where rule = 't41'))$q$, tst.get('team_a'), tst.get('erik')),
+                  'T41 Strafe nur vom betroffenen Spieler bezahlt', 'different_teams');
+select tst.affects(format($q$insert into public.cash_entries (team_id, amount, kind, cat, player_id, fine_id) values (%L, 5, 'in', 'fine', %L, (select id from public.team_fines where rule = 't41'))$q$, tst.get('team_a'), tst.get('max')),
+                   1, 'T41 Strafe bezahlt (Kassenbuch)');
+select tst.eq((select status from public.team_fines where rule = 't41'), 'done', 'T41 bezahlte Strafe ist erledigt');
+select tst.affects(format($q$insert into public.cash_waivers (team_id, player_id, fee_id, period) values (%L, %L, 'fee1', '2026-09')$q$, tst.get('team_a'), tst.get('max')), 1, 'T41 Owner erlässt einen Monat');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.cash_entries)::text, '0', 'T41 Co-Trainer ohne Recht „Kasse“ sieht kein Kassenbuch');
+  perform tst.eq((select count(*) from public.cash_waivers)::text, '0', 'T41 … und keine Befreiungen');
+  perform tst.ok(public.team_cash_balance(tst.get('team_a')::uuid) is null, 'T41 … und keinen Kassenstand (nicht freigegeben)');
+end $$;
+select tst.throws(format($q$insert into public.cash_entries (team_id, amount, kind, cat) values (%L, 1, 'in', 'other')$q$, tst.get('team_a')), 'T41 Co-Trainer ohne Recht bucht nichts', 'row-level security');
+select tst.throws(format($q$update public.teams set settings = jsonb_set(settings, '{kasse,showBalance}', 'true') where id = %L$q$, tst.get('team_a')), 'T41 Kasse einstellen nur mit „Kasse“', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select string_agg(cat, ',' order by cat) from public.cash_entries), 'fee,fine', 'T41 Spieler sieht nur eigene Zahlungen');
+  perform tst.eq((select count(*) from public.cash_waivers)::text, '1', 'T41 Spieler sieht eigene Befreiung');
+  perform tst.ok(public.team_cash_balance(tst.get('team_a')::uuid) is null, 'T41 Kassenstand nur, wenn freigegeben');
+end $$;
+select tst.throws(format($q$insert into public.cash_entries (team_id, amount, kind, cat) values (%L, 1, 'in', 'other')$q$, tst.get('team_a')), 'T41 Spieler bucht nichts', 'row-level security');
+select tst.affects($q$delete from public.cash_entries$q$, 0, 'T41 Spieler löscht nichts');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.teams set settings = jsonb_set(jsonb_set(settings, '{kasse,showBalance}', 'true'), '{kasse,treasurer}', to_jsonb(%L::text)) where id = %L$q$, tst.get('p2_player'), tst.get('team_a')),
+                   1, 'T41 Owner gibt Kassenstand frei und macht P2 zum Kassenwart');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.eq(public.team_cash_balance(tst.get('team_a')::uuid)::text, '40.00', 'T41 freigegebener Kassenstand (5 + 50 − 20 + 5)');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.ok(public.is_treasurer(tst.get('team_a')::uuid), 'T41 P2 ist Kassenwart');
+  perform tst.eq((select count(*) from public.cash_entries)::text, '4', 'T41 Kassenwart sieht das Kassenbuch');
+  perform tst.ok((select count(*) from public.team_fines where rule = 't41') = 1, 'T41 Kassenwart sieht Strafen zum Kassieren');
+  perform tst.eq((select count(*) from public.rpe_entries where player_id <> tst.get('p2_player')::uuid)::text, '0', 'T41 Kassenwart sieht keine Gesundheitsdaten anderer');
+end $$;
+select tst.affects(format($q$insert into public.cash_entries (team_id, date, amount, kind, cat, player_id, fee_id, period) values (%L, '2026-10-02', 5, 'in', 'fee', %L, 'fee1', '2026-10')$q$, tst.get('team_a'), tst.get('max')),
+                   1, 'T41 Kassenwart bucht eine Zahlung');
+select tst.throws(format($q$insert into public.cash_waivers (team_id, player_id, fee_id, period) values (%L, %L, 'fee1', '2026-10')$q$, tst.get('team_a'), tst.get('max')), 'T41 Kassenwart erlässt keine Beiträge', 'row-level security');
+select tst.affects($q$update public.team_fines set amount = 1 where rule = 't41'$q$, 0, 'T41 Kassenwart ändert keine Strafen');
+select tst.affects($q$delete from public.cash_entries where cat = 'fine'$q$, 1, 'T41 Kassenwart nimmt die Strafzahlung zurück');
+commit;
+
+do $$
+begin
+  perform tst.eq((select status from public.team_fines where rule = 't41'), 'open', 'T41 zurückgenommene Zahlung ⇒ Strafe wieder offen');
+  delete from public.cash_entries where team_id = tst.get('team_a')::uuid;
+  delete from public.cash_waivers where team_id = tst.get('team_a')::uuid;
+  delete from public.team_fines where rule = 't41';
+  update public.teams set settings = settings - 'kasse' where id = tst.get('team_a')::uuid;
+end
+$$;
+
+-- =====================================================================
 -- T17 Einwilligungen
 -- =====================================================================
 begin;

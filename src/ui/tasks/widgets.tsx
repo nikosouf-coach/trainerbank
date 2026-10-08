@@ -1,4 +1,5 @@
 // Aufgaben, Dienste, Strafen – kleine Bausteine für Startseite, Trainingstag und Spieler-App.
+import { kasseOf, money } from "../../core/kasse";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -13,7 +14,8 @@ export const ruleName = (E: Engine, id: string): string => (E.team.settings.fine
 export const fineText = (E: Engine, f: FineEntry): string => {
   const parts: string[] = [];
   if (f.dutyDate) { const r = (E.team.settings.fines || []).find(x => x.id === f.rule); parts.push(`${r?.duty ? dutyName(E, r.duty) : E.t("fn_duty")} · ${E.wt(f.dutyDate)} ${E.de(f.dutyDate)}`); }
-  if (f.amount != null) parts.push(E.tr.lang === "en" ? `€${f.amount.toFixed(2)}` : `${f.amount.toFixed(2).replace(".", ",")} €`);
+  const k = kasseOf(E.team.settings, E.grp);
+  if (f.amount && k.money) parts.push(money(f.amount, k.currency, E.tr.lang));
   if (f.note) parts.push(f.note);
   return parts.join(" · ");
 };

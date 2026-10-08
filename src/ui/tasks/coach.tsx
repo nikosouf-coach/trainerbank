@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Text, View } from "react-native";
 import { addDays, diff } from "../../core/dates";
 import { dutySuggest, fineSuggest } from "../../core/duties";
+import { kasseOf, money } from "../../core/kasse";
 import type { DutyDef, DutyEntry, DutyWhen, FineEntry, FineRule, FineTrigger } from "../../core/types";
 import { tmpId, useEngine, useStore } from "../../data/store";
 import { Banner, Btn, Card, CardTitle, Check, Col, DateField, Field, Info, ListItem, Muted, NumField, Picker, Row, Seg, Sheet, T, Tag, ToggleRow } from "../kit";
@@ -172,8 +173,11 @@ export function FinesTab() {
   const [edit, setEdit] = useState<FineRule | null>(null), [give, setGive] = useState(false), [showAll, setShowAll] = useState(false);
   const open = E.D.fines.filter(f => f.status === "open").sort((a, b) => a.date < b.date ? 1 : -1);
   const closed = E.D.fines.filter(f => f.status !== "open").sort((a, b) => a.date < b.date ? 1 : -1);
-  const sum = (L: FineEntry[]) => L.reduce((a, f) => a + (f.amount || 0), 0);
-  const money = (v: number) => E.tr.lang === "en" ? `€${v.toFixed(2)}` : `${v.toFixed(2).replace(".", ",")} €`;
+  const k = kasseOf(E.team.settings, E.grp);
+  const sum = (L: FineEntry[]) => k.money ? L.reduce((a, f) => a + (f.amount || 0), 0) : 0;
+  const fmt = (v: number) => money(v, k.currency, E.tr.lang);
+  // Bezahlen: mit Kasse als Einnahme im Kassenbuch (die Strafe gilt dann als bezahlt), sonst nur als erledigt
+  const paid = (f: FineEntry) => k.on && k.money && f.amount ? s.payItems([{ id: tmpId(), date: E.TODAY, amount: f.amount, kind: "in", cat: "fine", pid: f.pid, feeId: null, period: null, fineId: f.id, note: "" }]) : s.saveFine({ ...f, status: "done" });
   const saveRules = (L: FineRule[]) => s.saveFineRules(L);
   const auto = rules.some(r => r.on && r.trigger !== "manual");
   const row = (f: FineEntry) => {
@@ -187,7 +191,7 @@ export function FinesTab() {
         <T v="small">{ruleName(E, f.rule)}{f.ref ? ` (${E.de(f.ref)})` : ""}</T>
         {fineText(E, f) ? <Muted small>{fineText(E, f)}</Muted> : null}
         {f.status === "open" ? <Row gap={6} wrap>
-          <Btn small kind="primary" testID={"fn-done-" + f.id} label={f.amount != null && !f.dutyDate ? t("fn_paid") : t("fn_doneBtn")} onPress={() => s.saveFine({ ...f, status: "done" })} />
+          <Btn small kind="primary" testID={"fn-done-" + f.id} label={k.money && f.amount && !f.dutyDate ? t("fn_paid") : t("fn_doneBtn")} onPress={() => k.money && f.amount && !f.dutyDate ? paid(f) : s.saveFine({ ...f, status: "done" })} />
           <Btn small kind="ghost" testID={"fn-waive-" + f.id} label={t("fn_waive")} onPress={() => s.saveFine({ ...f, status: "waived" })} />
         </Row> : <Tag label={t("fn_st_" + f.status)} />}
       </View>
@@ -199,8 +203,8 @@ export function FinesTab() {
         <CardTitle title={tf("fn_openN", { n: open.length })} right={<Btn small kind="primary" icon="plus" testID="fn-give" label={t("fn_give")} onPress={() => setGive(true)} />} />
         {open.length ? open.map(row) : <Muted>{t("fn_none")}</Muted>}
         {sum(open) || sum(closed.filter(f => f.status === "done")) ? <Row gap={14} wrap>
-          <Muted small>{t("fn_cashOpen")}: <Text style={{ fontWeight: "800", color: c.ink }}>{money(sum(open))}</Text></Muted>
-          <Muted small>{t("fn_cashPaid")}: <Text style={{ fontWeight: "800", color: c.ink }}>{money(sum(closed.filter(f => f.status === "done")))}</Text></Muted>
+          <Muted small>{t("fn_cashOpen")}: <Text style={{ fontWeight: "800", color: c.ink }}>{fmt(sum(open))}</Text></Muted>
+          <Muted small>{t("fn_cashPaid")}: <Text style={{ fontWeight: "800", color: c.ink }}>{fmt(sum(closed.filter(f => f.status === "done")))}</Text></Muted>
         </Row> : null}
         {closed.length ? <Btn small kind="ghost" label={`${t("fn_history")} (${closed.length}) ${showAll ? "▴" : "▾"}`} onPress={() => setShowAll(!showAll)} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} /> : null}
         {showAll ? closed.slice(0, 30).map(row) : null}
@@ -209,12 +213,13 @@ export function FinesTab() {
         <CardTitle title={t("fn_catalog")} info={<Info title={t("fn_catalog")} text={t("fn_catalogInfo")} />} />
         {rules.length ? rules.map(r => (
           <ListItem key={r.id} testID={"fn-rule-" + r.id} title={r.name} onPress={() => setEdit(r)}
-            sub={[r.trigger !== "manual" ? "⚙ " + t("fn_trig_" + r.trigger) : t("fn_trig_manual"), r.duty ? dutyName(E, r.duty) : "", r.amount != null ? money(r.amount) : ""].filter(Boolean).join(" · ")}
+            sub={[r.trigger !== "manual" ? "⚙ " + t("fn_trig_" + r.trigger) : t("fn_trig_manual"), r.duty ? dutyName(E, r.duty) : "", r.amount && k.money ? fmt(r.amount) : ""].filter(Boolean).join(" · ")}
             right={<Tag label={r.on ? t("tk_on") : t("tk_off")} />} />
         )) : <Banner><Col gap={8}><T v="small">{t("fn_suggestD")}</T>
-          <Btn small kind="primary" testID="fn-suggest" label={t("fn_suggest")} onPress={() => { saveRules(fineSuggest(E.tr.lang)); if (!defs.length) s.saveDutyDefs(dutySuggest(E.tr.lang)); }} style={{ alignSelf: "flex-start" }} /></Col></Banner>}
+          <Btn small kind="primary" testID="fn-suggest" label={t("fn_suggest")} onPress={() => { saveRules(fineSuggest(E.tr.lang, k.money)); if (!defs.length) s.saveDutyDefs(dutySuggest(E.tr.lang)); }} style={{ alignSelf: "flex-start" }} /></Col></Banner>}
         <Btn small icon="plus" testID="fn-add" label={t("fn_add")} onPress={() => setEdit({ id: "f" + tmpId().slice(4, 12), name: "", trigger: "manual", duty: null, amount: null, note: "", on: true })} style={{ alignSelf: "flex-start" }} />
         {auto ? <Banner color={c.warn} testID="fn-privacy">{t("fn_privacy")}</Banner> : <Muted small>{t("fn_privacy")}</Muted>}
+        <Muted small testID="fn-money-hint">{k.money ? t("fn_moneyOn") : t("fn_moneyOff")}</Muted>
       </Card>
       <FineRuleSheet rule={edit} onClose={() => setEdit(null)}
         onSave={r => { const L = rules.some(x => x.id === r.id) ? rules.map(x => x.id === r.id ? r : x) : [...rules, r]; saveRules(L); setEdit(null); }}
@@ -225,7 +230,7 @@ export function FinesTab() {
 }
 
 function FineRuleSheet({ rule, onClose, onSave, onDelete }: { rule: FineRule | null; onClose: () => void; onSave: (r: FineRule) => void; onDelete: (r: FineRule) => void }) {
-  const E = useEngine(); const { t } = E;
+  const E = useEngine(); const { t } = E; const k = kasseOf(E.team.settings, E.grp);
   const [x, setX] = useState<FineRule | null>(null), [key, setKey] = useState<string | null>(null);
   if ((rule?.id || null) !== key) { setKey(rule?.id || null); setX(rule ? { ...rule } : null); }
   if (!rule || !x) return null;
@@ -243,7 +248,8 @@ function FineRuleSheet({ rule, onClose, onSave, onDelete }: { rule: FineRule | n
       {x.trigger !== "manual" ? <Muted small>{t("fn_trigD_" + x.trigger)}</Muted> : null}
       <Picker testID="fnr-duty" label={t("fn_duty")} value={x.duty || ""} onChange={v => setX({ ...x, duty: v || null })} options={[{ key: "", label: t("fn_noDuty") }, ...defs.map(d => ({ key: d.id, label: d.name }))]} />
       {x.duty ? <Muted small>{t("fn_dutyD")}</Muted> : null}
-      <NumField testID="fnr-amount" label={t("fn_amount")} value={x.amount} min={0} max={100} step={0.5} onChange={v => setX({ ...x, amount: v })} style={{ width: 160 }} />
+      {k.money ? <NumField testID="fnr-amount" label={`${t("fn_amount")} (${k.currency})`} value={x.amount} min={0} max={500} step={0.5} onChange={v => setX({ ...x, amount: v })} style={{ width: 180 }} /> : null}
+      {k.money && x.trigger === "late_rpe" && x.amount ? <Muted small>{t("fn_noMoneyRpe")}</Muted> : null}
       <ToggleRow testID="fnr-on" label={t("dy_active")} value={x.on} onChange={v => setX({ ...x, on: v })} />
       <Row gap={8} wrap>
         <Btn testID="fnr-save" kind="primary" label={t("save")} disabled={!x.name.trim()} onPress={save} />
@@ -254,7 +260,7 @@ function FineRuleSheet({ rule, onClose, onSave, onDelete }: { rule: FineRule | n
 }
 
 function GiveFineSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const s = useStore(); const E = useEngine(); const { t } = E;
+  const s = useStore(); const E = useEngine(); const { t } = E; const k = kasseOf(E.team.settings, E.grp);
   const rules = (E.team.settings.fines || []).filter(r => r.on);
   const [pid, setPid] = useState(""), [rid, setRid] = useState(rules[0]?.id || ""), [note, setNote] = useState("");
   const r = rules.find(x => x.id === rid);
@@ -263,10 +269,10 @@ function GiveFineSheet({ visible, onClose }: { visible: boolean; onClose: () => 
       {rules.length ? <>
         <Picker testID="fng-player" label={t("players")} value={pid} onChange={setPid} options={[{ key: "", label: "–" }, ...E.D.players.map(p => ({ key: p.id, label: E.name(p) }))]} />
         <Picker testID="fng-rule" label={t("fn_rule")} value={rid} onChange={setRid} options={rules.map(x => ({ key: x.id, label: x.name }))} />
-        {r ? <Muted small>{[r.duty ? dutyName(E, r.duty) + " · " + t("fn_nextDate") : "", r.amount != null ? String(r.amount).replace(".", ",") + " €" : ""].filter(Boolean).join(" · ")}</Muted> : null}
+        {r ? <Muted small>{[r.duty ? dutyName(E, r.duty) + " · " + t("fn_nextDate") : "", r.amount && k.money ? money(r.amount, k.currency, E.tr.lang) : ""].filter(Boolean).join(" · ")}</Muted> : null}
         <Field testID="fng-note" label={t("tk_note")} value={note} onChangeText={setNote} maxLength={300} />
         <Btn testID="fng-go" kind="primary" label={t("fn_give")} disabled={!pid || !r} onPress={async () => {
-          await s.saveFine({ id: tmpId(), pid, rule: r!.id, date: E.TODAY, ref: null, amount: r!.amount, note: note.trim(), status: "open", auto: false, dutyDate: null });
+          await s.saveFine({ id: tmpId(), pid, rule: r!.id, date: E.TODAY, ref: null, amount: k.money ? r!.amount : null, note: note.trim(), status: "open", auto: false, dutyDate: null });
           s.toast(t("t_saved")); setPid(""); setNote(""); onClose();
         }} style={{ alignSelf: "flex-start" }} />
       </> : <Muted>{t("fn_noRules")}</Muted>}

@@ -1,5 +1,5 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
-import type {
+import type { CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -163,6 +163,11 @@ export interface Api {
   deleteTask(id: string): Promise<void>;
   /** Aufgabe erledigt/offen (Spieler: nur eigene) */
   setTaskDone(id: string, done: boolean, at?: string | null): Promise<void>;
+
+  // Mannschaftskasse (Trainerteam mit Recht „cash“ und Kassenwart)
+  saveCash(teamId: string, e: CashEntry): Promise<CashEntry>;
+  deleteCash(id: string): Promise<void>;
+  setWaiver(teamId: string, w: CashWaiver, on: boolean): Promise<void>;
   /** Spieler mit App-Konto und Einwilligung in Gesundheitsdaten (dürfen RPE eintragen) */
   healthConsentPlayers(teamId: string): Promise<string[]>;
 

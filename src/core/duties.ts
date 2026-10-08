@@ -15,14 +15,30 @@ export const dutySuggest = (lang: Lang): DutyDef[] => {
     { id: "cabin", name: en ? "Tidy dressing room" : "Kabine aufräumen", when: "match", count: 2, on: false },
   ];
 };
-/** Vorschläge für den Strafenkatalog (Automatiken standardmäßig aus) */
-export const fineSuggest = (lang: Lang): FineRule[] => {
+/**
+ * Vorschläge für den Strafenkatalog (Automatiken standardmäßig aus).
+ * Jugend (money = false): Dienste statt Geld. Senioren (money = true): übliche Geldbeträge.
+ * „RPE nicht eingetragen“ bleibt immer ein Dienst – kein Geld für fehlende Gesundheitsdaten.
+ */
+export const fineSuggest = (lang: Lang, money = false): FineRule[] => {
   const en = lang === "en";
-  return [
+  const auto: FineRule[] = [
     { id: "late_rpe", name: en ? "RPE not entered within 24 h" : "RPE nicht innerhalb von 24 Std. eingetragen", trigger: "late_rpe", duty: "material", amount: null, note: "", on: false },
-    { id: "unexcused", name: en ? "Missed training without notice" : "Unentschuldigt gefehlt", trigger: "unexcused", duty: "bibs", amount: null, note: "", on: false },
-    { id: "late", name: en ? "Late for training" : "Zu spät zum Training", trigger: "manual", duty: null, amount: 2, note: "", on: true },
-    { id: "phone", name: en ? "Phone in the dressing room" : "Handy in der Kabine", trigger: "manual", duty: null, amount: 1, note: "", on: true },
+    { id: "unexcused", name: en ? "Missed training without notice" : "Unentschuldigt beim Training gefehlt", trigger: "unexcused", duty: money ? null : "bibs", amount: money ? 10 : null, note: "", on: false },
+  ];
+  if (!money) return [...auto,
+    { id: "late", name: en ? "Late for training" : "Zu spät zum Training", trigger: "manual", duty: "bibs", amount: null, note: "", on: true },
+    { id: "phone", name: en ? "Phone in the dressing room" : "Handy in der Kabine", trigger: "manual", duty: "material", amount: null, note: "", on: true },
+  ];
+  const m = (id: string, de: string, enN: string, amount: number): FineRule => ({ id, name: en ? enN : de, trigger: "manual", duty: null, amount, note: "", on: true });
+  return [...auto,
+    m("late", "Zu spät zum Training", "Late for training", 2),
+    m("late_match", "Zu spät zum Treffpunkt (Spiel)", "Late for match meeting", 5),
+    m("miss_match", "Unentschuldigt beim Spiel gefehlt", "Missed match without notice", 25),
+    m("yellow_talk", "Gelbe Karte wegen Meckern", "Yellow card for dissent", 5),
+    m("red", "Rote Karte (Unsportlichkeit)", "Red card (unsporting)", 20),
+    m("kit", "Ausrüstung/Trikot vergessen", "Forgot kit/shirt", 5),
+    m("phone", "Handy in der Kabine", "Phone in the dressing room", 2),
   ];
 };
 

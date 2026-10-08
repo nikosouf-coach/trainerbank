@@ -44,7 +44,33 @@ export interface TeamSettings {
   tests?: TestKey[];
   /** Platzierung in Tests für Spieler: aus, nur eigener Platz (Standard), Platz + Teambestwert (ohne Namen) */
   testRank?: "off" | "rank" | "best";
+  /** Mannschaftskasse (Beiträge, Geldstrafen, Kassenbuch) */
+  kasse?: KasseSettings;
 }
+/** Beitrag: einmalig, monatlich (Zeitraum „JJJJ-MM“) oder je Saison Juli–Juni („JJJJ/JJ“) */
+export type FeeEvery = "once" | "month" | "season";
+export interface FeeDef { id: string; name: string; amount: number; every: FeeEvery; from: string; to?: string | null;
+  /** nur diese Spieler (leer/fehlend = alle aktiven Spieler) */ pids?: string[] | null }
+export interface KasseSettings {
+  on: boolean;
+  /** ISO-Währung (EUR, CHF, GBP, USD …) */
+  currency: string;
+  /** Geldbeträge im Strafenkatalog (Senioren); aus = nur Dienste (Jugend) */
+  money: boolean;
+  /** Spieler sehen den Kassenstand */
+  showBalance: boolean;
+  /** Kassenwart: Spieler-ID mit Zugriff auf die Kasse */
+  treasurer?: string | null;
+  /** Hinweis für Spieler, wie bezahlt wird (z. B. bar beim Training, PayPal-Name) */
+  payInfo?: string;
+  fees: FeeDef[];
+}
+export type CashCat = "fee" | "fine" | "donation" | "event" | "drinks" | "material" | "other";
+/** Kassenbuch-Eintrag (Einnahme/Ausgabe); Zahlung eines Beitrags (feeId + period) oder einer Strafe (fineId) */
+export interface CashEntry { id: string; date: string; amount: number; kind: "in" | "out"; cat: CashCat; pid: string | null;
+  feeId: string | null; period: string | null; fineId: string | null; note: string }
+/** Erlassener Beitrag (period „*“ = ganzer Beitrag) */
+export interface CashWaiver { pid: string; feeId: string; period: string }
 export interface Reminders {
   /** Morgen-Check an/aus und Uhrzeit "HH:MM" (Standard 08:00) */
   well?: boolean; wellAt?: string;
@@ -253,6 +279,10 @@ export interface TeamData {
   groups: TeamGroup[];
   /** Ablauf der Trainingstage (nur Trainerteam) */
   blocks: DayBlock[];
+  /** Mannschaftskasse: Kassenbuch und Befreiungen (Spieler: nur eigene), Kassenstand für Spieler vom Server */
+  cash: CashEntry[];
+  waivers: CashWaiver[];
+  cashBalance?: number | null;
   /** Nur Spieler-App: eigene Platzierungen in Tests (vom Server berechnet, ohne Werte anderer) */
   ranks?: Partial<Record<TestKey, TestRank>>;
   /** Dienste, Strafen, Aufgaben (Spieler sehen nur eigene) */
@@ -265,6 +295,6 @@ export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
-    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], duties: [], fines: [], tasks: [], inactive: [],
+    stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], duties: [], fines: [], tasks: [], cash: [], waivers: [], inactive: [],
   };
 }

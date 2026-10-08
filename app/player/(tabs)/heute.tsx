@@ -11,6 +11,7 @@ import { PlayerProgramCard } from "../../../src/ui/prep";
 import { msgColor } from "../../../src/ui/squad/ProfileCards";
 import { PlayerRehaCard } from "../../../src/ui/reha";
 import { PlayerTasksCard } from "../../../src/ui/tasks/widgets";
+import { MyKasseCard } from "../../../src/ui/kasse";
 import { useTheme } from "../../../src/ui/theme";
 
 export default function PlayerHeute() {
@@ -32,6 +33,7 @@ export default function PlayerHeute() {
       </Row> : null}
       <PlayerTasksCard pid={p.id} />
       <PlayerRehaCard pid={p.id} />
+      <MyKasseCard pid={p.id} compact onManage={() => router.push("/player/kasse")} />
       <PlayerProgramCard pid={p.id} />
       <NewRating pid={p.id} />
       {msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}

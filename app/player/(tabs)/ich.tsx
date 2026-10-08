@@ -10,6 +10,7 @@ import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, ListItem
 import { GOLD, Goals } from "../../../src/ui/player/parts";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { GroupChip } from "../../../src/ui/squad/Groups";
+import { MyKasseCard } from "../../../src/ui/kasse";
 import { useTheme } from "../../../src/ui/theme";
 
 export default function Ich() {
@@ -55,6 +56,7 @@ export default function Ich() {
         <Row wrap gap={6}>{myGroups.map(g => <GroupChip key={g.id} group={g} testID={"me-group-" + g.id} />)}</Row>
         <Muted small>{t("my_groupsD")}</Muted>
       </Card> : null}
+      <MyKasseCard pid={p.id} onManage={() => router.push("/player/kasse")} />
       <Card testID="me-profile">
         <T v="h3">{t("pl_profile")}</T>
         <Row wrap gap={10}>
