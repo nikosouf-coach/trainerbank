@@ -108,7 +108,9 @@ export interface Absence {
 export interface Session { date: string; typ: "Training" | "Spiel"; dauer: number; zeit: string; md: string; ziel: number; kind?: Kind }
 export interface RpeEntry { rpe: number; min: number }
 export interface WellnessItems { sq: number; fat: number; doms: number; stress: number }
-export interface Wellness { sum: number; schlaf: number; beschw: Complaint; ort?: string; items?: WellnessItems }
+export interface Wellness { sum: number; schlaf: number; beschw: Complaint; ort?: string; items?: WellnessItems;
+  /** Körperregionen der Beschwerde (core/body: „hams:l“, „knee:r“, „ill_up“) */
+  areas?: string[] }
 export interface Extra { id: string; date: string; art: ExtraType; min: number; rpe: number; /** freie Bezeichnung bei „Sonstiges“ */ label?: string; /** erledigter Programm-Baustein (ProgItem.id) aus Pause/Vorbereitung */ prog?: string }
 export interface Growth { date: string; cm: number }
 export interface CustomKind { id: string; name: string; rpe: number; inhalt: string }

@@ -8,9 +8,9 @@ import { radius, rpeColor, useTheme, withAlpha } from "./theme";
 
 export const INDIV_COLOR: Record<IndivKind, string> = {
   team: "#5c6b7a", comp: "#f0762b", compHalf: "#e8a20c", reha: "#d6336c", return: "#c2255c", build: "#16a3a3",
-  tw: "#f0762b", growth: "#7b5fd0", easy: "#c9a400", pause: "#d9452f", absent: "#8b939e", sick: "#8b939e",
+  tw: "#f0762b", growth: "#7b5fd0", easy: "#c9a400", mod: "#b8860b", pause: "#d9452f", absent: "#8b939e", sick: "#8b939e",
 };
-const ORDER: IndivKind[] = ["comp", "compHalf", "reha", "return", "build", "tw", "growth", "easy", "pause", "sick", "absent"];
+const ORDER: IndivKind[] = ["comp", "compHalf", "reha", "return", "build", "tw", "growth", "easy", "mod", "pause", "sick", "absent"];
 
 /** Kleine farbige Marke für die Art der Vorgabe. */
 export function IndivChip({ v }: { v: IndivTarget }) {

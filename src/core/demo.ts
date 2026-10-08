@@ -88,6 +88,10 @@ export function buildDemo(team: Team, lang: Lang, now: Date = new Date()): TeamD
       }
     }
   }
+  // Beschwerden mit Körperregion: deutlich hinterer Oberschenkel, leicht erkältet (nur oberhalb des Halses)
+  const sw = D.well[sore]?.[TODAY]; if (sw) { sw.areas = ["hams:r"]; sw.ort = en ? "after a sprint" : "nach Sprint"; }
+  const cold = D.players.find(p => p.id !== sore && p.id !== sleepy && D.well[p.id]?.[TODAY]);
+  if (cold) { const w = D.well[cold.id][TODAY]; w.beschw = "light"; w.areas = ["ill_up"]; }
   if (isGrowthAge(team.cls)) for (const p of D.players) {
     const spurt = ["p4", "p9", "p13", "p18"].includes(p.id); let h = 145 + Math.round(r() * 25);
     D.growth[p.id] = [-12, -9, -6, -3, 0].map(m => { const d = new Date(now); d.setMonth(d.getMonth() + m); const v = { date: iso(d), cm: Math.round(h * 10) / 10 }; h += spurt ? 2.2 + r() * 0.8 : 0.9 + r() * 0.8; return v; });

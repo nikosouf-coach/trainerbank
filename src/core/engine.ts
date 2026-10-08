@@ -7,6 +7,7 @@ import {
 } from "./classes";
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
 import { translator } from "./i18n";
+import { areaLabel, cleanAreas, complaintEffect, type BodyEffect } from "./body";
 import { cmjDrop, fitnessIndex } from "./perf";
 import { phaseOn } from "./prep";
 import { headCoach } from "./people";
@@ -152,6 +153,15 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
   }
   const injuryOf = (pid: string): Absence | null => { const a = absenceOn(pid, TODAY); return a && ["verletzung", "krank"].includes(a.typ) ? a : null; };
   const returning = (pid: string): Absence | undefined => D.absences.find(a => a.pid === pid && a.typ === "verletzung" && !!a.bis && a.bis < TODAY && diff(a.bis, TODAY) <= 21);
+  /** Beschwerde-Text mit Regionen („Beschwerden: Wade (links)“) */
+  const soreWhy = (w: Wellness): string => { const a = cleanAreas(w.areas); return t("r_sore") + (a.length ? ": " + a.map(x => areaLabel(t, x)).join(", ") : ""); };
+  /** Wirkung der heutigen Beschwerde (Regionen) auf eine Einheit mit Ziel-RPE `base` */
+  const soreEffect = (p: Player, w: Wellness | null | undefined, base?: number): BodyEffect | null => {
+    if (!w) return null;
+    const it = weekPlan(monday(TODAY)).items.find(x => x.date === TODAY);
+    const b = base ?? (it?.train ? it.train.rpe : it?.match ? matchRpe() : 6);
+    return complaintEffect(w, b, p.pos === "TW" || D.groups.some(g => g.kind === "tw" && (p.groups || []).includes(g.id)));
+  };
   function status(pid: string, m: Metrics | null): Status {
     if (injuryOf(pid)) return "inj";
     if (!mods.belastung || !m) return "none";
@@ -385,7 +395,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     else if (ab) reasons.push(["build", t("ab_" + ab.typ)]);
     if (returning(pid) && lvl(1)) reasons.push(["warn", t("r_return")]);
     if (rec && rec.notReady) reasons.push(["crit", t("r_notrec")]);
-    if (w0 && w0.beschw !== "none") reasons.push(["crit", t("r_sore")]);
+    if (w0 && w0.beschw !== "none") reasons.push([w0.beschw === COMPLAINT_CLEAR ? "crit" : "warn", soreWhy(w0)]);
     if (sl != null && sl < tg[0]) reasons.push(["warn", t("r_sleep") + " " + num(sl, 1) + " h"]);
     if (gr && gr.spurt) reasons.push(["warn", t("r_spurt")]);
     if (att != null && att < 0.8 && st !== "inj") reasons.push(["warn", t("r_att") + " " + Math.round(att * 100) + " %"]);
@@ -459,7 +469,11 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
   function suggestRec(p: Player): RecSuggestion {
     const pr = profile(p.id), tg = pr.tg, sun = addDays(monday(TODAY), 6);
     if (pr.st === "inj") return { typ: "prog", text: t("rs_inj"), bis: addDays(TODAY, 7) };
-    if (pr.w0 && pr.w0.beschw === COMPLAINT_CLEAR) return { typ: "pause", text: t("rs_sore"), bis: addDays(TODAY, 1) };
+    if (pr.w0 && pr.w0.beschw !== "none") {
+      const ef = soreEffect(p, pr.w0);
+      if (ef && (ef.kind === "pause" || ef.kind === "sick")) return { typ: "pause", text: t("rs_sore") + " " + t(ef.how), bis: addDays(TODAY, 1) };
+      if (ef) return { typ: "regen", text: t(ef.how), bis: addDays(TODAY, 1) };
+    }
     if (pr.rec && pr.rec.notReady) return { typ: "pause", text: t("rs_pause"), bis: TODAY };
     if (pr.st === "crit") return { typ: "regen", text: t("rs_crit"), bis: sun };
     if (pr.rec && !pr.rec.none && pr.rec.remaining > 0) return { typ: "regen", text: tf("rs_regen", { a: tg[0] }), bis: addDays(TODAY, 1) };
@@ -473,8 +487,10 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const pr = profile(p.id), w = D.well[p.id]?.[TODAY];
     if (pr.st === "inj" && pr.ab) return { k: "pause", why: t("ab_" + pr.ab.typ) };
     if (activeMsgs(p.id).some(m => m.typ === "pause")) return { k: "pause", why: t("ph_coachPause") };
-    if (w && w.beschw === COMPLAINT_CLEAR) return { k: "pause", why: t("r_sore") };
+    const ef = w && w.beschw !== "none" ? soreEffect(p, w) : null;
+    if (ef && (ef.kind === "pause" || ef.kind === "sick")) return { k: "pause", why: soreWhy(w!) };
     const rem = pr.rec && !pr.rec.none ? pr.rec.remaining : 0;
+    if (ef) return { k: "easy", why: soreWhy(w!) };
     if (pr.st === "crit") return { k: "easy", why: t("pd_load_crit") };
     const drop = mods.leistung ? cmjDrop(D, p.id, TODAY) : null;
     if (drop != null && drop >= 0.08) return { k: "easy", why: t("ph_cmj") };
@@ -603,7 +619,7 @@ Hinweise der App: ${dataHints(p).map(h => h.text).join(" | ") || "keine"}.`;
     return `Spieler: ${p.vn}, ${age(p)} Jahre, Position ${p.pos}, Altersklasse ${classLabel(classDef(team.cls), opts.lang)}${p.kg ? ", Gewicht " + p.kg + " kg" : ""}.
 Heute: ${wt(TODAY)} ${de(TODAY)}, Spieltags-Bezug: ${mdOf(TODAY).md || "keiner"}.
 Woche: ${wp.items.map(x => `${wt(x.date)} ${x.match ? "Spiel" : x.train ? kn(x.train.kind) + " (RPE " + x.train.rpe + ", " + x.train.dauer + " Min.)" : "frei"}`).join("; ")}.
-Status: ${t("st_" + pr.st)}. Erholung: ${pr.rec && !pr.rec.none ? (pr.rec.remaining > 0 ? "voll erholt in ca. " + Math.round(pr.rec.remaining) + " Std." : "erholt") : "–"}. Schlaf Ø ${pr.sl != null ? num(pr.sl, 1) : "–"} h (Ziel ${pr.tg[0]}–${pr.tg[1]} h). Beschwerden heute: ${pr.w0 ? pr.w0.beschw : "–"}.
+Status: ${t("st_" + pr.st)}. Erholung: ${pr.rec && !pr.rec.none ? (pr.rec.remaining > 0 ? "voll erholt in ca. " + Math.round(pr.rec.remaining) + " Std." : "erholt") : "–"}. Schlaf Ø ${pr.sl != null ? num(pr.sl, 1) : "–"} h (Ziel ${pr.tg[0]}–${pr.tg[1]} h). Beschwerden heute: ${pr.w0 && pr.w0.beschw !== "none" ? (pr.w0.beschw === "clear" ? "deutlich" : "leicht") + (cleanAreas(pr.w0.areas).length ? " (" + cleanAreas(pr.w0.areas).map(x => areaLabel(t, x)).join(", ") + ")" : "") : "keine"}.
 Empfehlung des Trainers: ${activeMsgs(p.id).map(m => t("ry_" + m.typ) + ": " + m.text).join(" | ") || "keine"}.`;
   }
 
@@ -618,7 +634,7 @@ Empfehlung des Trainers: ${activeMsgs(p.id).map(m => t("ry_" + m.typ) + ": " + m
     matchOn, eventsOn, regularDay, dayCfg, zeitOf, durOf, isTraining, inBreak, absenceOn, absentOn, mdOf,
     P, age, name, daily, metrics, injuryOf, returning, status, attStatus, attendance, sleep7, growthInfo, teamChronic,
     lastIntenseBefore, recoveryNeed, notReadyFor, recovery, weekPlan,
-    profile, advice, nextItem, sessAvg, dataHints, activeMsgs, suggestRec,
+    profile, advice, nextItem, sessAvg, dataHints, activeMsgs, suggestRec, soreWhy, soreEffect,
     playerState, playerSessions, playerOpenSession, tipRegen, tipGym, tipExtra, tipFood, tipSleep,
     aiContext, aiSessionPrompt, potPrompt, playerAiContext,
     wt, de, isGrowthAge: () => isGrowthAge(team.cls), playerSees, seasonStats, ratingsOf, videosFor,

@@ -488,7 +488,6 @@ export const de: Dict = {
   "pw_no": "Nein",
   "pw_light": "Leicht",
   "pw_clear": "Deutlich",
-  "pw_where": "Wo? (z. B. Oberschenkel hinten links)",
   "pw_saved": "Morgen-Check gespeichert",
   "pw_doneToday": "Heute schon erledigt. Du kannst ihn noch ändern.",
   "pw_need": "Bitte alle vier Fragen beantworten.",

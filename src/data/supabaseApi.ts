@@ -2,6 +2,7 @@
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "../core/classes";
+import { cleanAreas } from "../core/body";
 import { addDays, iso, monday } from "../core/dates";
 import type { Contact, Phase, TeamGroup, GroupKind,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
@@ -183,7 +184,7 @@ export class SupabaseApi implements Api {
       for (const r of rpe) (D.rpe[r.player_id] ||= {})[r.date] = { rpe: Number(r.rpe), min: r.minutes };
       for (const r of well) {
         const items = { sq: r.sleep_quality || 0, fat: r.fatigue || 0, doms: r.soreness || 0, stress: r.stress || 0 };
-        (D.well[r.player_id] ||= {})[r.date] = { sum: items.sq + items.fat + items.doms + items.stress, schlaf: Number(r.sleep_hours ?? 0), beschw: (r.complaint || "none") as Complaint, ort: r.complaint_location || "", items };
+        (D.well[r.player_id] ||= {})[r.date] = { sum: items.sq + items.fat + items.doms + items.stress, schlaf: Number(r.sleep_hours ?? 0), beschw: (r.complaint || "none") as Complaint, ort: r.complaint_location || "", items, areas: cleanAreas(r.complaint_areas || []) };
       }
       for (const r of extra) (D.extra[r.player_id] ||= []).push(mapExtra(r));
       for (const r of att) (D.att[r.date] ||= {})[r.player_id] = r.status as AttStatus;
@@ -344,7 +345,7 @@ export class SupabaseApi implements Api {
   async saveWellness(pid: string, date: string, w: Wellness) {
     await q(this.sb.from("wellness_entries").upsert({
       player_id: pid, date, sleep_hours: w.schlaf, sleep_quality: w.items?.sq ?? null, fatigue: w.items?.fat ?? null,
-      soreness: w.items?.doms ?? null, stress: w.items?.stress ?? null, complaint: w.beschw, complaint_location: w.beschw !== "none" ? (w.ort || null) : null,
+      soreness: w.items?.doms ?? null, stress: w.items?.stress ?? null, complaint: w.beschw, complaint_location: w.beschw !== "none" ? (w.ort || null) : null, complaint_areas: w.beschw !== "none" ? cleanAreas(w.areas) : [],
     }));
   }
   async saveExtra(pid: string, x: Extra) {

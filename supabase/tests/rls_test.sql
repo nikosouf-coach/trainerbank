@@ -1160,6 +1160,44 @@ delete from public.team_groups;
 commit;
 
 -- =====================================================================
+-- T34 Beschwerden mit Körperregion (Paket 5)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$insert into public.wellness_entries (player_id, date, sleep_hours, fatigue, complaint, complaint_areas)
+                             values (%L, '2026-10-09', 7.5, 3, 'clear', '{hams:l,ill_up}')$q$, tst.get('max')),
+                   1, 'T34 P1 meldet Beschwerden mit Regionen');
+select tst.throws(format($q$insert into public.wellness_entries (player_id, date, complaint, complaint_areas) values (%L, '2026-10-10', 'light', '{ellbogen:l}')$q$, tst.get('max')),
+                  'T34 unbekannte Region wird abgelehnt', 'check constraint');
+select tst.throws(format($q$insert into public.wellness_entries (player_id, date, complaint, complaint_areas) values (%L, '2026-10-10', 'light', '{head:l}')$q$, tst.get('max')),
+                  'T34 Kopf hat keine Seite', 'check constraint');
+select tst.throws(format($q$insert into public.wellness_entries (player_id, date, complaint, complaint_areas) values (%L, '2026-10-10', 'none', '{knee:r}')$q$, tst.get('max')),
+                  'T34 ohne Beschwerde keine Regionen', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select array_to_string(complaint_areas, ',') from public.wellness_entries where player_id = tst.get('max')::uuid and date = '2026-10-09'),
+                 'hams:l,ill_up', 'T34 Trainer sieht die Regionen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.wellness_entries where player_id = tst.get('max')::uuid)::text, '0', 'T34 Mitspieler sieht keine Beschwerden');
+end $$;
+commit;
+
+begin;
+delete from public.wellness_entries where player_id = tst.get('max')::uuid and date = '2026-10-09';
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

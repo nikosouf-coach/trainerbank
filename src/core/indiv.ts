@@ -7,11 +7,12 @@
 // reduzierte Sprung-/Sprintvolumina im Wachstumsschub (Lloyd & Oliver 2012; Read et al. 2016).
 import { addDays, diff, monday } from "./dates";
 import type { Engine, PlanTrain } from "./engine";
+import { complaintEffect } from "./body";
 import { inKind } from "./groups";
 import { cmjDrop } from "./perf";
 import type { Match, Player } from "./types";
 
-export type IndivKind = "team" | "comp" | "compHalf" | "reha" | "return" | "build" | "tw" | "growth" | "easy" | "pause" | "absent" | "sick";
+export type IndivKind = "team" | "comp" | "compHalf" | "reha" | "return" | "build" | "tw" | "growth" | "easy" | "mod" | "pause" | "absent" | "sick";
 export interface IndivTarget {
   pid: string; kind: IndivKind;
   /** Ziel-RPE (0 = keine Teilnahme) und Minuten */
@@ -25,7 +26,7 @@ export interface IndivTarget {
 }
 
 /** Welche Arten zählen als „nimmt am Mannschaftstraining teil“ (für Zählungen in der Planung). */
-export const WITH_TEAM: IndivKind[] = ["team", "comp", "compHalf", "return", "build", "tw", "growth", "easy"];
+export const WITH_TEAM: IndivKind[] = ["team", "comp", "compHalf", "return", "build", "tw", "growth", "easy", "mod"];
 
 const cache = new WeakMap<Engine, Map<string, IndivTarget[]>>();
 
@@ -85,9 +86,15 @@ function calc(E: Engine, p: Player, tr: PlanTrain): IndivTarget {
   // 2. Trainer hat „Pause“ verordnet; Beschwerden heute
   const pause = (E.D.msgs[p.id] || []).find(m => m.typ === "pause" && m.date <= date && (!m.bis || m.bis >= date));
   if (pause) return out("pause", 0, 0, [t("ph_coachPause")], pause.text);
-  if (date === E.TODAY) {
-    const w = E.D.well[p.id]?.[E.TODAY];
-    if (w && w.beschw === "clear") return out("pause", 0, 0, [t("r_sore")], t("iv_soreHow"));
+  // Beschwerden mit Körperregion: heute gemeldet (gilt für heute; deutliche Beschwerden auch für morgen),
+  // ohne heutigen Eintrag gilt eine deutliche Beschwerde von gestern
+  const wT = E.D.well[p.id]?.[E.TODAY], wY = E.D.well[p.id]?.[addDays(E.TODAY, -1)];
+  const w = date === E.TODAY ? (wT || (wY?.beschw === "clear" ? wY : null)) : date === addDays(E.TODAY, 1) && wT?.beschw === "clear" ? wT : null;
+  const ef = w ? complaintEffect(w, base, p.pos === "TW" || inKind(G, p, "tw")) : null;
+  if (ef && w) {
+    const why = E.soreWhy(w) + (w.beschw === "clear" ? ` (${t("pw_clear").toLowerCase()})` : "");
+    if (ef.kind === "sick") return out("sick", 0, 0, [why], t(ef.how));
+    if (ef.kind === "pause") return out("pause", 0, 0, [why], t(ef.how));
   }
 
   let rpe = base, dauer = dur, kind: IndivKind = "team", how = "";
@@ -97,10 +104,18 @@ function calc(E: Engine, p: Player, tr: PlanTrain): IndivTarget {
     if (nr < rpe || nd < dauer) { if (kind === "team") { kind = k; if (h) how = h; } why.push(reason); rpe = nr; dauer = nd; }
   };
 
+  // Beschwerde: eine Stufe leichter bzw. mit Einschränkung (kein Spielersatz mit hoher Intensität)
+  const sore = !!ef && (ef.kind === "easy" || ef.kind === "mod");
+  if (ef && w && sore) {
+    const why0 = E.soreWhy(w);
+    if (ef.kind === "easy" && ef.cap != null) cap(ef.cap, "easy", why0, t(ef.how));
+    if (kind === "team") { kind = "mod"; how = t(ef.how); why.push(why0); }
+  }
+
   // 3. Erste Einheit nach dem Spiel (MD+1/MD+2, leichte Einheit): Die Startelf folgt der Mannschaftsvorgabe
   //    (Regeneration). Wer wenig gespielt hat, holt die Spielbelastung nach (Spielersatz), sonst sinkt seine
   //    Grundbelastung und der nächste volle Einsatz wird zur Belastungsspitze.
-  const m = base <= 5 ? matchBefore(E, date) : null;
+  const m = base <= 5 && !sore ? matchBefore(E, date) : null;
   if (m) {
     const min = matchMinutes(E, m, p.id), full = E.matchMin();
     if (min != null && min < Math.round(full * 0.5)) {

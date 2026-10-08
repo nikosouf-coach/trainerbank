@@ -7,7 +7,7 @@ import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { diff } from "../../../src/core/dates";
 import { useEngine, useStore } from "../../../src/data/store";
 import { LoadChart, Ring } from "../../../src/ui/charts";
-import { Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, StatusChip, T } from "../../../src/ui/kit";
+import { Banner, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, StatusChip, T } from "../../../src/ui/kit";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { MyTarget } from "../../../src/ui/indiv";
@@ -43,6 +43,7 @@ export default function Spieler() {
   if (!p) return <Screen testID="coach-spieler"><Header title={t("nav_kader")} onBack={back} backLabel={t("nav_kader")} /><Muted>{t("err_not_found")}</Muted></Screen>;
 
   const pr = E.profile(p.id), m = pr.m, rec = pr.rec, mods = E.mods, nx = E.nextItem();
+  const sore = pr.w0 && pr.w0.beschw !== "none" ? E.soreEffect(p, pr.w0) || { how: "" } : null;
   const abs = E.D.absences.filter(a => a.pid === p.id).sort((a, b) => a.von < b.von ? 1 : -1);
   const series = m ? m.series.slice(-28) : [];
   const fmtH = (h: number) => h < 1 ? "<1 " + t("hours") : Math.round(h) + " " + t("hours");
@@ -82,6 +83,13 @@ export default function Spieler() {
         </Col>
       </Row>
       {adv && E.lvl(1) ? <T style={{ fontWeight: "600" }}>{adv}</T> : null}
+      {sore ? <Banner color={pr.w0!.beschw === "clear" ? c.crit : c.warn} testID="profile-sore">
+        <Col gap={4}>
+          <T bold>{E.soreWhy(pr.w0!)} · {t(pr.w0!.beschw === "clear" ? "pw_clear" : "pw_light")}</T>
+          {pr.w0!.ort ? <T v="small">„{pr.w0!.ort}“</T> : null}
+          {sore.how ? <T v="small">{t(sore.how)}</T> : null}
+        </Col>
+      </Banner> : null}
       <Row wrap gap={8}>
         {mods.belastung && E.lvl(2) ? <>
           <Kpi label={t("k_acwr")} value={m && m.acwr != null ? E.num(m.acwr, 2) : "–"} term="acwr" />

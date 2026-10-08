@@ -7,6 +7,9 @@ import { XP } from "../../../src/core/game";
 import type { AbsenceType, Complaint, ExtraType, WellnessItems } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, Info, ListItem, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T } from "../../../src/ui/kit";
+import { cleanAreas } from "../../../src/core/body";
+import { BodyPicker } from "../../../src/ui/body";
+import { TermInfo } from "../../../src/ui/termInfo";
 import { HealthConsentGate } from "../../../src/ui/player/parts";
 import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
@@ -63,12 +66,16 @@ function WellForm({ onDone }: { onDone: () => void }) {
   const [items, setItems] = useState<Partial<WellnessItems>>(today?.items || {});
   const [pain, setPain] = useState<Complaint>(today?.beschw || "none");
   const [ort, setOrt] = useState(today?.ort || "");
+  const [areas, setAreas] = useState<string[]>(today?.areas || []);
   const col = (v: number) => v <= 2 ? c.ok : v <= 4 ? c.warn : c.crit;
+  // Sofort-Hinweis zur gewählten Region (gleiche Logik wie in der Steuerung)
+  const preview = pain !== "none" ? E.soreEffect(p, { sum: 0, schlaf: sleep, beschw: pain, areas }) : null;
   const keys: (keyof WellnessItems)[] = ["sq", "fat", "doms", "stress"];
   const save = () => {
     if (keys.some(k => !items[k])) { s.toast(t("pw_need")); return; }
+    if (pain !== "none" && !cleanAreas(areas).length) { s.toast(t("pw_regionNeed")); return; }
     const it = items as WellnessItems;
-    s.saveWellness(p.id, E.TODAY, { sum: it.sq + it.fat + it.doms + it.stress, schlaf: sleep, beschw: pain, ort: pain !== "none" ? ort.trim() : "", items: it });
+    s.saveWellness(p.id, E.TODAY, { sum: it.sq + it.fat + it.doms + it.stress, schlaf: sleep, beschw: pain, ort: pain !== "none" ? ort.trim() : "", items: it, areas: pain !== "none" ? cleanAreas(areas) : [] });
     s.toast(`${t("pw_saved")}${today ? "" : " · " + tf("gm_plusXp", { x: XP.well })}`); onDone();
   };
   return (
@@ -87,9 +94,14 @@ function WellForm({ onDone }: { onDone: () => void }) {
           <NumScale testID={"well-" + k} value={items[k] ?? null} min={1} max={7} color={col} onChange={v => setItems({ ...items, [k]: v })} />
         </Col>
       ))}
-      <T v="h3">{t("pw_pain")}</T>
+      <Row gap={6}><T v="h3" style={{ flexShrink: 1 }}>{t("pw_pain")}</T><TermInfo k="complaints" testID="term-complaints" /></Row>
       <ChoiceChips testID="well-pain" value={pain} onChange={setPain} options={[{ key: "none", label: t("pw_no") }, { key: "light", label: t("pw_light") }, { key: "clear", label: t("pw_clear") }]} />
-      {pain !== "none" ? <Field testID="well-where" label={t("pw_where")} value={ort} onChangeText={setOrt} /> : null}
+      {pain !== "none" ? <Col gap={8}>
+        <Col gap={2}><T bold>{t("pw_regions")}</T><Muted small>{t("pw_regionsD")}</Muted></Col>
+        <BodyPicker testID="well-body" value={areas} onChange={setAreas} color={pain === "clear" ? c.crit : c.warn} />
+        {preview ? <Banner color={preview.kind === "sick" || preview.kind === "pause" ? c.crit : c.warn} testID="well-body-advice">{t(preview.how)}</Banner> : null}
+        <Field testID="well-where" label={t("pw_note")} value={ort} onChangeText={setOrt} placeholder={t("pw_notePh")} maxLength={120} />
+      </Col> : null}
       <Btn testID="well-save" kind="primary" label={t("pl_saveWell")} onPress={save} style={{ alignSelf: "flex-start" }} />
     </Card>
   );
