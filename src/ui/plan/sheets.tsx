@@ -4,11 +4,12 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { CONTENT } from "../../core/content";
-import { kwOf, monday } from "../../core/dates";
+import { addDays, diff, kwOf, monday } from "../../core/dates";
 import { demoTeam, sampleFixtures } from "../../core/demo";
 import { parseFixtures } from "../../core/fixtures";
-import { phaseOn } from "../../core/prep";
-import type { AbsenceType, Match, TeamEvent } from "../../core/types";
+import type { Engine } from "../../core/engine";
+import { defaultProgram, phaseOn } from "../../core/prep";
+import type { AbsenceType, Match, Phase, TeamEvent } from "../../core/types";
 import { pickTextFile } from "../../data/files";
 import { tmpId, useEngine, useStore } from "../../data/store";
 import { Markdown, useAi } from "../ai";
@@ -18,7 +19,7 @@ import { jumpTo } from "./calState";
 
 export type SheetState =
   | { k: "day"; date: string }
-  | { k: "add"; date: string; type: "training" | "match" | "event"; obj?: Match | TeamEvent }
+  | { k: "add"; date: string; type: "training" | "match" | "event" | "pause"; obj?: Match | TeamEvent }
   | { k: "import" }
   | { k: "ai"; date: string }
   | { k: "abs"; date?: string; pid?: string };
@@ -90,6 +91,7 @@ function DayBody({ date, open, close }: { date: string; open: (s: SheetState) =>
         <Btn small testID="day-add-event" label={t("day_addEvent")} onPress={() => open({ k: "add", date, type: "event" })} />
         {!tr && !x.match && !x.cancelled ? <Btn small testID="day-add-training" label={t("day_addTr")} onPress={() => { const o = { ...cal, extra: true }; delete o.cancel; s.setCal(date, o); saved(); }} /> : null}
         {mods.beteiligung ? <Btn small testID="day-add-abs" label={t("day_addAbs")} onPress={() => open({ k: "abs", date })} /> : null}
+        {!x.brk ? <Btn small testID="day-add-break" label={"+ " + t("cal_addBreak")} onPress={() => open({ k: "add", date, type: "pause" })} /> : null}
       </Row>
     </Col>
   );
@@ -109,6 +111,7 @@ function AddBody({ st, close }: { st: Extract<SheetState, { k: "add" }>; close: 
   const [titel, setTitel] = useState(e0?.titel || "");
   const [etyp, setEtyp] = useState(e0?.typ || "abend");
   const [ersetzt, setErsetzt] = useState(!!e0?.ersetzt);
+  const [bTitle, setBTitle] = useState(""), [bTo, setBTo] = useState<string | null>(addDays(st.date, 13)), [busy, setBusy] = useState(false);
   const d = date || st.date;
   const reg = E.regularDay(d), isTr = E.isTraining(d), cal = E.D.cal[d] || {};
   const done = () => { jumpTo(d); close(); s.toast(tf("saved_on", { d: E.wt(d) + " " + E.de(d) })); };
@@ -116,8 +119,8 @@ function AddBody({ st, close }: { st: Extract<SheetState, { k: "add" }>; close: 
   const switchType = (k: typeof type) => { setType(k); if (k === "match") setZeit(E.team.settings.anstoss); if (k === "event") setZeit("19:00"); };
   return (
     <Col gap={12}>
-      {!edit ? <Seg testID="add-type" value={type} onChange={switchType} options={(["training", "match", "event"] as const).map(k => ({ key: k, label: t("it_" + k) }))} /> : null}
-      <DateField testID="add-date" label={t("f_date")} value={date} onChange={v => v && setDate(v)} lang={E.tr.lang} />
+      {!edit ? <Seg testID="add-type" value={type} onChange={switchType} options={(["training", "match", "event", "pause"] as const).map(k => ({ key: k, label: k === "pause" ? t("cal_addBreak") : t("it_" + k) }))} /> : null}
+      <DateField testID="add-date" label={type === "pause" ? t("cal_breakFrom") : t("f_date")} value={date} onChange={v => v && setDate(v)} lang={E.tr.lang} />
       {type === "training" ? <Col gap={10}>
         <Muted small>{reg ? t("trInfo") + " · " + E.dayCfg(d).zeit + " · " + t("p_" + E.dayCfg(d).platz) : t("noTrInfo")}</Muted>
         <Row wrap gap={8}>
@@ -140,6 +143,23 @@ function AddBody({ st, close }: { st: Extract<SheetState, { k: "add" }>; close: 
           {m0 ? <Btn testID="add-del-match" label={t("del")} onPress={() => { s.deleteMatch(m0.id); close(); s.toast(t("t_del")); }} /> : null}
         </Row>
       </Col> : null}
+      {type === "pause" ? <BreakForm from={d} to={bTo} setTo={setBTo} title={bTitle} setTitle={setBTitle} busy={busy} onSave={async () => {
+        const from = d, to = bTo;
+        if (!to || to < from || diff(from, to) > 182) { s.toast(t("cal_breakBad")); return; }
+        setBusy(true);
+        try {
+          if (E.mods.vorbereitung) {
+            if (E.D.phases.some(p => !(to < p.from || from > p.to))) { s.toast(t("cal_breakOverlap")); return; }
+            const ph: Phase = { id: tmpId(), kind: "break", title: bTitle.trim() || t("cal_addBreak"), from, to, firstMatch: null, weeks: {}, vis: true, note: "",
+              program: defaultProgram("break", from, to, E.grp, () => "pi-" + tmpId().slice(4)) };
+            await s.savePhase(ph);
+          } else {
+            // ohne Modul „Vorbereitung & Pausen“: reguläre Trainings im Zeitraum absagen
+            for (let x = from; x <= to; x = addDays(x, 1)) if (E.regularDay(x) && !E.matchOn(x)) { const o = { ...(E.D.cal[x] || {}), cancel: true }; delete o.extra; await s.setCal(x, o); }
+          }
+          jumpTo(from); close(); s.toast(t("cal_breakSaved"));
+        } finally { setBusy(false); }
+      }} /> : null}
       {type === "event" ? <Col gap={10}>
         <Field testID="add-title" label={t("f_title")} value={titel} onChangeText={setTitel} />
         <Row wrap gap={10} align="flex-start">
@@ -155,6 +175,30 @@ function AddBody({ st, close }: { st: Extract<SheetState, { k: "add" }>; close: 
     </Col>
   );
 }
+
+/** Pause im Kalender: Zeitraum und Bezeichnung (mit Modul „Vorbereitung & Pausen“ inkl. Spielerprogramm). */
+function BreakForm({ from, to, setTo, title, setTitle, busy, onSave }: { from: string; to: string | null; setTo: (v: string | null) => void; title: string; setTitle: (v: string) => void; busy: boolean; onSave: () => void }) {
+  const E = useEngine(); const { t, tf } = E;
+  const { c } = useTheme();
+  const n = to && to >= from ? countTrainings(E, from, to) : 0, nm = to && to >= from ? E.D.matches.filter(m => m.date >= from && m.date <= to).length : 0;
+  const ov = E.mods.vorbereitung && to && to >= from ? E.D.phases.find(p => !(to < p.from || from > p.to)) : undefined;
+  return (
+    <Col gap={10} testID="add-break">
+      <Muted small>{t("cal_breakD")}</Muted>
+      <Field testID="add-break-title" label={t("cal_breakName")} value={title} onChangeText={setTitle} placeholder={t("cal_breakPh")} maxLength={120} />
+      <DateField testID="add-break-to" label={t("cal_breakTo")} value={to} onChange={setTo} lang={E.tr.lang} />
+      {to && to >= from ? <Muted small>{E.de(from)} – {E.de(to)} · {tf("cal_breakN", { n })}</Muted> : null}
+      {nm ? <Muted small testID="add-break-matches">{tf("cal_breakMatches", { n: nm })}</Muted> : null}
+      {ov ? <Banner color={c.warn} testID="add-break-overlap">{tf("cal_breakOverlapN", { t: ov.title, a: E.de(ov.from), b: E.de(ov.to) })}</Banner> : null}
+      {!E.mods.vorbereitung ? <Muted small>{t("cal_breakNoMod")}</Muted> : null}
+      <Btn testID="add-save-break" kind="primary" label={t("cal_breakSave")} disabled={busy || !to || to < from || !!ov} onPress={onSave} style={{ alignSelf: "flex-start" }} />
+    </Col>
+  );
+}
+const countTrainings = (E: Engine, from: string, to: string): number => {
+  let n = 0; for (let x = from; x <= to && diff(from, x) <= 182; x = addDays(x, 1)) if (E.regularDay(x) && !E.matchOn(x) && !E.D.cal[x]?.cancel) n++;
+  return n;
+};
 
 // ---------- Spielplan-Import ----------
 function ImportBody({ close }: { close: () => void }) {

@@ -10,6 +10,7 @@ import { LoadChart, Ring } from "../../../src/ui/charts";
 import { Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, StatusChip, T } from "../../../src/ui/kit";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
+import { MyTarget } from "../../../src/ui/indiv";
 import { GroupChip } from "../../../src/ui/squad/Groups";
 import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
 import { InjuryCard } from "../../../src/ui/injury";
@@ -41,7 +42,7 @@ export default function Spieler() {
   const back = () => router.canGoBack() ? router.back() : router.replace("/coach/kader");
   if (!p) return <Screen testID="coach-spieler"><Header title={t("nav_kader")} onBack={back} backLabel={t("nav_kader")} /><Muted>{t("err_not_found")}</Muted></Screen>;
 
-  const pr = E.profile(p.id), m = pr.m, rec = pr.rec, mods = E.mods;
+  const pr = E.profile(p.id), m = pr.m, rec = pr.rec, mods = E.mods, nx = E.nextItem();
   const abs = E.D.absences.filter(a => a.pid === p.id).sort((a, b) => a.von < b.von ? 1 : -1);
   const series = m ? m.series.slice(-28) : [];
   const fmtH = (h: number) => h < 1 ? "<1 " + t("hours") : Math.round(h) + " " + t("hours");
@@ -73,6 +74,7 @@ export default function Spieler() {
             {(p.groups || []).map(g => { const gg = E.D.groups.find(x => x.id === g); return gg ? <GroupChip key={g} group={gg} /> : null; })}
             {p.neu ? <Chip label={t("newP")} color={c.low} /> : null}
           </Row>
+          {nx?.train ? <MyTarget pid={p.id} date={nx.date} detail label={`${E.wt(nx.date)} ${E.de(nx.date)}`} testID="profile-target" /> : null}
           <Row gap={8} wrap>
             <Btn small testID="profile-edit" label={t("pr_edit")} onPress={() => setEdit(p)} />
             {p.neu ? <Btn small testID="profile-merge" label={t("kd_merge")} onPress={() => setMerge(p)} /> : null}

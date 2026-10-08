@@ -11,6 +11,7 @@ import { Icon, type IconName } from "../icons";
 import { Btn, Card, Col, Info, Muted, Row, T } from "../kit";
 import { PlayerAvatar } from "../playerAvatar";
 import { RatingBadge, ratingColor, StatTile, VideoList } from "../games";
+import { MyTarget } from "../indiv";
 import { potColor } from "../squad/ProfileCards";
 import { radius, space, useTheme, withAlpha } from "../theme";
 
@@ -147,7 +148,7 @@ export function TodoTile({ icon, title, sub, xp, done, onPress, testID, color }:
 export function NextDates({ pid, max = 6 }: { pid: string; max?: number }) {
   const E = useEngine(); const { t } = E; const { c } = useTheme();
   const showPlan = E.playerSees("plan"), kids = E.grp === "u11";
-  const rows: React.ReactNode[] = [];
+  const rows: React.ReactNode[] = []; let firstTrain = false;
   for (let w = 0; w <= 2 && rows.length < max; w++) {
     const wp = E.weekPlan(addDays(monday(E.TODAY), 7 * w));
     for (const x of wp.items) {
@@ -156,7 +157,7 @@ export function NextDates({ pid, max = 6 }: { pid: string; max?: number }) {
       if (i > 14) continue;
       const when = x.date === E.TODAY ? t("today") : i === 1 ? t("tomorrow") : `${E.wt(x.date)} ${E.de(x.date)}`;
       const ab = E.absenceOn(pid, x.date);
-      const item = (key: string, col: string, kind: string, title: string, sub: string) => rows.push(
+      const item = (key: string, col: string, kind: string, title: string, sub: string, extra?: React.ReactNode) => rows.push(
         <Row key={key} gap={12} align="flex-start" testID={"date-" + key}>
           <View style={{ width: 54, alignItems: "center", paddingVertical: 6, borderRadius: radius.m, backgroundColor: withAlpha(col.startsWith("#") ? col : "#888888", 0.12) }}>
             <Text style={{ fontSize: 11, fontWeight: "800", color: col }}>{E.wt(x.date).toUpperCase()}</Text>
@@ -167,10 +168,16 @@ export function NextDates({ pid, max = 6 }: { pid: string; max?: number }) {
             <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{title}</Text>
             {sub ? <Text style={{ fontSize: 13, color: c.muted }}>{sub}</Text> : null}
             {ab ? <Text style={{ fontSize: 12, fontWeight: "700", color: c.low }}>{t("ab_" + ab.typ)} · {t("pl_absent")}</Text> : null}
+            {extra}
           </Col>
         </Row>);
       if (x.match) item(x.date + "m", c.accentTx, t("it_match"), `${t("vs")} ${x.match.gegner}`, `${x.match.zeit} · ${x.match.heim ? t("home") : t("away")} · ${t("comp_" + x.match.comp)}`);
-      else if (x.train && x.train.kind !== "frei") item(x.date + "t", c.ok, t("it_training"), showPlan ? E.kn(x.train.kind) : t("it_training"), `${E.zeitOf(x.date)} · ${x.train.dauer} ${t("min")}${showPlan && !kids ? " · " + t("intensity") + ": " + E.intWord(x.train.rpe) : ""}`);
+      else if (x.train && x.train.kind !== "frei") {
+        // Eigene Vorgabe (Spielersatz, Reha, Aufbau …) – bei der nächsten Einheit mit Umsetzungshinweis
+        const mine = showPlan && !kids ? <MyTarget pid={pid} date={x.date} detail={!firstTrain} testID={"my-target-" + x.date} /> : null;
+        item(x.date + "t", c.ok, t("it_training"), showPlan ? E.kn(x.train.kind) : t("it_training"), `${E.zeitOf(x.date)} · ${x.train.dauer} ${t("min")}${showPlan && !kids ? " · " + t("intensity") + ": " + E.intWord(x.train.rpe) : ""}`, mine);
+        firstTrain = true;
+      }
       x.events.forEach(e => item(e.id, c.event, t("it_event"), e.titel, e.zeit || ""));
     }
   }

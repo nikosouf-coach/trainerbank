@@ -17,8 +17,8 @@ export function T({ v = "body", color, style, children, numberOfLines, bold, cen
     </Text>
   );
 }
-export const Muted = ({ children, small, style }: { children?: React.ReactNode; small?: boolean; style?: StyleProp<TextStyle> }) => {
-  const { c } = useTheme(); return <T v={small ? "small" : "body"} color={c.muted} style={style}>{children}</T>;
+export const Muted = ({ children, small, style, testID }: { children?: React.ReactNode; small?: boolean; style?: StyleProp<TextStyle>; testID?: string }) => {
+  const { c } = useTheme(); return <T v={small ? "small" : "body"} color={c.muted} style={style} testID={testID}>{children}</T>;
 };
 
 /** Länge des längsten Wortes (lange deutsche Wörter in Großbuchstaben brauchen eine kleinere Schrift). */

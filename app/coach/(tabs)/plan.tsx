@@ -10,6 +10,7 @@ import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { TemplatePicker, templateMin, templateRpe, templateText } from "../../../src/ui/archive";
 import { Dist } from "../../../src/ui/charts";
 import { KindEditor, type KindEditorTarget } from "../../../src/ui/kindEditor";
+import { IndivSummary } from "../../../src/ui/indiv";
 import { Banner, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T, Tag } from "../../../src/ui/kit";
 import { CalNav } from "../../../src/ui/plan/CalNav";
 import { setCal, useCal } from "../../../src/ui/plan/calState";
@@ -65,6 +66,20 @@ export default function Plan() {
   const resetDay = (d: string) => { s.setOver(d, null); setDrafts(x => { const n = { ...x }; delete n[d]; return n; }); };
   const kindOpts = [...E.allKinds().filter(k => k !== "frei").map(k => ({ key: k as string, label: E.kn(k) })), { key: "__new", label: t("kind_newOpt") }];
 
+  /** Ist-Wert: Ø RPE der Spielerangaben (vergangene Einheiten bzw. heute nach dem Training). */
+  const actual = (d: string, planned: number | null) => {
+    if (d > E.TODAY || !show) return null;
+    const v = E.D.players.map(q => E.D.rpe[q.id]?.[d]?.rpe).filter((r): r is number => r != null);
+    if (!v.length) return d < E.TODAY && E.D.sessions.some(z => z.date === d) ? <Muted small testID={"plan-avg-" + d}>{t("pl_noRpe")}</Muted> : null;
+    const avg = v.reduce((a, b) => a + b, 0) / v.length, dlt = planned ? avg - planned : null, col = rpeColor(c, Math.round(avg));
+    return (
+      <Row gap={6} wrap testID={"plan-avg-" + d}>
+        <View style={{ backgroundColor: withAlpha(col, 0.15), borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 }}><Text style={{ color: col, fontWeight: "800", fontSize: 12 }}>{tf("pl_avgRpe", { r: E.num(avg, 1) })}</Text></View>
+        <Muted small>{tf("pl_avgN", { n: v.length })}{dlt != null && Math.abs(dlt) >= 0.3 ? " · " + tf("pl_vsPlan", { d: (dlt > 0 ? "+" : "−") + E.num(Math.abs(dlt), 1) }) : ""}</Muted>
+        <Info title={t("pl_avgRpe").replace("{r}", "").trim()} text={t("pl_avgInfo")} />
+      </Row>
+    );
+  };
   const why = (p: PlanTrain): string[] => [E.whyOf(p), ...(p.notes.length ? [[...new Set(p.notes)].map(k => t(k)).join(" ")] : [])];
 
   const dayCard = (x: PlanItem) => {
@@ -74,6 +89,7 @@ export default function Plan() {
         {head(<Chip label={t("it_match")} color={c.accentTx} />)}
         <T v="small">{x.match.zeit} · {t("vs")} {x.match.gegner} · {x.match.heim ? t("home") : t("away")} · {t("comp_" + x.match.comp)}</T>
         {pro ? <Muted small>{tf("matchLoad", { m: E.matchMin(), r: E.matchRpe() })}: {E.int(E.matchLoad())} AU</Muted> : null}
+        {actual(x.date, E.matchRpe())}
       </Sec>
     );
     if (!x.train) return (
@@ -104,20 +120,23 @@ export default function Plan() {
         </>)}
         {!dr ? <T v="small">{p.inhalt}</T> : null}
         <Muted small>{E.zeitOf(x.date)} · {p.dauer} {t("min")} · {t("p_" + p.platz)}{pro ? ` · ${E.int(p.dauer * p.rpe)} AU` : ""}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}{ab ? ` · ${ab} ${t("absent")}` : ""}</Muted>
+        {!dr ? actual(x.date, p.rpe) : null}
+        {show && !dr ? <IndivSummary date={x.date} testID={"plan-iv-" + x.date} /> : null}
         {p.notReady.length && show ? <Col gap={4}>
           <Btn small kind="ghost" testID={"plan-nr-" + x.date} label={"⚠ " + tf("notReadyN", { n: p.notReady.length }) + (openNR[x.date] ? " ▴" : " ▾")} onPress={() => setOpenNR(o => ({ ...o, [x.date]: !o[x.date] }))} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} />
           {openNR[x.date] ? <T v="small" color={c.crit}>{p.notReady.map(q => `${E.name(q)} (${E.age(q)})`).join(", ")}</T> : null}
         </Col> : null}
         {dr ? <Col gap={10} testID={"plan-edit-" + x.date}>
           <Picker testID={"plan-kind-" + x.date} label={t("f_kind")} value={dr.kind as string} options={kindOpts}
-            onChange={k => { if (k === "__new") { setKindTarget({ kind: null, date: x.date }); return; } setDrafts(o => ({ ...o, [x.date]: { ...dr, kind: k as Kind, rpe: Math.min(E.CAP, E.kindRpe(k as Kind)), inhalt: "", touched: false } })); }} />
+            onChange={k => { if (k === "__new") { setKindTarget({ kind: null, date: x.date }); return; } setDrafts(o => ({ ...o, [x.date]: { ...dr, kind: k as Kind, rpe: E.kindRpe(k as Kind), inhalt: "", touched: false } })); }} />
           <Field testID={"plan-inhalt-" + x.date} label={t("content")} value={dr.touched || dr.kind === p.kind ? dr.inhalt : ""} placeholder={E.kn(dr.kind)} multiline
             onChangeText={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, inhalt: v, touched: true } }))} />
           <Row wrap gap={10} align="flex-end">
             <NumField testID={"plan-dauer-" + x.date} label={t("minutes")} value={dr.dauer} min={0} max={180} onChange={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, dauer: v ?? dr.dauer } }))} style={{ width: 110 }} />
           </Row>
           {show ? <Col gap={6}><T v="small" bold color={c.muted}>{t("target")}: {dr.rpe} · {E.intWord(dr.rpe)}</T>
-            <NumScale testID={"plan-rpe-" + x.date} value={dr.rpe} min={1} max={E.CAP} onChange={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, rpe: v } }))} color={n => rpeColor(c, n)} /></Col> : null}
+            <NumScale testID={"plan-rpe-" + x.date} value={dr.rpe} min={1} max={10} onChange={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, rpe: v } }))} color={n => rpeColor(c, n)} />
+            {dr.rpe > E.CAP ? <Banner color={c.warn} testID={"plan-rpe-warn-" + x.date}>{tf("rpe_overCap", { c: E.CAP, m: E.matchRpe() })}</Banner> : null}</Col> : null}
           {E.mods.archiv ? <Row gap={8} wrap>
             <Btn small icon="plus" testID={"plan-fromarchive-" + x.date} label={t("tp_fromArchive")} onPress={() => setPickFor(x.date)} />
             <Btn small testID={"plan-saveas-" + x.date} label={t("tp_saveAs")} onPress={() => s.saveTemplate({ id: tmpId(), title: `${E.kn(dr.kind)} ${x.md || ""}`.trim(), theme: E.kn(dr.kind), blocks: [{ exId: null, text: dr.touched || dr.kind === p.kind ? dr.inhalt : p.inhalt, min: dr.dauer }], notes: "" }).then(() => s.toast(t("tp_saved")))} />
@@ -138,7 +157,7 @@ export default function Plan() {
   const ws = cal.week, we = addDays(ws, 6), vcol = statusColor(c, vk === "none" ? "build" : vk);
   return (
     <Screen testID="coach-plan">
-      <Header eyebrow={t("pl_sub")} title={t("nav_plan")} info={E.lvl(1) ? <Info title={t("ib_plan")} text={["m1", "m2", "m3", "m4"].map(k => t(k))} testID="plan-method" /> : undefined} />
+      <Header eyebrow={t("pl_sub")} title={t("nav_plan")} info={E.lvl(1) ? <Info title={t("ib_plan")} text={["m1", "m2", "m3", "m4", "m5"].map(k => t(k))} testID="plan-method" /> : undefined} />
       <CalNav label={`${t("kw")} ${kwOf(ws)} · ${E.de(ws)}–${E.de(we)}`} todayLabel={t("thisW")}
         onPrev={() => setCal({ week: addDays(ws, -7) })} onNext={() => setCal({ week: addDays(ws, 7) })} onToday={() => setCal({ week: monday(E.TODAY) })} />
       {show ? <Row wrap gap={10}>

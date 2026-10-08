@@ -1,0 +1,55 @@
+// Texte: individuelle Vorgaben, Planung (Ø-RPE, RPE-Skala), Pausen im Kalender – de
+import type { Dict } from "./types";
+
+export const de_steer: Dict = {
+  // Arten
+  iv_k_team: "Mannschaftsvorgabe", iv_k_comp: "Spielersatz", iv_k_compHalf: "Teil-Ersatz", iv_k_reha: "Reha", iv_k_return: "Rückkehr",
+  iv_k_build: "Aufbau", iv_k_tw: "Torwart", iv_k_growth: "Wachstum", iv_k_easy: "Reduziert", iv_k_pause: "Pause", iv_k_absent: "Abwesend", iv_k_sick: "Krank",
+  // Gründe und Umsetzung
+  iv_sickHow: "Auskurieren. Wieder einsteigen erst nach 24 Stunden ohne Fieber, dann mit 1–2 lockeren Einheiten.",
+  iv_rehaWhy: "Reha Stufe {s}/4 ({n})",
+  iv_reha1: "Individuelles Reha-Programm mit Physio: schmerzfreie Mobilität, Rumpf, Oberkörper, Rad oder Crosstrainer. Keine Belastung der verletzten Struktur.",
+  iv_reha2: "Aufwärmen und Technik mit der Mannschaft, danach individuell (Lauf-ABC, Steigerungsläufe, gerade Läufe). Keine Zweikämpfe, keine Richtungswechsel unter Druck.",
+  iv_reha3: "Volles Training mit Kontakt, Spielformen dosiert. Sprints und Zweikämpfe schrittweise steigern.",
+  iv_reha4: "Spielfähig: volle Teilnahme. Die Belastung der nächsten Wochen im Blick behalten (ACWR nicht über 1,3).",
+  iv_soreHow: "Heute Beschwerden gemeldet: kein Training, das die betroffene Stelle belastet. Kurz mit Trainerteam oder Physio abstimmen.",
+  iv_partMin: "{m} Spielminuten – Belastung teilweise nachholen",
+  iv_fewMin: "Nur {m} Spielminuten",
+  iv_noMin: "Am Spieltag nicht eingesetzt",
+  iv_compHalfHow: "Mannschaftsprogramm plus etwa 20 Min. Ergänzung: 2 × 4 Min. Spielform 4 gegen 4 und 4–6 Sprints über 20–30 m.",
+  iv_compHow: "Spielersatz: 3–4 × 4 Min. intensive Spielform (4 gegen 4 oder 5 gegen 5), dazu 6–8 Sprints über 20–30 m und 2 × 6 Richtungswechsel. So wird die Belastung eines Spiels ungefähr nachgeholt.",
+  iv_compTwHow: "Torwart-Spielersatz: 20–30 Min. intensives Torwarttraining (Abdrücken, Sprünge, Flanken, 1 gegen 1) mit vollen Pausen.",
+  iv_returnW: "Rückkehr nach Verletzung – Woche {w}",
+  iv_returnHow: "Mitmachen, aber den Umfang begrenzen: Zweikämpfe und Sprints dosiert, bei langen Spielformen früher raus. Schmerzen oder Schwellung sofort melden.",
+  iv_rehaGroup: "In der Reha-Gruppe",
+  iv_buildGroup: "In der Gruppe Belastungsaufbau",
+  iv_buildNew: "Neu im Team – noch keine 3 Wochen Belastungsdaten",
+  iv_buildHow: "Belastung schrittweise steigern (etwa 10–15 % pro Woche): intensive Spielformen kürzer, keine Zusatzläufe.",
+  iv_tw: "Torhüter: eigenes Belastungsprofil",
+  iv_twHow: "Statt Laufumfang torwartspezifisch arbeiten: Sprünge, Abdrücken, Reaktion, Spielaufbau – mit vollen Pausen.",
+  iv_growth: "Wachstumsschub",
+  iv_growthHow: "Weniger Sprünge und Maximalsprints, mehr Technik, Koordination und Rumpf. Schmerzen an Knie, Ferse oder Hüfte sofort melden.",
+  iv_crit: "Belastung deutlich über dem Gewohnten (ACWR über 1,5)",
+  iv_critHow: "Umfang um etwa ein Viertel kürzen und Intensität senken: bei intensiven Spielformen nur jede zweite Serie.",
+  iv_warn: "Belastung erhöht (ACWR 1,3–1,5)",
+  iv_warnHow: "Eine Stufe ruhiger: Serien kürzer oder längere Pausen.",
+  iv_notRec: "Bis Trainingsbeginn nicht voll erholt",
+  iv_notRecHow: "Mitmachen, aber später in die intensivsten Formen einsteigen oder einzelne Serien auslassen.",
+  iv_cmj: "Sprungkraft {p} % unter dem eigenen Schnitt",
+  // Anzeige
+  iv_title: "Individuelle Vorgaben", iv_sum: "{n} mit eigener Vorgabe", iv_forYou: "Für dich", iv_none: "Alle trainieren nach der Mannschaftsvorgabe.",
+  iv_rpeMin: "RPE {r} · {m} Min.", iv_off: "keine Teilnahme", iv_teamIs: "Mannschaft: RPE {r} · {m} Min.",
+  iv_info: "Die Planung gibt die Ziel-Intensität der Einheit vor (RPE = wie anstrengend die Einheit sein soll). Für einzelne Spieler passt die App diese Vorgabe an: Wer am Spieltag lange gespielt hat, regeneriert am Tag danach. Wer wenig oder gar nicht gespielt hat, holt die Spielbelastung mit einem Spielersatztraining nach – sonst sinkt seine Grundbelastung und der nächste volle Einsatz wird zur Belastungsspitze. Dazu kommen Reha-Stufe, Rückkehr nach Verletzung, Belastungsaufbau, Torhüter, Wachstumsschub, Belastungsampel und Erholung.",
+  m5: "Aus der Vorgabe der Einheit leitet die App für jeden Spieler eine eigene Vorgabe ab: Startelf regeneriert, Spieler mit wenig Einsatzzeit machen Spielersatz, dazu Reha, Rückkehr, Aufbau, Torhüter und Wachstum.",
+  // Planung: Ist-Werte und RPE-Skala
+  pl_avgRpe: "Ø RPE {r}", pl_avgN: "{n} Angaben", pl_vsPlan: "{d} ggü. Plan", pl_noRpe: "noch keine RPE-Angaben",
+  pl_avgInfo: "Ø RPE = Mittelwert der Angaben der Spieler (30 Min. nach der Einheit). Liegt er deutlich über dem Plan, war die Einheit härter als gedacht – das fließt automatisch in die Belastungsdaten ein.",
+  rpe_overCap: "Über der Empfehlung für diese Altersklasse (bis RPE {c}). Sinnvoll nur für kurze, harte Spitzen – zum Vergleich: Spieltag = RPE {m}.",
+  // Pause im Kalender
+  cal_addBreak: "Pause", cal_breakT: "Pause eintragen", cal_breakD: "Kein Mannschaftstraining in diesem Zeitraum. Die Spieler bekommen ein Pausenprogramm, danach plant die App die Vorbereitung.",
+  cal_breakFrom: "Erster Tag", cal_breakTo: "Letzter Tag", cal_breakName: "Bezeichnung", cal_breakPh: "z. B. Herbstferien", cal_breakSave: "Pause speichern", cal_breakSaved: "Pause eingetragen",
+  cal_breakBad: "Bitte Beginn und Ende angeben (Ende nach Beginn).", cal_breakOverlap: "Überschneidet sich mit einer anderen Pause oder Vorbereitung.",
+  cal_breakN: "{n} Trainingstage fallen aus", cal_breakNoMod: "Ohne Modul „Vorbereitung & Pausen“ werden die Trainings im Zeitraum abgesagt. Mit dem Modul bekommen die Spieler zusätzlich ein Pausenprogramm.",
+  cal_breakMatches: "Im Zeitraum liegen {n} Spiele – sie bleiben bestehen.",
+  cal_breakOverlapN: "Überschneidet sich mit „{t}“ ({a} – {b}). Bitte den Zeitraum anpassen oder die vorhandene Phase unter Vorbereitung & Pausen ändern.",
+};

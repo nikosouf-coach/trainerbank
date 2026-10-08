@@ -40,7 +40,7 @@ function Body({ target, onClose }: { target: KindEditorTarget; onClose: (saved?:
       const saved = await s.saveKind({ id: k?.id || tmpId(), name: nm, rpe, inhalt });
       const ref = `c:${saved.id}` as Kind;
       if (target.md) await s.updateTeam({ principles: { ...team.principles, [target.md]: { kind: ref, rpe: Math.min(cap, rpe) } } });
-      if (target.date) { const o = { ...(s.D?.over[target.date] || {}) }; o.kind = ref; o.rpe = Math.min(cap, rpe); delete o.inhalt; await s.setOver(target.date, o); }
+      if (target.date) { const o = { ...(s.D?.over[target.date] || {}) }; o.kind = ref; o.rpe = rpe; delete o.inhalt; await s.setOver(target.date, o); }
       s.toast(t("kind_saved")); onClose(saved);
     } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
@@ -71,6 +71,7 @@ function Body({ target, onClose }: { target: KindEditorTarget; onClose: (saved?:
       {showRpe ? <Col gap={6}>
         <Row gap={6}><T v="small" bold color={c.muted}>{t("kind_rpe")}:</T><T v="small" bold>{rpe} · {E.intWord(rpe)}</T></Row>
         <NumScale testID="kind-rpe" value={rpe} onChange={setRpe} color={n => rpeColor(c, n)} />
+        {rpe > cap ? <Muted small testID="kind-rpe-warn">{E.tf("rpe_overCap", { c: cap, m: E.matchRpe() })}</Muted> : null}
       </Col> : null}
       <Field testID="kind-inhalt" label={t("kind_inhalt")} value={inhalt} onChangeText={setInhalt} placeholder={t("kind_inhaltPh")} multiline />
       {team.modules.ki ? <Row gap={8}>
