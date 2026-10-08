@@ -40,6 +40,11 @@ export const de_app: Dict = {
   err_demo: "Im Demo-Modus nicht verfügbar.", err_demo_ai: "Der KI-Coach braucht den Server und ist in der Demo nicht verfügbar.", err_no_server: "Der Server ist noch nicht eingerichtet.",
   err_invalid_merge: "Diese Spieler können nicht zusammengeführt werden.", err_already_linked: "Der Spieler ist schon mit einem Konto verbunden.", err_not_found: "Nicht gefunden.",
   loading: "Lädt …", retry: "Erneut versuchen", ok: "OK", yes: "Ja", no: "Nein", edit: "Bearbeiten", close: "Schließen", btn_next: "Weiter", btn_back: "Zurück", confirm: "Bestätigen",
+  off_saved: "Gespeichert ✓ – wird gesendet, sobald du wieder Netz hast.", off_sent1: "1 Eintrag nachgereicht ✓", off_sentN: "{n} Einträge nachgereicht ✓", off_failed: "Ein Eintrag wurde vom Server abgelehnt und nicht gespeichert.",
+  off_notSaved: "Keine Verbindung – diese Änderung braucht Netz und wurde nicht gespeichert.", off_waived: "Erlassen: offline rechtzeitig eingetragen, später gesendet",
+  off_bar0: "Kein Netz – Einträge werden gesammelt und später gesendet.", off_bar1: "Kein Netz – 1 Eintrag wartet und wird automatisch gesendet.", off_barN: "Kein Netz – {n} Einträge warten und werden automatisch gesendet.",
+  off_cached: "Kein Netz – Stand vom {at}. Einträge werden gesammelt.", off_wait1: "1 Eintrag wird gesendet …", off_waitN: "{n} Einträge werden gesendet …", off_syncing: "Wird gesendet …", off_later: "📵 wird nachgereicht", off_retry: "Jetzt senden",
+  demo_net: "Netz", demo_netOn: "an", demo_netOff: "aus",
   demo_view: "Ansicht", demo_coach: "Trainer", demo_player: "Spieler", demo_pick: "Als welcher Spieler?",
   ki_title2: "KI-Coach",
 };

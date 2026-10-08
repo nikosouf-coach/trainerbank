@@ -26,6 +26,9 @@ export class DemoApi implements Api {
     const name = over.me?.name?.trim() || (lang === "en" ? "Demo coach" : "Demo-Trainer");
     this.user = { id: "demo-user", email: "demo@trainerbank.app", displayName: name, lang, prefs: { info: true, ...(over.prefs || {}) } };
   }
+  /** Nur Demo: „kein Netz“ simulieren (Demo-Leiste), damit man die Offline-Warteschlange ausprobieren kann */
+  offline = false;
+  private net(): void { if (this.offline) throw new ApiError("offline", "Network request failed"); }
   async savePrefs(prefs: UserPrefs) { this.user = { ...this.user, prefs }; }
   async setDisplayName(name: string) { this.user = { ...this.user, displayName: name }; }
   async uploadTeamImage(_t: string, _n: string, uri: string) { return uri; }
@@ -37,6 +40,7 @@ export class DemoApi implements Api {
   async signOut() { /* Demo verlassen übernimmt die Sitzung */ }
   async setLanguage(lang: Lang) { this.lang = lang; this.user = { ...this.user, lang }; }
   async memberships(): Promise<Membership[]> {
+    this.net();
     const t = demoTeam(this.cls, this.depth, this.lang, this.over);
     return [{ teamId: "demo", club: t.club, name: t.name, role: "owner" }];
   }
@@ -102,13 +106,13 @@ export class DemoApi implements Api {
   }
   async uploadPhoto(_t: string, _pid: string, uri: string) { return uri; }
   async photoUrl(path: string) { return path; }
-  async setAttendance() { /* lokal */ }
-  async saveRpe() { /* lokal */ }
-  async saveWellness() { /* lokal */ }
-  async saveExtra(_p: string, x: Extra) { return { ...x, id: newId(x.id) }; }
-  async deleteExtra() { /* lokal */ }
-  async saveAbsence(_t: string, a: Absence) { return { ...a, id: newId(a.id) }; }
-  async deleteAbsence() { /* lokal */ }
+  async setAttendance() { this.net(); }
+  async saveRpe() { this.net(); }
+  async saveWellness() { this.net(); }
+  async saveExtra(_p: string, x: Extra) { this.net(); return { ...x, id: newId(x.id) }; }
+  async deleteExtra() { this.net(); }
+  async saveAbsence(_t: string, a: Absence) { this.net(); return { ...a, id: newId(a.id) }; }
+  async deleteAbsence() { this.net(); }
   async saveGrowth() { /* lokal */ }
   async savePotential(_p: string, x: Potential) { return { ...x, id: newId(x.id) }; }
   async deletePotential() { /* lokal */ }
@@ -152,7 +156,7 @@ export class DemoApi implements Api {
   async deleteDuties() { /* lokal */ }
   async saveTask(_t: string, x: TeamTask) { return { ...x, id: newId(x.id) }; }
   async deleteTask() { /* lokal */ }
-  async setTaskDone() { /* lokal */ }
+  async setTaskDone() { this.net(); }
   /** Demo: alle Spieler gelten als eingewilligt */
   async healthConsentPlayers() { return (this.data?.players || []).map(p => p.id); }
   async consents() { return { ...this.consent }; }

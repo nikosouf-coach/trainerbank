@@ -3,20 +3,26 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { AppState } from "react-native";
 import { addDays, iso, monday } from "../core/dates";
-import { fineViolations, nextDutyDate, planRotation } from "../core/duties";
+import { fineViolations, lateFinesToWaive, nextDutyDate, planRotation } from "../core/duties";
+import { applyOp, applyOutbox, enqueue, prune, withClientId, type OutboxItem, type OutboxOp } from "../core/outbox";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
 import type { StaffRoleKey, TeamGroup, DayBlock, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
-import { ApiError, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo, type UserPrefs } from "./api";
+import { ApiError, isOffline, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo, type UserPrefs } from "./api";
 import { DemoApi, type DemoSetup } from "./demoApi";
 import { hasSupabase } from "./supabase";
 import { forgetPhoto } from "../ui/playerAvatar";
 
 const K_TEAM = "tb.activeTeam", K_LANG = "tb.lang";
+/** Offline: wartende Einträge je Konto und letzter geladener Stand (für den Start ohne Netz) */
+const K_OUTBOX = (uid: string): string => "tb.outbox.v1." + uid, K_CACHE = "tb.cache.v1";
+/** Gerätespeicher: höchstens so groß (Zeichen) und so alt (Tage) */
+const CACHE_MAX = 2_500_000, CACHE_DAYS = 14;
 let tmp = 1;
 export const tmpId = (): string => "tmp-" + Date.now().toString(36) + "-" + (tmp++);
 
@@ -41,6 +47,14 @@ interface State {
   demoPlayer: string | null;
   /** Nur im Demo-Modus: als Co-Trainer ansehen (StaffProfile.id), sonst null = Cheftrainer */
   demoStaff: string | null;
+  /** Ohne Netz gemachte Einträge, die noch gesendet werden */
+  outbox: OutboxItem[];
+  /** Letzter Kontakt zum Server ist fehlgeschlagen (kein Netz) */
+  offline: boolean;
+  /** Warteschlange wird gerade gesendet */
+  syncing: boolean;
+  /** Daten stammen aus dem Gerätespeicher (Stand von …), weil beim Start kein Netz da war */
+  cachedAt: string | null;
 }
 
 function systemLang(): Lang {
@@ -60,14 +74,21 @@ function useStoreValue() {
   const [s, setS] = useState<State>(() => ({
     phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(),
     consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
+    outbox: [], offline: false, syncing: false, cachedAt: null,
   }));
   const ref = useRef(s); ref.current = s;
+  /** Warteschlange als sofort aktuelle Quelle (State nur für die Anzeige – wird erst beim nächsten Rendern aktuell) */
+  const obRef = useRef<OutboxItem[]>([]);
   const set = useCallback((p: Partial<State>) => setS(prev => ({ ...prev, ...p })), []);
   const tr = useMemo(() => translator(s.lang), [s.lang]);
 
   // ---------- Meldungen ----------
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Zeitpunkt, zu dem zuletzt ein Eintrag in die Offline-Warteschlange kam (Meldungen direkt danach bekommen einen Hinweis) */
+  const queuedAt = useRef(0);
   const toast = useCallback((msg: string) => {
+    const tr0 = translator(ref.current.lang);
+    if (Date.now() - queuedAt.current < 1500 && msg !== tr0.t("off_saved")) msg = msg + " · " + tr0.t("off_later");
     set({ toastMsg: msg }); if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => set({ toastMsg: null }), 2600);
   }, [set]);
@@ -85,7 +106,12 @@ function useStoreValue() {
     const staff = isStaffRole(m.role);
     const [consents, aiPlayers, healthPlayers] = await Promise.all([api.consents(), staff ? api.aiConsentPlayers(m.teamId).catch(() => []) : Promise.resolve([]),
       staff ? api.healthConsentPlayers(m.teamId).catch(() => [] as string[]) : Promise.resolve([] as string[])]);
-    set({ phase: "ready", active: m, D, version: ref.current.version + 1, consents, aiPlayers, healthPlayers, ...extra });
+    // Stand für den Start ohne Netz merken (vor dem Anwenden wartender Einträge), dann Wartendes wieder anwenden
+    const me = extra.user ?? ref.current.user;
+    if (api.kind === "supabase" && me) writeCache(me, m, D, consents);
+    const pending = applyOutbox(D, obRef.current, m.teamId);
+    set({ phase: "ready", active: m, D, version: ref.current.version + 1, consents, aiPlayers, healthPlayers, offline: false, cachedAt: null, ...extra });
+    if (pending) scheduleFlush(400);
     if (staff) scheduleAutomation(300);
     try { await AsyncStorage.setItem(K_TEAM, m.teamId); } catch { /* optional */ }
     if (isStaffRole(m.role) && api.kind === "supabase") afterCoachLoad(api, m, D);
@@ -95,16 +121,22 @@ function useStoreValue() {
     const api = ref.current.api;
     let lang = ref.current.lang;
     try { const l = await AsyncStorage.getItem(K_LANG); if (l === "de" || l === "en") lang = l; } catch { /* optional */ }
+    let user: UserInfo | null = null;
     try {
-      const user = await api.currentUser();
+      user = await api.currentUser();
       if (!user || api.kind === "demo") { set({ phase: "signedOut", user: null, lang }); return; }
+      await loadOutbox(user.id);
       const ms = await api.memberships();
       let pick: Membership | null = null;
       try { const last = await AsyncStorage.getItem(K_TEAM); pick = ms.find(m => m.teamId === last && m.role !== "pending") || null; } catch { /* optional */ }
       pick = pick || ms.find(m => m.role !== "pending") || ms[0] || null;
       await loadActive(api, pick, { user, memberships: ms, lang: user.lang || lang });
-    } catch (e) { set({ phase: "signedOut", lang }); toast(errText(e)); }
-  }, [loadActive, set, toast, errText]);
+    } catch (e) {
+      // Ohne Netz: letzten Stand vom Gerät zeigen, Einträge sammeln und später senden
+      if (isOffline(e) && await openFromCache(user, lang)) return;
+      set({ phase: "signedOut", lang }); toast(errText(e));
+    }
+  }, [loadActive, set, toast, errText]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     boot();
@@ -115,8 +147,45 @@ function useStoreValue() {
   const reload = useCallback(async () => {
     const { api, active } = ref.current;
     try { const ms = await api.memberships(); const m = ms.find(x => x.teamId === active?.teamId) || ms[0] || null; await loadActive(api, m, { memberships: ms }); }
-    catch (e) { toast(errText(e)); }
-  }, [loadActive, toast, errText]);
+    catch (e) { if (isOffline(e)) set({ offline: true }); else toast(errText(e)); }
+  }, [loadActive, toast, errText, set]);
+
+  // ---------- Offline: Warteschlange und Gerätespeicher ----------
+  async function loadOutbox(uid: string) {
+    try {
+      const raw = await AsyncStorage.getItem(K_OUTBOX(uid));
+      const list = raw ? prune(JSON.parse(raw) as OutboxItem[], new Date()) : [];
+      obRef.current = Array.isArray(list) ? list : []; set({ outbox: obRef.current });
+    } catch { obRef.current = []; set({ outbox: [] }); }
+  }
+  function saveOutbox(list: OutboxItem[]) {
+    obRef.current = list; set({ outbox: list });
+    const uid = ref.current.user?.id; if (!uid || ref.current.api.kind !== "supabase") return;
+    (list.length ? AsyncStorage.setItem(K_OUTBOX(uid), JSON.stringify(list)) : AsyncStorage.removeItem(K_OUTBOX(uid))).catch(() => undefined);
+  }
+  function writeCache(user: UserInfo, m: Membership, D: TeamData, consents: ConsentState | null) {
+    try {
+      const raw = JSON.stringify({ v: 1, uid: user.id, user, m, D, consents, at: new Date().toISOString() });
+      if (raw.length > CACHE_MAX) { AsyncStorage.removeItem(K_CACHE).catch(() => undefined); return; }
+      AsyncStorage.setItem(K_CACHE, raw).catch(() => undefined);
+    } catch { /* optional */ }
+  }
+  async function openFromCache(user: UserInfo | null, lang: Lang): Promise<boolean> {
+    try {
+      const raw = await AsyncStorage.getItem(K_CACHE); if (!raw) return false;
+      const c = JSON.parse(raw) as { v: number; uid: string; user?: UserInfo; m: Membership; D: TeamData; consents: ConsentState | null; at: string };
+      if (c.v !== 1 || (user && c.uid !== user.id) || Date.now() - Date.parse(c.at) > CACHE_DAYS * 86400e3) return false;
+      if (!user) await loadOutbox(c.uid);
+      applyOutbox(c.D, obRef.current, c.m.teamId);
+      set({ phase: "ready", active: c.m, D: c.D, memberships: [c.m], consents: c.consents, user: user || c.user || { id: c.uid, email: "", displayName: "", lang },
+        lang: user?.lang || lang, offline: true, cachedAt: c.at, version: ref.current.version + 1 });
+      return true;
+    } catch { return false; }
+  }
+  function clearDevice(uid?: string) {
+    AsyncStorage.removeItem(K_CACHE).catch(() => undefined);
+    if (uid) AsyncStorage.removeItem(K_OUTBOX(uid)).catch(() => undefined);
+  }
 
   // ---------- Trainer: vergangene Einheiten festhalten und Plan für Spieler veröffentlichen ----------
   const published = useRef<Record<string, string>>({});
@@ -156,10 +225,19 @@ function useStoreValue() {
     const { api, active, D, lang } = ref.current;
     if (!D || !active || !isStaffRole(active.role) || autoBusy.current) return;
     const defs = D.team.settings.duties || [], rules = D.team.settings.fines || [];
-    if (!defs.some(d => d.on) && !rules.some(r => r.on && r.trigger !== "manual")) return;
+    if (ref.current.offline || ref.current.cachedAt) return; // Automatik nur mit aktuellem Stand vom Server
+    if (!defs.some(d => d.on) && !rules.some(r => r.on && r.trigger !== "manual") && !D.fines.some(f => f.auto && f.status === "open")) return;
     autoBusy.current = true;
     try {
       const E = createEngine(D, { lang }), hp = new Set(ref.current.healthPlayers);
+      // 0. Offline rechtzeitig eingetragen, aber erst später gesendet: Strafe erlassen, offenen Strafdienst streichen
+      for (const f of lateFinesToWaive(E, rules, D.fines)) {
+        const upd: FineEntry = { ...f, status: "waived", note: translator(lang).t("off_waived") };
+        try { await api.saveFine(active.teamId, upd); } catch { continue; }
+        Object.assign(f, upd);
+        const dIds = D.duties.filter(d => d.fineId === f.id && d.status === "open").map(d => d.id);
+        if (dIds.length) { await api.deleteDuties(dIds); D.duties = D.duties.filter(d => !dIds.includes(d.id)); }
+      }
       // 1. Strafen aus Regeln (einmal je Spieler und Einheit), Dienst am nächsten passenden Termin
       for (const v of fineViolations(E, rules, D.fines, pid => hp.has(pid))) {
         const def = v.rule.duty ? defs.find(d => d.id === v.rule.duty && d.on) : undefined;
@@ -187,9 +265,99 @@ function useStoreValue() {
   const change = useCallback(async (local: (D: TeamData) => void, remote: (api: Api, teamId: string) => Promise<unknown>, opts: { plan?: boolean; ok?: string } = {}) => {
     const { D, active, api } = ref.current; if (!D || !active) return;
     local(D); setS(prev => ({ ...prev, version: prev.version + 1 }));
-    try { await remote(api, active.teamId); setS(prev => ({ ...prev, version: prev.version + 1 })); if (opts.ok) toast(opts.ok); if (opts.plan) { publishPlans(); scheduleAutomation(); } }
-    catch (e) { toast(errText(e)); reload(); }
-  }, [toast, errText, reload, publishPlans, scheduleAutomation]);
+    try {
+      await remote(api, active.teamId); setS(prev => ({ ...prev, version: prev.version + 1, offline: false }));
+      if (opts.ok) toast(opts.ok); if (opts.plan) { publishPlans(); scheduleAutomation(); }
+      if (obRef.current.length) scheduleFlush(300);
+    }
+    catch (e) {
+      // Ohne Netz bleibt diese Änderung nicht erhalten (nur Einträge kommen in die Warteschlange) – klar sagen
+      if (isOffline(e)) { set({ offline: true }); toast(translator(ref.current.lang).t("off_notSaved")); return; }
+      toast(errText(e)); reload();
+    }
+  }, [toast, errText, reload, publishPlans, scheduleAutomation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Eintrag senden (an das jeweilige Api) – gibt bei neuen Datensätzen den gespeicherten Stand zurück */
+  async function exec(api: Api, teamId: string, o: OutboxOp): Promise<Extra | Absence | void> {
+    const sid = (id: string): string => id.startsWith("c-") ? id.slice(2) : id;
+    switch (o.op) {
+      case "rpe": return api.saveRpe(o.pid, o.date, o.e);
+      case "well": return api.saveWellness(o.pid, o.date, o.w);
+      case "extra": return api.saveExtra(o.pid, o.x);
+      case "extraDel": return api.deleteExtra(sid(o.id));
+      case "abs": return api.saveAbsence(teamId, o.a);
+      case "absDel": return api.deleteAbsence(sid(o.id));
+      case "att": return api.setAttendance(teamId, o.date, o.pid, o.st);
+      case "task": return api.setTaskDone(o.id, o.done, o.at);
+    }
+  }
+  /** Gespeicherten Datensatz (Server-ID) statt des lokalen übernehmen */
+  function afterSave(o: OutboxOp, saved: Extra | Absence | void) {
+    const D = ref.current.D; if (!D || !saved) return;
+    if (o.op === "extra") { const L = D.extra[o.pid] || []; const i = L.findIndex(x => x.id === o.x.id); if (i >= 0) L[i] = saved as Extra; }
+    if (o.op === "abs") { const i = D.absences.findIndex(x => x.id === o.a.id); if (i >= 0) D.absences[i] = saved as Absence; }
+  }
+  /**
+   * Eintrag (RPE, Morgen-Check, Zusatzsport, Abwesenheit, Anwesenheit, Aufgabe erledigt): sofort lokal übernehmen,
+   * senden – ohne Netz in die Warteschlange (wird automatisch nachgereicht, Reihenfolge bleibt erhalten).
+   */
+  const entry = useCallback(async (o0: OutboxOp, opts: { plan?: boolean; ok?: string } = {}) => {
+    const { D, active, api } = ref.current; if (!D || !active) return;
+    const now = new Date().toISOString();
+    let o = withClientId(o0);
+    if (o.op === "rpe" && o.e && !o.e.at) o = { ...o, e: { ...o.e, at: now } };
+    if (o.op === "task" && o.done && !o.at) o = { ...o, at: now };
+    applyOp(D, o); setS(prev => ({ ...prev, version: prev.version + 1 }));
+    const tr0 = translator(ref.current.lang);
+    const queue = () => { saveOutbox(enqueue(obRef.current, { team: active.teamId, at: now, tries: 0, o })); toast(tr0.t("off_saved")); queuedAt.current = Date.now(); scheduleFlush(15000); };
+    // Wartet schon etwas (oder kein Netz): hinten anstellen, damit die Reihenfolge stimmt
+    if (ref.current.offline || obRef.current.some(x => x.team === active.teamId)) { queue(); if (!ref.current.offline) scheduleFlush(300); return; }
+    try {
+      afterSave(o, await exec(api, active.teamId, o));
+      setS(prev => ({ ...prev, version: prev.version + 1, offline: false }));
+      if (opts.ok) toast(opts.ok); if (opts.plan) { publishPlans(); scheduleAutomation(); }
+    } catch (e) {
+      if (isOffline(e)) { set({ offline: true }); queue(); return; }
+      toast(errText(e)); reload();
+    }
+  }, [toast, errText, reload, publishPlans, scheduleAutomation, set]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const flushing = useRef(false);
+  const flushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Warteschlange senden (in Reihenfolge); bei Netzfehler stoppen und später erneut versuchen */
+  const flush = useCallback(async () => {
+    const { api, active } = ref.current;
+    if (flushing.current || !active) return;
+    const mine = obRef.current.filter(x => x.team === active.teamId);
+    if (!mine.length) { if (ref.current.cachedAt || ref.current.offline) reload(); return; }
+    flushing.current = true; set({ syncing: true });
+    let sent = 0, failed = 0, off = false;
+    const tr0 = translator(ref.current.lang);
+    for (const it of mine) {
+      try { afterSave(it.o, await exec(api, active.teamId, it.o)); sent++; saveOutbox(obRef.current.filter(x => x !== it)); }
+      catch (e) {
+        if (isOffline(e)) { off = true; saveOutbox(obRef.current.map(x => x === it ? { ...x, tries: x.tries + 1 } : x)); break; }
+        failed++; saveOutbox(obRef.current.filter(x => x !== it)); // vom Server abgelehnt: nicht endlos wiederholen
+      }
+    }
+    flushing.current = false;
+    setS(prev => ({ ...prev, syncing: false, offline: off, version: prev.version + 1 }));
+    if (sent) { toast(tr0.tf(sent === 1 ? "off_sent1" : "off_sentN", { n: sent })); publishPlans(); scheduleAutomation(); }
+    if (failed) toast(tr0.t("off_failed"));
+    if (off) scheduleFlush(20000);
+    else if (ref.current.cachedAt || failed) reload(); // Stand vom Gerät bzw. abgelehnte Einträge: frisch laden
+  }, [set, toast, reload, publishPlans, scheduleAutomation]); // eslint-disable-line react-hooks/exhaustive-deps
+  function scheduleFlush(ms = 20000) {
+    if (flushTimer.current) clearTimeout(flushTimer.current);
+    flushTimer.current = setTimeout(() => { flushTimer.current = null; flushRef.current(); }, ms);
+  }
+  const flushRef = useRef(flush); flushRef.current = flush;
+  // Zurück in der App oder regelmäßig, solange etwas wartet bzw. kein Netz war: erneut versuchen
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", st => { if (st === "active" && (obRef.current.length || ref.current.offline)) flushRef.current(); });
+    const iv = setInterval(() => { if (ref.current.phase === "ready" && (ref.current.offline || obRef.current.some(x => x.team === ref.current.active?.teamId)) && !flushTimer.current) flushRef.current(); }, 30000);
+    return () => { sub.remove(); clearInterval(iv); };
+  }, []);
 
   const replaceIn = <T extends { id: string }>(arr: T[], tmpObj: T, saved: T): void => { const i = arr.findIndex(x => x.id === tmpObj.id); if (i >= 0) arr[i] = saved; };
   /** Eintrag in einer Liste von TeamData anlegen oder ersetzen und speichern. */
@@ -206,13 +374,19 @@ function useStoreValue() {
     signIn: async (email: string, pw: string) => { const api = ref.current.api; await api.signIn(email, pw); await boot(); },
     signUp: (email: string, pw: string, name: string) => ref.current.api.signUp(email, pw, name, ref.current.lang),
     resetPassword: (email: string) => ref.current.api.resetPassword(email),
-    signOut: async () => { await ref.current.api.signOut(); try { await AsyncStorage.removeItem(K_TEAM); } catch { /* optional */ } set({ phase: "signedOut", user: null, D: null, active: null, memberships: [] }); },
+    signOut: async () => {
+      // Wartende Einträge bleiben für dieses Konto gespeichert (werden nach der nächsten Anmeldung gesendet); der Datenstand wird gelöscht
+      clearDevice(); await ref.current.api.signOut().catch(() => undefined);
+      try { await AsyncStorage.removeItem(K_TEAM); } catch { /* optional */ }
+      obRef.current = []; set({ phase: "signedOut", user: null, D: null, active: null, memberships: [], outbox: [], offline: false, cachedAt: null });
+    },
     startDemo: async (cls: ClassKey = "u19", depth: Depth = "basis", over: DemoSetup = {}) => {
       const api = new DemoApi(cls, depth, ref.current.lang, over);
       const user = await api.currentUser(); const ms = await api.memberships();
-      set({ api, user, memberships: ms }); await loadActive(api, ms[0], { api, user, memberships: ms, demoView: "coach", demoPlayer: null, demoStaff: null });
+      obRef.current = []; set({ api, user, memberships: ms, outbox: [], offline: false, cachedAt: null });
+      await loadActive(api, ms[0], { api, user, memberships: ms, demoView: "coach", demoPlayer: null, demoStaff: null });
     },
-    leaveDemo: () => { set({ api: makeApi(), phase: "loading", D: null, active: null, user: null }); setTimeout(() => boot(), 0); },
+    leaveDemo: () => { obRef.current = []; set({ api: makeApi(), phase: "loading", D: null, active: null, user: null, outbox: [], offline: false, cachedAt: null }); setTimeout(() => boot(), 0); },
     setDemoView: (v: "coach" | "player", pid?: string | null, staffId?: string | null) => set({ demoView: v, demoPlayer: pid ?? ref.current.demoPlayer, demoStaff: v === "coach" ? (staffId ?? null) : ref.current.demoStaff }),
     selectTeam: async (m: Membership) => { set({ phase: "loading" }); try { await loadActive(ref.current.api, m); } catch (e) { toast(errText(e)); } },
     createTeam: async (input: CreateTeamInput & { me?: Partial<StaffProfile>; staff?: { name: string; role: StaffRoleKey }[]; logoUri?: string | null; prefs?: UserPrefs }) => {
@@ -261,7 +435,7 @@ function useStoreValue() {
     joinStaff: async (code: string) => { await ref.current.api.joinStaff(code); const ms = await ref.current.api.memberships(); await loadActive(ref.current.api, ms.find(m => m.role === "pending") || ms[0] || null, { memberships: ms }); },
     giveConsent: async (kind: ConsentKind, o?: { parentEmail?: string; playerId?: string }) => { await ref.current.api.giveConsent(kind, o); set({ consents: await ref.current.api.consents() }); },
     withdrawConsent: async (kind: ConsentKind) => { await ref.current.api.withdrawConsent(kind); set({ consents: await ref.current.api.consents() }); },
-    deleteAccount: async () => { await ref.current.api.deleteAccount(); set({ phase: "signedOut", user: null, D: null, active: null, memberships: [] }); },
+    deleteAccount: async () => { const uid = ref.current.user?.id; await ref.current.api.deleteAccount(); clearDevice(uid); obRef.current = []; set({ phase: "signedOut", user: null, D: null, active: null, memberships: [], outbox: [], cachedAt: null }); },
     exportMyData: () => ref.current.api.exportMyData(),
 
     // Team
@@ -305,14 +479,22 @@ function useStoreValue() {
       const path = await api.uploadPhoto(active.teamId, pid, uri); forgetPhoto(path); const p = D.players.find(x => x.id === pid); if (p) p.photo = path;
       set({ version: ref.current.version + 1 });
     },
-    setAttendance: (date: string, pid: string, st: AttStatus | null) => change(D => { if (st) (D.att[date] ||= {})[pid] = st; else if (D.att[date]) delete D.att[date][pid]; }, (api, t) => api.setAttendance(t, date, pid, st)),
-    saveRpe: (pid: string, date: string, e: RpeEntry | null) => change(D => { if (e) (D.rpe[pid] ||= {})[date] = e; else if (D.rpe[pid]) delete D.rpe[pid][date]; if (e && D.sessions.some(s => s.date === date) && !D.att[date]?.[pid]) (D.att[date] ||= {})[pid] = "da"; }, api => api.saveRpe(pid, date, e)),
-    saveWellness: (pid: string, date: string, w: Wellness) => change(D => { (D.well[pid] ||= {})[date] = w; }, api => api.saveWellness(pid, date, w)),
-    saveExtra: (pid: string, x: Extra) => change(D => { (D.extra[pid] ||= []).push(x); }, async api => { const saved = await api.saveExtra(pid, x); replaceIn(ref.current.D!.extra[pid] || [], x, saved); }),
-    deleteExtra: (pid: string, id: string) => change(D => { D.extra[pid] = (D.extra[pid] || []).filter(x => x.id !== id); }, api => api.deleteExtra(id)),
-    saveAbsence: (a: Absence) => { const isNew = a.id.startsWith("tmp-"); return change(D => { if (isNew) D.absences.push(a); else Object.assign(D.absences.find(x => x.id === a.id)!, a); },
-      async (api, t) => { const saved = await api.saveAbsence(t, a); replaceIn(ref.current.D!.absences, a, saved); }, { plan: true }); },
-    deleteAbsence: (id: string) => change(D => { D.absences = D.absences.filter(x => x.id !== id); }, api => api.deleteAbsence(id), { plan: true }),
+    // Einträge: funktionieren auch ohne Netz (Warteschlange, siehe entry)
+    setAttendance: (date: string, pid: string, st: AttStatus | null) => entry({ op: "att", date, pid, st }),
+    saveRpe: (pid: string, date: string, e: RpeEntry | null) => entry({ op: "rpe", pid, date, e: e ? { ...e, at: e.at ?? ref.current.D?.rpe[pid]?.[date]?.at ?? null } : null }),
+    saveWellness: (pid: string, date: string, w: Wellness) => entry({ op: "well", pid, date, w }),
+    saveExtra: (pid: string, x: Extra) => entry({ op: "extra", pid, x }),
+    deleteExtra: (pid: string, id: string) => entry({ op: "extraDel", pid, id }),
+    saveAbsence: (a: Absence) => entry({ op: "abs", a }, { plan: true }),
+    deleteAbsence: (id: string) => entry({ op: "absDel", id }, { plan: true }),
+    /** Erneut senden (Knopf in der Offline-Leiste) */
+    syncNow: () => { if (obRef.current.length) flushRef.current(); else reload(); },
+    /** Nur Demo: Netz an/aus simulieren */
+    setDemoOffline: (off: boolean) => {
+      const api = ref.current.api; if (!(api instanceof DemoApi)) return;
+      api.offline = off; set({ offline: off });
+      if (!off) setTimeout(() => flushRef.current(), 200);
+    },
     saveGrowth: (pid: string, g: Growth) => change(D => { (D.growth[pid] ||= []).push(g); }, api => api.saveGrowth(pid, g)),
     savePotential: (pid: string, x: Potential) => { const isNew = x.id.startsWith("tmp-"); return change(D => { const L = (D.pot[pid] ||= []); if (isNew) L.push(x); else Object.assign(L.find(y => y.id === x.id)!, x); },
       async api => { const saved = await api.savePotential(pid, x); replaceIn(ref.current.D!.pot[pid] || [], x, saved); }); },
@@ -383,7 +565,7 @@ function useStoreValue() {
       set({ version: ref.current.version + 1 }); return saved;
     },
     deleteTask: (id: string) => change(D => { D.tasks = D.tasks.filter(x => x.id !== id); }, api => api.deleteTask(id)),
-    setTaskDone: (id: string, done: boolean) => change(D => { const x = D.tasks.find(y => y.id === id); if (x) { x.done = done; x.doneAt = done ? new Date().toISOString() : null; } }, api => api.setTaskDone(id, done)),
+    setTaskDone: (id: string, done: boolean) => entry({ op: "task", id, done, at: null }),
 
     // Trainingstag (Ablauf)
     saveBlock: async (b: DayBlock): Promise<DayBlock> => {

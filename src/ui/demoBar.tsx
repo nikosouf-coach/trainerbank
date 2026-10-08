@@ -22,7 +22,12 @@ export function DemoBar() {
             else { s.setDemoView("coach", null, null); router.replace("/coach/heute"); }
           }} options={[{ key: "coach", label: t("demo_coach") }, ...(co ? [{ key: "co", label: t("demo_co") }] : []), { key: "player", label: t("demo_player") }]} />
         </Row>
-        <Btn testID="demo-leave" small kind="ghost" label={t("ko_demoLeave")} onPress={() => { s.leaveDemo(); router.replace("/"); }} />
+        <Row gap={8}>
+          {/* Offline ausprobieren: Einträge landen in der Warteschlange und werden beim Wiedereinschalten gesendet */}
+          <Seg testID="demo-net" value={s.offline ? "off" : "on"} onChange={v => s.setDemoOffline(v === "off")}
+            options={[{ key: "on", label: `📶 ${t("demo_netOn")}` }, { key: "off", label: `📵 ${t("demo_netOff")}` }]} />
+          <Btn testID="demo-leave" small kind="ghost" label={t("ko_demoLeave")} onPress={() => { s.leaveDemo(); router.replace("/"); }} />
+        </Row>
       </Row>
     </View>
   );

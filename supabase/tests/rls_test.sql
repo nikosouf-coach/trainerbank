@@ -1400,6 +1400,51 @@ delete from public.absences where from_date = '2026-11-02';
 commit;
 
 -- =====================================================================
+-- T39 Offline-Einträge (Paket 11.1): Eingabezeitpunkt zählt, aber nie Zukunft/vor der Einheit
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$insert into public.rpe_entries (player_id, date, rpe, minutes, entered_at) values (%L, current_date - 200, 6, 90, now() - interval '20 hours')$q$, tst.get('max')),
+                   1, 'T39 Spieler sendet offline erfassten RPE mit Eingabezeitpunkt');
+select tst.affects(format($q$insert into public.rpe_entries (player_id, date, rpe, minutes, entered_at) values (%L, current_date - 201, 6, 90, now() + interval '3 days')$q$, tst.get('max')),
+                   1, 'T39 Zeitpunkt in der Zukunft wird angenommen …');
+select tst.affects(format($q$insert into public.rpe_entries (player_id, date, rpe, minutes, entered_at) values (%L, current_date - 202, 6, 90, (current_date - 260)::timestamptz)$q$, tst.get('max')),
+                   1, 'T39 Zeitpunkt vor der Einheit wird angenommen …');
+select tst.affects(format($q$insert into public.rpe_entries (player_id, date, rpe, minutes) values (%L, current_date - 203, 5, 60)$q$, tst.get('max')),
+                   1, 'T39 ohne Zeitpunkt (ältere App) wird angenommen …');
+select tst.affects(format($q$update public.rpe_entries set rpe = 7, entered_at = now() where player_id = %L and date = current_date - 200$q$, tst.get('max')),
+                   1, 'T39 späteres Bearbeiten wird angenommen …');
+commit;
+do $$
+declare pid uuid := tst.get('max')::uuid; v timestamptz;
+begin
+  select entered_at into v from public.rpe_entries where player_id = pid and date = current_date - 200;
+  perform tst.ok(v between now() - interval '21 hours' and now() - interval '19 hours', 'T39 … der früheste Eingabezeitpunkt bleibt (auch nach Bearbeiten)');
+  select entered_at into v from public.rpe_entries where player_id = pid and date = current_date - 201;
+  perform tst.ok(v <= now(), 'T39 … aber nie in der Zukunft');
+  select entered_at into v from public.rpe_entries where player_id = pid and date = current_date - 202;
+  perform tst.ok(v >= ((current_date - 202)::timestamp - interval '14 hours') at time zone 'UTC', 'T39 … und nie vor dem Tag der Einheit');
+  select entered_at into v from public.rpe_entries where player_id = pid and date = current_date - 203;
+  perform tst.ok(v between now() - interval '1 minute' and now(), 'T39 … ohne Angabe gilt der Zeitpunkt des Speicherns');
+  perform tst.eq((select count(*) from public.rpe_entries where entered_at is null)::text, '0', 'T39 alle RPE-Einträge haben einen Eingabezeitpunkt');
+end
+$$;
+insert into public.team_tasks (team_id, title, player_id) values (tst.get('team_a')::uuid, 'T39 Aufgabe', tst.get('max')::uuid);
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects($q$update public.team_tasks set done_at = now() + interval '2 days' where title = 'T39 Aufgabe'$q$, 1, 'T39 Spieler hakt offline erledigte Aufgabe ab');
+commit;
+do $$
+begin
+  perform tst.ok((select done_at <= now() and done_by is not null from public.team_tasks where title = 'T39 Aufgabe'), 'T39 „erledigt am“ nie in der Zukunft, erledigt von wird gesetzt');
+  delete from public.team_tasks where title = 'T39 Aufgabe';
+  delete from public.rpe_entries where player_id = tst.get('max')::uuid and date between current_date - 203 and current_date - 200;
+end
+$$;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

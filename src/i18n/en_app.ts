@@ -40,6 +40,11 @@ export const en_app: Dict = {
   err_demo: "Not available in demo mode.", err_demo_ai: "The AI coach needs the server and isn't available in the demo.", err_no_server: "The server is not set up yet.",
   err_invalid_merge: "These players cannot be merged.", err_already_linked: "This player is already linked to an account.", err_not_found: "Not found.",
   loading: "Loading …", retry: "Try again", ok: "OK", yes: "Yes", no: "No", edit: "Edit", close: "Close", btn_next: "Next", btn_back: "Back", confirm: "Confirm",
+  off_saved: "Saved ✓ – will be sent as soon as you're back online.", off_sent1: "1 entry sent ✓", off_sentN: "{n} entries sent ✓", off_failed: "One entry was rejected by the server and not saved.",
+  off_notSaved: "No connection – this change needs internet and was not saved.", off_waived: "Waived: entered on time offline, sent later",
+  off_bar0: "Offline – entries are collected and sent later.", off_bar1: "Offline – 1 entry is waiting and will be sent automatically.", off_barN: "Offline – {n} entries are waiting and will be sent automatically.",
+  off_cached: "Offline – data as of {at}. Entries are collected.", off_wait1: "Sending 1 entry …", off_waitN: "Sending {n} entries …", off_syncing: "Sending …", off_later: "📵 will be sent later", off_retry: "Send now",
+  demo_net: "Network", demo_netOn: "on", demo_netOff: "off",
   demo_view: "View", demo_coach: "Coach", demo_player: "Player", demo_pick: "Which player?",
   ki_title2: "AI coach",
 };

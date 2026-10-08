@@ -3,6 +3,7 @@ import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "../core/classes";
 import { cleanAreas } from "../core/body";
+import { isClientId, isNetworkMessage } from "../core/outbox";
 import { addDays, iso, monday } from "../core/dates";
 import type { Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
@@ -20,11 +21,14 @@ const KNOWN_CODES = ["invalid_code", "not_authenticated", "forbidden", "invalid_
 
 function fail(error: { message?: string; details?: string; code?: string } | null | undefined): never {
   const msg = error?.message || "unknown";
-  const code = KNOWN_CODES.find(c => msg.includes(c)) || (error?.code === "42501" ? "forbidden" : "server");
+  const code = isNetworkMessage(msg) || isNetworkMessage(error?.details) ? "offline"
+    : KNOWN_CODES.find(c => msg.includes(c)) || (error?.code === "42501" ? "forbidden" : error?.code === "23505" ? "duplicate" : "server");
   throw new ApiError(code, msg, error?.details);
 }
 async function q<T = Row[]>(p: PromiseLike<{ data: unknown; error: any }>): Promise<T> {
-  const { data, error } = await p; if (error) fail(error); return data as T;
+  let res: { data: unknown; error: any };
+  try { res = await p; } catch (e) { fail({ message: e instanceof Error ? e.message : String(e) }); }
+  if (res.error) fail(res.error); return res.data as T;
 }
 /** Lädt alle Zeilen einer Abfrage seitenweise (Supabase liefert höchstens 1000 Zeilen pro Anfrage). */
 async function all(build: (from: number, to: number) => PromiseLike<{ data: unknown; error: any }>): Promise<Row[]> {
@@ -39,6 +43,8 @@ async function all(build: (from: number, to: number) => PromiseLike<{ data: unkn
 const mdToNum = (md: string): number | null => md === "MD" ? 0 : md.startsWith("MD") ? Number(md.slice(2)) : null;
 const numToMd = (n: number | null): string => n == null ? "" : n === 0 ? "MD" : n > 0 ? "MD+" + n : "MD" + n;
 const isTmp = (id: string | undefined): boolean => !id || id.startsWith("tmp-");
+/** Auf dem Gerät vergebene ID (Offline-Warteschlange): „c-<uuid>“ → uuid */
+const cidOf = (id: string | undefined): string | null => id && isClientId(id) ? id.slice(2) : null;
 /** Zufällige UUID (v4) für Dateinamen. */
 const cryptoId = (): string => {
   const c = (globalThis as unknown as { crypto?: { randomUUID?: () => string } }).crypto;
@@ -103,7 +109,12 @@ export class SupabaseApi implements Api {
     const { data } = await this.sb.from("profiles").select("display_name, lang, prefs").eq("id", u.id).maybeSingle();
     return { id: u.id, email: u.email || "", displayName: data?.display_name || u.user_metadata?.display_name || "", lang: (data?.lang || u.user_metadata?.lang || "de") as Lang, prefs: (data?.prefs || {}) as UserPrefs };
   }
-  async currentUser() { const { data } = await this.sb.auth.getSession(); return this.userInfo(data.session?.user ?? null); }
+  async currentUser() {
+    const { data, error } = await this.sb.auth.getSession();
+    // Ohne Netz kann ein abgelaufenes Token nicht erneuert werden – dann gilt das als offline, nicht als abgemeldet
+    if (!data.session && error && isNetworkMessage(error.message)) throw new ApiError("offline", error.message);
+    return this.userInfo(data.session?.user ?? null);
+  }
   onAuthChange(cb: (u: UserInfo | null) => void) {
     const { data } = this.sb.auth.onAuthStateChange((_e: string, session: { user: { id: string; email?: string | null; user_metadata?: Row } } | null) => { this.userInfo(session?.user ?? null).then(cb); });
     return () => data.subscription.unsubscribe();
@@ -178,7 +189,7 @@ export class SupabaseApi implements Api {
     if (ids.length) {
       const from = addDays(today, -63);
       const [rpe, well, extra, att, abs, growth, pots, msgs] = await Promise.all([
-        all((a, b) => sb.from("rpe_entries").select("player_id, date, rpe, minutes").in("player_id", ids).gte("date", from).range(a, b)),
+        all((a, b) => sb.from("rpe_entries").select("player_id, date, rpe, minutes, entered_at").in("player_id", ids).gte("date", from).range(a, b)),
         all((a, b) => sb.from("wellness_entries").select("*").in("player_id", ids).gte("date", addDays(today, -35)).range(a, b)),
         q(sb.from("extra_activities").select("*").in("player_id", ids).gte("date", addDays(today, -70))),
         all((a, b) => sb.from("attendance").select("player_id, date, status").eq("team_id", tid).gte("date", addDays(today, -70)).range(a, b)),
@@ -187,7 +198,7 @@ export class SupabaseApi implements Api {
         q(sb.from("potentials").select("*").in("player_id", ids).order("created_at")),
         q(sb.from("coach_messages").select("*").in("player_id", ids).order("created_at")),
       ]);
-      for (const r of rpe) (D.rpe[r.player_id] ||= {})[r.date] = { rpe: Number(r.rpe), min: r.minutes };
+      for (const r of rpe) (D.rpe[r.player_id] ||= {})[r.date] = { rpe: Number(r.rpe), min: r.minutes, at: r.entered_at || null };
       for (const r of well) {
         const items = { sq: r.sleep_quality || 0, fat: r.fatigue || 0, doms: r.soreness || 0, stress: r.stress || 0 };
         (D.well[r.player_id] ||= {})[r.date] = { sum: items.sq + items.fat + items.doms + items.stress, schlaf: Number(r.sleep_hours ?? 0), beschw: (r.complaint || "none") as Complaint, ort: r.complaint_location || "", items, areas: cleanAreas(r.complaint_areas || []) };
@@ -360,7 +371,7 @@ export class SupabaseApi implements Api {
   }
   async saveRpe(pid: string, date: string, e: RpeEntry | null) {
     if (!e) await q(this.sb.from("rpe_entries").delete().eq("player_id", pid).eq("date", date));
-    else await q(this.sb.from("rpe_entries").upsert({ player_id: pid, date, rpe: e.rpe, minutes: e.min }));
+    else await q(this.sb.from("rpe_entries").upsert({ player_id: pid, date, rpe: e.rpe, minutes: e.min, entered_at: e.at || new Date().toISOString() }));
   }
   async saveWellness(pid: string, date: string, w: Wellness) {
     await q(this.sb.from("wellness_entries").upsert({
@@ -370,14 +381,26 @@ export class SupabaseApi implements Api {
   }
   async saveExtra(pid: string, x: Extra) {
     const row: Row = { player_id: pid, date: x.date, type: x.art, minutes: x.min, rpe: x.rpe, label: x.label?.trim() || null, program_item: x.prog || null };
-    const r = isTmp(x.id) ? await q<Row>(this.sb.from("extra_activities").insert(row).select().single()) : await q<Row>(this.sb.from("extra_activities").update(row).eq("id", x.id).select().single());
+    const cid = cidOf(x.id);
+    const r = cid ? await this.insertOnce("extra_activities", cid, row)
+      : isTmp(x.id) ? await q<Row>(this.sb.from("extra_activities").insert(row).select().single()) : await q<Row>(this.sb.from("extra_activities").update(row).eq("id", x.id).select().single());
     return mapExtra(r);
   }
   async deleteExtra(id: string) { await q(this.sb.from("extra_activities").delete().eq("id", id)); }
   async saveAbsence(teamId: string, a: Absence) {
     const row: Row = { team_id: teamId, player_id: a.pid, type: a.typ, from_date: a.von, to_date: a.bis || null, stage: a.typ === "verletzung" ? (a.stufe || 1) : null, note: a.notiz || null, area: a.typ === "verletzung" ? (a.area || null) : null };
-    const r = isTmp(a.id) ? await q<Row>(this.sb.from("absences").insert(row).select().single()) : await q<Row>(this.sb.from("absences").update(row).eq("id", a.id).select().single());
+    const cid = cidOf(a.id);
+    const r = cid ? await this.insertOnce("absences", cid, row)
+      : isTmp(a.id) ? await q<Row>(this.sb.from("absences").insert(row).select().single()) : await q<Row>(this.sb.from("absences").update(row).eq("id", a.id).select().single());
     return mapAbs(r);
+  }
+  /** Einfügen mit fester ID vom Gerät; wurde die Zeile schon gesendet (Antwort ging verloren), zählt sie als gespeichert. */
+  private async insertOnce(table: "extra_activities" | "absences", id: string, row: Row): Promise<Row> {
+    try { return await q<Row>(this.sb.from(table).insert({ ...row, id }).select().single()); }
+    catch (e) {
+      if (!(e instanceof ApiError) || e.code !== "duplicate") throw e;
+      return await q<Row>(this.sb.from(table).select().eq("id", id).single());
+    }
   }
   async deleteAbsence(id: string) { await q(this.sb.from("absences").delete().eq("id", id)); }
   async saveGrowth(pid: string, g: Growth) { await q(this.sb.from("growth_measurements").insert({ player_id: pid, date: g.date, height_cm: g.cm })); }
@@ -499,7 +522,7 @@ export class SupabaseApi implements Api {
     return mapTask(r);
   }
   async deleteTask(id: string) { await q(this.sb.from("team_tasks").delete().eq("id", id)); }
-  async setTaskDone(id: string, done: boolean) { await q(this.sb.from("team_tasks").update({ done_at: done ? new Date().toISOString() : null }).eq("id", id)); }
+  async setTaskDone(id: string, done: boolean, at?: string | null) { await q(this.sb.from("team_tasks").update({ done_at: done ? (at || new Date().toISOString()) : null }).eq("id", id)); }
   async healthConsentPlayers(teamId: string) {
     const rows = await q(this.sb.from("consents").select("user_id, kind").in("kind", ["health_data", "parental"]).is("withdrawn_at", null));
     const players = await q(this.sb.from("players").select("id, user_id, birthdate").eq("team_id", teamId).not("user_id", "is", null));

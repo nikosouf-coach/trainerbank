@@ -111,3 +111,19 @@ export function fineViolations(E: Engine, rules: FineRule[], existing: FineEntry
   }
   return out;
 }
+
+/**
+ * Fairness bei Offline-Einträgen: automatische Strafen „RPE zu spät“, deren RPE inzwischen da ist und
+ * nachweislich rechtzeitig (≤ 24 Std. nach Ende) auf dem Gerät eingegeben wurde – z. B. ohne Netz in der Kabine.
+ * Diese Strafen werden erlassen (und ein offener Strafdienst gestrichen).
+ */
+export function lateFinesToWaive(E: Engine, rules: FineRule[], fines: FineEntry[]): FineEntry[] {
+  const late = new Set(rules.filter(r => r.trigger === "late_rpe").map(r => r.id));
+  return fines.filter(f => {
+    if (!f.auto || f.status !== "open" || !f.ref || !late.has(f.rule)) return false;
+    const e = E.D.rpe[f.pid]?.[f.ref]; if (!e?.at) return false;
+    const s = E.D.sessions.find(x => x.date === f.ref); if (!s) return false;
+    const end = at(s.date, s.zeit).getTime() + s.dauer * 60000, t = Date.parse(e.at);
+    return Number.isFinite(t) && t <= end + 24 * 3600e3;
+  });
+}

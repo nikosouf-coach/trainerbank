@@ -114,7 +114,7 @@ export interface Absence {
   area?: string | null;
 }
 export interface Session { date: string; typ: "Training" | "Spiel"; dauer: number; zeit: string; md: string; ziel: number; kind?: Kind }
-export interface RpeEntry { rpe: number; min: number }
+export interface RpeEntry { rpe: number; min: number; /** Zeitpunkt der Eingabe auf dem Gerät (auch offline) – zählt für Fristen */ at?: string | null }
 export interface WellnessItems { sq: number; fat: number; doms: number; stress: number }
 export interface Wellness { sum: number; schlaf: number; beschw: Complaint; ort?: string; items?: WellnessItems;
   /** Körperregionen der Beschwerde (core/body: „hams:l“, „knee:r“, „ill_up“) */

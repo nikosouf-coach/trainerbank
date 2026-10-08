@@ -3,7 +3,6 @@ import { Tabs } from "expo-router";
 import React from "react";
 import { View } from "react-native";
 import { useStore } from "../../../src/data/store";
-import { DemoBar } from "../../../src/ui/demoBar";
 import { Icon, type IconName } from "../../../src/ui/icons";
 import { useTheme } from "../../../src/ui/theme";
 
@@ -20,7 +19,6 @@ export default function CoachTabs() {
   const planOn = !!s.D?.team.modules.planung;
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <DemoBar />
       <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: c.accentTx, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line }, tabBarLabelStyle: { fontWeight: "700", fontSize: 11 } }}>
         {TABS.map(x => (
           <Tabs.Screen key={x.name} name={x.name} options={{

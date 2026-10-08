@@ -33,6 +33,9 @@ export type TeamPatch = Partial<Pick<Team, "club" | "name" | "accent" | "cls" | 
 export class ApiError extends Error {
   constructor(public code: string, message?: string, public details?: string) { super(message || code); }
 }
+/** Kein Netz (oder Server nicht erreichbar): Einträge kommen in die Offline-Warteschlange. */
+export const isOffline = (e: unknown): boolean => e instanceof ApiError ? e.code === "offline"
+  : e instanceof Error && /failed to fetch|network request failed|networkerror|fetch failed|load failed/i.test(e.message);
 
 export interface Api {
   readonly kind: "demo" | "supabase";
@@ -155,7 +158,7 @@ export interface Api {
   saveTask(teamId: string, t: TeamTask): Promise<TeamTask>;
   deleteTask(id: string): Promise<void>;
   /** Aufgabe erledigt/offen (Spieler: nur eigene) */
-  setTaskDone(id: string, done: boolean): Promise<void>;
+  setTaskDone(id: string, done: boolean, at?: string | null): Promise<void>;
   /** Spieler mit App-Konto und Einwilligung in Gesundheitsdaten (dürfen RPE eintragen) */
   healthConsentPlayers(teamId: string): Promise<string[]>;
 
