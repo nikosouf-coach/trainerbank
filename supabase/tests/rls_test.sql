@@ -1887,6 +1887,37 @@ end
 $$;
 
 -- =====================================================================
+-- T42 Körperkarte: Angaben zum Schmerz (Paket 11.4)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$insert into public.wellness_entries (player_id, date, complaint, complaint_areas, complaint_details) values (%L, '2026-11-20', 'light', '{hams:r,ill_up}', '{"hams": {"nrs": 6, "q": ["pull"], "onset": "sudden"}}')$q$, tst.get('max')),
+                   1, 'T42 Spieler meldet Schmerz mit Angaben');
+select tst.throws(format($q$insert into public.wellness_entries (player_id, date, complaint, complaint_areas, complaint_details) values (%L, '2026-11-21', 'light', '{hams:r}', '{"knee": {"nrs": 3}}')$q$, tst.get('max')),
+                  'T42 Angaben nur für gemeldete Regionen', 'check constraint');
+select tst.throws(format($q$insert into public.wellness_entries (player_id, date, complaint, complaint_areas, complaint_details) values (%L, '2026-11-22', 'none', '{}', '{}')$q$, tst.get('max')),
+                  'T42 ohne Beschwerde keine Angaben', 'check constraint');
+select tst.throws(format($q$insert into public.wellness_entries (player_id, date, complaint, complaint_areas, complaint_details) values (%L, '2026-11-23', 'light', '{hams:r}', '{"hams": 5}')$q$, tst.get('max')),
+                  'T42 Angaben je Region als Objekt', 'check constraint');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.wellness_entries where player_id = tst.get('max')::uuid)::text, '0', 'T42 Mitspieler sieht keine Schmerzangaben');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select complaint_details -> 'hams' ->> 'nrs' from public.wellness_entries where player_id = tst.get('max')::uuid and date = '2026-11-20'), '6', 'T42 Trainerteam sieht die Angaben');
+end $$;
+commit;
+delete from public.wellness_entries where date = '2026-11-20';
+
+-- =====================================================================
 -- T17 Einwilligungen
 -- =====================================================================
 begin;

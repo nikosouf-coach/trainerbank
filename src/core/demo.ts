@@ -6,7 +6,7 @@ import { createEngine } from "./engine";
 import { duePeriods, periodStart, seasonStart } from "./kasse";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
-import type { FeeDef, FineEntry, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles } from "./types";
+import type { FeeDef, FineEntry, Wellness, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles } from "./types";
 import { emptyTeamData } from "./types";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
@@ -91,7 +91,23 @@ export function buildDemo(team: Team, lang: Lang, now: Date = new Date()): TeamD
     }
   }
   // Beschwerden mit Körperregion: deutlich hinterer Oberschenkel, leicht erkältet (nur oberhalb des Halses)
-  const sw = D.well[sore]?.[TODAY]; if (sw) { sw.areas = ["hams:r"]; sw.ort = en ? "after a sprint" : "nach Sprint"; }
+  const sw = D.well[sore]?.[TODAY]; if (sw) { sw.areas = ["hams:r"]; sw.ort = en ? "after a sprint" : "nach Sprint";
+    sw.pain = { hams: { nrs: 6, q: ["pull"], onset: "sudden", since: "today", when: ["sprint"], cause: "noncontact", train: "limited" } }; }
+  // Beschwerden der letzten Wochen (für „Beschwerden im Team“): Leiste gehäuft, Sprunggelenk, Knie
+  if (grp !== "u11") {
+    const past: [number, number, string, Wellness["pain"]][] = [
+      [6, 4, "groin:l", { groin: { nrs: 3, q: ["pull"], onset: "gradual", when: ["shot", "after"], since: "days" } }],
+      [8, 9, "groin:r", { groin: { nrs: 4, q: ["pull", "dull"], onset: "gradual", when: ["shot"], since: "week" } }],
+      [12, 14, "groin:b", { groin: { nrs: 3, q: ["dull"], onset: "gradual", when: ["after", "morning"], since: "week" } }],
+      [15, 6, "ankle:r", { ankle: { nrs: 4, q: ["stab"], onset: "sudden", cause: "contact", signs: ["swelling"], since: "days" } }],
+      [17, 11, "knee:l", { knee: { nrs: 2, q: ["dull"], onset: "gradual", when: ["jump"], since: "week" } }],
+    ];
+    for (const [i, ago, area, pain] of past) {
+      const pl = D.players[i]; if (!pl || pl.id === sore) continue;
+      const d = addDays(TODAY, -ago), w = ((D.well[pl.id] ||= {})[d] ||= { sum: 12, schlaf: 8, beschw: "none" });
+      w.beschw = "light"; w.areas = [area]; w.pain = pain;
+    }
+  }
   const cold = D.players.find(p => p.id !== sore && p.id !== sleepy && D.well[p.id]?.[TODAY]);
   if (cold) { const w = D.well[cold.id][TODAY]; w.beschw = "light"; w.areas = ["ill_up"]; }
   if (isGrowthAge(team.cls)) for (const p of D.players) {

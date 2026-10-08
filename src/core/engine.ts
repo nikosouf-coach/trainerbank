@@ -7,7 +7,8 @@ import {
 } from "./classes";
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
 import { translator } from "./i18n";
-import { areaLabel, cleanAreas, complaintEffect, type BodyEffect } from "./body";
+import { areaLabel, cleanAreas } from "./body";
+import { complaintEffect, type PainEffect } from "./pain";
 import { cmjDrop, fitnessIndex, testRank } from "./perf";
 import { phaseOn } from "./prep";
 import { headCoach } from "./people";
@@ -156,7 +157,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
   /** Beschwerde-Text mit Regionen („Beschwerden: Wade (links)“) */
   const soreWhy = (w: Wellness): string => { const a = cleanAreas(w.areas); return t("r_sore") + (a.length ? ": " + a.map(x => areaLabel(t, x)).join(", ") : ""); };
   /** Wirkung der heutigen Beschwerde (Regionen) auf eine Einheit mit Ziel-RPE `base` */
-  const soreEffect = (p: Player, w: Wellness | null | undefined, base?: number): BodyEffect | null => {
+  const soreEffect = (p: Player, w: Wellness | null | undefined, base?: number): PainEffect | null => {
     if (!w) return null;
     const it = weekPlan(monday(TODAY)).items.find(x => x.date === TODAY);
     const b = base ?? (it?.train ? it.train.rpe : it?.match ? matchRpe() : 6);

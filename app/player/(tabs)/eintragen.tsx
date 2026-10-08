@@ -4,11 +4,12 @@ import React, { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { diff } from "../../../src/core/dates";
 import { gameOf } from "../../../src/core/game";
-import type { AbsenceType, Complaint, ExtraType, WellnessItems } from "../../../src/core/types";
+import type { AbsenceType, Complaint, ExtraType, PainInfo, WellnessItems } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, Info, ListItem, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T } from "../../../src/ui/kit";
 import { cleanAreas } from "../../../src/core/body";
-import { BodyPicker } from "../../../src/ui/body";
+import { cleanPainMap } from "../../../src/core/pain";
+import { BodyMap } from "../../../src/ui/bodyMap";
 import { RegionPicker } from "../../../src/ui/reha";
 import { TermInfo } from "../../../src/ui/termInfo";
 import { HealthConsentGate } from "../../../src/ui/player/parts";
@@ -70,15 +71,19 @@ function WellForm({ onDone }: { onDone: () => void }) {
   const [pain, setPain] = useState<Complaint>(today?.beschw || "none");
   const [ort, setOrt] = useState(today?.ort || "");
   const [areas, setAreas] = useState<string[]>(today?.areas || []);
+  const [pains, setPains] = useState<Record<string, PainInfo>>(today?.pain || {});
+  const tw = p.pos === "TW" || E.D.groups.some(g => g.kind === "tw" && (p.groups || []).includes(g.id));
+  const baseRpe = E.nextItem()?.train?.rpe ?? 6;
   const col = (v: number) => v <= 2 ? c.ok : v <= 4 ? c.warn : c.crit;
   // Sofort-Hinweis zur gewählten Region (gleiche Logik wie in der Steuerung)
-  const preview = pain !== "none" ? E.soreEffect(p, { sum: 0, schlaf: sleep, beschw: pain, areas }) : null;
+  const preview = pain !== "none" ? E.soreEffect(p, { sum: 0, schlaf: sleep, beschw: pain, areas, pain: pains }) : null;
   const keys: (keyof WellnessItems)[] = ["sq", "fat", "doms", "stress"];
   const save = () => {
     if (keys.some(k => !items[k])) { s.toast(t("pw_need")); return; }
     if (pain !== "none" && !cleanAreas(areas).length) { s.toast(t("pw_regionNeed")); return; }
     const it = items as WellnessItems;
-    s.saveWellness(p.id, E.TODAY, { sum: it.sq + it.fat + it.doms + it.stress, schlaf: sleep, beschw: pain, ort: pain !== "none" ? ort.trim() : "", items: it, areas: pain !== "none" ? cleanAreas(areas) : [] });
+    s.saveWellness(p.id, E.TODAY, { sum: it.sq + it.fat + it.doms + it.stress, schlaf: sleep, beschw: pain, ort: pain !== "none" ? ort.trim() : "", items: it, areas: pain !== "none" ? cleanAreas(areas) : [],
+      pain: pain !== "none" ? cleanPainMap(pains, cleanAreas(areas)) : undefined });
     const streak = gameOf(E, p.id).streak + (today ? 0 : 1);
     s.toast(`${t("pw_saved")}${!today && streak > 1 ? " · " + tf("gm_streak", { n: streak }) : ""}`); onDone();
   };
@@ -101,8 +106,8 @@ function WellForm({ onDone }: { onDone: () => void }) {
       <Row gap={6}><T v="h3" style={{ flexShrink: 1 }}>{t("pw_pain")}</T><TermInfo k="complaints" testID="term-complaints" /></Row>
       <ChoiceChips testID="well-pain" value={pain} onChange={setPain} options={[{ key: "none", label: t("pw_no") }, { key: "light", label: t("pw_light") }, { key: "clear", label: t("pw_clear") }]} />
       {pain !== "none" ? <Col gap={8}>
-        <Col gap={2}><T bold>{t("pw_regions")}</T><Muted small>{t("pw_regionsD")}</Muted></Col>
-        <BodyPicker testID="well-body" value={areas} onChange={setAreas} color={pain === "clear" ? c.crit : c.warn} />
+        <T bold>{t("pw_regions")}</T>
+        <BodyMap testID="well-body" value={areas} onChange={setAreas} pain={pains} onPain={setPains} level={pain} baseRpe={baseRpe} tw={tw} color={pain === "clear" ? c.crit : c.warn} />
         {preview ? <Banner color={preview.kind === "sick" || preview.kind === "pause" ? c.crit : c.warn} testID="well-body-advice">{t(preview.how)}</Banner> : null}
         <Field testID="well-where" label={t("pw_note")} value={ort} onChangeText={setOrt} placeholder={t("pw_notePh")} maxLength={120} />
       </Col> : null}

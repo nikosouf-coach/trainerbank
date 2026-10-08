@@ -5,6 +5,7 @@ import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { posGroup } from "../../../src/core/classes";
 import type { Player } from "../../../src/core/types";
 import { useEngine, useStore } from "../../../src/data/store";
+import { TeamHotspots } from "../../../src/ui/bodyMap";
 import { Banner, Bar, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, Seg, StatusChip, T, Tag } from "../../../src/ui/kit";
 import { TermInfo } from "../../../src/ui/termInfo";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
@@ -109,7 +110,7 @@ export default function Kader() {
       {ranking.map(x => <ListItem key={x.p.id} title={E.name(x.p)} left={<PlayerAvatar p={x.p} size={32} />} onPress={() => router.push("/coach/spieler/" + x.p.id)}
         right={<T bold>{Math.round(x.a! * 100)} %</T>}><Bar value={x.a!} color={x.a! < 0.8 ? c.warn : c.accent} /></ListItem>)}
     </Card>;
-    return wide ? <Row align="flex-start" gap={18}>{left}{right}</Row> : <>{left}{right}</>;
+    return <>{wide ? <Row align="flex-start" gap={18}>{left}{right}</Row> : <>{left}{right}</>}{mods.belastung ? <TeamHotspots /> : null}</>;
   };
 
   return (

@@ -11,6 +11,7 @@ import { Banner, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem,
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { MyTarget } from "../../../src/ui/indiv";
+import { BodyMapView } from "../../../src/ui/bodyMap";
 import { GroupChip } from "../../../src/ui/squad/Groups";
 import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
 import { InjuryCard } from "../../../src/ui/injury";
@@ -86,8 +87,10 @@ export default function Spieler() {
       {sore ? <Banner color={pr.w0!.beschw === "clear" ? c.crit : c.warn} testID="profile-sore">
         <Col gap={4}>
           <T bold>{E.soreWhy(pr.w0!)} · {t(pr.w0!.beschw === "clear" ? "pw_clear" : "pw_light")}</T>
+          <BodyMapView areas={pr.w0!.areas || []} pain={pr.w0!.pain} color={pr.w0!.beschw === "clear" ? c.crit : c.warn} testID="profile-body" compact />
           {pr.w0!.ort ? <T v="small">„{pr.w0!.ort}“</T> : null}
           {sore.how ? <T v="small">{t(sore.how)}</T> : null}
+          {"flags" in sore && sore.flags.length ? <Col gap={2} testID="profile-flags">{sore.flags.map(f => <T key={f} v="small" bold>⚠ {t(f)}</T>)}</Col> : null}
         </Col>
       </Banner> : null}
       <Row wrap gap={8}>

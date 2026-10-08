@@ -1,7 +1,8 @@
 // Tests: Beschwerden mit Körperregion – Wirkung auf Training und Vorgabe.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cleanAreas, complaintEffect, parseArea } from "../body";
+import { cleanAreas, parseArea } from "../body";
+import { complaintEffect } from "../pain";
 import { buildDemo, demoTeam } from "../demo";
 import { createEngine } from "../engine";
 import { indivOf } from "../indiv";

@@ -7,7 +7,7 @@
 // reduzierte Sprung-/Sprintvolumina im Wachstumsschub (Lloyd & Oliver 2012; Read et al. 2016).
 import { addDays, diff, monday } from "./dates";
 import type { Engine, PlanTrain } from "./engine";
-import { complaintEffect } from "./body";
+import { complaintEffect } from "./pain";
 import { inKind } from "./groups";
 import { cmjDrop } from "./perf";
 import { guessArea, rehaGroupOf, rehaPlan } from "./reha";

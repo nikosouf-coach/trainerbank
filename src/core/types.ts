@@ -144,7 +144,26 @@ export interface RpeEntry { rpe: number; min: number; /** Zeitpunkt der Eingabe 
 export interface WellnessItems { sq: number; fat: number; doms: number; stress: number }
 export interface Wellness { sum: number; schlaf: number; beschw: Complaint; ort?: string; items?: WellnessItems;
   /** Körperregionen der Beschwerde (core/body: „hams:l“, „knee:r“, „ill_up“) */
-  areas?: string[] }
+  areas?: string[];
+  /** Angaben zum Schmerz je Region (Schlüssel = Region ohne Seite, z. B. „hams“) – core/pain */
+  pain?: Record<string, PainInfo> }
+/** Schmerzart (Mehrfachauswahl) */
+export type PainQuality = "stab" | "pull" | "dull" | "burn" | "throb" | "cramp" | "radiate" | "numb" | "stiff";
+/** Wann tut es weh? (Mehrfachauswahl) */
+export type PainWhen = "rest" | "run" | "sprint" | "shot" | "jump" | "cut" | "after" | "morning" | "night";
+/** Zeichen: Schwellung, Bluterguss, instabil/gibt nach, kann nicht normal auftreten/belasten, blockiert */
+export type PainSign = "swelling" | "bruise" | "unstable" | "weight" | "locked";
+/** Angaben zum Schmerz (alle optional; Kinder bekommen eine vereinfachte Auswahl) */
+export interface PainInfo {
+  /** Stärke 0–10 (NRS) */ nrs?: number | null;
+  q?: PainQuality[];
+  /** plötzlich (in einer Aktion) oder schleichend */ onset?: "sudden" | "gradual" | null;
+  /** seit heute, 2–3 Tagen, ≥ 1 Woche, länger/immer wieder */ since?: "today" | "days" | "week" | "long" | null;
+  when?: PainWhen[];
+  /** Zusammenprall, ohne Kontakt, kein bestimmter Moment */ cause?: "contact" | "noncontact" | "none" | null;
+  signs?: PainSign[];
+  /** Selbsteinschätzung: voll, eingeschränkt, gar nicht trainierbar */ train?: "full" | "limited" | "no" | null;
+}
 export interface Extra { id: string; date: string; art: ExtraType; min: number; rpe: number; /** freie Bezeichnung bei „Sonstiges“ */ label?: string; /** erledigter Programm-Baustein (ProgItem.id) aus Pause/Vorbereitung */ prog?: string }
 export interface Growth { date: string; cm: number }
 export interface CustomKind { id: string; name: string; rpe: number; inhalt: string }

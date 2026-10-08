@@ -3,7 +3,7 @@
 // Grundlagen: Muskelverletzungen der unteren Extremität (Ekstrand et al. 2011; Mueller-Wohlfahrt et al. 2013),
 // „Neck Check“ bei Infekten (Eichner 1993; IOC-Konsens Schwellnus et al. 2016),
 // Gehirnerschütterung: kein Sport am selben Tag, stufenweise Rückkehr (Patricios et al. 2023, CISG Amsterdam).
-import type { Complaint, Wellness } from "./types";
+import type { Complaint } from "./types";
 
 export type BodyCode =
   | "head" | "neck" | "shoulder" | "arm" | "hand" | "chest" | "upback" | "lowback" | "abdomen"
@@ -77,19 +77,6 @@ export function regionEffect(k: BodyCode, level: Exclude<Complaint, "none">, bas
     case "trunk": return clear ? e("pause", 0) : e("mod", null);
     case "upper": return tw ? (clear ? e("easy", Math.min(base, 4), `bd_upper_${level}_tw`) : e("mod", null, "bd_upper_light_tw")) : e("mod", null);
   }
-}
-
-/** Stärkste Wirkung aller gemeldeten Regionen (ohne Regionen: allgemeine Beschwerde). */
-export function complaintEffect(w: Wellness | null | undefined, base: number, tw: boolean): BodyEffect | null {
-  if (!w || w.beschw === "none") return null;
-  const level = w.beschw, areas = cleanAreas(w.areas).map(parseArea).filter((a): a is NonNullable<typeof a> => !!a);
-  if (!areas.length) return level === "clear" ? { kind: "pause", cap: 0, how: "bd_none_clear", type: null, k: null } : null;
-  let best: BodyEffect | null = null;
-  for (const a of areas) {
-    const ef = regionEffect(a.k, level, base, tw);
-    if (!best || RANK[ef.kind] > RANK[best.kind] || (RANK[ef.kind] === RANK[best.kind] && (ef.cap ?? 99) < (best.cap ?? 99))) best = ef;
-  }
-  return best;
 }
 
 /** Lesbare Bezeichnung („Oberschenkel hinten (links)“) */
