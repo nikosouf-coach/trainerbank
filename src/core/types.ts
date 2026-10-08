@@ -110,6 +110,8 @@ export interface PlanOverride { kind?: Kind; rpe?: number; dauer?: number; inhal
 export interface Absence {
   id: string; pid: string; typ: AbsenceType; von: string; bis: string | null;
   stufe: number | null; notiz: string; by?: "player" | "coach";
+  /** Körperregion der Verletzung (core/body, z. B. „hams:l“) – steuert den Reha-Plan */
+  area?: string | null;
 }
 export interface Session { date: string; typ: "Training" | "Spiel"; dauer: number; zeit: string; md: string; ziel: number; kind?: Kind }
 export interface RpeEntry { rpe: number; min: number }

@@ -15,6 +15,7 @@ import { tmpId, useEngine, useStore } from "../../data/store";
 import { Markdown, useAi } from "../ai";
 import { Banner, Btn, Check, ChoiceChips, Col, DateField, Field, ListItem, Muted, Picker, Row, Seg, Sheet, T, TimeField } from "../kit";
 import { rpeColor, useTheme, withAlpha } from "../theme";
+import { RegionPicker } from "../reha";
 import { jumpTo } from "./calState";
 
 export type SheetState =
@@ -242,11 +243,12 @@ export function AbsenceForm({ date, pid, onDone }: { date?: string; pid?: string
   const [bis, setBis] = useState<string | null>(null);
   const [stufe, setStufe] = useState("1");
   const [notiz, setNotiz] = useState("");
+  const [area, setArea] = useState<string | null>(null);
   const [msg, setMsg] = useState("");
   const save = () => {
     if (!p || !von) { setMsg(t("au_fill")); return; }
     if (bis && bis < von) { setMsg(t("abs_order")); return; }
-    s.saveAbsence({ id: tmpId(), pid: p, typ, von, bis, stufe: typ === "verletzung" ? Number(stufe) : null, notiz: notiz.trim(), by: "coach" });
+    s.saveAbsence({ id: tmpId(), pid: p, typ, von, bis, stufe: typ === "verletzung" ? Number(stufe) : null, notiz: notiz.trim(), by: "coach", area: typ === "verletzung" ? area : null });
     s.toast(t("t_saved")); onDone();
   };
   return (
@@ -258,6 +260,7 @@ export function AbsenceForm({ date, pid, onDone }: { date?: string; pid?: string
         <DateField testID="abs-to" label={t("abs_to")} value={bis} onChange={setBis} lang={E.tr.lang} style={{ flex: 1, minWidth: 140 }} />
       </Row>
       {typ === "verletzung" ? <Picker testID="abs-stage" label={t("abs_stage")} value={stufe} onChange={setStufe} options={E.tl("stages").map((x, i) => ({ key: String(i + 1), label: `${i + 1} · ${x}` }))} /> : null}
+      {typ === "verletzung" ? <RegionPicker value={area} onChange={setArea} testID="abs-region" /> : null}
       <Field testID="abs-note" label={t("abs_note")} value={notiz} onChangeText={setNotiz} />
       {msg ? <Muted>{msg}</Muted> : null}
       <Btn testID="abs-save" kind="primary" label={t("save")} onPress={save} style={{ alignSelf: "flex-start" }} />

@@ -9,6 +9,7 @@ import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, Info, ListItem, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T } from "../../../src/ui/kit";
 import { cleanAreas } from "../../../src/core/body";
 import { BodyPicker } from "../../../src/ui/body";
+import { RegionPicker } from "../../../src/ui/reha";
 import { TermInfo } from "../../../src/ui/termInfo";
 import { HealthConsentGate } from "../../../src/ui/player/parts";
 import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
@@ -158,6 +159,7 @@ function AbsForm() {
   const [von, setVon] = useState<string | null>(E.TODAY);
   const [bis, setBis] = useState<string | null>(null);
   const [notiz, setNotiz] = useState("");
+  const [area, setArea] = useState<string | null>(null);
   const mine = E.D.absences.filter(x => x.pid === p.id && (!x.bis || x.bis >= E.TODAY)).sort((a, b) => a.von < b.von ? -1 : 1);
   return (
     <>
@@ -168,9 +170,10 @@ function AbsForm() {
           <DateField testID="pabs-from" label={t("abs_from")} value={von} onChange={setVon} lang={E.tr.lang} style={{ flex: 1, minWidth: 140 }} />
           <DateField testID="pabs-to" label={t("abs_to")} value={bis} onChange={setBis} lang={E.tr.lang} style={{ flex: 1, minWidth: 140 }} />
         </Row>
+        {typ === "verletzung" ? <RegionPicker value={area} onChange={setArea} testID="pabs-region" /> : null}
         <Field testID="pabs-note" label={t("abs_note")} value={notiz} onChangeText={setNotiz} />
         <Btn testID="pabs-save" kind="primary" label={t("save")} onPress={() => {
-          const v = von || E.TODAY; s.saveAbsence({ id: tmpId(), pid: p.id, typ, von: v, bis: bis && bis < v ? v : bis, stufe: typ === "verletzung" ? 1 : null, notiz: notiz.trim(), by: "player" });
+          const v = von || E.TODAY; s.saveAbsence({ id: tmpId(), pid: p.id, typ, von: v, bis: bis && bis < v ? v : bis, stufe: typ === "verletzung" ? 1 : null, notiz: notiz.trim(), by: "player", area: typ === "verletzung" ? area : null });
           s.toast(t("pa_absSaved")); setNotiz(""); setBis(null);
         }} style={{ alignSelf: "flex-start" }} />
       </Card> : <Banner>{t("pl_absOff")}</Banner>}

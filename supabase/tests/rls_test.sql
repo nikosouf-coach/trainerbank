@@ -1373,6 +1373,20 @@ delete from public.performance_tests where date = '2026-10-01' and test in ('spr
 commit;
 
 -- =====================================================================
+-- T38 Region der Verletzung (Paket 9)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.absences (player_id, team_id, type, from_date, stage, area) values (%L, %L, 'verletzung', '2026-11-02', 2, 'hams:r')$q$, tst.get('max'), tst.get('team_a')), 1, 'T38 Verletzung mit Region');
+select tst.throws(format($q$insert into public.absences (player_id, team_id, type, from_date, area) values (%L, %L, 'urlaub', '2026-11-20', 'knee:l')$q$, tst.get('max'), tst.get('team_a')), 'T38 Region nur bei Verletzung', 'check constraint');
+select tst.throws(format($q$insert into public.absences (player_id, team_id, type, from_date, stage, area) values (%L, %L, 'verletzung', '2026-11-20', 1, 'ill_down')$q$, tst.get('max'), tst.get('team_a')), 'T38 keine Krankheitszeichen als Region', 'check constraint');
+commit;
+begin;
+delete from public.absences where from_date = '2026-11-02';
+commit;
+
+-- =====================================================================
 -- T11 Potenziale, T12 Notizen, T13 Nachrichten
 -- =====================================================================
 begin;

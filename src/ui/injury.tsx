@@ -6,6 +6,7 @@ import { ActivityIndicator, Image, Linking, Pressable, Text, View } from "react-
 import { ApiError } from "../data/api";
 import type { Finding, Player } from "../core/types";
 import { useEngine, useStore } from "../data/store";
+import { RehaPlanView } from "./reha";
 import { Markdown, aiErrText } from "./ai";
 import { Icon } from "./icons";
 import { Banner, Btn, Card, CardTitle, ChoiceChips, Col, DateField, Field, Info, Muted, Picker, Row, Sheet, T } from "./kit";
@@ -50,6 +51,7 @@ export function InjuryCard({ p }: { p: Player }) {
             );
           })}
         </Row>
+        <RehaPlanView a={inj} editable testID="inj-reha" />
       </Col> : <Muted>{t("inj_none")}</Muted>}
       {E.mods.befunde ? <Col gap={8}>
         <Row between><T v="eyebrow">{t("bf_title")}</T><Btn small kind="ghost" icon="plus" testID="bf-add" label={t("bf_add")} onPress={() => setAdd(true)} /></Row>

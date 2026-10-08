@@ -81,7 +81,7 @@ const mapTask = (r: Row): TeamTask => ({ id: r.id, title: r.title, note: r.note 
 const mapGroup = (r: Row): TeamGroup => ({ id: r.id, name: r.name, kind: (r.kind || "custom") as GroupKind, vis: !!r.visible });
 const mapVideo = (r: Row): Video => ({ id: r.id, title: r.title, url: r.url, date: r.date || null, matchId: r.match_id || null, pids: r.player_ids || [], groupIds: r.group_ids || [], note: r.note || "", vis: !!r.visible });
 const mapEvent = (r: Row): TeamEvent => ({ id: r.id, date: r.date, zeit: r.time || "", titel: r.title, typ: r.type || "sonst", ersetzt: !!r.replaces_training });
-const mapAbs = (r: Row): Absence => ({ id: r.id, pid: r.player_id, typ: r.type, von: r.from_date, bis: r.to_date, stufe: r.stage, notiz: r.note || "", by: r.reported_by_player ? "player" : "coach" });
+const mapAbs = (r: Row): Absence => ({ id: r.id, pid: r.player_id, typ: r.type, von: r.from_date, bis: r.to_date, stufe: r.stage, notiz: r.note || "", by: r.reported_by_player ? "player" : "coach", area: r.area || null });
 const mapExtra = (r: Row): Extra => ({ id: r.id, date: r.date, art: r.type, min: r.minutes, rpe: Number(r.rpe ?? 5), label: r.label || undefined, prog: r.program_item || undefined });
 const mapContact = (r: Row): Contact => ({ id: r.id, name: r.name, role: r.role, org: r.org || "", phone: r.phone || "", email: r.email || "", address: r.address || "", note: r.note || "", vis: r.visible !== false });
 const mapPhase = (r: Row): Phase => ({ id: r.id, kind: r.kind, title: r.title, from: r.date_from, to: r.date_to, firstMatch: r.first_match || null, weeks: r.weeks || {}, program: r.program || [], vis: r.visible !== false, note: r.note || "" });
@@ -375,7 +375,7 @@ export class SupabaseApi implements Api {
   }
   async deleteExtra(id: string) { await q(this.sb.from("extra_activities").delete().eq("id", id)); }
   async saveAbsence(teamId: string, a: Absence) {
-    const row: Row = { team_id: teamId, player_id: a.pid, type: a.typ, from_date: a.von, to_date: a.bis || null, stage: a.typ === "verletzung" ? (a.stufe || 1) : null, note: a.notiz || null };
+    const row: Row = { team_id: teamId, player_id: a.pid, type: a.typ, from_date: a.von, to_date: a.bis || null, stage: a.typ === "verletzung" ? (a.stufe || 1) : null, note: a.notiz || null, area: a.typ === "verletzung" ? (a.area || null) : null };
     const r = isTmp(a.id) ? await q<Row>(this.sb.from("absences").insert(row).select().single()) : await q<Row>(this.sb.from("absences").update(row).eq("id", a.id).select().single());
     return mapAbs(r);
   }

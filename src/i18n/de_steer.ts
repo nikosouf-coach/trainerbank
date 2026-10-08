@@ -8,10 +8,6 @@ export const de_steer: Dict = {
   // Gründe und Umsetzung
   iv_sickHow: "Auskurieren. Wieder einsteigen erst nach 24 Stunden ohne Fieber, dann mit 1–2 lockeren Einheiten.",
   iv_rehaWhy: "Reha Stufe {s}/4 ({n})",
-  iv_reha1: "Individuelles Reha-Programm mit Physio: schmerzfreie Mobilität, Rumpf, Oberkörper, Rad oder Crosstrainer. Keine Belastung der verletzten Struktur.",
-  iv_reha2: "Aufwärmen und Technik mit der Mannschaft, danach individuell (Lauf-ABC, Steigerungsläufe, gerade Läufe). Keine Zweikämpfe, keine Richtungswechsel unter Druck.",
-  iv_reha3: "Volles Training mit Kontakt, Spielformen dosiert. Sprints und Zweikämpfe schrittweise steigern.",
-  iv_reha4: "Spielfähig: volle Teilnahme. Die Belastung der nächsten Wochen im Blick behalten (ACWR nicht über 1,3).",
   iv_partMin: "{m} Spielminuten – Belastung teilweise nachholen",
   iv_fewMin: "Nur {m} Spielminuten",
   iv_noMin: "Am Spieltag nicht eingesetzt",

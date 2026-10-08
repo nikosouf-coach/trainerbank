@@ -46,8 +46,8 @@ export function buildDemo(team: Team, lang: Lang, now: Date = new Date()): TeamD
   D.events.push({ id: nid(), date: addDays(nextMD, 5), zeit: "21:00", titel: en ? "Team night" : "Mannschaftsabend", typ: "abend", ersetzt: false });
   D.events.push({ id: nid(), date: addDays(nextMD, 1), zeit: "19:00", titel: en ? "Team photo" : "Teamfoto", typ: "foto", ersetzt: false });
   D.events.push({ id: nid(), date: addDays(nextMD, 15), zeit: "", titel: en ? "Autumn break – no training" : "Herbstferien – trainingsfrei", typ: "frei", ersetzt: true });
-  D.absences.push({ id: nid(), pid: "p15", typ: "verletzung", von: addDays(TODAY, -9), bis: null, stufe: 2, notiz: en ? "Hamstring" : "Oberschenkel hinten" });
-  D.absences.push({ id: nid(), pid: "p3", typ: "verletzung", von: addDays(TODAY, -30), bis: addDays(TODAY, -10), stufe: 4, notiz: en ? "Ankle" : "Sprunggelenk" });
+  D.absences.push({ id: nid(), pid: "p15", typ: "verletzung", von: addDays(TODAY, -9), bis: null, stufe: 2, notiz: en ? "Strain after a sprint" : "Zerrung nach Sprint", area: "hams:r" });
+  D.absences.push({ id: nid(), pid: "p3", typ: "verletzung", von: addDays(TODAY, -30), bis: addDays(TODAY, -10), stufe: 4, notiz: en ? "Sprained ankle" : "Umgeknickt", area: "ankle:r" });
   D.absences.push({ id: nid(), pid: "p11", typ: "urlaub", von: addDays(TODAY, 2), bis: addDays(TODAY, 10), stufe: null, notiz: "" });
   D.absences.push({ id: nid(), pid: "p19", typ: grp === "akt" ? "arbeit" : "schule", von: addDays(TODAY, -1), bis: addDays(TODAY, 3), stufe: null, notiz: "" });
   D.absences.push({ id: nid(), pid: "p8", typ: "krank", von: addDays(TODAY, -1), bis: addDays(TODAY, 1), stufe: null, notiz: "" });

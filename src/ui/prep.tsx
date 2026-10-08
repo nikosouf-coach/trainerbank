@@ -13,7 +13,7 @@ import {
 import type { FreeKey, Phase, PhaseKind, ProgItem } from "../core/types";
 import { tmpId, useEngine, useStore } from "../data/store";
 import { Icon, type IconName } from "./icons";
-import { Btn, Card, Col, DateField, Field, Muted, NumField, NumScale, Picker, Row, Seg, Sheet, T } from "./kit";
+import { Btn, Card, Col, DateField, Field, Info, Muted, NumField, NumScale, Picker, Row, Seg, Sheet, T } from "./kit";
 import { GOLD, HealthConsentGate } from "./player/parts";
 import { radius, rpeColor, useTheme, withAlpha } from "./theme";
 
@@ -139,7 +139,7 @@ export function PlayerProgramCard({ pid }: { pid: string }) {
   void s.version;
   const started = ph.from <= E.TODAY, W = phaseWeeks(ph.from, ph.to);
   const ws = started ? W.find(w => w <= E.TODAY && addDays(w, 6) >= E.TODAY) || W[0] : W[0];
-  const pw = progWeek(E.D, pid, ph, ws), allDone = started && pw.total > 0 && pw.done >= pw.total;
+  const pw = progWeek(E.D, pid, ph, ws, E.TODAY), allDone = started && pw.total > 0 && pw.done >= pw.total;
   const col = ph.kind === "break" ? "#16a3a3" : "#f0762b";
   return (
     <Card testID="player-program" tone={allDone ? GOLD : col}>
@@ -151,6 +151,10 @@ export function PlayerProgramCard({ pid }: { pid: string }) {
           <Muted small>{started ? (allDone ? tf("pg_progress", { d: pw.done, t: pw.total }) : tf("pg_left", { n: pw.total - pw.done })) : t("pg_ready")}</Muted>
         </Col>
       </Pressable>
+      {pw.injured ? <Muted small>{t("pp_injured")}</Muted> : pw.personal.level !== "standard" || pw.personal.why.length ? <Row gap={6} testID="pg-personal">
+        <Muted small style={{ flex: 1 }}>{tf("pp_adapted", { l: t("pp_level_" + pw.personal.level) })} · {pw.personal.why.map(k => t(k)).join(" · ")}</Muted>
+        <Info title={t("pg_title")} text={t("pp_info")} />
+      </Row> : null}
       <View>
         {pw.items.map(({ it, done }) => <PlayerItemRow key={it.id} testID={"pg-item-" + it.id} it={it} done={done} locked={!started} onInfo={() => setInfo(it)} onLog={() => setLog(it)} />)}
       </View>

@@ -10,6 +10,7 @@ import type { Engine, PlanTrain } from "./engine";
 import { complaintEffect } from "./body";
 import { inKind } from "./groups";
 import { cmjDrop } from "./perf";
+import { guessArea, rehaGroupOf, rehaPlan } from "./reha";
 import type { Match, Player } from "./types";
 
 export type IndivKind = "team" | "comp" | "compHalf" | "reha" | "return" | "build" | "tw" | "growth" | "easy" | "mod" | "pause" | "absent" | "sick";
@@ -74,11 +75,14 @@ function calc(E: Engine, p: Player, tr: PlanTrain): IndivTarget {
   if (ab && ab.typ === "krank") return out("sick", 0, 0, [t("ab_krank")], t("iv_sickHow"));
   if (ab && ab.typ === "verletzung") {
     const st = Math.max(1, Math.min(4, ab.stufe || 1)), name = E.tl("stages")[st - 1] || "";
-    const why = [tf("iv_rehaWhy", { s: st, n: name }) + (ab.notiz ? " · " + ab.notiz : "")];
-    if (st === 1) return out("reha", Math.min(3, base), Math.min(45, dur), why, t("iv_reha1"));
-    if (st === 2) return out("reha", Math.min(5, base), Math.min(60, Math.round(dur * 0.66 / 5) * 5), why, t("iv_reha2"));
-    if (st === 3) return out("reha", Math.min(base, 7), dur, why, t("iv_reha3"));
-    return out("return", base, dur, why, t("iv_reha4"));
+    // Reha-Plan nach Region und Stufe (Ziel und erste Übungen als Umsetzungshinweis)
+    const grp = rehaGroupOf(ab.area || guessArea(ab.notiz)), plan = rehaPlan(t, E.tl, grp, st);
+    const why = [tf("iv_rehaWhy", { s: st, n: name }) + " · " + t("rh_g_" + grp) + (ab.notiz ? " · " + ab.notiz : "")];
+    const how = `${plan.goal}: ${plan.items.slice(0, 2).join(" · ")}`;
+    if (st === 1) return out("reha", Math.min(3, base), Math.min(45, dur), why, how);
+    if (st === 2) return out("reha", Math.min(5, base), Math.min(60, Math.round(dur * 0.66 / 5) * 5), why, how);
+    if (st === 3) return out("reha", Math.min(base, 7), dur, why, how);
+    return out("return", base, dur, why, how);
   }
   if (ab) return out("absent", 0, 0, [t("ab_" + ab.typ)]);
   if (kids) return out("team", base, dur, []);

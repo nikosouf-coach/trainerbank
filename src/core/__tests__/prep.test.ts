@@ -80,6 +80,7 @@ test("Umsetzung: abgehakte Programm-Einheiten, laufende Woche anteilig, Abzeiche
   const ph: Phase = { id: "b2", kind: "break", title: "Pause", from, to, firstMatch: null, weeks: {}, vis: true, note: "",
     program: [{ id: "k1", key: "kraft", min: 35, rpe: 6, perWeek: 2, from: 1, to: 4 }, { id: "l1", key: "locker", min: 35, rpe: 4, perWeek: 1, from: 1, to: 4 }] };
   D.phases.push(ph);
+  D.absences = D.absences.filter(a => a.pid !== "p3"); // ohne Verletzung (sonst gilt der Reha-Plan)
   const L = (D.extra.p3 ||= []);
   // Woche 1 komplett, Woche 2 eine Einheit, dazu ein doppelt abgehakter Baustein (zählt nur bis perWeek)
   L.push({ id: "a", date: from, art: "gym", min: 35, rpe: 6, prog: "k1" }, { id: "b", date: addDays(from, 2), art: "gym", min: 35, rpe: 6, prog: "k1" },
@@ -110,4 +111,26 @@ test("Demo enthält Phasen mit Programm und Umsetzung", () => {
   assert.ok(up, "kommende Pause");
   const ws = monday(addDays(up.from, 1));
   assert.ok(E.weekPlan(ws).items.some(x => x.brk));
+});
+
+test("Programm persönlich: Basis nach Verletzung, Wachstum ohne Sprints, Torwart ohne Intervalle, verletzt = Reha", () => {
+  const D = buildDemo(demoTeam("u19", "pro", "de"), "de", NOW);
+  const from = monday(addDays(TODAY, 7)), to = addDays(from, 13);
+  const ph: Phase = { id: "b3", kind: "break", title: "Pause", from, to, firstMatch: null, weeks: {}, vis: true, note: "",
+    program: [{ id: "i1", key: "intervall", min: 30, rpe: 8, perWeek: 1, from: 1, to: 2 }, { id: "s1", key: "sprint", min: 25, rpe: 6, perWeek: 1, from: 1, to: 2 }, { id: "k1", key: "kraft", min: 35, rpe: 6, perWeek: 1, from: 1, to: 2 }] };
+  D.phases = [ph]; D.absences = []; D.groups = [];
+  const [a, b, c, d] = D.players.filter(p => p.pos !== "TW"), tw = D.players.find(p => p.pos === "TW")!;
+  for (const p of D.players) p.neu = false;
+  D.tests = D.tests.filter(x => !["ift", "yoyo"].includes(x.test));
+  D.absences.push({ id: "r", pid: a.id, typ: "verletzung", von: addDays(TODAY, -20), bis: addDays(TODAY, -3), stufe: 4, notiz: "" });
+  D.groups.push({ id: "g", name: "Wachstum", kind: "growth", vis: false }); b.groups = ["g"];
+  D.absences.push({ id: "x", pid: d.id, typ: "verletzung", von: TODAY, bis: null, stufe: 2, notiz: "" });
+  const w = (pid: string) => progWeek(D, pid, ph, from, TODAY);
+  const wa = w(a.id), wb = w(b.id), wc = w(c.id), wt = w(tw.id), wd = w(d.id);
+  assert.equal(wa.personal.level, "basis"); assert.ok(wa.items.every(x => x.it.key !== "intervall")); assert.ok(wa.items.find(x => x.it.id === "k1")!.it.min < 35);
+  assert.deepEqual(wb.items.map(x => x.it.key), ["fahrtspiel", "ball", "kraft"], "Wachstum: keine Sprints/harten Intervalle");
+  assert.deepEqual(wc.items.map(x => x.it.key), ["intervall", "sprint", "kraft"], "Standard bleibt");
+  assert.ok(!wt.items.some(x => x.it.key === "intervall"), "Torwart ohne Laufintervalle");
+  assert.equal(wd.injured, true); assert.equal(wd.total, 0, "verletzt: Reha-Plan statt Programm");
+  assert.deepEqual(wb.items.map(x => x.it.id), ["i1", "s1", "k1"], "IDs bleiben – Einträge zählen weiter");
 });

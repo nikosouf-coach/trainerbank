@@ -8,7 +8,10 @@
 // - Vorbereitung: Einstiegswoche moderat, dann stufenweise Steigerung (≤ 10–15 % pro Woche),
 //   nach zwei Aufbauwochen eine Entlastungswoche (3:1-Muster), letzte Woche vor dem ersten Pflichtspiel
 //   Umfang reduzieren und Intensität halten (Tapering, Mujika 2003). Eingangs- und Ausgangstest.
+import { groupOf } from "./classes";
 import { addDays, diff, monday } from "./dates";
+import { inKind } from "./groups";
+import { fitnessIndex } from "./perf";
 import type { ExtraType, FreeKey, Group, Phase, PhaseKind, ProgItem, TeamData, WeekMode } from "./types";
 
 export type FreeCat = "erholung" | "ausdauer" | "kraft" | "schnell" | "technik";
@@ -123,14 +126,63 @@ export function weekItems(ph: Phase, ws: string): ProgItem[] {
 }
 export const weekTotal = (ph: Phase, ws: string): number => weekItems(ph, ws).reduce((a, x) => a + x.perWeek, 0);
 
-export interface ProgWeek { ws: string; i: number; items: { it: ProgItem; done: number }[]; done: number; total: number; ownMin: number }
+// ---------- Persönliche Anpassung des Programms ----------
+export type PersonalLevel = "basis" | "standard" | "plus";
+export interface Personal { level: PersonalLevel; why: string[]; growth: boolean; tw: boolean }
+/**
+ * Stufe für das Programm eines Spielers: Basis (kürzer, Fahrtspiel statt harter Intervalle) nach Verletzung,
+ * bei Belastungsaufbau, für Neue oder mit Ausdauerwerten unter dem Richtwert; Plus bei Werten darüber.
+ * Wachstumsschub: Technik und Fahrtspiel statt Sprints und harter Intervalle. Torhüter: Fahrtspiel statt Intervallen.
+ */
+export function personalFor(D: TeamData, pid: string, today: string): Personal {
+  const p = D.players.find(x => x.id === pid) || D.inactive.find(x => x.id === pid);
+  const why: string[] = [];
+  if (!p) return { level: "standard", why, growth: false, tw: false };
+  const ret = D.absences.some(a => a.pid === pid && a.typ === "verletzung" && !!a.bis && a.bis < today && diff(a.bis, today) <= 28);
+  const fit = fitnessIndex(D, pid, groupOf(D.team.cls), today)?.fi ?? null;
+  let level: PersonalLevel = "standard";
+  if (ret) { level = "basis"; why.push("pp_why_return"); }
+  else if (inKind(D.groups, p, "build")) { level = "basis"; why.push("pp_why_build"); }
+  else if (p.neu) { level = "basis"; why.push("pp_why_new"); }
+  else if (fit != null && fit < 0.95) { level = "basis"; why.push("pp_why_fitLow"); }
+  else if (fit != null && fit > 1.05) { level = "plus"; why.push("pp_why_fitHigh"); }
+  const g = [...(D.growth[pid] || [])].sort((a, b) => a.date < b.date ? -1 : 1), last = g[g.length - 1], first = g.find(x => last && diff(x.date, last.date) >= 330) || g[0];
+  const rate = last && first && diff(first.date, last.date) > 0 ? (last.cm - first.cm) / (diff(first.date, last.date) / 365) : 0;
+  const growth = (!!D.team.modules.wachstum && rate >= 7) || inKind(D.groups, p, "growth");
+  const tw = p.pos === "TW" || inKind(D.groups, p, "tw");
+  if (growth) why.push("pp_why_growth");
+  if (tw) why.push("pp_why_tw");
+  return { level, why, growth, tw };
+}
+const r5 = (x: number): number => Math.max(15, Math.round(x / 5) * 5);
+/** Bausteine einer Woche an den Spieler anpassen (IDs bleiben – Einträge zählen weiter zum Programm). */
+export function personalize(items: ProgItem[], per: Personal): ProgItem[] {
+  return items.map(it => {
+    let x: ProgItem = { ...it };
+    const swap = !x.title && ((per.growth && (x.key === "sprint" || x.key === "intervall")) || (per.tw && x.key === "intervall") || (per.level === "basis" && x.key === "intervall"));
+    if (swap) { const nk: Exclude<FreeKey, "eigen"> = x.key === "sprint" ? "ball" : "fahrtspiel", d = freeDef(nk)!; x = { ...x, key: nk, min: d.min, rpe: d.rpe }; }
+    if (per.level === "basis" && x.key !== "mobility") x.min = r5(x.min * 0.8);
+    if (per.level === "plus" && ["locker", "fahrtspiel", "intervall", "kraft"].includes(x.key)) x.min = Math.min(x.min + 10, r5(x.min * 1.15));
+    return x;
+  });
+}
+/** Mindestens 4 Tage der Woche verletzt oder krank → statt Programm gilt der Reha-Plan. */
+export function injuredWeek(D: TeamData, pid: string, ws: string): boolean {
+  let n = 0;
+  for (let k = 0; k < 7; k++) { const d = addDays(ws, k); if (D.absences.some(a => a.pid === pid && (a.typ === "verletzung" || a.typ === "krank") && a.von <= d && (!a.bis || d <= a.bis))) n++; }
+  return n >= 4;
+}
+
+export interface ProgWeek { ws: string; i: number; items: { it: ProgItem; done: number }[]; done: number; total: number; ownMin: number; injured: boolean; personal: Personal }
 /** Programm einer Woche mit erledigten Einheiten (Zusatzeinträge mit prog-Verweis). */
-export function progWeek(D: TeamData, pid: string, ph: Phase, ws: string): ProgWeek {
+export function progWeek(D: TeamData, pid: string, ph: Phase, ws: string, today: string = ws): ProgWeek {
   const i = weekIndex(ph, ws), we = addDays(ws, 6);
   const ex = (D.extra[pid] || []).filter(x => x.date >= ws && x.date <= we && x.date >= ph.from && x.date <= ph.to);
-  const items = weekItems(ph, ws).map(it => ({ it, done: Math.min(it.perWeek, ex.filter(x => x.prog === it.id).length) }));
+  // persönliche Anpassung nach dem Stand zu Beginn der Woche (bzw. heute, wenn die Woche schon läuft)
+  const ref = ws < today ? ws : today, personal = personalFor(D, pid, ref), injured = injuredWeek(D, pid, ws);
+  const items = injured ? [] : personalize(weekItems(ph, ws), personal).map(it => ({ it, done: Math.min(it.perWeek, ex.filter(x => x.prog === it.id).length) }));
   const ownMin = ex.filter(x => !x.prog || !items.some(y => y.it.id === x.prog)).reduce((a, x) => a + x.min, 0);
-  return { ws, i, items, done: items.reduce((a, x) => a + x.done, 0), total: items.reduce((a, x) => a + x.it.perWeek, 0), ownMin };
+  return { ws, i, items, done: items.reduce((a, x) => a + x.done, 0), total: items.reduce((a, x) => a + x.it.perWeek, 0), ownMin, injured, personal };
 }
 
 /** Umsetzung des Programms bis heute (laufende Woche anteilig nach vergangenen Tagen). */
@@ -138,7 +190,7 @@ export function compliance(D: TeamData, pid: string, ph: Phase, today: string): 
   let done = 0, due = 0, ownMin = 0;
   for (const ws of phaseWeeks(ph.from, ph.to)) {
     if (ws > today) break;
-    const w = progWeek(D, pid, ph, ws), we = addDays(ws, 6);
+    const w = progWeek(D, pid, ph, ws, today), we = addDays(ws, 6);
     const share = we <= today ? 1 : (diff(ws, today) + 1) / 7;
     done += w.done; ownMin += w.ownMin; due += Math.floor(w.total * share + 1e-9);
   }

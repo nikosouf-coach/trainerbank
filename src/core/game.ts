@@ -77,7 +77,7 @@ export function gameOf(E: Engine, pid: string): GameState {
     // Programmwoche komplett erledigt (beste Woche zählt)
     let best = 0;
     for (const ph of D.phases) for (const w of phaseWeeks(ph.from, ph.to)) {
-      if (w > TODAY) break; const pw = progWeek(D, pid, ph, w); if (pw.total) best = Math.max(best, pw.done / pw.total);
+      if (w > TODAY) break; const pw = progWeek(D, pid, ph, w, TODAY); if (pw.total) best = Math.max(best, pw.done / pw.total);
     }
     badges.push(b("prog", best));
   }

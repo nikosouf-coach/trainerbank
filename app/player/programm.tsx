@@ -21,7 +21,7 @@ export default function Programm() {
   void s.version;
   const W = phaseWeeks(ph.from, ph.to), started = ph.from <= E.TODAY;
   const col = ph.kind === "break" ? "#16a3a3" : "#f0762b";
-  const weeks = W.map(ws => progWeek(E.D, pid, ph, ws));
+  const weeks = W.map(ws => progWeek(E.D, pid, ph, ws, E.TODAY));
   const doneAll = weeks.filter(w => w.ws <= E.TODAY).reduce((a, w) => a + w.done, 0), totalAll = weeks.reduce((a, w) => a + w.total, 0);
   return (
     <Screen testID="player-programm">
