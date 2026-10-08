@@ -14,7 +14,7 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 |---|---|---|
 | Heute | nächster Termin → Trainingstag, Ampel, Spieler mit Handlungsbedarf, Teamlast, eigene Aufgaben, KI-Coach, laufende Pause/Vorbereitung; Bereiche einklapp- und anpassbar | Zuverlässigkeit, Serie, Wochenringe, Meilensteine, Aufgaben und Dienste, persönliches Tagesziel, Reha-Plan, nächste Termine |
 | Kalender & Planung | Woche/Monat, Spieltags-Prinzipien (MD−4 … MD+1), Aufbau-/Erhalt-/Entlastungswochen, Pausen, geplanter RPE (Zukunft) und Ø RPE (Vergangenheit), individuelle Ziele je Spieler (Regeneration, Spielersatz, Reha, Aufbau) | Wochenplan (wenn freigegeben) mit persönlichem Ziel |
-| Belastung | Session-RPE, ACWR, Hooper-Morgencheck mit Beschwerden nach Körperregion, Erholungsmodell nach Alter, Zusatzsport | RPE und Morgen-Check eintragen (Körperkarte), eigene Sportarten, persönliche Ernährungs- und Schlaftipps |
+| Belastung | Session-RPE, ACWR, Hooper-Morgencheck, Körperkarte mit Angaben zum Schmerz und Warnzeichen, Beschwerden-Häufungen mit Prävention, Erholungsmodell nach Alter, Zusatzsport | RPE und Morgen-Check eintragen, schmerzende Stelle auf einer altersgerechten Figur antippen, eigene Sportarten, persönliche Ernährungs- und Schlaftipps |
 | Kader | Positionen (TW, RV, IV, LV, DM, ZM, OM, LM, RM, ST), Gruppen (Reha, Torhüter, Aufbau, Wachstumsschub, Mannschaftsrat, Talent, eigene) mit Vorschlägen und Sichtbarkeit, Profilbilder, inaktive Spieler | eigenes Profil, eigene freigegebene Gruppen |
 | Spiele | Minuten, Tore, Assists, Noten 1–10 mit Feedback, Videos für Team, Spieler oder Gruppen | Noten (gute hervorgehoben), Statistik, Videos |
 | Leistungsdiagnostik | Testbatterie (Sprint, CMJ, 30-15 IFT, Yo-Yo, 505 …), Normwerte, persönliche Laufstrecken; CMJ-Abfall und Fitness verfeinern die Erholung; Platzierung für Spieler an/aus | eigene Tests, Bestwerte und eigener Platz (ohne Werte anderer) |
@@ -24,6 +24,9 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 | Vorbereitung & Pausen | Wochenaufbau mit Ziel-Last, Testtagen, Taper; Pausen ohne Mannschaftstraining; Umsetzung je Spieler | persönliches Programm für die freie Zeit (angepasst bei Verletzung/Aufbau) mit Anleitungen |
 | Kommunikation | Kontaktliste (Koordinator, Vorstand, Physio, Ärzte), Push-Erinnerungen, Nachrichten | Kontakte, Erinnerungen |
 | Aufgaben & Dienste | Todos für Trainer und Spieler, Dienste reihum (fair), milder Strafenkatalog mit Automatik (nur mit Zustimmung, nie rückwirkend) | eigene Aufgaben, Dienste, Strafen |
+| Mannschaftskasse | Beiträge (einmalig, monatlich, je Saison), Geldstrafen (Senioren), Kassenbuch, offene Beträge je Spieler, Befreiungen, Kassenwart | „Meine Kasse“, optional Kassenstand; Kassenwart bucht Zahlungen |
+| Trainerteam & Rechte | zehn Rechte je Mitglied mit Vorlagen (Co-, TW-, Athletiktrainer, Physio, Betreuer, Analyst), serverseitig geprüft | – |
+| Offline | Anwesenheit und Einträge ohne Netz, Start mit letztem Stand | RPE, Morgen-Check, Abmeldung ohne Netz – wird nachgereicht |
 | Baukasten | Pakete an/aus, was Spieler sehen, Absagen per App an/aus, Ranglisten-Modus | – |
 
 ## Ordner

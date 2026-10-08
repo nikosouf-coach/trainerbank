@@ -29,7 +29,12 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `migrations/20261008…13_testplatz.sql` | `my_test_ranks(player)` – eigener Platz je Test ohne Werte anderer (ab 5 Werten) |
 | `migrations/20261008…14_reha.sql` | `absences.area` (Region der Verletzung, nur bei Verletzung) |
 | `migrations/20261008…15_datenschutz.sql` | `merge_players` und `my_data_export` (v3) für Gruppen, Aufgaben, Dienste, Strafen; Löschfristen um Aufgaben/Dienste/Strafen (12 Monate) erweitert |
-| `functions/finding` | Befund-Auswertung: prüft Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
+| `migrations/20261008…16_offline.sql` | `rpe_entries.entered_at` (Eingabezeitpunkt offline, abgesichert per Trigger); „erledigt am“ nie in der Zukunft |
+| `migrations/20261008…17_rechte.sql` | `team_staff.perms`, `staff_can()`, `set_staff_perms()`, `team_staff_perms()`; alle Regeln je Recht; `teams_perm_guard` |
+| `migrations/20261008…18_kasse.sql` | `cash_entries`, `cash_waivers`, Kassenwart (`is_treasurer`), `team_cash_balance`; Zahlung einer Strafe ⇒ bezahlt |
+| `migrations/20261008…19_schmerz.sql` | `wellness_entries.complaint_details` (Angaben zum Schmerz je Region, geprüft) |
+| `migrations/20261008…20_datenschutz_kasse.sql` | `merge_players` und `my_data_export` (v4) für Zahlungen und Befreiungen |
+| `functions/finding` | Befund-Auswertung: prüft Recht „Befunde“ (`staff_can(team,'medical')`) und Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
 | `functions/delete-account` | Konto löschen (Fotos, Befund-Dateien, Skizzen verwaister Teams, verwaiste Teams, Auth-Nutzer ⇒ Cascade) |
 | `functions/push-reminders` | RPE-Erinnerung nach Einheiten, Morgen-Check, Pausenprogramm – Zeiten je Team in `settings.reminders`, Pausen werden beachtet (Expo Push) |

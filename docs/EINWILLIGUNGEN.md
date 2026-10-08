@@ -128,7 +128,7 @@ Knöpfe: **„Einwilligen und weiter“** · **„Ohne Gesundheitsdaten fortfahr
 >
 > **Welche Daten?** Dein Belastungsempfinden nach Training und Spiel (RPE) und die Dauer; dein morgendliches
 > Wohlbefinden (Schlafdauer, Schlafqualität, Müdigkeit, Muskelkater, Stress, Beschwerden und betroffene
-> Körperregionen); Zusatzsport; Körpergröße und Gewicht; Abwesenheiten wegen Krankheit oder Verletzung mit
+> Körperregionen mit Angaben zum Schmerz wie Stärke, Art und Beginn); Zusatzsport; Körpergröße und Gewicht; Abwesenheiten wegen Krankheit oder Verletzung mit
 > Rückkehrstufe, verletzter Körperregion und Notiz; deine Zugehörigkeit zu Gruppen wie „Reha“, „Belastungsaufbau“ oder
 > „Wachstumsschub“; sowie die daraus berechneten Werte (z. B. Belastungsverlauf, Ampel, Erholungsstatus, dein
 > persönliches Belastungsziel, Reha-Plan und Tipps). Die Einwilligung gilt auch für solche Angaben, die das Trainerteam
@@ -137,8 +137,9 @@ Knöpfe: **„Einwilligen und weiter“** · **„Ohne Gesundheitsdaten fortfahr
 > **Wozu?** Damit dein Trainerteam Training, Belastung und Erholung an dich anpassen kann – zum Beispiel nach einem
 > intensiven Spiel, bei einer stufenweisen Rückkehr nach einer Verletzung oder in Wachstumsphasen.
 >
-> **Wer sieht die Daten?** Du selbst und das Trainerteam deines Teams (Owner, Coach, Physio). Mitspieler und andere
-> Nutzer sehen sie nicht.
+> **Wer sieht die Daten?** Du selbst und die Mitglieder des Trainerteams deines Teams, denen der Cheftrainer das Recht
+> „Gesundheitsdaten“ gegeben hat (z. B. Co-Trainer, Physio – Befunde nur mit eigenem Recht). Mitspieler, ein Kassenwart
+> und andere Nutzer sehen sie nicht.
 >
 > **Wo?** Auf Servern unseres Dienstleisters Supabase in Frankfurt (EU). An den KI-Coach werden Gesundheitsdaten nur
 > übermittelt, wenn du dafür gesondert einwilligst.
@@ -173,7 +174,8 @@ Buttons: **"Consent and continue"** · **"Continue without health data"**
 > **Consent to the processing of your health data**
 >
 > **What data?** Your perceived exertion after training and matches (RPE) and the duration; your morning wellness
-> (sleep hours, sleep quality, fatigue, muscle soreness, stress, complaints and affected body regions); extra sport;
+> (sleep hours, sleep quality, fatigue, muscle soreness, stress, complaints and affected body regions with pain details
+> such as intensity, character and onset); extra sport;
 > height and weight; absences due to illness or injury with return-to-play stage, injured body region and note; your
 > membership in groups such as "rehab", "load build-up" or "growth spurt"; and the values calculated from them (e.g.
 > load trend, traffic light, recovery status, your personal load target, rehab plan and tips). This consent also
@@ -182,7 +184,9 @@ Buttons: **"Consent and continue"** · **"Continue without health data"**
 > **Why?** So that your coaching staff can adapt training, load and recovery to you – for example after an intense
 > match, during a gradual return after an injury, or during growth phases.
 >
-> **Who sees it?** You and your team's coaching staff (owner, coach, physio). Team-mates and other users do not.
+> **Who sees it?** You and those members of your team's coaching staff whom the head coach has given the "health data"
+> permission (e.g. assistant coach, physio – findings only with their own permission). Team-mates, a treasurer and other
+> users do not.
 >
 > **Where?** On servers of our service provider Supabase in Frankfurt (EU). Health data is only sent to the AI coach
 > if you give separate consent.

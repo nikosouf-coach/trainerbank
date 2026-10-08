@@ -320,7 +320,8 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |
 | Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen), Noten, Kontaktliste des Teams |
-| Standort, Finanzen, Kontakte, Browserverlauf, Suchverlauf, Käufe, Diagnose, Sensible Daten | – | **nein** | – | – | – | Körperregion bei Beschwerden ist kein Standort; Gesundheit gehört nicht unter „Sensible Daten“ |
+| Finanzinformationen | Sonstige Finanzinformationen | ja | ja | nein | App-Funktionalität | Mannschaftskasse: Beiträge, Zahlungen, Geldstrafen, Kassenbuch (keine Konto- oder Kartendaten, keine Zahlungsabwicklung) |
+| Standort, Kontakte, Browserverlauf, Suchverlauf, Käufe, Diagnose, Sensible Daten | – | **nein** | – | – | – | Körperregion und Angaben zum Schmerz sind Gesundheit, kein Standort; Gesundheit gehört nicht unter „Sensible Daten“ |
 
 **Zu prüfen:** Falls später Absturzberichte (z. B. ein Crash-SDK) oder In-App-Käufe hinzukommen, Kategorie
 „Diagnose“ bzw. „Käufe“ ergänzen. Push-Token und KI-Zähler: Einordnung anhand der Apple-Definitionen
@@ -361,7 +362,8 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 | App-Aktivitäten | Sonstige nutzergenerierte Inhalte | ja | nein | nein (KI-Anfragen: ja, sofern nicht gespeichert – zu prüfen) | optional | App-Funktionalität |
 | App-Aktivitäten | App-Interaktionen | ja (konservativ, KI-Zähler) – zu prüfen | nein | nein | Pflicht bei KI-Nutzung | App-Funktionalität, Betrugsprävention/Sicherheit |
 | Geräte- oder andere IDs | Geräte- oder andere IDs | ja (Push-Token) | nein | nein | optional | App-Funktionalität |
-| Standort, Finanzdaten, Kalender (Geräte-Kalender), Kontakte, Audio, Web-Browsing, Absturzberichte, Diagnosen | – | **nein** | – | – | – | Teamkalender und Kontaktliste sind App-Inhalte, kein Zugriff auf Gerätekalender oder Geräte-Kontakte |
+| Finanzdaten | Sonstige Finanzinformationen | ja | nein | nein | optional | App-Funktionalität (Mannschaftskasse: Beiträge, Zahlungen, Geldstrafen – keine Zahlungsabwicklung) |
+| Standort, Kalender (Geräte-Kalender), Kontakte, Audio, Web-Browsing, Absturzberichte, Diagnosen | – | **nein** | – | – | – | Teamkalender und Kontaktliste sind App-Inhalte, kein Zugriff auf Gerätekalender oder Geräte-Kontakte |
 
 ### Weitere Formulare unter „App-Inhalte“
 
@@ -374,7 +376,7 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 | Altersfreigabe | siehe 8.3 |
 | Zielgruppe und Inhalte | siehe 8.4 |
 | Gesundheits-Apps | Erklärung ausfüllen; passende Kategorien für Aktivitäts-/Fitness- bzw. Wellness-Tracking wählen; **nicht** als medizinische App deklarieren – Kategorienbezeichnungen in der Play Console prüfen |
-| Behörden-App, Finanzfunktionen, Nachrichten-App | Nein |
+| Behörden-App, Finanzfunktionen, Nachrichten-App | Nein (die Mannschaftskasse dokumentiert nur Beträge, sie wickelt keine Zahlungen ab – zu prüfen, ob Google das als Finanzfunktion wertet) |
 | Foto- und Videoberechtigungen | System-Fotoauswahl verwenden, keine Berechtigungen `READ_MEDIA_IMAGES`/`READ_MEDIA_VIDEO` – sonst Deklaration nötig |
 
 ---

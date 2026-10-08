@@ -252,6 +252,11 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R23 | **Strafen und Dienste als Druckmittel:** Sanktion für fehlende Gesundheitseinträge setzt Spieler unter Druck, Daten zu liefern oder einzuwilligen; rückwirkende Strafen; öffentliche Bloßstellung | Spieler, v. a. Jugendliche | unfreiwillige Preisgabe von Gesundheitsdaten, psychischer Druck | 3 | 3 | **hoch** |
 | R24 | **Ranglisten in Leistungstests:** sozialer Vergleich, Rückschluss auf Werte anderer (z. B. über Teambestwert bei kleinen Teams) | Spieler | Druck, Offenlegung von Leistungsdaten anderer | 2 | 2 | gering |
 | R25 | Skizzen-Fotos zeigen Personen oder Kinder bzw. enthalten Standortdaten | Personen auf Fotos | Identifizierung | 1 | 2 | gering |
+| R26 | **Lokale Kopie auf dem Gerät** (Offline-Start): Staff-Geräte halten Gesundheitsdaten des Teams; Verlust oder geteiltes Gerät | Spieler des Teams | Offenlegung | 2 | 3 | Risiko |
+| R27 | **Zu weite Rechte im Trainerteam** (alle sehen alles) bzw. Betreuer/Kassenwart sehen Gesundheitsdaten | Spieler | Offenlegung über das Erforderliche hinaus | 3 | 3 | **hoch** |
+| R28 | **Mannschaftskasse:** Befreiungen/offene Beträge deuten auf finanzielle Notlage; Kassenwart (Spieler) sieht Beträge der Mitspieler; Geldstrafen bei Minderjährigen | Spieler, v. a. Jugendliche | Bloßstellung, Druck | 2 | 2 | gering |
+| R29 | **Detaillierte Schmerzangaben** werden als Diagnose missverstanden oder führen zu Druck, Beschwerden zu verschweigen | Spieler | gesundheitlicher Schaden | 2 | 3 | Risiko |
+| R30 | **Offline-Zeitpunkte** werden manipuliert (Gerätezeit), um Fristen zu umgehen | Team | unfaire Automatik | 2 | 1 | gering |
 
 ---
 
@@ -284,6 +289,11 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | Datenminimierung | Platzierung serverseitig (`my_test_ranks`): nur für die eigene Spielerzeile, erst ab 5 Werten, nie Werte oder Namen anderer; Teambestwert nur, wenn das Trainerteam es einstellt; abschaltbar (RLS-Test T37) | R24 |
 | Vertraulichkeit | Skizzen-Fotos im privaten Bucket `sketches` (nur Staff, Pfad `{team}/{block}.jpg`, nur JPEG ≤ 4 MB), Neukodierung vor dem Upload entfernt EXIF/GPS, Löschung mit dem Block und beim Löschen des Teams (RLS-Test T35) | R25 |
 | Intervenierbarkeit | Export v3 enthält Gruppen (nur freigegebene), Aufgaben, Dienste und Strafen; Zusammenführen doppelter Spieler übernimmt diese Daten ohne Konflikte | – |
+| Vertraulichkeit | **Rechte je Mitglied** (`team_staff.perms`, `staff_can()`): Gesundheitsdaten, Befunde (inkl. Dateien und KI-Auswertung), Notizen, Kasse u. a. nur mit dem jeweiligen Recht; Standard für Co-Trainer ohne Befunde/Kasse, Physio ohne Planung/Kasse; Rechte vergibt nur der Owner; App blendet Module ohne Recht aus (RLS-Test T40) | R27, R1 |
+| Vertraulichkeit | Gerätespeicher: wartende Einträge je Konto (14 Tage), letzter Stand höchstens 2,5 MB und 14 Tage, beim Abmelden/Kontolöschen gelöscht; Hinweis auf Bildschirmsperre | R26 |
+| Integrität | `entered_at`: Eingabezeitpunkt nie in der Zukunft, nie vor der Einheit, frühester bleibt; Automatik erlässt nur bei rechtzeitig belegter Eingabe (RLS-Test T39) | R30, R23 |
+| Datenminimierung | Kasse: Spieler sehen nur eigene Beträge, Kassenstand nur bei Freigabe; Befreiungen in eigener Tabelle (nicht in den für alle lesbaren Einstellungen); keine Konto-/Kartendaten; Geldstrafen bei Jugend standardmäßig aus mit Warnhinweis; „RPE fehlt“ nie als Geldstrafe vorgeschlagen; Kassenwart ohne Gesundheitsdaten und ohne Befreiungen ändern (RLS-Test T41) | R28 |
+| Transparenz | Schmerzangaben: Hinweise als Orientierung („abklären lassen“), keine Diagnose; Angaben freiwillig; Prüfung der Schlüssel und Größe in der Datenbank (RLS-Test T42) | R29 |
 
 ### 6.2 Zusätzliche Maßnahmen (geplant)
 
@@ -308,7 +318,8 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | M-15 | MFA (TOTP) für Staff-Konten anbieten, für Owner empfehlen; Mindestpasswortlänge; Prüfung gegen geleakte Passwörter [Tarif prüfen] | R4 | P2 | [ ] | offen |
 | M-16 | Ratenbegrenzung für `join_team`, `join_staff`, `team_by_join_code` und Anmeldung | R13, R2 | P2 | [ ] | offen |
 | M-17 | Protokollierung von Staff-Zugriffen auf Gesundheitsdaten (Audit-Log), einsehbar für Owner | R5, R2 | P2 | [ ] | offen |
-| M-18 | Feinere Rollen: Beschwerdedetails optional nur für Physio; Trainerteam-Leitfaden zur fairen Nutzung; für Spieler sichtbar „Das sieht dein Trainerteam“ | R5 | P2 | [ ] | offen |
+| M-18 | Feinere Rollen: Beschwerdedetails optional nur für Physio; Trainerteam-Leitfaden zur fairen Nutzung; für Spieler sichtbar „Das sieht dein Trainerteam“ | R5 | P2 | [ ] | teilweise umgesetzt (Rechte je Mitglied, Paket 11.2); Leitfaden und Spieleranzeige offen |
+| M-26 | Abwesenheitsdetails (Notiz, Region) in eigene Tabelle mit Recht „Gesundheitsdaten“; bisher sieht das ganze Trainerteam Art, Stufe, Region und Notiz von Abwesenheiten | R27 | P2 | [ ] | offen |
 | M-19 | Gesundheitsmodule für Kinderteams standardmäßig aus; Gewicht für unter 16 ausblenden; Mindestalter für eigene Konten festlegen | R5, R7, R18 | P1 | [ ] | offen |
 | M-20 | Web: strikte Content Security Policy, keine Drittanbieter-Skripte, Hinweis zum Abmelden auf geteilten Geräten | R14 | P2 | [ ] | offen |
 | M-21 | Backups/Point-in-Time-Recovery nach Tarif prüfen, Wiederherstellung testen; Migrationen nur mit Review | R15 | P2 | [ ] | offen |
@@ -345,6 +356,11 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | R23 | 2 | 2 | gering | optional, nicht rückwirkend, nur mit Einwilligung, erlassbar; Restrisiko liegt im Umgang des Trainerteams (Leitfaden M-18) |
 | R24 | 1 | 2 | gering | nur eigener Platz, Mindestanzahl, abschaltbar |
 | R25 | 1 | 2 | gering | privater Bucket, Metadaten entfernt |
+| R26 | 1 | 3 | gering | begrenzte Dauer/Größe, Löschung beim Abmelden; Restrisiko Gerät ohne Sperre |
+| R27 | 1 | 3 | gering | Rechte je Person serverseitig, enge Standards |
+| R28 | 1 | 2 | gering | nur eigene Beträge, Befreiungen getrennt, Jugend ohne Geld |
+| R29 | 1 | 3 | gering | vorsichtige Formulierungen, Freiwilligkeit |
+| R30 | 1 | 1 | gering | Plausibilitätsgrenzen in der Datenbank |
 
 **Bewertung:** Nach Umsetzung aller P1-Maßnahmen verbleibt **kein hohes Restrisiko**. Eine vorherige Konsultation der
 Aufsichtsbehörde nach Art. 36 DSGVO ist dann voraussichtlich nicht erforderlich.
@@ -425,3 +441,4 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 | 0.1 | [TT.MM.JJJJ] | Erstentwurf auf Basis ARCHITEKTUR.md | [ ] |
 | 0.2 | [TT.MM.JJJJ] | Ergänzt: Spieldaten/Noten, Leistungstests, Befunde mit KI-Auswertung (R19, R20), Vorbereitung/Pausen, Kontaktliste (R21). Umgesetzte Maßnahmen: privater Bucket `findings` mit Pfad- und Zeilenprüfung, eigene Einwilligung `findings` (serverseitig geprüft), Löschung der Dateien bei Spieler-, Konto- und Teamlöschung, Export v2, Sichtbarkeit je Bereich im Baukasten | [ ] |
 | 0.3 | [TT.MM.JJJJ] | Ergänzt: Gruppen mit Sichtbarkeit (R22), Aufgaben/Dienste/Strafen mit Automatik (R23), Platzierung in Tests (R24), Trainingstag mit Skizzen-Fotos (R25), Körperregionen bei Beschwerden und Verletzungen. Umgesetzte Maßnahmen: Gruppen-Sichtbarkeit nur eigene Mitgliedschaft (RLS), Automatik nur ab Einschalten und nur mit Gesundheits-Einwilligung, `my_test_ranks` ohne fremde Werte (ab 5), privater Bucket `sketches`, Export v3 | [ ] |
+| 0.4 | [TT.MM.JJJJ] | Ergänzt: Offline-Einträge und lokale Kopie (R26, R30), Rechte je Mitglied (R27), Mannschaftskasse mit Kassenwart (R28), Körperkarte mit Schmerzangaben (R29). Umgesetzte Maßnahmen: `staff_can()` in allen Regeln, `entered_at` mit Plausibilitätsprüfung, `cash_entries`/`cash_waivers` mit eigenen Regeln, `complaint_details` geprüft, Export v4 | [ ] |

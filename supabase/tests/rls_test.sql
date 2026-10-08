@@ -514,6 +514,9 @@ select tst.affects(format($q$insert into public.group_members (group_id, player_
 select tst.affects(format($q$insert into public.team_tasks (team_id, title, player_id) values (%L, 'Pass mitbringen', %L)$q$, tst.get('team_a'), tst.get('p1_player')), 1, 'T05c Aufgabe an der Beitritts-Zeile');
 select tst.affects(format($q$insert into public.team_duties (team_id, date, duty, player_id) values (%L, '2026-10-20', 'material', %L)$q$, tst.get('team_a'), tst.get('p1_player')), 1, 'T05c Dienst an der Beitritts-Zeile');
 select tst.affects(format($q$insert into public.team_fines (team_id, player_id, rule, amount) values (%L, %L, 'late', 2)$q$, tst.get('team_a'), tst.get('p1_player')), 1, 'T05c Strafe an der Beitritts-Zeile');
+select tst.affects(format($q$insert into public.cash_entries (team_id, amount, kind, cat, player_id, fee_id, period) values (%L, 5, 'in', 'fee', %L, 'fee1', '2026-09')$q$, tst.get('team_a'), tst.get('p1_player')), 1, 'T05c Beitrag an der Beitritts-Zeile');
+select tst.affects(format($q$insert into public.cash_entries (team_id, amount, kind, cat, player_id, fine_id) values (%L, 2, 'in', 'fine', %L, (select id from public.team_fines where rule = 'late' and player_id = %L))$q$, tst.get('team_a'), tst.get('p1_player'), tst.get('p1_player')), 1, 'T05c Strafzahlung an der Beitritts-Zeile');
+select tst.affects(format($q$insert into public.cash_waivers (team_id, player_id, fee_id, period) values (%L, %L, 'fee1', '2026-10')$q$, tst.get('team_a'), tst.get('p1_player')), 1, 'T05c Befreiung an der Beitritts-Zeile');
 commit;
 
 begin;
@@ -567,6 +570,11 @@ begin
                  (select count(*) from public.team_duties where player_id = tst.get('max')::uuid)::text || '/' ||
                  (select count(*) from public.team_fines where player_id = tst.get('max')::uuid)::text, '1/1/1/1',
                  'T05c Gruppe, Aufgabe, Dienst und Strafe wurden verschoben');
+  perform tst.eq((select count(*) from public.cash_entries where player_id = tst.get('max')::uuid)::text || '/' ||
+                 (select count(*) from public.cash_waivers where player_id = tst.get('max')::uuid)::text || '/' ||
+                 (select status from public.team_fines where player_id = tst.get('max')::uuid), '2/1/done',
+                 'T05c Zahlungen und Befreiung wurden verschoben, Strafe bleibt bezahlt');
+  delete from public.cash_entries; delete from public.cash_waivers;
   delete from public.performance_tests where player_id = tst.get('max')::uuid;
   delete from public.player_ratings where player_id = tst.get('max')::uuid;
   delete from public.team_tasks; delete from public.team_duties; delete from public.team_fines; delete from public.team_groups;
@@ -2171,8 +2179,8 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v3', 'T21b Exportformat v3');
-  perform tst.ok(x ?& array['groups', 'tasks', 'duties', 'fines'], 'T21b Export enthält Gruppen, Aufgaben, Dienste, Strafen');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v4', 'T21b Exportformat v4');
+  perform tst.ok(x ?& array['groups', 'tasks', 'duties', 'fines', 'cash', 'cash_waivers'], 'T21b Export enthält Gruppen, Aufgaben, Dienste, Strafen, Kasse');
   perform tst.eq(jsonb_array_length(x -> 'players')::text, '1', 'T21b Export: eigene Spielerzeile');
   perform tst.eq(jsonb_array_length(x -> 'consents')::text, '4', 'T21b Export: eigene Einwilligungen');
   perform tst.eq(jsonb_array_length(x -> 'rpe_entries')::text, '3', 'T21b Export: eigene RPE-Einträge');
