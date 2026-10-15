@@ -80,12 +80,14 @@ export function TestDaySheet({ visible, onClose, only, test }: { visible: boolea
 function TestDayForm({ only, test, onDone }: { only?: string; test?: TestKey; onDone: () => void }) {
   const s = useStore(); const E = useEngine(); const { t, tf } = E;
   const sel = E.team.settings.tests, all = testsFor(E.grp);
-  const tests = sel && sel.length ? all.filter(x => sel.includes(x.key)) : all;
+  const op = only ? E.P(only) : null;
+  const tests = (sel && sel.length ? all.filter(x => sel.includes(x.key)) : all).filter(x => !x.gk || !op || E.isGK(op));
   const [k, setK] = useState<TestKey>(test || tests[0].key);
   const [date, setDate] = useState<string | null>(E.TODAY);
   const [vals, setVals] = useState<Record<string, number | null>>({});
   const d = testDef(k);
-  const players = only ? E.D.players.filter(p => p.id === only) : E.D.players.filter(p => !E.absenceOn(p.id, date || E.TODAY) || E.absenceOn(p.id, date || E.TODAY)?.typ === "urlaub");
+  const players = (only ? E.D.players.filter(p => p.id === only) : E.D.players.filter(p => !E.absenceOn(p.id, date || E.TODAY) || E.absenceOn(p.id, date || E.TODAY)?.typ === "urlaub"))
+    .filter(p => !d.gk || E.isGK(p));
   const save = () => {
     let n = 0;
     for (const p of players) { const v = vals[p.id]; if (v == null || v < d.min || v > d.max) continue; s.saveTest({ id: tmpId(), pid: p.id, test: k, date: date || E.TODAY, value: v }); n++; }

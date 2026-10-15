@@ -104,6 +104,9 @@ export class DemoApi implements Api {
   async saveKind(_t: string, k: CustomKind) { return { ...k, id: newId(k.id) }; }
   async deleteKind() { /* lokal */ }
   async saveSessions() { /* lokal */ }
+  async saveUnit() { /* lokal (Store ändert die Demo-Daten direkt) */ }
+  async deleteUnit() { /* lokal */ }
+  async saveUnits() { /* lokal */ }
   async publishWeekPlan() { /* lokal */ }
   async savePlayer(_t: string, p: Player) { return { ...p, id: newId(p.id) }; }
   async deletePlayer() { /* lokal */ }

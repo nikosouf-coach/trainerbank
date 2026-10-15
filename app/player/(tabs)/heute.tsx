@@ -19,17 +19,17 @@ export default function PlayerHeute() {
   const p = E.P(s.mePid || "")!;
   const g = useMemo(() => gameOf(E, p.id), [s.version, E, p.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const st = E.playerState(p), msgs = E.activeMsgs(p.id);
-  const open = E.mods.belastung ? E.playerOpenSession(p) : undefined;
+  const open = E.mods.belastung ? E.playerOpenTarget(p) : undefined;
   const wellDone = !!E.D.well[p.id]?.[E.TODAY];
   const seesLoad = E.playerSees("load"), stCol = st.k === "ready" ? c.ok : st.k === "easy" ? c.warn : c.crit;
-  const sessLabel = (x: { date: string; typ: string }) => `${E.wt(x.date)} ${E.de(x.date)} · ${x.typ === "Spiel" ? t("it_match") : t("it_training")}`;
+  const sessLabel = (x: { date: string; typ: string; slot: number; title: string }) => `${E.wt(x.date)} ${E.de(x.date)} · ${x.slot ? x.title : x.typ === "Spiel" ? t("it_match") : t("it_training")}`;
 
   return (
     <Screen testID="player-heute">
       <PlayerHero p={p} g={g} />
       {E.mods.belastung ? <Row wrap gap={10}>
         <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} done={wellDone} color="#16a3a3" onPress={() => router.push("/player/eintragen?tab=well")} />
-        <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} done={!open} color="#f0762b" onPress={() => router.push("/player/eintragen?tab=rpe")} />
+        <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} done={!open} color="#f0762b" onPress={() => router.push("/player/eintragen?tab=rpe" + (open ? `&date=${open.date}&slot=${open.slot}` : ""))} />
       </Row> : null}
       <PlayerTasksCard pid={p.id} />
       <PlayerRehaCard pid={p.id} />

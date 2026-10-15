@@ -41,6 +41,9 @@ export default function Kalender() {
     if (x.match) its.push(<Item key="m" testID={"cal-match-" + x.date} kind={t("it_match")} color={c.accentTx} text={`${x.match.zeit} · ${t("vs")} ${x.match.gegner} (${x.match.heim ? t("home") : t("away")}${x.match.comp !== "liga" ? ", " + t("comp_" + x.match.comp) : ""})`} onPress={() => x.date <= E.TODAY && mods.spielanalyse ? router.push("/coach/spiel/" + x.match!.id) : sheets.open({ k: "add", date: x.date, type: "match", obj: x.match! })} />);
     if (x.train && x.train.kind === "frei") its.push(<Item key="r" kind={t("k_frei")} color={c.ok} text={tf("restDay", { md: x.md })} onPress={() => sheets.open({ k: "day", date: x.date })} />);
     else if (x.train) its.push(<Item key="t" testID={"cal-train-" + x.date} kind={t("it_training")} color={rpeColor(c, showI ? x.train.rpe : 5)} text={`${E.zeitOf(x.date)} · ${E.kn(x.train.kind)}${showI ? " · " + E.intWord(x.train.rpe) : ""}`} onPress={() => openDay(x.date)} />);
+    // weitere Einheiten (Athletik, Torwarttraining …)
+    x.units.forEach(u => its.push(<Item key={"u" + u.slot} testID={`cal-unit-${x.date}-${u.slot}`} kind={E.unitTitle(u)} color={u.art === "tw" ? c.event : showI ? rpeColor(c, E.unitRpe(u)) : c.low}
+      text={`${u.zeit} · ${u.dauer} ${t("min")}${showI && E.mods.belastung ? " · RPE " + E.unitRpe(u) : ""}`} onPress={() => openDay(x.date)} />));
     if (x.cancelled) its.push(<Item key="c" off kind={t("it_training")} color={c.muted} text={t("cancelled")} onPress={() => sheets.open({ k: "day", date: x.date })} />);
     if (x.brk && E.regularDay(x.date)) { const ph = phaseOn(E.D, x.date); its.push(<Item key="b" kind={t("vb_breakDay")} color="#16a3a3" text={ph?.title || ""} onPress={() => ph ? router.push("/coach/phase/" + ph.id) : sheets.open({ k: "day", date: x.date })} />); }
     x.events.forEach(e => its.push(<Item key={e.id} kind={t("it_event")} color={c.event} text={(e.zeit ? e.zeit + " · " : "") + e.titel} onPress={() => sheets.open({ k: "add", date: x.date, type: "event", obj: e })} />));
@@ -91,6 +94,7 @@ export default function Kalender() {
         }
       } else if (x.cancelled) L.push(<Text key="c" numberOfLines={1} style={{ fontSize: narrow ? 9.5 : 11, color: c.muted, textDecorationLine: "line-through" }}>{t("it_training")}</Text>);
       else if (x.brk && E.regularDay(d)) L.push(<Text key="b" numberOfLines={1} style={{ fontSize: narrow ? 9.5 : 11, color: "#16a3a3", fontWeight: "700" }}>{t("vb_breakDay")}</Text>);
+      if (x.units.length) L.push(narrow ? tx("u", "+" + x.units.length, c.ink, true) : <React.Fragment key="u">{x.units.map(u => tx("u" + u.slot, "+ " + E.unitTitle(u), c.ink))}</React.Fragment>);
       x.events.forEach(e => L.push(tx("e" + e.id, "● " + e.titel, c.event)));
       const today = d === E.TODAY;
       cells.push(

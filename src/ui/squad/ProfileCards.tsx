@@ -6,8 +6,9 @@ import { parsePotentials, type Hint } from "../../core/engine";
 import type { MsgType, Player, PotCat, Video } from "../../core/types";
 import { tmpId, useEngine, useStore } from "../../data/store";
 import { useAi } from "../ai";
-import { fmtRating, RatingBadge, ratingColor, RatingSheet, StatTile, VideoList, VideoSheet, type RatingTarget } from "../games";
+import { fmtRating, ratingColor, RatingSheet, StatTile, VideoList, VideoSheet, type RatingTarget } from "../games";
 import { Btn, Card, CardTitle, Check, Chip, Col, DateField, Field, Info, Msg, Muted, Picker, Row, T, Tag } from "../kit";
+import { MarkSheet, RatingOrMark, TrainingFormLine, type MarkTarget } from "../marks";
 import { useTheme, type Colors } from "../theme";
 
 const RTYPES: MsgType[] = ["pause", "regen", "zusatz", "prog", "info"];
@@ -109,6 +110,7 @@ export function ExtraCard({ p }: { p: Player }) {
 export function GamesCard({ p }: { p: Player }) {
   const E = useEngine(); const { t } = E; const { c } = useTheme();
   const [rt, setRt] = useState<RatingTarget | null>(null);
+  const [mk, setMk] = useState<MarkTarget | null>(null);
   const [video, setVideo] = useState<Video | null | undefined>(undefined);
   if (!E.mods.spielanalyse && !E.mods.videos) return null;
   const ss = E.seasonStats(p.id), rs = E.ratingsOf(p.id).slice(0, 8);
@@ -123,12 +125,21 @@ export function GamesCard({ p }: { p: Player }) {
           <StatTile label={t("sp_assists")} value={String(ss.assists)} color={ss.assists ? c.low : undefined} />
           <StatTile label={t("sp_avg")} value={ss.avg != null ? fmtRating(ss.avg, E.tr.lang) : "–"} color={ss.avg != null ? ratingColor(ss.avg) : undefined} />
         </Row>
+        {ss.gk ? <Row wrap gap={8} testID="games-gk">
+          <StatTile label={t("tw_conceded")} value={String(ss.gk.conceded)} />
+          <StatTile label={t("tw_perGame")} value={E.num(ss.gk.perGame, 1)} />
+          <StatTile label={t("tw_clean")} value={String(ss.gk.clean)} color={ss.gk.clean ? c.ok : undefined} />
+          <StatTile label={t("tw_saves")} value={String(ss.gk.saves)} />
+          <Info title={t("tw_title")} text={t("tw_statsInfo")} />
+        </Row> : null}
+        <TrainingFormLine pid={p.id} testID="games-trainform" />
         <T v="eyebrow">{t("pr_ratings")}</T>
         {rs.length ? rs.map(r => (
-          <Pressable key={r.id} accessibilityRole="button" onPress={() => setRt({ pid: p.id, date: r.date, kind: r.kind, existing: r })} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 6 }}>
-            <RatingBadge value={r.rating} size="s" />
+          <Pressable key={r.id} accessibilityRole="button" onPress={() => r.kind === "training" && r.rating == null ? setMk({ pid: p.id, date: r.date, slot: r.slot || 0 }) : setRt({ pid: p.id, date: r.date, kind: r.kind, existing: r })} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 6 }}>
+            <RatingOrMark r={r} />
             <Col gap={1} style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {r.kind === "spiel" ? (E.D.matches.find(m => m.date === r.date) ? `${t("vs")} ${E.D.matches.find(m => m.date === r.date)!.gegner}` : t("it_match")) : t("it_training")}{!r.vis ? " · " + t("pot_hidden") : ""}</Text>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {r.kind === "spiel" ? (E.D.matches.find(m => m.date === r.date) ? `${t("vs")} ${E.D.matches.find(m => m.date === r.date)!.gegner}` : t("it_match")) : r.slot ? (E.unitsOn(r.date).find(u => u.slot === r.slot) ? E.unitTitle(E.unitsOn(r.date).find(u => u.slot === r.slot)!) : t("it_training")) : t("it_training")}{r.mark ? " · " + t(r.mark === "good" ? "te_good" : "te_poor") : ""}{!r.vis ? " · " + t("pot_hidden") : ""}</Text>
+              {r.tags?.length ? <Text style={{ fontSize: 12.5, color: c.muted }}>{r.tags.map(k => t("mt_" + k)).join(" · ")}</Text> : null}
               {r.text ? <Text style={{ fontSize: 13.5, color: c.ink }}>{r.text}</Text> : null}
             </Col>
           </Pressable>
@@ -139,6 +150,7 @@ export function GamesCard({ p }: { p: Player }) {
         <VideoList videos={E.D.videos.filter(v => v.pids.includes(p.id))} onEdit={setVideo} />
       </> : null}
       <RatingSheet target={rt} onClose={() => setRt(null)} />
+      <MarkSheet target={mk} onClose={() => setMk(null)} />
       <VideoSheet video={video} defaults={{ pids: [p.id], title: E.name(p) }} onClose={() => setVideo(undefined)} />
     </Card>
   );

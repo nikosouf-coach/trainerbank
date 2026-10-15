@@ -65,6 +65,7 @@ export default function Heute() {
           <HeroPill label={`${E.zeitOf(nx.date)} · ${nx.train!.dauer} ${t("min")}`} />
           {E.lvl(1) && !kids ? <HeroPill label={`${t("intensity")}: ${E.intWord(nx.train!.rpe)} · RPE ${nx.train!.rpe}`} /> : null}
           {nx.train!.notReady.length ? <HeroPill label={"⚠ " + tf("notReadyN", { n: nx.train!.notReady.length })} /> : null}
+          {E.unitsOn(nx.date).map(u => <HeroPill key={"u" + u.slot} label={`+ ${u.zeit} ${E.unitTitle(u)}`} />)}
         </>}
         <HeroPill label={`${E.D.players.length - absN.length} ${t("avail")}`} />
       </Row>

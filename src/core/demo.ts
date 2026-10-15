@@ -6,7 +6,8 @@ import { createEngine } from "./engine";
 import { duePeriods, periodStart, seasonStart } from "./kasse";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
-import type { FeeDef, FineEntry, Wellness, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles } from "./types";
+import type { FeeDef, FineEntry, Wellness, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles, DayUnit, UnitArt } from "./types";
+import { cleanUnit, freeDateSlot, isGoalkeeper, shiftTime } from "./units";
 import { emptyTeamData } from "./types";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
@@ -170,8 +171,26 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
       D.videos.push({ id: "v" + (vid++), title: (en ? "Highlights vs " : "Highlights gegen ") + m.gegner, url: "https://example.com/video/" + m.date, date: m.date, matchId: m.id, pids: [], note: en ? "Full match and key scenes" : "Gesamtes Spiel und Schlüsselszenen", vis: true });
     }
   });
-  const lastTr = D.sessions.filter(s => s.typ === "Training" && s.date < TODAY).at(-1);
-  if (lastTr) for (const pid of ["p1", "p8", "p12"]) D.ratings.push({ id: "r" + (rid++), pid, date: lastTr.date, kind: "training", rating: Math.round((6.5 + r() * 2) * 10) / 10, text: texts[Math.floor(r() * texts.length)], vis: true });
+  // Trainingseindruck: nur Ausreißer (besonders gut/schwach), Standard = Durchschnitt (nicht gespeichert)
+  const trs = D.sessions.filter(s => s.typ === "Training" && s.date < TODAY).slice(-4);
+  const mk = (pid: string, date: string | undefined, mark: "good" | "poor", tags: string[], text: string, vis: boolean, slot = 0): void => {
+    if (!date || (slot === 0 && D.att[date]?.[pid] !== "da")) return;
+    D.ratings.push({ id: "r" + (rid++), pid, date, kind: "training", rating: null, text, vis, mark, tags, slot });
+  };
+  const [q0, , p0, l0] = [trs[0]?.date, trs[1]?.date, trs[2]?.date, trs[3]?.date];
+  mk("p8", l0, "good", ["effort", "duels"], en ? "Very present in duels and pulled the others along." : "Sehr präsent in den Zweikämpfen, hat die anderen mitgezogen.", true);
+  mk("p12", l0, "good", ["ideas", "quality"], "", true);
+  mk("p13", l0, "poor", ["focus"], en ? "Seemed distracted – ask him personally if everything is okay." : "Wirkte unkonzentriert – kurz persönlich nachfragen, ob alles okay ist.", false);
+  mk("p8", p0, "good", ["lead"], "", true);
+  mk("p6", p0, "good", ["tempo"], "", true);
+  mk("p13", q0, "poor", ["effort"], "", false);
+  // Torhüter: Gegentore in der eigenen Spielzeit und Paraden (das letzte über volle Spielzeit gehaltene Spiel endet zu null)
+  const cleanM = [...past].reverse().find(m => Object.entries(D.stats[m.id] || {}).some(([pid, x]) => x.min >= 85 && D.players.find(q => q.id === pid)?.pos === "TW"));
+  if (cleanM?.result) cleanM.result = { own: Math.max(1, cleanM.result.own), opp: 0 };
+  for (const m of past) for (const [pid, x] of Object.entries(D.stats[m.id] || {})) {
+    const p = D.players.find(q => q.id === pid); if (!p || p.pos !== "TW" || !m.result) continue;
+    x.conceded = x.min >= 85 ? m.result.opp : Math.round(m.result.opp * x.min / 90); x.saves = 1 + Math.floor(r() * 6);
+  }
   // Leistungstests: zwei Testtage und wöchentlicher CMJ-Check; ein Spieler zeigt heute einen deutlichen Abfall
   const grp = classDef(D.team.cls).grp, base: Record<string, number> = {};
   let tid = 1;
@@ -185,6 +204,8 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
       add(p.id, "sprint30", d, Math.round((grp === "u15" ? 4.85 : 4.35) * k * imp * 100) / 100);
       add(p.id, "ift", d, Math.round((grp === "u15" ? 18 : 19.5) / k * (i ? 1.02 : 1) * 2) / 2);
       add(p.id, "agility505", d, Math.round((grp === "u15" ? 2.65 : 2.42) * k * imp * 100) / 100);
+      // Torwartdiagnostik: seitlicher Sprung und Abschlagweite
+      if (p.pos === "TW") { add(p.id, "tw_lateral", d, Math.round((grp === "u15" ? 205 : 235) / k * (i ? 1.02 : 1))); add(p.id, "tw_kick", d, Math.round((grp === "u15" ? 42 : 52) / k * (i ? 1.03 : 1))); }
     });
     for (let w = 6; w >= 0; w--) {
       const d = addDays(TODAY, -7 * w - (w ? 0 : 1)), cm = (grp === "u15" ? 31 : 38) / k;
@@ -209,6 +230,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoPhases(D, lang, TODAY);
   demoContacts(D, en);
   demoGroups(D, en, TODAY);
+  demoUnits(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   const tw = D.players.filter(p => (p.groups || []).includes("g1")).map(p => p.id);
@@ -266,6 +288,76 @@ function demoKasse(D: TeamData, lang: Lang, TODAY: string, money: boolean): void
     if (P[9]) give(P[9].id, "yellow_talk", 6, false);
     if (P[2]) give(P[2].id, "kit", 4, false);
     if (P[12]) give(P[12].id, "late_match", 20, true);
+  }
+}
+
+/**
+ * Weitere Einheiten: Athletik & Prävention vor dem ersten Trainingstag der Woche (alle), Torwarttraining vor einem
+ * späteren Trainingstag (Torhüter, TW-Trainer), eine Reha-Einheit für die Reha-Gruppe am nächsten Trainingstag.
+ * Dazu RPE der vergangenen Einheiten, Sprünge der Torhüter, ein Eindruck aus dem Torwarttraining und ein Ablauf.
+ */
+function demoUnits(D: TeamData, lang: Lang, now: Date): void {
+  if (groupOf(D.team.cls) === "u11" || !D.players.length) return;
+  const en = lang === "en", S = D.team.settings, TODAY = iso(now), r = rng(41);
+  const wds = Object.keys(S.days).map(Number).sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+  if (!wds.length) return;
+  const tw = D.groups.find(g => g.kind === "tw")?.id || null, reha = D.groups.find(g => g.kind === "reha");
+  const sTw = D.staff.find(x => x.role === "tw")?.id || null, sPhy = D.staff.find(x => x.role === "physio")?.id || null;
+  const mk = (p: Partial<DayUnit> & { slot: number; art: UnitArt }, from: string | null): DayUnit =>
+    ({ ...cleanUnit({ title: "", zeit: "17:30", dauer: 30, rpe: null, groupId: null, staffId: null, inhalt: "", themes: [], ...p }), cancel: undefined, from });
+  const since = addDays(TODAY, -70), units: Record<number, DayUnit[]> = {};
+  const d0 = wds[0];
+  units[d0] = [mk({ slot: 1, art: "athletik", title: en ? "Athletics & prevention" : "Athletik & Prävention", zeit: shiftTime(S.days[d0].zeit, -30), dauer: 30, rpe: 6, staffId: sPhy,
+    inhalt: en ? "Running drills, jumps and landings, Nordic hamstrings (2 × 6)." : "Lauf-ABC, Sprünge und Landungen, Nordic Hamstrings (2 × 6)." }, since)];
+  if (wds.length >= 2) {
+    const d1 = wds.length >= 3 ? wds[wds.length - 2] : wds[1];
+    units[d1] = [...(units[d1] || []), mk({ slot: (units[d1] || []).length + 1, art: "tw", zeit: shiftTime(S.days[d1].zeit, -60), dauer: 60, rpe: 7, groupId: tw, staffId: sTw,
+      themes: ["hechten", "flanken", "eins"], inhalt: en ? "Diving sets left/right, crosses under pressure, 1 v 1 in the box." : "Hechtsprung-Serien links/rechts, Flanken unter Gegnerdruck, 1-gegen-1 im Strafraum." }, since)];
+  }
+  S.units = units;
+  let E = createEngine(D, { lang, now });
+  const next = [1, 2, 3, 4, 5, 6, 7].map(i => addDays(TODAY, i)).find(d => E.isTraining(d));
+  if (next && reha && D.players.some(p => (p.groups || []).includes(reha.id))) {
+    const slot = freeDateSlot(D, next);
+    if (slot) (D.units[next] ||= []).push(mk({ slot, art: "reha", title: en ? "Rehab group" : "Reha-Gruppe", zeit: shiftTime(E.zeitOf(next), -45), dauer: 45, rpe: 3, groupId: reha.id, staffId: sPhy,
+      inhalt: en ? "Isometrics, eccentric hamstring work, running build-up on the side pitch." : "Isometrie, exzentrisches Beinbeuger-Training, Laufaufbau am Nebenplatz." }, null));
+  }
+  E = createEngine(D, { lang, now });
+  // RPE der vergangenen Einheiten: wer beim Mannschaftstraining entschuldigt war, fehlt auch hier; einige vergessen den Eintrag
+  for (let k = 42; k >= 1; k--) {
+    const d = addDays(TODAY, -k);
+    for (const u of E.unitsOn(d)) for (const p of E.unitMembers(u)) {
+      if (E.absenceOn(p.id, d)) continue;
+      const st = D.att[d]?.[p.id]; if (st && st !== "da") continue;
+      if (r() < 0.12) continue;
+      const rpe = Math.max(1, Math.min(10, E.unitRpe(u) + Math.round((r() - 0.5) * 2.4)));
+      ((D.rpeU[p.id] ||= {})[d] ||= {})[u.slot] = { rpe, min: u.dauer, dives: u.art === "tw" ? 22 + Math.round(r() * 16) : null };
+    }
+  }
+  // Sprünge der Torhüter im Mannschaftstraining und im Spiel
+  for (const p of D.players.filter(q => isGoalkeeper(D, q))) for (const [d, e] of Object.entries(D.rpe[p.id] || {})) {
+    const s = D.sessions.find(z => z.date === d); if (s) e.dives = s.typ === "Spiel" ? 6 + Math.round(r() * 10) : 8 + Math.round(r() * 12);
+  }
+  // Eindruck aus dem letzten Torwarttraining und Ablauf des nächsten
+  const twPast = [...Array(14)].map((_, i) => addDays(TODAY, -1 - i)).find(d => E.unitsOn(d).some(u => u.art === "tw"));
+  const gk = D.players.find(p => p.pos === "TW");
+  if (twPast && gk) {
+    const u = E.unitsOn(twPast).find(x => x.art === "tw")!;
+    if (D.rpeU[gk.id]?.[twPast]?.[u.slot]) D.ratings.push({ id: "r-tw1", pid: gk.id, date: twPast, kind: "training", rating: null, vis: true, mark: "good", tags: ["diving", "crosses"], slot: u.slot,
+      text: en ? "Very clean diving technique, commanded the box on crosses." : "Sehr saubere Hechtsprungtechnik, bei Flanken den Strafraum beherrscht." });
+  }
+  const twNext = [...Array(8)].map((_, i) => addDays(TODAY, i)).find(d => E.unitsOn(d).some(u => u.art === "tw"));
+  if (twNext) {
+    const u = E.unitsOn(twNext).find(x => x.art === "tw")!;
+    const b = (sort: number, title: [string, string], min: number, text: [string, string], points: [string, string][]): void => {
+      D.blocks.push({ id: "bltw" + sort, date: twNext, sort, title: en ? title[1] : title[0], min, staffId: sTw, exId: null, text: en ? text[1] : text[0], points: points.map(x => en ? x[1] : x[0]), drawing: null, photo: null, groupId: null, slot: u.slot });
+    };
+    b(0, ["Aufwärmen & Fangschule", "Warm-up & handling"], 15, ["Mobilisation, Fangen im Stand und in der Bewegung, kurze Reaktionsbälle.", "Mobility, handling standing and on the move, short reaction balls."],
+      [["Hände hinter den Ball", "Hands behind the ball"], ["Erst sichern, dann aufstehen", "Secure first, then get up"]]);
+    b(1, ["Hechtsprung-Serien", "Diving sets"], 20, ["4 × 6 Hechtsprünge je Seite, volle Pausen (ca. 90 s).", "4 × 6 dives per side, full rest (about 90 s)."],
+      [["Abdruck mit dem ballnahen Bein", "Push off with the near leg"], ["Qualität vor Menge – bei Ermüdung abbrechen", "Quality over quantity – stop when tired"]]);
+    b(2, ["Flanken unter Druck", "Crosses under pressure"], 25, ["Flanken von beiden Seiten mit 1–2 Gegenspielern, Kommandos laut.", "Crosses from both sides with 1–2 opponents, loud commands."],
+      [["Früh entscheiden: kommen oder bleiben", "Decide early: come or stay"], ["Höchster Punkt", "Highest point"]]);
   }
 }
 

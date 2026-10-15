@@ -5,6 +5,7 @@ import { TermInfo } from "../../../src/ui/termInfo";
 import React, { useState } from "react";
 import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { diff } from "../../../src/core/dates";
+import { divesIn } from "../../../src/core/units";
 import { useEngine, useStore } from "../../../src/data/store";
 import { LoadChart, Ring } from "../../../src/ui/charts";
 import { Banner, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, StatusChip, T } from "../../../src/ui/kit";
@@ -103,6 +104,7 @@ export default function Spieler() {
         {mods.belastung ? <>
           <Kpi label={t("k_sleep")} value={pr.sl != null ? E.num(pr.sl, 1) + " h" : "–"} color={pr.sl != null && pr.sl < pr.tg[0] ? c.warn : undefined} sub={`${t("sleepTarget")} ${pr.tg[0]}–${pr.tg[1]} h`} />
           <Kpi label={t("k_well")} value={pr.w0 ? String(pr.w0.sum) : "–"} />
+          {E.isGK(p) ? <Kpi label={t("tw_dives7")} value={(() => { const dv = divesIn(E.D, p.id, E.TODAY, 7); return dv.n ? String(dv.sum) : "–"; })()} /> : null}
         </> : null}
       </Row>
     </Card>

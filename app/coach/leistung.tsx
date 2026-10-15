@@ -17,7 +17,8 @@ export default function Leistung() {
   const [k, setK] = useState<TestKey>(tests[0].key);
   const [day, setDay] = useState(false);
   const d = testDef(k);
-  const rows = E.D.players.map(p => ({ p, last: resultsOf(E.D, p.id, k)[0], pb: bestOf(E.D, p.id, k), tr: trendOf(E.D, p.id, k) }))
+  // Torwarttests nur für Torhüter (Position TW oder Torhüter-Gruppe)
+  const rows = E.D.players.filter(p => !d.gk || E.isGK(p)).map(p => ({ p, last: resultsOf(E.D, p.id, k)[0], pb: bestOf(E.D, p.id, k), tr: trendOf(E.D, p.id, k) }))
     .sort((a, b) => !a.last ? 1 : !b.last ? -1 : d.lower ? a.last.value - b.last.value : b.last.value - a.last.value);
   const withVal = rows.filter(r => r.last);
   const avg = withVal.length ? withVal.reduce((x, r) => x + r.last!.value, 0) / withVal.length : null;
@@ -28,7 +29,8 @@ export default function Leistung() {
       <ChoiceChips testID="lt-test" value={k} onChange={setK} options={tests.map(x => ({ key: x.key, label: t("ts_" + x.key) }))} />
       <Card testID="lt-table">
         <CardTitle title={t("ts_" + k)} info={<TestInfo k={k} />} right={avg != null ? <Muted small>Ø {fmtTest(k, avg, E.tr.lang)} {d.unit}</Muted> : undefined} />
-        <Muted small>{t("tsd_" + k)}</Muted>
+        <Muted small>{t("tsd_" + k)}{d.gk ? " · " + t("tw_onlyGk") : ""}</Muted>
+        {d.gk && !rows.length ? <Muted>{t("tw_noGk")}</Muted> : null}
         {withVal.length ? rows.map((r, i) => (
           <Pressable key={r.p.id} testID={"lt-row-" + r.p.id} accessibilityRole="button" onPress={() => router.push("/coach/spieler/" + r.p.id)}
             style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 7, borderTopWidth: 1, borderTopColor: c.line, opacity: r.last ? 1 : 0.5 }}>

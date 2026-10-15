@@ -14,6 +14,7 @@ import { IndivSummary } from "../../../src/ui/indiv";
 import { Banner, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T, Tag } from "../../../src/ui/kit";
 import { CalNav } from "../../../src/ui/plan/CalNav";
 import { setCal, useCal } from "../../../src/ui/plan/calState";
+import { UnitChips } from "../../../src/ui/units";
 import { Sec, usePlanSheets } from "../../../src/ui/plan/sheets";
 import { radius, rpeColor, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
@@ -41,7 +42,8 @@ export default function Plan() {
     if (it?.train && it.train.kind !== "frei") startEdit(d, it.train);
   }, [params.date]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const tr = wp.tr, chronic = E.teamChronic(), total = wp.trainAU + wp.matchAU, ratio = chronic ? total / chronic : null;
+  // Wochenlast: Mannschaftstraining, Spiele und weitere Einheiten (Athletik, Torwarttraining … – je Spieler im Schnitt)
+  const tr = wp.tr, chronic = E.teamChronic(), total = wp.trainAU + wp.matchAU + wp.unitAU, ratio = chronic ? total / chronic : null;
   const vk = ratio == null ? "none" : ratio > 1.5 ? "crit" : ratio > 1.3 ? "warn" : ratio >= 0.8 ? "ok" : "low";
   const act = tr.filter(p => p.rpe > 0), hard = act.filter(p => p.rpe >= 7).length, mid = act.filter(p => p.rpe >= 5 && p.rpe < 7).length, easy = act.filter(p => p.rpe < 5).length;
   const delta = wp.baseAU ? wp.trainAU / wp.baseAU - 1 : 0, pct = (delta >= 0 ? "+" : "") + Math.round(delta * 100) + " %";
@@ -93,11 +95,13 @@ export default function Plan() {
         <T v="small">{x.match.zeit} · {t("vs")} {x.match.gegner} · {x.match.heim ? t("home") : t("away")} · {t("comp_" + x.match.comp)}</T>
         {pro ? <Muted small>{tf("matchLoad", { m: E.matchMin(), r: E.matchRpe() })}: {E.int(E.matchLoad())} AU</Muted> : null}
         {actual(x.date, E.matchRpe())}
+        <UnitChips units={x.units} testID={"plan-units-" + x.date} />
       </Sec>
     );
     if (!x.train) return (
       <View key={x.date} testID={"plan-day-" + x.date} style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
         <Muted small><Text style={{ color: c.ink, fontWeight: "700" }}>{E.wt(x.date)} {E.de(x.date)}</Text>{x.md ? ` · ${x.md}` : ""} · {x.brk ? t("vb_breakDay") : x.cancelled ? t("it_training") + " " + t("cancelled") : t("noTraining")}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}</Muted>
+        <UnitChips units={x.units} testID={"plan-units-" + x.date} />
       </View>
     );
     const p = x.train, dr = drafts[x.date];
@@ -109,6 +113,7 @@ export default function Plan() {
           <Btn small kind="primary" testID={"plan-restcancel-" + x.date} label={t("restBtn")} onPress={() => { s.setCal(x.date, { ...(E.D.cal[x.date] || {}), cancel: true }); s.toast(t("t_saved")); }} />
           <Btn small testID={"plan-restkeep-" + x.date} label={t("restKeep")} onPress={() => s.setOver(x.date, { ...(E.D.over[x.date] || {}), keepRest: true })} />
         </Row>
+        <UnitChips units={x.units} testID={"plan-units-" + x.date} />
       </Sec>
     );
     const ab = E.absentOn(x.date).length;
@@ -123,6 +128,7 @@ export default function Plan() {
         </>)}
         {!dr ? <T v="small">{p.inhalt}</T> : null}
         <Muted small>{E.zeitOf(x.date)} · {p.dauer} {t("min")} · {t("p_" + p.platz)}{pro ? ` · ${E.int(p.dauer * p.rpe)} AU` : ""}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}{ab ? ` · ${ab} ${t("absent")}` : ""}</Muted>
+        <UnitChips units={x.units} testID={"plan-units-" + x.date} />
         {!dr ? actual(x.date, p.rpe) : null}
         {show && !dr ? <IndivSummary date={x.date} testID={"plan-iv-" + x.date} /> : null}
         {p.notReady.length && show ? <Col gap={4}>
@@ -177,6 +183,7 @@ export default function Plan() {
       {show ? <Card testID="plan-summary">
         {pro ? <Col gap={6}>
           <Row between><T v="h3" style={{ flexShrink: 1 }}>{t("weekTotal")}</T><T bold style={{ fontSize: 22, fontVariant: ["tabular-nums"] }}>{E.int(total)} AU</T></Row>
+          {wp.unitAU ? <Row between><Muted>{t("un_load")}</Muted><T bold>{E.int(wp.unitAU)} AU</T></Row> : null}
           <Row between><Muted>{t("usual")}</Muted><T bold>{chronic ? E.int(chronic) + " AU" : "–"}</T></Row>
           <Row between><Muted>{t("ratio")}</Muted><T bold>{ratio ? E.num(ratio, 2) : "–"}</T></Row>
         </Col> : null}

@@ -2,7 +2,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { diff } from "../../../src/core/dates";
+import { at, diff } from "../../../src/core/dates";
 import { gameOf } from "../../../src/core/game";
 import type { AbsenceType, Complaint, ExtraType, PainInfo, WellnessItems } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
@@ -19,29 +19,38 @@ type Tab = "rpe" | "well" | "extra" | "abs";
 
 function RpeForm() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
+  const params = useLocalSearchParams<{ date?: string; slot?: string }>();
   const p = E.P(s.mePid!)!;
-  const L = E.playerSessions(p);
-  const [sess, setSess] = useState<string>((E.playerOpenSession(p) || L[0])?.date || "");
-  const cur = L.find(x => x.date === sess), done = cur ? E.D.rpe[p.id]?.[cur.date] : undefined;
+  // Mannschaftstraining/Spiel und weitere Einheiten (Athletik, Torwarttraining …), je mit eigener RPE
+  const L = E.rpeTargets(p), keyOf = (x: { date: string; slot: number }): string => x.date + ":" + x.slot;
+  // Vorauswahl: Link aus „Heute“, sonst offene Einheit, sonst die zuletzt begonnene Einheit
+  const lastStarted = (): typeof L[number] | undefined => L.filter(y => at(y.date, y.zeit) <= E.NOW).sort((a, b) => at(b.date, b.zeit).getTime() - at(a.date, a.zeit).getTime())[0];
+  const preset = (): string => { const x = (params.date ? L.find(y => y.date === params.date && y.slot === (Number(params.slot) || 0)) : undefined) || E.playerOpenTarget(p) || lastStarted() || L[0]; return x ? keyOf(x) : ""; };
+  const [sel, setSel] = useState<string>(preset);
+  useEffect(() => { if (params.date) setSel(preset()); }, [params.date, params.slot]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cur = L.find(x => keyOf(x) === sel), done = cur ? E.rpeOf(p.id, cur.date, cur.slot) : undefined, gk = E.isGK(p);
   const [rpe, setRpe] = useState<number | null>(done?.rpe ?? null);
   const [min, setMin] = useState<number | null>(done?.min ?? null);
+  const [dives, setDives] = useState<number | null>(done?.dives ?? null);
   const [fb, setFb] = useState("");
-  useEffect(() => { const d = cur ? E.D.rpe[p.id]?.[cur.date] : undefined; setRpe(d?.rpe ?? null); setMin(d?.min ?? null); setFb(""); }, [sess]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { const d = cur ? E.rpeOf(p.id, cur.date, cur.slot) : undefined; setRpe(d?.rpe ?? null); setMin(d?.min ?? null); setDives(d?.dives ?? null); setFb(""); }, [sel]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!L.length || !cur) return <Card><Muted>{t("pe_noSess")}</Muted></Card>;
   const defMin = cur.typ === "Spiel" ? E.matchMin() : (cur.dauer || E.durOf(cur.date));
   const cr = E.tl("cr"), crd = E.tl("crd");
   const save = () => {
     if (rpe == null) { s.toast(t("pe_pick")); return; }
-    const m = Math.max(1, min || defMin); s.saveRpe(p.id, cur.date, { rpe, min: m });
+    const m = Math.max(1, min || defMin); s.saveRpe(p.id, cur.date, { rpe, min: m, dives: gk && dives != null ? dives : null }, cur.slot);
     const au = rpe * m, need = rpe >= 7 && E.mods.regeneration ? E.recoveryNeed(p, { typ: cur.typ, rpe, min: m }).h : null;
     setFb(tf("pe_fb", { au: E.int(au) }) + (need ? " " + tf("pe_fbRec", { h: need }) : ""));
-    // Rückmeldung: RPE-Quote der letzten 4 Wochen (inkl. dieses Eintrags)
-    const g = gameOf(E, p.id), q = g.rel.rpe.total ? Math.round(Math.min(1, (g.rel.rpe.done + (done ? 0 : 1)) / Math.max(g.rel.rpe.total, 1)) * 100) : null;
+    // Rückmeldung: RPE-Quote der letzten 4 Wochen (Mannschaftstraining/Spiel, inkl. dieses Eintrags)
+    const g = gameOf(E, p.id), q = cur.slot === 0 && g.rel.rpe.total ? Math.round(Math.min(1, (g.rel.rpe.done + (done ? 0 : 1)) / Math.max(g.rel.rpe.total, 1)) * 100) : null;
     s.toast(`${tf("pe_saved", { au: E.int(au) })}${!done && q != null ? " · " + tf("gm_rpeQuote", { q }) : ""}`);
   };
   return (
     <Card testID="form-rpe">
-      <Picker testID="rpe-sess" label={t("pe_sess")} value={sess} onChange={setSess} options={L.map(x => ({ key: x.date, label: `${E.wt(x.date)} ${E.de(x.date)} (${x.typ === "Spiel" ? t("it_match") : t("it_training")})${E.D.rpe[p.id]?.[x.date] ? " · ✓ " + t("pe_done") : ""}` }))} />
+      <Picker testID="rpe-sess" label={t("pe_sess")} value={sel} onChange={setSel} options={L.map(x => ({ key: keyOf(x),
+        label: `${E.wt(x.date)} ${E.de(x.date)} · ${x.slot ? tf("pe_unitOf", { u: x.title, t: x.zeit }) : x.typ === "Spiel" ? t("it_match") : t("it_training")}${E.rpeOf(p.id, x.date, x.slot) ? " · ✓ " + t("pe_done") : ""}` }))} />
+      {cur.unit ? <Muted small testID="rpe-unit">{cur.unit.zeit} · {cur.dauer} {t("min")}{cur.unit.inhalt ? " · " + cur.unit.inhalt.split("\n")[0] : ""}</Muted> : null}
       <Row between><T v="h3" style={{ flex: 1 }}>{t("pe_rpeQ")}</T><Info title={t("pe_rpe")} text={t("pe_rpeHint")} /></Row>
       <View style={{ gap: 6 }}>
         {cr.map((label, i) => {
@@ -56,7 +65,11 @@ function RpeForm() {
         })}
       </View>
       {rpe != null ? <Banner color={rpe ? rpeColor(c, rpe) : c.build}><T v="small"><T v="small" bold>{rpe} · {cr[rpe]}</T>: {crd[rpe]}</T></Banner> : null}
-      <NumField testID="rpe-min" label={t("pe_min")} value={min ?? defMin} min={1} max={150} onChange={setMin} style={{ width: 140 }} />
+      <Row wrap gap={10} align="flex-end">
+        <NumField testID="rpe-min" label={t("pe_min")} value={min ?? defMin} min={1} max={240} onChange={setMin} style={{ width: 140 }} />
+        {gk ? <NumField testID="rpe-dives" label={t("pe_dives")} value={dives} min={0} max={300} onChange={setDives} style={{ width: 200 }} /> : null}
+      </Row>
+      {gk ? <Muted small>{t("pe_divesD")}</Muted> : null}
       <Btn testID="rpe-save" kind="primary" label={t("pl_saveRpe")} onPress={save} style={{ alignSelf: "flex-start" }} />
       {fb ? <Banner color={c.ok}>{fb}</Banner> : null}
     </Card>

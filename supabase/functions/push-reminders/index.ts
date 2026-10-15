@@ -264,7 +264,8 @@ async function run(admin: SupabaseClient, now: Date) {
   const maxDate = dates.reduce((a, b) => (a > b ? a : b));
   const [rpeDone, absences, attendance, wellnessDone] = await Promise.all([
     fetchByIds<{ player_id: string; date: string }>(rpeIds, (chunk, from, to) =>
-      admin.from('rpe_entries').select('player_id, date').in('player_id', chunk).in('date', dates)
+      // nur die RPE des Mannschaftstrainings bzw. Spiels (Einheit 0) – weitere Einheiten zählen nicht als „eingetragen“
+      admin.from('rpe_entries').select('player_id, date').in('player_id', chunk).in('date', dates).eq('slot', 0)
         .order('player_id').order('date').range(from, to)
     ),
     fetchByIds<{ player_id: string; from_date: string; to_date: string | null }>(rpeIds, (chunk, from, to) =>

@@ -12,8 +12,9 @@ import { complaintEffect, type PainEffect } from "./pain";
 import { cmjDrop, fitnessIndex, testRank } from "./perf";
 import { phaseOn } from "./prep";
 import { headCoach } from "./people";
+import { TW_DIVES_MD1, UNIT_DEF, divesIn, inUnit, isGoalkeeper, mergeUnits, recurringOn, rpeEntry, trainingForm, twPhase, unitMembers } from "./units";
 import type {
-  Absence, AttStatus, CoachMsg, Complaint, CustomKind, Kind, Lang, Match, Pitch, Player, PotCat, Session, Status,
+  Absence, AttStatus, CoachMsg, Complaint, CustomKind, DayUnit, Kind, Lang, Match, Pitch, Player, PotCat, RpeEntry, Session, Status,
   TeamData, TeamEvent, Wellness, WeekMode, MsgType, PlayerViewKey, Rating, Video, TestKey, TestRank,
 } from "./types";
 
@@ -32,11 +33,19 @@ export interface PlanItem {
   date: string; md: string; match: Match | null; events: TeamEvent[]; train: PlanTrain | null; cancelled: boolean; trainDay: boolean;
   /** Tag liegt in einer geplanten Pause (kein Mannschaftstraining, Spielerprogramm) */
   brk?: boolean;
+  /** weitere Einheiten des Tages (Athletik, Torwarttraining …), nach Uhrzeit */
+  units: DayUnit[];
 }
 export interface WeekPlan {
   ws: string; mode: WeekMode; items: PlanItem[]; tr: PlanTrain[];
   limit: { congested?: boolean; blocked?: string[] } | null;
   baseAU: number; trainAU: number; matchAU: number;
+  /** geplante Last weiterer Einheiten je Spieler im Schnitt (Gruppeneinheiten anteilig) */
+  unitAU: number;
+}
+/** Einheit, für die ein Spieler seine RPE einträgt (0 = Mannschaftstraining/Spiel, 1–9 = weitere Einheit) */
+export interface RpeTarget {
+  date: string; slot: number; typ: "Training" | "Spiel"; title: string; dauer: number; zeit: string; ziel: number; today?: boolean; unit?: DayUnit;
 }
 export interface Metrics {
   series: { d: string; L: number; acwr: number | null }[];
@@ -113,6 +122,23 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
   }
   const absenceOn = (pid: string, d: string): Absence | undefined => D.absences.find(a => a.pid === pid && a.von <= d && (!a.bis || d <= a.bis));
   const absentOn = (d: string): Player[] => D.players.filter(p => absenceOn(p.id, d));
+  // ---------- Weitere Einheiten am Tag ----------
+  /** Wiederkehrende Einheiten fallen aus an Spieltagen, in Pausen und wenn das Mannschaftstraining an diesem Wochentag abgesagt ist */
+  const unitsBlocked = (d: string): boolean => !!matchOn(d) || inBreak(d) || (regularDay(d) && !isTraining(d));
+  const UC: Record<string, DayUnit[]> = {};
+  /** Wirksame weitere Einheiten eines Tages (Tageseinträge vor wiederkehrenden; abgesagte entfallen), nach Uhrzeit */
+  const unitsOn = (d: string): DayUnit[] => UC[d] ||= mergeUnits(unitsBlocked(d) ? [] : recurringOn(S, d), D.units[d] || []);
+  /** Ziel-RPE einer Einheit (ohne Vorgabe: Richtwert der Art, höchstens die Altersgrenze) */
+  const unitRpe = (u: DayUnit): number => u.rpe != null ? u.rpe : Math.min(CAP, UNIT_DEF[u.art]?.rpe ?? 5);
+  const unitTitle = (u: DayUnit): string => u.title.trim() || t("ua_" + u.art);
+  const isGK = (p: Player): boolean => isGoalkeeper(D, p);
+  /** Einheiten eines Tages, zu denen der Spieler gehört */
+  const unitsFor = (pid: string, d: string): DayUnit[] => { const p = P(pid); return p ? unitsOn(d).filter(u => inUnit(D, u, p)) : []; };
+  /** RPE-Eintrag einer Einheit (0 = Mannschaftstraining/Spiel) */
+  const rpeOf = (pid: string, d: string, slot = 0): RpeEntry | undefined => rpeEntry(D, pid, d, slot);
+  /** Ø RPE einer weiteren Einheit */
+  const unitAvg = (d: string, slot: number): number | null => { const v = D.players.map(p => D.rpeU[p.id]?.[d]?.[slot]).filter(Boolean).map(e => e!.rpe); return v.length ? sum(v) / v.length : null; };
+
   function mdOf(d: string): { md: string; after: number; before: number } {
     const ms = D.matches.map(m => m.date).sort();
     const prev = ms.filter(x => x < d).at(-1), next = ms.find(x => x > d);
@@ -133,6 +159,8 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
   function daily(pid: string): Record<string, number> {
     const out: Record<string, number> = {};
     for (const [d, e] of Object.entries(D.rpe[pid] || {})) if (d <= TODAY) out[d] = (out[d] || 0) + e.rpe * e.min;
+    // weitere Einheiten (Doppeleinheiten, Torwarttraining) zählen zur Tageslast
+    for (const [d, m] of Object.entries(D.rpeU[pid] || {})) if (d <= TODAY) for (const e of Object.values(m)) out[d] = (out[d] || 0) + e.rpe * e.min;
     for (const x of (D.extra[pid] || [])) if (x.date <= TODAY) out[x.date] = (out[x.date] || 0) + x.rpe * x.min;
     return out;
   }
@@ -161,7 +189,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     if (!w) return null;
     const it = weekPlan(monday(TODAY)).items.find(x => x.date === TODAY);
     const b = base ?? (it?.train ? it.train.rpe : it?.match ? matchRpe() : 6);
-    return complaintEffect(w, b, p.pos === "TW" || D.groups.some(g => g.kind === "tw" && (p.groups || []).includes(g.id)));
+    return complaintEffect(w, b, isGoalkeeper(D, p));
   };
   function status(pid: string, m: Metrics | null): Status {
     if (injuryOf(pid)) return "inj";
@@ -178,6 +206,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     let f: string | null = null;
     for (const d of Object.keys(D.att)) if (D.att[d][pid] && (!f || d < f)) f = d;
     for (const d of Object.keys(D.rpe[pid] || {})) if (!f || d < f) f = d;
+    for (const d of Object.keys(D.rpeU[pid] || {})) if (!f || d < f) f = d;
     return f;
   }
   function attendance(pid: string): number | null {
@@ -205,11 +234,17 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
       const s = D.sessions.find(x => x.date === d);
       if (e.rpe >= 7) ev.push({ date: d, typ: s ? s.typ : "Training", rpe: e.rpe, min: e.min, start: at(d, s ? s.zeit : zeitOf(d)), dauer: s ? s.dauer : 90 });
     }
+    for (const [d, m] of Object.entries(D.rpeU[p.id] || {})) for (const [slot, e] of Object.entries(m)) {
+      if (e.rpe < 7) continue;
+      const u = unitsOn(d).find(x => x.slot === Number(slot));
+      ev.push({ date: d, typ: "Training", rpe: e.rpe, min: e.min, start: at(d, u ? u.zeit : zeitOf(d)), dauer: u ? u.dauer : e.min });
+    }
     const sd = iso(start);
     for (let d = addDays(sd, -6) > TODAY ? addDays(sd, -6) : TODAY; d <= sd; d = addDays(d, 1)) {
       if (absenceOn(p.id, d)) continue;
       const m = matchOn(d);
       if (m) { ev.push({ date: d, typ: "Spiel", rpe: matchRpe(), min: matchMin(), start: at(d, m.zeit), dauer: matchMin() + 15 }); continue; }
+      for (const u of unitsOn(d)) { const r = unitRpe(u); if (r >= 7 && inUnit(D, u, p)) ev.push({ date: d, typ: "Training", rpe: r, min: u.dauer, start: at(d, u.zeit), dauer: u.dauer }); }
       if (!isTraining(d)) continue;
       const it = (items || []).find(x => x.date === d);
       let tr: { rpe: number; dauer: number } | null = it && it.train ? it.train : null;
@@ -261,8 +296,11 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const items: PlanItem[] = days.map(d => {
       const m = matchOn(d), ev = eventsOn(d), trd = isTraining(d), mdx = mdOf(d);
       const brk = !trd && !m && inBreak(d);
-      return { date: d, md: mdx.md, match: m || null, events: ev, train: null, cancelled: !trd && regularDay(d) && !m && !brk, trainDay: trd, brk };
+      return { date: d, md: mdx.md, match: m || null, events: ev, train: null, cancelled: !trd && regularDay(d) && !m && !brk, trainDay: trd, brk, units: unitsOn(d) };
     });
+    // geplante Last weiterer Einheiten (je Spieler im Schnitt: Gruppeneinheiten anteilig)
+    const nP = D.players.length;
+    const unitAU = nP ? sum(items.flatMap(x => x.units.map(u => unitRpe(u) * u.dauer * unitMembers(D, u).length / nP))) : 0;
     // 1. Vorschlag aus den Prinzipien
     const free: [Kind, number][] = [["intensiv", cap], ["taktik", 5], ["extensiv", Math.min(7, cap)], ["aufbau", 6]];
     let fi = 0, ki = 0;
@@ -337,11 +375,12 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
       if (mode === "entlastung") run(-1, () => AU() <= baseAU * 0.70);
       tr.forEach(p => { if (p.changes.length) p.notes.push("au_mode"); });
       // Abgleich mit der gewohnten Teamlast (nur Normalwoche)
-      const chronic = teamChronic(), matchAU = items.filter(x => x.match).length * matchLoad();
+      // weitere Einheiten zählen mit (sie stecken auch in der gewohnten Last) – werden selbst aber nicht verändert
+      const chronic = teamChronic(), matchAU = items.filter(x => x.match).length * matchLoad(), fixAU = matchAU + unitAU;
       if (chronic && mode === "normal") {
-        const r = (AU() + matchAU) / chronic;
-        if (r > 1.25) { const before = tr.map(p => p.rpe); gentleDown(() => (AU() + matchAU) / chronic <= 1.2); tr.forEach((p, i) => { if (p.rpe !== before[i]) p.notes.push("au_down"); }); }
-        else if (r < 0.85) { const before = tr.map(p => p.rpe); run(+1, () => (AU() + matchAU) / chronic >= 0.9); tr.forEach((p, i) => { if (p.rpe !== before[i]) p.notes.push("au_up"); }); }
+        const r = (AU() + fixAU) / chronic;
+        if (r > 1.25) { const before = tr.map(p => p.rpe); gentleDown(() => (AU() + fixAU) / chronic <= 1.2); tr.forEach((p, i) => { if (p.rpe !== before[i]) p.notes.push("au_down"); }); }
+        else if (r < 0.85) { const before = tr.map(p => p.rpe); run(+1, () => (AU() + fixAU) / chronic >= 0.9); tr.forEach((p, i) => { if (p.rpe !== before[i]) p.notes.push("au_up"); }); }
       }
       // zwei sehr harte Tage hintereinander vermeiden
       tr.forEach(p => { const pv = tr.find(q => q.date === addDays(p.date, -1)); if (pv && pv.rpe >= 8 && p.rpe >= 8 && !p.coach) { p.changes.push({ what: "RPE", from: p.rpe, to: 7 }); p.rpe = 7; p.notes.push("au_cons"); } });
@@ -365,7 +404,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
       if (!p.inhalt) p.inhalt = contentOf(p.ck);
     });
     const trainAU = sum(tr.map(p => p.dauer * p.rpe));
-    return { ws, mode, items, tr, limit, baseAU: baseAUv ?? trainAU, trainAU, matchAU: items.filter(x => x.match).length * matchLoad() };
+    return { ws, mode, items, tr, limit, baseAU: baseAUv ?? trainAU, trainAU, matchAU: items.filter(x => x.match).length * matchLoad(), unitAU };
   }
   const whyOf = (p: PlanTrain): string => grp === "u11" ? t("w_kids") : isCustom(p.kind) ? tf("w_custom", { n: kn(p.kind) }) : t(p.spielfrei ? "w_spielfrei" : "w_" + p.kind);
 
@@ -374,9 +413,11 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const items = weekPlan(monday(TODAY)).items.concat(weekPlan(addDays(monday(TODAY), 7)).items);
     const ev = lastIntenseBefore(p, NOW, []); if (!ev) return { none: true, remaining: 0, pct: 100, notReady: false };
     const end = new Date(ev.start.getTime() + ev.dauer * 60000), need = recoveryNeed(p, ev), ready = new Date(end.getTime() + need.h * 3600e3);
-    const nx = items.filter(x => x.date >= TODAY && ((x.train && x.train.rpe >= 7) || x.match))
-      .map(x => ({ date: x.date, start: at(x.date, x.match ? x.match.zeit : zeitOf(x.date)), match: x.match, rpe: x.train ? x.train.rpe : matchRpe() }))
-      .find(x => x.start > NOW) || null;
+    const nx = items.filter(x => x.date >= TODAY).flatMap(x => [
+      ...(x.match ? [{ date: x.date, start: at(x.date, x.match.zeit), match: x.match, rpe: matchRpe() }] : []),
+      ...(x.train && x.train.rpe >= 7 ? [{ date: x.date, start: at(x.date, zeitOf(x.date)), match: null, rpe: x.train.rpe }] : []),
+      ...x.units.filter(u => unitRpe(u) >= 7 && inUnit(D, u, p)).map(u => ({ date: x.date, start: at(x.date, u.zeit), match: null, rpe: unitRpe(u) })),
+    ]).sort((a, b) => a.start.getTime() - b.start.getTime()).find(x => x.start > NOW) || null;
     return {
       ev, need, ready, remaining: Math.max(0, (ready.getTime() - NOW.getTime()) / 3600e3),
       pct: Math.min(100, Math.max(0, (NOW.getTime() - end.getTime()) / (ready.getTime() - end.getTime()) * 100)), next: nx, notReady: nx ? ready > nx.start : false,
@@ -450,10 +491,17 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const st = D.matches.filter(m => m.date <= TODAY && D.stats[m.id]?.[pid]).map(m => D.stats[m.id][pid]);
     const rs = D.ratings.filter(r => r.pid === pid && r.rating != null);
     const played = st.filter(x => x.min > 0);
+    // Torhüter: Gegentore in der eigenen Spielzeit, Paraden, Spiele ohne Gegentor (mind. 60 Min. bzw. ganze Spielzeit)
+    const gk = played.filter(x => x.conceded != null);
     return {
       games: played.length, starts: played.filter(x => x.start).length, min: sum(played.map(x => x.min)),
       goals: sum(st.map(x => x.goals)), assists: sum(st.map(x => x.assists)),
       avg: rs.length ? sum(rs.map(r => r.rating!)) / rs.length : null, best: rs.length ? Math.max(...rs.map(r => r.rating!)) : null,
+      gk: gk.length ? {
+        games: gk.length, conceded: sum(gk.map(x => x.conceded || 0)), saves: sum(played.map(x => x.saves || 0)),
+        clean: gk.filter(x => x.conceded === 0 && x.min >= Math.min(60, matchMin())).length,
+        perGame: sum(gk.map(x => x.conceded || 0)) / gk.length,
+      } : null,
     };
   }
   const ratingsOf = (pid: string): Rating[] => D.ratings.filter(r => r.pid === pid).sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : 0);
@@ -508,6 +556,22 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     return L.reverse();
   }
   const playerOpenSession = (p: Player) => playerSessions(p).find(s => !s.today && !D.rpe[p.id]?.[s.date] && !["ent", "unent"].includes(attStatus(s.date, p.id)) && diff(s.date, TODAY) <= 3);
+  /**
+   * Alle Einheiten, für die der Spieler seine RPE eintragen kann: Mannschaftstraining/Spiel und weitere Einheiten
+   * (Athletik, Torwarttraining …) der letzten 10 Tage, neueste zuerst; am selben Tag nach Uhrzeit.
+   */
+  function rpeTargets(p: Player): RpeTarget[] {
+    const L: RpeTarget[] = playerSessions(p).map(x => ({ date: x.date, slot: 0, typ: x.typ, title: x.typ === "Spiel" ? t("it_match") : (x.kind ? kn(x.kind) : t("it_training")), dauer: x.dauer, zeit: x.zeit, ziel: x.ziel, today: x.today }));
+    for (let k = 10; k >= 0; k--) {
+      const d = addDays(TODAY, -k); if (absenceOn(p.id, d)) continue;
+      for (const u of unitsOn(d)) if (inUnit(D, u, p)) L.push({ date: d, slot: u.slot, typ: "Training", title: unitTitle(u), dauer: u.dauer, zeit: u.zeit, ziel: unitRpe(u), today: d === TODAY, unit: u });
+    }
+    return L.sort((a, b) => a.date < b.date ? 1 : a.date > b.date ? -1 : a.zeit < b.zeit ? -1 : a.zeit > b.zeit ? 1 : a.slot - b.slot).slice(0, 10);
+  }
+  /** Offene RPE (nicht heute, höchstens 3 Tage alt, nicht entschuldigt/abwesend) – Mannschaftstraining zuerst */
+  const playerOpenTarget = (p: Player): RpeTarget | undefined => rpeTargets(p)
+    .filter(x => !x.today && !rpeOf(p.id, x.date, x.slot) && !["ent", "unent"].includes(attStatus(x.date, p.id)) && diff(x.date, TODAY) <= 3)
+    .sort((a, b) => a.slot === 0 && b.slot !== 0 ? -1 : b.slot === 0 && a.slot !== 0 ? 1 : 0)[0];
 
   function tipRegen(p: Player, pr: Profile): Tip {
     let head = ""; const L: string[] = [], tg = pr.tg, md = mdOf(TODAY).md;
@@ -553,7 +617,8 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
       const ts = D.sessions.filter(z => z.typ === "Training" && diff(z.date, TODAY) <= 28 && own[z.date] && z.ziel), ms = D.sessions.filter(z => z.typ === "Spiel" && diff(z.date, TODAY) <= 42);
       const fT = ts.length >= 4 ? clamp(sum(ts.map(z => own[z.date].rpe * own[z.date].min / (z.ziel * z.dauer))) / ts.length, 0.5, 1.3) : 1;
       const fM = ms.length >= 2 ? clamp(sum(ms.map(z => own[z.date] ? own[z.date].rpe * own[z.date].min : 0)) / ms.length / matchLoad(), 0, 1.2) : 1;
-      const plan = sum(weekPlan(ws).items.filter(x => x.date > TODAY && !absenceOn(p.id, x.date)).map(x => x.match ? matchLoad() * fM : x.train ? x.train.rpe * x.train.dauer * fT : 0));
+      const plan = sum(weekPlan(ws).items.filter(x => x.date > TODAY && !absenceOn(p.id, x.date)).map(x => (x.match ? matchLoad() * fM : x.train ? x.train.rpe * x.train.dauer * fT : 0)
+        + sum(x.units.filter(u => inUnit(D, u, p)).map(u => unitRpe(u) * u.dauer))));
       const room = pr.m.chronic * 1.3 - (done + plan), min = Math.min(120, Math.max(0, Math.round(room / 6 / 5) * 5));
       if (min >= 15) budget = tf("tx_budget", { m: min }); else { budget = t("tx_noBudget"); noRoom = true; }
     }
@@ -618,15 +683,36 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     return { head, items: L, source: t("ts2_src") };
   }
 
+  /** Torwart-Tipp für heute nach Spieltags-Bezug, mit Torwarteinheit und Sprüngen (nur für Torhüter) */
+  function tipTw(p: Player): (Tip & { phase: string; dives7: number | null }) | null {
+    if (!isGK(p) || grp === "u11") return null;
+    const md = mdOf(TODAY).md, ph = twPhase(md), L: string[] = [];
+    const u = unitsFor(p.id, TODAY).find(x => x.art === "tw");
+    if (u) L.push(tf("tw_today", { t: u.zeit, m: u.dauer }) + (u.themes?.length ? ": " + u.themes.map(k => t("tw_th_" + k)).join(", ") : ""));
+    L.push(tf("tw_gi_" + ph, { n: TW_DIVES_MD1 }));
+    const dv = divesIn(D, p.id, TODAY, 7);
+    L.push(t("tw_gi_always"));
+    return { head: t("tw_g_" + ph), items: L, source: t("tw_src"), phase: ph, dives7: dv.n ? dv.sum : null };
+  }
+  /** Hinweis zu vielen Sprüngen am Tag vor dem Spiel (für Trainer) */
+  const twDivesWarn = (pid: string, d: string): boolean => {
+    const md = mdOf(d).md; if (md !== "MD-1") return false;
+    let s = 0; const m = D.rpe[pid]?.[d]; if (m?.dives) s += m.dives;
+    for (const e of Object.values(D.rpeU[pid]?.[d] || {})) if (e.dives) s += e.dives;
+    return s > TW_DIVES_MD1;
+  };
+
   // ---------- KI-Kontext (ohne Nachnamen, nur Vornamen der Spieler, die zugestimmt haben) ----------
   function aiContext(aiOk: (pid: string) => boolean): string {
     const wp = weekPlan(monday(TODAY)), c = classDef(team.cls);
-    const plan = wp.items.map(x => `${wt(x.date)} ${de(x.date)}: ${x.match ? "Spiel " + t("vs") + " " + x.match.gegner : x.train ? (x.train.md || "-") + ", " + kn(x.train.kind) + ", RPE " + x.train.rpe + ", " + x.train.dauer + " Min., " + t("p_" + x.train.platz) : "frei"}`).join("\n");
+    const uTxt = (us: DayUnit[]): string => us.length ? " + " + us.map(u => `${unitTitle(u)} ${u.zeit} (${u.dauer} Min., RPE ${unitRpe(u)}${u.groupId || u.art === "tw" ? ", " + (u.groupId ? D.groups.find(g => g.id === u.groupId)?.name || "Gruppe" : "Torhüter") : ""})`).join(" + ") : "";
+    const plan = wp.items.map(x => `${wt(x.date)} ${de(x.date)}: ${x.match ? "Spiel " + t("vs") + " " + x.match.gegner : x.train ? (x.train.md || "-") + ", " + kn(x.train.kind) + ", RPE " + x.train.rpe + ", " + x.train.dauer + " Min., " + t("p_" + x.train.platz) : x.units.length ? "kein Mannschaftstraining" : "frei"}${uTxt(x.units)}`).join("\n");
     const flagged = D.players.map(p => profile(p.id)).filter(x => x.reasons.length).slice(0, 10)
       .map((x, i) => `${aiOk(x.p.id) ? x.p.vn : "Spieler " + (i + 1)} (${age(x.p)} J., ${x.p.pos}): ${x.reasons.map(r => r[1]).join(", ")}`).join("\n");
     return `Mannschaft: ${teamLabel(team)}, Altersklasse ${classLabel(c, opts.lang)}, ${D.players.length} Spieler.
 Infotiefe des Trainers: ${t("dp_" + team.depth)}.
 Trainingstage: ${Object.entries(S.days).map(([d, v]) => tl("wd")[+d] + " " + v.zeit + ", " + (v.dauer || S.dauer) + " Min. (" + t("p_" + v.platz) + ")").join("; ")}.
+${Object.entries(S.units || {}).some(([, L]) => L.length) ? "Weitere Einheiten je Woche: " + Object.entries(S.units || {}).flatMap(([d, L]) => L.map(u => tl("wd")[+d] + " " + u.zeit + " " + unitTitle(u) + " " + u.dauer + " Min.")).join("; ") + ".\n" : ""}Torhüter im Kader: ${D.players.filter(isGK).length}.
 Trainingsprinzipien: ${["MD", ...MDS].filter(md => team.principles[md]).map(md => md + " " + kn(team.principles[md].kind) + " RPE " + team.principles[md].rpe).join("; ")}.
 ${D.kinds.length ? "Eigene Trainingsarten: " + D.kinds.map(k => k.name + " (RPE " + k.rpe + "): " + k.inhalt).join(" | ") + "\n" : ""}Spieldauer: ${matchMin()} Min.
 Wochenplan aktuelle Woche:
@@ -636,12 +722,13 @@ ${flagged || "keine"}`;
   }
   function aiSessionPrompt(date: string): string {
     const wp = weekPlan(monday(date)), x = wp.items.find(i => i.date === date)!, p = x.train!;
-    const avail = D.players.filter(q => !absenceOn(q.id, date)), tw = avail.filter(q => q.pos === "TW").length;
+    const avail = D.players.filter(q => !absenceOn(q.id, date)), tw = avail.filter(isGK).length;
     return `Arbeite diese Trainingseinheit konkret aus:
 Datum: ${wt(date)} ${de(date)}, ${zeitOf(date)}, Spieltags-Bezug: ${p.md || "keiner (spielfreie Woche)"}
 Schwerpunkt: ${kn(p.kind)} – ${p.inhalt}
 Ziel-Intensität: RPE ${p.rpe} (CR-10), Dauer: ${p.dauer} Min., Platz: ${t("p_" + p.platz)}
 Verfügbare Spieler: ${avail.length} (davon ${tw} Torhüter). Abwesend: ${absentOn(date).length}.
+${x.units.length ? "Weitere Einheiten an diesem Tag (nicht Teil dieser Einheit): " + x.units.map(u => `${unitTitle(u)} ${u.zeit}, ${u.dauer} Min., RPE ${unitRpe(u)}`).join("; ") + "." : ""}
 ${p.notReady.length ? "Bis dahin nicht voll erholt: " + p.notReady.length + " Spieler." : ""}
 Gliedere in Blöcke mit Minutenangabe (Summe = ${p.dauer} Min.): Aufwärmen, Hauptteil(e), Abschluss. Pro Block: Organisation (Feldgröße, Spielerzahl), Belastung (Dauer × Serien, Pausen), 2–3 Coachingpunkte. Ende mit einem kurzen Hinweis zur Dosierung für nicht erholte oder zurückkehrende Spieler.`;
   }
@@ -677,6 +764,10 @@ Empfehlung des Trainers: ${activeMsgs(p.id).map(m => t("ry_" + m.typ) + ": " + m
     matchOn, eventsOn, regularDay, dayCfg, zeitOf, durOf, isTraining, inBreak, absenceOn, absentOn, mdOf,
     P, age, name, daily, metrics, injuryOf, returning, status, attStatus, attendance, sleep7, growthInfo, teamChronic,
     lastIntenseBefore, recoveryNeed, notReadyFor, recovery, weekPlan,
+    unitsOn, unitRpe, unitTitle, unitsFor, unitAvg, rpeOf, isGK, rpeTargets, playerOpenTarget, tipTw, twDivesWarn,
+    unitMembers: (u: DayUnit): Player[] => unitMembers(D, u),
+    /** Trainingseindruck (besonders gut/schwach) der letzten 4 Wochen */
+    trainForm: (pid: string, days = 28, onlyVisible = false) => trainingForm(D, pid, TODAY, days, onlyVisible),
     profile, advice, nextItem, sessAvg, dataHints, activeMsgs, suggestRec, soreWhy, soreEffect,
     playerState, playerSessions, playerOpenSession, tipRegen, tipGym, tipExtra, tipFood, tipSleep,
     aiContext, aiSessionPrompt, potPrompt, playerAiContext,

@@ -1,4 +1,4 @@
-// Trainer – Training & Prinzipien: Trainingstage, Spieltags-Prinzipien, eigene Trainingsarten, Erholungszeiten.
+// Trainer – Training & Prinzipien: Trainingstage, weitere Einheiten je Woche, Spieltags-Prinzipien, eigene Trainingsarten, Erholungszeiten.
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { BANDS, bandLabel, bandOf } from "../../src/core/classes";
@@ -6,6 +6,7 @@ import { useEngine, useStore } from "../../src/data/store";
 import { DaysEditor, PrinciplesEditor } from "../../src/ui/editors";
 import { KindEditor, type KindEditorTarget } from "../../src/ui/kindEditor";
 import { Banner, Btn, Card, CardTitle, Header, Info, Row, Screen, T } from "../../src/ui/kit";
+import { WeeklyUnitsEditor } from "../../src/ui/units";
 import { rpeColor, useTheme } from "../../src/ui/theme";
 
 export default function TrainingSettings() {
@@ -20,6 +21,10 @@ export default function TrainingSettings() {
         <CardTitle title={t("trSet")} />
         <DaysEditor value={team.settings} onChange={st => s.updateTeam({ settings: st })} tr={E.tr} />
       </Card>
+      {!kids ? <Card testID="training-units">
+        <CardTitle title={t("un_weeklyT")} info={<Info title={t("un_weeklyT")} text={[t("un_titleInfo"), t("un_loadNote")]} />} />
+        <WeeklyUnitsEditor />
+      </Card> : null}
       {E.mods.planung ? <Card testID="training-principles">
         <CardTitle title={t("pr_title")} info={<Info title={t("pr_title")} text={t("pr_sub")} />} />
         {kids ? <Banner>{t("w_kids")}</Banner> : <PrinciplesEditor value={team.principles} onChange={pr => s.updateTeam({ principles: pr })} tr={E.tr} cls={team.cls} depth={team.depth} kinds={E.D.kinds}

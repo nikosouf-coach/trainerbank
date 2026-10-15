@@ -1,5 +1,6 @@
-// Trainer – Trainingstag: Einheit, Ablauf mit Zuständigkeiten und Coachingpunkten, Skizzen, verfügbarer Kader,
-// individuelle Vorgaben, Aufgaben und Dienste. Co-Trainer sehen zuerst ihre eigenen Blöcke.
+// Trainer – Trainingstag: Einheit(en) des Tages (Mannschaftstraining, Athletik, Torwarttraining …), Ablauf je Einheit mit
+// Zuständigkeiten und Coachingpunkten, Skizzen, verfügbarer Kader, individuelle Vorgaben, Aufgaben und Dienste.
+// Co-Trainer sehen zuerst ihre eigenen Blöcke.
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -12,10 +13,11 @@ import { BoardView } from "../../../src/ui/board";
 import { BlockSheet, SketchImage, StaffDot } from "../../../src/ui/day/BlockSheet";
 import { IndivSummary } from "../../../src/ui/indiv";
 import { DayTasks } from "../../../src/ui/tasks/widgets";
-import { Banner, Btn, Card, CardTitle, Chip, Col, Header, Info, Muted, Row, Screen, T, Tag } from "../../../src/ui/kit";
+import { Banner, Btn, Card, CardTitle, Chip, Col, Header, Info, Muted, Row, Screen, Seg, T, Tag } from "../../../src/ui/kit";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { GroupChip } from "../../../src/ui/squad/Groups";
+import { DayUnitsCard } from "../../../src/ui/units";
 import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
 export default function Trainingstag() {
@@ -27,6 +29,7 @@ export default function Trainingstag() {
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [edit, setEdit] = useState<DayBlock | undefined>(undefined);
   const [tpl, setTpl] = useState(false);
+  const [slot0, setSlot] = useState<number | null>(null);
   const back = () => router.canGoBack() ? router.back() : router.replace("/coach/kalender");
 
   const x = useMemo(() => E.weekPlan(monday(date)).items.find(i => i.date === date), [s.version, date, E]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -34,12 +37,16 @@ export default function Trainingstag() {
 
   const tr = x.train && x.train.kind !== "frei" ? x.train : null, past = date < E.TODAY, showI = E.lvl(1) && E.grp !== "u11";
   const sess = E.D.sessions.find(z => z.date === date);
-  const blocks = dayBlocks(E.D, date), timed = timeline(blocks, E.zeitOf(date)), total = blocksTotal(blocks);
+  // Ablauf je Einheit: 0 = Mannschaftstraining, sonst weitere Einheit des Tages
+  const units = x.units, slots = [...(tr ? [0] : []), ...units.map(u => u.slot)];
+  const slot = slot0 != null && slots.includes(slot0) ? slot0 : slots[0] ?? 0, unit = slot ? units.find(u => u.slot === slot) || null : null;
+  const blocks = dayBlocks(E.D, date).filter(b => (b.slot || 0) === slot), timed = timeline(blocks, unit ? unit.zeit : E.zeitOf(date)), total = blocksTotal(blocks);
+  const planned = unit ? unit.dauer : tr?.dauer ?? 0;
   const shown = mine && me ? timed.filter(tb => tb.b.staffId === me.id) : timed;
   const ab = E.absentOn(date), avail = E.D.players.filter(p => !ab.includes(p));
   const title = x.match ? `${t("it_match")} ${t("vs")} ${x.match.gegner}` : tr ? E.kn(tr.kind) : x.brk ? t("vb_breakDay") : x.cancelled ? `${t("it_training")} ${t("cancelled")}` : t("td_free");
   const nextSort = blocks.length ? Math.max(...blocks.map(b => b.sort)) + 1 : 0;
-  const newBlock = (p: Partial<DayBlock> = {}): DayBlock => ({ id: tmpId(), date, sort: nextSort, title: "", min: 15, staffId: coMode && me ? me.id : null, exId: null, text: "", points: [], drawing: null, photo: null, groupId: null, ...p });
+  const newBlock = (p: Partial<DayBlock> = {}): DayBlock => ({ id: tmpId(), date, sort: nextSort, title: "", min: 15, staffId: coMode && me ? me.id : unit?.staffId ?? null, exId: null, text: "", points: [], drawing: null, photo: null, groupId: null, slot, ...p });
   const move = async (b: DayBlock, d: number) => {
     const L = blocks.slice(), i = L.findIndex(y => y.id === b.id), j = i + d; if (j < 0 || j >= L.length) return;
     [L[i], L[j]] = [L[j], L[i]];
@@ -75,12 +82,17 @@ export default function Trainingstag() {
         </Row>
       </Card> : null}
       {x.events.map(e => <Card key={e.id} tone={c.event}><T bold>{t("it_event")}: {e.titel}</T>{e.zeit ? <Muted small>{e.zeit}</Muted> : null}</Card>)}
-      {!tr && !x.match ? <Banner testID="td-free">{x.brk ? t("vb_noTraining") : t("td_freeD")}</Banner> : null}
+      {!tr && !x.match && !units.length ? <Banner testID="td-free">{x.brk ? t("vb_noTraining") : t("td_freeD")}</Banner> : null}
+
+      {/* Einheiten des Tages (Mannschaftstraining + weitere Einheiten) */}
+      <DayUnitsCard date={date} train={tr ? { zeit: E.zeitOf(date), dauer: tr.dauer, title: E.kn(tr.kind), rpe: tr.rpe } : null} />
 
       {/* Ablauf */}
-      {tr ? <Card testID="td-blocks">
-        <CardTitle title={t("td_blocks")} info={<Info title={t("td_blocks")} text={t("td_blocksInfo")} />}
+      {slots.length ? <Card testID="td-blocks">
+        <CardTitle title={unit ? E.tf("un_blocks", { u: E.unitTitle(unit) }) : t("td_blocks")} info={<Info title={t("td_blocks")} text={t("td_blocksInfo")} />}
           right={me ? <Btn small kind={mine ? "primary" : "default"} testID="td-mine" label={mine ? t("td_mineOn") : t("td_mine")} onPress={() => setMine(!mine)} /> : undefined} />
+        {slots.length > 1 ? <Seg testID="td-slot" wrap value={String(slot)} onChange={k => setSlot(Number(k))}
+          options={slots.map(k => ({ key: String(k), label: k ? `${units.find(u => u.slot === k)!.zeit} ${E.unitTitle(units.find(u => u.slot === k)!)}` : `${E.zeitOf(date)} ${t("un_main")}` }))} /> : null}
         {coMode && me ? <Muted small>{tf("td_coHint", { n: me.name.split(" ")[0] })}</Muted> : null}
         {shown.length ? shown.map(({ b, from, to, parallel }) => {
           const o = !!open[b.id], g = b.groupId ? E.D.groups.find(y => y.id === b.groupId) : null, st = b.staffId ? E.D.staff.find(y => y.id === b.staffId) : null;
@@ -117,8 +129,8 @@ export default function Trainingstag() {
           );
         }) : <Muted>{mine ? t("td_noMine") : t("td_noBlocks")}</Muted>}
         {!mine || !blocks.length ? <Row between wrap gap={8}>
-          <Muted small>{tf("td_total", { a: total, b: tr.dauer })}</Muted>
-          {total > tr.dauer + 5 ? <Tag label={t("td_tooLong")} /> : null}
+          <Muted small>{tf("td_total", { a: total, b: planned })}</Muted>
+          {total > planned + 5 ? <Tag label={t("td_tooLong")} /> : null}
         </Row> : null}
         <Row gap={8} wrap>
           <Btn small icon="plus" kind="primary" testID="td-add" label={t("td_add")} onPress={() => setEdit(newBlock())} />
@@ -127,11 +139,11 @@ export default function Trainingstag() {
       </Card> : null}
 
       {/* Kader */}
-      {tr || x.match ? <Card testID="td-squad">
+      {tr || x.match || units.length ? <Card testID="td-squad">
         <CardTitle title={tf("day_avail", { a: avail.length, n: E.D.players.length })} />
         <Row wrap gap={6}>
-          <Chip label={tf("td_tw", { n: avail.filter(p => p.pos === "TW").length })} color={c.muted} />
-          <Chip label={tf("td_field", { n: avail.filter(p => p.pos !== "TW").length })} color={c.muted} />
+          <Chip label={tf("td_tw", { n: avail.filter(E.isGK).length })} color={c.muted} />
+          <Chip label={tf("td_field", { n: avail.filter(p => !E.isGK(p)).length })} color={c.muted} />
         </Row>
         {tr ? <IndivSummary date={date} testID="td-iv" /> : null}
         {ab.length ? <Col gap={4}>

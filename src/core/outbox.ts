@@ -5,7 +5,8 @@
 import type { Absence, AttStatus, Extra, RpeEntry, TeamData, Wellness } from "./types";
 
 export type OutboxOp =
-  | { op: "rpe"; pid: string; date: string; e: RpeEntry | null }
+  /** slot: 0/fehlend = Mannschaftstraining bzw. Spiel, 1–9 = weitere Einheit des Tages */
+  | { op: "rpe"; pid: string; date: string; e: RpeEntry | null; slot?: number }
   | { op: "well"; pid: string; date: string; w: Wellness }
   | { op: "extra"; pid: string; x: Extra }
   | { op: "extraDel"; pid: string; id: string }
@@ -32,7 +33,7 @@ export const OUTBOX_DAYS = 14;
 /** Gleicher Schlüssel = derselbe Datensatz; ein neuerer Eintrag ersetzt den älteren. */
 export function outboxKey(o: OutboxOp): string {
   switch (o.op) {
-    case "rpe": return `rpe:${o.pid}:${o.date}`;
+    case "rpe": return o.slot ? `rpe:${o.pid}:${o.date}:${o.slot}` : `rpe:${o.pid}:${o.date}`;
     case "well": return `well:${o.pid}:${o.date}`;
     case "extra": return `extra:${o.x.id}`;
     case "extraDel": return `extra:${o.id}`;
@@ -78,6 +79,12 @@ export function prune(list: OutboxItem[], now: Date): OutboxItem[] {
 export function applyOp(D: TeamData, o: OutboxOp): void {
   switch (o.op) {
     case "rpe":
+      if (o.slot) {
+        // weitere Einheit: eigene Last, keine Anwesenheit (die gilt für das Mannschaftstraining)
+        if (o.e) ((D.rpeU[o.pid] ||= {})[o.date] ||= {})[o.slot] = o.e;
+        else if (D.rpeU[o.pid]?.[o.date]) { delete D.rpeU[o.pid][o.date][o.slot]; if (!Object.keys(D.rpeU[o.pid][o.date]).length) delete D.rpeU[o.pid][o.date]; }
+        return;
+      }
       if (o.e) (D.rpe[o.pid] ||= {})[o.date] = o.e; else if (D.rpe[o.pid]) delete D.rpe[o.pid][o.date];
       // Wer Belastung einträgt, war da (wie der Trigger in der Datenbank)
       if (o.e && D.sessions.some(s => s.date === o.date) && !D.att[o.date]?.[o.pid]) (D.att[o.date] ||= {})[o.pid] = "da";

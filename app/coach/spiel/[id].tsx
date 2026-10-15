@@ -1,4 +1,4 @@
-// Trainer – Spielbericht: Ergebnis, Minuten/Tore/Vorlagen/Note je Spieler, Feedback, Videos zum Spiel.
+// Trainer – Spielbericht: Ergebnis, Minuten/Tore/Vorlagen/Note je Spieler (Torhüter: Gegentore, Paraden), Feedback, Videos zum Spiel.
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -62,7 +62,7 @@ export default function Spiel() {
               <PlayerAvatar p={p} size={34} />
               <Col gap={1} style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={{ fontWeight: "700", fontSize: 14.5, color: c.ink }}>{E.name(p)}</Text>
-                <Text style={{ fontSize: 12.5, color: c.muted }}>{x ? `${x.min}′${x.start ? " · " + t("sp_start") : ""}${x.goals ? " · ⚽ " + x.goals : ""}${x.assists ? " · 🅰 " + x.assists : ""}` : ab ? t("ab_" + ab.typ) : t("sp_bench")}</Text>
+                <Text style={{ fontSize: 12.5, color: c.muted }}>{x ? `${x.min}′${x.start ? " · " + t("sp_start") : ""}${x.goals ? " · ⚽ " + x.goals : ""}${x.assists ? " · 🅰 " + x.assists : ""}${x.conceded != null ? ` · ${t("sp_conceded")} ${x.conceded}` : ""}${x.saves ? ` · ${t("sp_saves")} ${x.saves}` : ""}` : ab ? t("ab_" + ab.typ) : t("sp_bench")}</Text>
               </Col>
               {r?.text ? <Text style={{ fontSize: 15 }}>💬</Text> : null}
               <RatingBadge value={r?.rating ?? null} size="s" />
@@ -90,11 +90,15 @@ function PlayerMatchForm({ pid, matchId, date, onDone }: { pid: string; matchId:
   const [start, setStart] = useState(x?.start ?? true);
   const [goals, setGoals] = useState(x?.goals ?? 0);
   const [assists, setAssists] = useState(x?.assists ?? 0);
+  // Torhüter: Gegentore in der eigenen Spielzeit (Vorschlag: Gegentore des Spiels bei voller Spielzeit) und Paraden
+  const p = E.P(pid), gk = !!p && E.isGK(p), m = E.D.matches.find(z => z.id === matchId);
+  const [conceded, setConceded] = useState<number>(x?.conceded ?? (m?.result && (x?.min ?? rpeMin ?? E.matchMin()) >= E.matchMin() ? m.result.opp : 0));
+  const [saves, setSaves] = useState<number>(x?.saves ?? 0);
   const [rating, setRating] = useState<number | null>(r?.rating ?? null);
   const [text, setText] = useState(r?.text || "");
   const [vis, setVis] = useState(r ? r.vis : true);
   const save = () => {
-    const stat: MatchStat = { min: Math.max(0, min || 0), goals, assists, start };
+    const stat: MatchStat = { min: Math.max(0, min || 0), goals, assists, start, ...(gk && (min || 0) > 0 ? { conceded, saves } : {}) };
     s.saveStat(matchId, pid, stat.min || goals || assists ? stat : null);
     if (rating != null || text.trim()) s.saveRating({ id: r?.id || tmpId(), pid, date, kind: "spiel", rating, text: text.trim(), vis });
     else if (r) s.deleteRating(r.id);
@@ -110,6 +114,10 @@ function PlayerMatchForm({ pid, matchId, date, onDone }: { pid: string; matchId:
         <Col gap={4}><T v="small" bold>{t("sp_goals")}</T><Stepper testID="spf-goals" value={goals} onChange={setGoals} /></Col>
         <Col gap={4}><T v="small" bold>{t("sp_assists")}</T><Stepper testID="spf-assists" value={assists} onChange={setAssists} /></Col>
       </Row>
+      {gk ? <Row wrap gap={24} testID="spf-gk">
+        <Col gap={4}><T v="small" bold>{t("tw_conceded")}</T><Stepper testID="spf-conceded" value={conceded} onChange={setConceded} /></Col>
+        <Col gap={4}><T v="small" bold>{t("tw_saves")}</T><Stepper testID="spf-saves" value={saves} onChange={setSaves} /></Col>
+      </Row> : null}
       <Col gap={6}><T v="small" bold>{t("gm_rating")}</T><RatingInput testID="spf-rate" value={rating} onChange={setRating} /></Col>
       <Field testID="spf-text" label={t("gm_feedback")} value={text} onChangeText={setText} placeholder={t("gm_feedbackPh")} multiline />
       <ToggleRow label={t("gm_visible")} desc={t("gm_visibleD")} value={vis} onChange={setVis} />

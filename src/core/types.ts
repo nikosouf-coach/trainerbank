@@ -20,6 +20,24 @@ export type MsgType = "pause" | "regen" | "zusatz" | "prog" | "info";
 export type Status = "crit" | "warn" | "ok" | "low" | "build" | "none" | "inj";
 
 export interface DayCfg { zeit: string; platz: Pitch; dauer: number }
+/** Art einer weiteren Einheit am Tag (das Mannschaftstraining ist Einheit 0) */
+export type UnitArt = "athletik" | "kraft" | "tw" | "technik" | "taktik" | "praev" | "reha" | "sonst";
+/**
+ * Weitere Einheit eines Tages (Nummer 1–9) neben dem Mannschaftstraining, z. B. 30 Min. Athletik vor dem Training
+ * oder Torwarttraining. Wiederkehrend je Wochentag (TeamSettings.units) oder für ein Datum (TeamData.units).
+ */
+export interface DayUnit {
+  slot: number; art: UnitArt;
+  /** eigene Bezeichnung (leer = Name der Art) */ title: string;
+  zeit: string; dauer: number;
+  /** Ziel-RPE (null = Richtwert der Art) */ rpe: number | null;
+  /** nur diese Gruppe (z. B. Torhüter); null = ganzes Team – Torwarttraining ohne Gruppe = alle Torhüter */ groupId: string | null;
+  /** zuständiger Trainer (StaffProfile.id) */ staffId: string | null;
+  inhalt: string;
+  /** Schwerpunkte (Torwart: core/units → TW_THEMES) */ themes?: string[];
+  /** nur für ein Datum: diese (wiederkehrende) Einheit fällt an diesem Tag aus */ cancel?: boolean;
+  /** nur wiederkehrend: gilt ab diesem Tag (ältere Tage bleiben unverändert) */ from?: string | null;
+}
 export interface TeamSettings {
   /** Schlüssel = Wochentag wie Date.getDay() (0 = Sonntag). */
   days: Record<number, DayCfg>;
@@ -46,6 +64,8 @@ export interface TeamSettings {
   testRank?: "off" | "rank" | "best";
   /** Mannschaftskasse (Beiträge, Geldstrafen, Kassenbuch) */
   kasse?: KasseSettings;
+  /** Weitere Einheiten je Wochentag (Schlüssel wie days) – z. B. Athletik vor dem Training, Torwarttraining */
+  units?: Record<number, DayUnit[]>;
 }
 /** Beitrag: einmalig, monatlich (Zeitraum „JJJJ-MM“) oder je Saison Juli–Juni („JJJJ/JJ“) */
 export type FeeEvery = "once" | "month" | "season";
@@ -140,7 +160,8 @@ export interface Absence {
   area?: string | null;
 }
 export interface Session { date: string; typ: "Training" | "Spiel"; dauer: number; zeit: string; md: string; ziel: number; kind?: Kind }
-export interface RpeEntry { rpe: number; min: number; /** Zeitpunkt der Eingabe auf dem Gerät (auch offline) – zählt für Fristen */ at?: string | null }
+export interface RpeEntry { rpe: number; min: number; /** Zeitpunkt der Eingabe auf dem Gerät (auch offline) – zählt für Fristen */ at?: string | null;
+  /** Torwart: Sprünge/Hechtsprünge in der Einheit (ca.) */ dives?: number | null }
 export interface WellnessItems { sq: number; fat: number; doms: number; stress: number }
 export interface Wellness { sum: number; schlaf: number; beschw: Complaint; ort?: string; items?: WellnessItems;
   /** Körperregionen der Beschwerde (core/body: „hams:l“, „knee:r“, „ill_up“) */
@@ -170,9 +191,14 @@ export interface CustomKind { id: string; name: string; rpe: number; inhalt: str
 export interface Potential { id: string; cat: PotCat; text: string; vis: boolean; src: "trainer" | "daten" | "ki" }
 export interface CoachMsg { id: string; date: string; typ: MsgType; text: string; bis: string | null }
 /** Spieldaten eines Spielers in einem Spiel (vom Trainerteam erfasst). */
-export interface MatchStat { min: number; goals: number; assists: number; start: boolean }
+export interface MatchStat { min: number; goals: number; assists: number; start: boolean;
+  /** Torhüter: Gegentore in seiner Spielzeit und Paraden */ conceded?: number | null; saves?: number | null }
 /** Note (1–10, eine Nachkommastelle) und Feedback des Trainers zu Spiel oder Training. */
-export interface Rating { id: string; pid: string; date: string; kind: "spiel" | "training"; rating: number | null; text: string; vis: boolean }
+export interface Rating { id: string; pid: string; date: string; kind: "spiel" | "training"; rating: number | null; text: string; vis: boolean;
+  /** Training: nur Abweichungen vom Durchschnitt – besonders gut oder besonders schwach (Standard = Durchschnitt, nicht gespeichert) */
+  mark?: "good" | "poor" | null;
+  /** Gründe (core/units → MARK_TAGS) */ tags?: string[];
+  /** Einheit des Tages (0 = Mannschaftstraining, 1–9 = weitere Einheit wie Torwarttraining) */ slot?: number }
 /** Medizinischer Befund (Foto oder PDF) zu einem Spieler, optional mit KI-Auswertung. */
 export interface Finding {
   id: string; pid: string; absenceId: string | null; date: string; title: string;
@@ -221,6 +247,8 @@ export interface DayBlock {
   photo: string | null;
   /** nur für eine Gruppe (z. B. Torhüter); null = alle */
   groupId: string | null;
+  /** Einheit des Tages (0 = Mannschaftstraining, 1–9 = weitere Einheit) */
+  slot?: number;
 }
 /** Gespeicherte Einheit (Vorlage) aus Übungen oder freien Blöcken. */
 export interface SessionTemplate { id: string; title: string; theme: string; blocks: TemplateBlock[]; notes: string }
@@ -236,7 +264,7 @@ export interface StaffProfile {
   photo?: string | null;
 }
 /** Leistungstests (Katalog in perf.ts) */
-export type TestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit";
+export type TestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit" | "tw_lateral" | "tw_kick";
 export interface TestResult { id: string; pid: string; test: TestKey; date: string; value: number; note?: string }
 /** Video-Link (YouTube, Veo, Hudl, Vimeo, Cloud …) zu Spiel, Spielern oder Übung. */
 export type ContactRole = "trainer" | "koordinator" | "vorstand" | "physio" | "arzt" | "betreuer" | "sonst";
@@ -274,7 +302,12 @@ export interface TeamData {
   wkMode: Record<string, WeekMode>;
   absences: Absence[];
   sessions: Session[];
+  /** RPE des Mannschaftstrainings bzw. Spiels (Einheit 0) je Spieler und Tag */
   rpe: Record<string, Record<string, RpeEntry>>;
+  /** RPE weiterer Einheiten (1–9) je Spieler, Tag und Einheit */
+  rpeU: Record<string, Record<string, Record<number, RpeEntry>>>;
+  /** Weitere Einheiten für einzelne Tage (festgehalten, geändert, abgesagt oder zusätzlich) */
+  units: Record<string, DayUnit[]>;
   well: Record<string, Record<string, Wellness>>;
   att: Record<string, Record<string, AttStatus>>;
   extra: Record<string, Extra[]>;
@@ -313,7 +346,7 @@ export interface TeamData {
 export function emptyTeamData(team: Team): TeamData {
   return {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
-    rpe: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
+    rpe: {}, rpeU: {}, units: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
     stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], duties: [], fines: [], tasks: [], cash: [], waivers: [], inactive: [],
   };
 }

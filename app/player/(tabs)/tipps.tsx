@@ -1,4 +1,4 @@
-// Spieler – Tipps: Regeneration, Krafttraining, Zusatzbelastung, Ernährung & Trinken, Schlaf, KI-Coach.
+// Spieler – Tipps: Torwart (nur Torhüter), Regeneration, Krafttraining, Zusatzbelastung, Ernährung & Trinken, Schlaf, KI-Coach.
 import { useRouter } from "expo-router";
 import React from "react";
 import { useEngine, useStore } from "../../../src/data/store";
@@ -30,12 +30,15 @@ export default function Tipps() {
   const p = E.P(s.mePid || "")!, pr = E.profile(p.id);
   const msgs = E.activeMsgs(p.id);
   if (!E.playerSees("tips") && !E.playerSees("ai")) return <Screen testID="player-tipps"><Header title={t("pn_tipps")} /><Banner>{t("pl_tipsOff")}</Banner></Screen>;
-  const reg = E.tipRegen(p, pr), gym = E.tipGym(p, pr), ex = E.tipExtra(p, pr), food = E.tipFood(p), sl = E.tipSleep(pr);
+  const reg = E.tipRegen(p, pr), gym = E.tipGym(p, pr), ex = E.tipExtra(p, pr), food = E.tipFood(p), sl = E.tipSleep(pr), tw = E.tipTw(p);
   return (
     <Screen testID="player-tipps">
       <Header title={t("pn_tipps")} />
       {msgs.map(m => <Msg key={m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}
       {E.playerSees("tips") ? <>
+        {tw ? <TipCard testID="tip-tw" icon="target" color={c.event} title={t("tw_tip")} head={tw.head} items={tw.items} info={tw.source}>
+          {tw.dives7 != null ? <Muted small>{t("tw_dives7")}: {tw.dives7}</Muted> : null}
+        </TipCard> : null}
         <TipCard testID="tip-regen" icon="moon" color="#16a3a3" title={t("pt_regen")} head={reg.head} items={reg.items} info={t("rt_note")} />
         <TipCard testID="tip-gym" icon="bolt" color="#f0762b" title={t("pt_gym")} head={gym.head} info={gym.source}>
           {gym.best ? <Muted small>{gym.best}</Muted> : null}

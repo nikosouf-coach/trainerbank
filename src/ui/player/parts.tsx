@@ -12,6 +12,7 @@ import { Btn, Card, Col, Info, Muted, Row, T } from "../kit";
 import { PlayerAvatar } from "../playerAvatar";
 import { RatingBadge, softRatingColor, StatTile, VideoList } from "../games";
 import { MyTarget } from "../indiv";
+import { MarkBadge, RatingOrMark, TrainingFormLine } from "../marks";
 import { potColor } from "../squad/ProfileCards";
 import { radius, space, useTheme, withAlpha } from "../theme";
 
@@ -171,13 +172,22 @@ export function NextDates({ pid, max = 6 }: { pid: string; max?: number }) {
             {extra}
           </Col>
         </Row>);
-      if (x.match) item(x.date + "m", c.accentTx, t("it_match"), `${t("vs")} ${x.match.gegner}`, `${x.match.zeit} · ${x.match.heim ? t("home") : t("away")} · ${t("comp_" + x.match.comp)}`);
+      // Einträge des Tages nach Uhrzeit (Spiel, Mannschaftstraining, weitere Einheiten wie Athletik oder Torwarttraining)
+      const day: { zeit: string; add: () => void }[] = [];
+      if (x.match) day.push({ zeit: x.match.zeit, add: () => item(x.date + "m", c.accentTx, t("it_match"), `${t("vs")} ${x.match!.gegner}`, `${x.match!.zeit} · ${x.match!.heim ? t("home") : t("away")} · ${t("comp_" + x.match!.comp)}`) });
       else if (x.train && x.train.kind !== "frei") {
-        // Eigene Vorgabe (Spielersatz, Reha, Aufbau …) – bei der nächsten Einheit mit Umsetzungshinweis
-        const mine = showPlan && !kids ? <MyTarget pid={pid} date={x.date} detail={!firstTrain} testID={"my-target-" + x.date} /> : null;
-        item(x.date + "t", c.ok, t("it_training"), showPlan ? E.kn(x.train.kind) : t("it_training"), `${E.zeitOf(x.date)} · ${x.train.dauer} ${t("min")}${showPlan && !kids ? " · " + t("intensity") + ": " + E.intWord(x.train.rpe) : ""}`, mine);
-        firstTrain = true;
+        const train = x.train;
+        day.push({ zeit: E.zeitOf(x.date), add: () => {
+          // Eigene Vorgabe (Spielersatz, Reha, Aufbau …) – bei der nächsten Einheit mit Umsetzungshinweis
+          const mine = showPlan && !kids ? <MyTarget pid={pid} date={x.date} detail={!firstTrain} testID={"my-target-" + x.date} /> : null;
+          item(x.date + "t", c.ok, t("it_training"), showPlan ? E.kn(train.kind) : t("it_training"), `${E.zeitOf(x.date)} · ${train.dauer} ${t("min")}${showPlan && !kids ? " · " + t("intensity") + ": " + E.intWord(train.rpe) : ""}`, mine);
+          firstTrain = true;
+        } });
       }
+      for (const u of E.unitsFor(pid, x.date)) day.push({ zeit: u.zeit, add: () => item(x.date + "u" + u.slot, u.art === "tw" ? c.event : "#16a3a3", E.unitTitle(u),
+        u.art === "tw" && u.themes?.length ? u.themes.map(k => t("tw_th_" + k)).join(" · ") : (u.inhalt.split("\n")[0] || E.unitTitle(u)),
+        `${u.zeit} · ${u.dauer} ${t("min")}${showPlan && !kids ? " · " + t("intensity") + ": " + E.intWord(E.unitRpe(u)) : ""}`) });
+      day.sort((a, b) => a.zeit < b.zeit ? -1 : a.zeit > b.zeit ? 1 : 0).forEach(z => z.add());
       x.events.forEach(e => item(e.id, c.event, t("it_event"), e.titel, e.zeit || ""));
     }
   }
@@ -226,17 +236,18 @@ export function useGo() { const router = useRouter(); return (h: string) => rout
 /** Neueste Bewertung des Trainers (letzte 10 Tage). */
 export function NewRating({ pid }: { pid: string }) {
   const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
-  const r = E.ratingsOf(pid).find(x => x.vis && diff(x.date, E.TODAY) <= 10 && (x.rating != null || x.text));
+  const r = E.ratingsOf(pid).find(x => x.vis && diff(x.date, E.TODAY) <= 10 && (x.rating != null || x.text || x.mark));
   if (!r || !E.playerSees("ratings")) return null;
   const m = r.kind === "spiel" ? E.D.matches.find(x => x.date === r.date) : null;
   return (
     <Pressable testID="player-newrating" accessibilityRole="button" onPress={() => router.push("/player/daten")}>
-      <Card tone={r.rating != null && r.rating >= 7 ? softRatingColor(r.rating) : undefined}>
+      <Card tone={r.mark === "good" ? c.ok : r.rating != null && r.rating >= 7 ? softRatingColor(r.rating) : undefined}>
         <Row gap={12} align="flex-start">
-          <RatingBadge value={r.rating} size="l" soft />
+          {r.mark ? <MarkBadge mark={r.mark} size="l" /> : <RatingBadge value={r.rating} size="l" soft />}
           <Col gap={3} style={{ flex: 1 }}>
             <T v="eyebrow">{E.coachName() ? E.tf("pl_newRatingN", { n: E.coachName() }) : t("pl_newRating")}</T>
-            <Text style={{ fontWeight: "800", fontSize: 15, color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}</Text>
+            <Text style={{ fontWeight: "800", fontSize: 15, color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}{r.mark ? " · " + t(r.mark === "good" ? "te_mineGood" : "te_minePoor") : ""}</Text>
+            {r.tags?.length ? <Text style={{ fontSize: 13, color: c.muted }}>{r.tags.map(k => t("mt_" + k)).join(" · ")}</Text> : null}
             {r.text ? <Text style={{ fontSize: 14, color: c.ink }}>{r.text}</Text> : null}
           </Col>
         </Row>
@@ -260,17 +271,24 @@ export function MySeason({ pid }: { pid: string }) {
           <StatTile label={t("sp_goals")} value={String(ss.goals)} color={ss.goals ? GOLD : undefined} />
           <StatTile label={t("sp_assists")} value={String(ss.assists)} color={ss.assists ? c.low : undefined} />
         </Row>
+        {ss.gk ? <Row wrap gap={8} testID="pd-gk">
+          <StatTile label={t("tw_conceded")} value={String(ss.gk.conceded)} />
+          <StatTile label={t("tw_clean")} value={String(ss.gk.clean)} color={ss.gk.clean ? GOLD : undefined} />
+          <StatTile label={t("tw_saves")} value={String(ss.gk.saves)} />
+        </Row> : null}
       </Card> : null}
       {E.playerSees("ratings") && rs.length ? <Card testID="pd-ratings">
         <Row between><T v="h3">{t("pl_ratings")}</T>{ss.avg != null ? <Row gap={6}><Muted small>{t("sp_avg")}</Muted><RatingBadge value={Math.round(ss.avg * 10) / 10} size="s" soft /></Row> : null}</Row>
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 4, height: 70 }}>
           {rs.filter(r => r.rating != null).slice(0, 12).reverse().map(r => <View key={r.id} style={{ flex: 1, height: `${Math.max(10, (r.rating! - 3) / 7 * 100)}%`, backgroundColor: softRatingColor(r.rating), borderRadius: 4, opacity: r.rating! >= 7 ? 1 : 0.55 }} />)}
         </View>
+        <TrainingFormLine pid={pid} player testID="pd-trainform" />
         {rs.slice(0, 8).map(r => { const m = r.kind === "spiel" ? E.D.matches.find(x => x.date === r.date) : null; return (
           <Row key={r.id} gap={10} align="flex-start">
-            <RatingBadge value={r.rating} size="s" soft />
+            <RatingOrMark r={r} soft />
             <Col gap={1} style={{ flex: 1 }}>
-              <Text style={{ fontSize: 13, fontWeight: "700", color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}</Text>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}{r.mark ? " · " + t(r.mark === "good" ? "te_mineGood" : "te_minePoor") : ""}</Text>
+              {r.tags?.length ? <Text style={{ fontSize: 12.5, color: c.muted }}>{r.tags.map(k => t("mt_" + k)).join(" · ")}</Text> : null}
               {r.text ? <Text style={{ fontSize: 13.5, color: c.ink }}>{r.text}</Text> : null}
             </Col>
           </Row>

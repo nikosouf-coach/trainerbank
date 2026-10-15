@@ -1,6 +1,6 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
 import type { CashEntry, CashWaiver,
-  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
+  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 
@@ -81,6 +81,11 @@ export interface Api {
   saveKind(teamId: string, k: CustomKind): Promise<CustomKind>;
   deleteKind(teamId: string, id: string): Promise<void>;
   saveSessions(teamId: string, s: Session[]): Promise<void>;
+  /** Weitere Einheit für einen Tag speichern (ändern, absagen oder zusätzlich) */
+  saveUnit(teamId: string, date: string, u: DayUnit): Promise<void>;
+  deleteUnit(teamId: string, date: string, slot: number): Promise<void>;
+  /** Vergangene wiederkehrende Einheiten festhalten (vorhandene Tageseinträge bleiben unverändert) */
+  saveUnits(teamId: string, rows: { date: string; u: DayUnit }[]): Promise<void>;
   publishWeekPlan(teamId: string, ws: string, days: PublishedDay[]): Promise<void>;
 
   // Spieler & Daten
@@ -90,7 +95,8 @@ export interface Api {
   uploadPhoto(teamId: string, pid: string, uri: string): Promise<string>;
   photoUrl(path: string): Promise<string | null>;
   setAttendance(teamId: string, date: string, pid: string, st: AttStatus | null): Promise<void>;
-  saveRpe(pid: string, date: string, e: RpeEntry | null): Promise<void>;
+  /** slot: 0 = Mannschaftstraining/Spiel, 1–9 = weitere Einheit des Tages */
+  saveRpe(pid: string, date: string, e: RpeEntry | null, slot?: number): Promise<void>;
   saveWellness(pid: string, date: string, w: Wellness): Promise<void>;
   saveExtra(pid: string, x: Extra): Promise<Extra>;
   deleteExtra(id: string): Promise<void>;

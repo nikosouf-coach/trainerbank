@@ -57,7 +57,7 @@ export function viewFor(D: TeamData, perms: ReadonlySet<Perm>, strip: boolean): 
   if (!medical) m.befunde = false;
   const V: TeamData = { ...D, team: { ...D.team, modules: m } };
   if (strip) {
-    if (!health) { V.rpe = {}; V.well = {}; V.extra = {}; V.growth = {}; }
+    if (!health) { V.rpe = {}; V.rpeU = {}; V.well = {}; V.extra = {}; V.growth = {}; }
     if (!medical) V.findings = [];
     if (!notes) V.notes = {};
   }
@@ -72,7 +72,7 @@ export function teamPatchPerms(patch: Record<string, unknown>, before: Record<st
     const a = before.settings as Record<string, unknown>;
     for (const k of new Set([...Object.keys(a), ...Object.keys(ps)])) {
       if (same(a[k], ps[k])) continue;
-      need.add(["days", "dauer", "fix", "spieltag", "anstoss"].includes(k) ? "plan" : k === "duties" || k === "fines" ? "tasks" : k === "tests" || k === "testRank" ? "perf" : k === "kasse" ? "cash" : "admin");
+      need.add(["days", "dauer", "fix", "spieltag", "anstoss", "units"].includes(k) ? "plan" : k === "duties" || k === "fines" ? "tasks" : k === "tests" || k === "testRank" ? "perf" : k === "kasse" ? "cash" : "admin");
     }
   }
   if ("principles" in patch && !same(patch.principles, before.principles)) need.add("plan");

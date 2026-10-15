@@ -5,9 +5,10 @@ import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "
 import { cleanAreas } from "../core/body";
 import { isClientId, isNetworkMessage } from "../core/outbox";
 import { cleanPainMap } from "../core/pain";
+import { cleanUnit } from "../core/units";
 import { addDays, iso, monday } from "../core/dates";
 import type { Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
-  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, Depth, Extra, Growth, Kind, Lang, Match,
+  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 import { emptyTeamData } from "../core/types";
@@ -70,7 +71,16 @@ const mapPlayer = (r: Row): Player => ({
 });
 const mapMatch = (r: Row): Match => ({ id: r.id, date: r.date, zeit: r.time || "15:00", gegner: r.opponent || "", heim: !!r.home, comp: r.competition || "liga",
   result: r.goals_for != null && r.goals_against != null ? { own: r.goals_for, opp: r.goals_against } : null });
-const mapRating = (r: Row): Rating => ({ id: r.id, pid: r.player_id, date: r.date, kind: r.kind, rating: r.rating != null ? Number(r.rating) : null, text: r.text || "", vis: !!r.visible });
+const mapRating = (r: Row): Rating => ({ id: r.id, pid: r.player_id, date: r.date, kind: r.kind, rating: r.rating != null ? Number(r.rating) : null, text: r.text || "", vis: !!r.visible,
+  mark: r.mark === "good" || r.mark === "poor" ? r.mark : null, tags: Array.isArray(r.tags) ? r.tags.map(String) : [], slot: r.slot ?? 0 });
+const mapUnit = (r: Row): DayUnit => ({ slot: r.slot, art: (r.art || "sonst") as UnitArt, title: r.title || "", zeit: r.time || "17:30", dauer: r.duration ?? 30,
+  rpe: r.target_rpe != null ? Number(r.target_rpe) : null, groupId: r.group_id || null, staffId: r.staff_id || null, inhalt: r.content || "", themes: Array.isArray(r.themes) ? r.themes.map(String) : [],
+  cancel: r.cancelled ? true : undefined });
+const unitRow = (teamId: string, date: string, u0: DayUnit): Row => {
+  const u = cleanUnit(u0);
+  return { team_id: teamId, date, slot: u.slot, art: u.art, title: u.title, time: u.zeit, duration: u.dauer, target_rpe: u.rpe, group_id: u.groupId, staff_id: u.staffId && !isTmp(u.staffId) ? u.staffId : null,
+    content: u.inhalt, themes: u.themes || [], cancelled: !!u.cancel };
+};
 const mapTest = (r: Row): TestResult => ({ id: r.id, pid: r.player_id, test: r.test as TestKey, date: r.date, value: Number(r.value), note: r.note || undefined });
 const mapFinding = (r: Row): Finding => ({ id: r.id, pid: r.player_id, absenceId: r.absence_id || null, date: r.date, title: r.title, path: r.path, mime: r.mime,
   consent: r.consent_source === "app" ? "app" : "schriftlich", ai: r.ai_text || null, aiAt: r.ai_at || null, note: r.note || "" });
@@ -80,7 +90,7 @@ const mapTemplate = (r: Row): SessionTemplate => ({ id: r.id, title: r.title, th
 const mapStaff = (r: Row): StaffProfile => ({ id: r.id, name: r.name, role: r.role, areas: r.areas || [], phone: r.phone || "", email: r.email || "", note: r.note || "",
   userId: r.user_id || null, birth: r.birthdate || null, license: r.license || "", photo: r.photo_path || null });
 const mapBlock = (r: Row): DayBlock => ({ id: r.id, date: r.date, sort: r.sort ?? 0, title: r.title, min: r.minutes ?? 15, staffId: r.staff_id || null, exId: r.exercise_id || null,
-  text: r.text || "", points: Array.isArray(r.points) ? r.points.map(String) : [], drawing: (r.drawing as Drawing) || null, photo: r.photo_path || null, groupId: r.group_id || null });
+  text: r.text || "", points: Array.isArray(r.points) ? r.points.map(String) : [], drawing: (r.drawing as Drawing) || null, photo: r.photo_path || null, groupId: r.group_id || null, slot: r.slot ?? 0 });
 const mapCash = (r: Row): CashEntry => ({ id: r.id, date: r.date, amount: Number(r.amount), kind: r.kind, cat: r.cat, pid: r.player_id || null,
   feeId: r.fee_id || null, period: r.period || null, fineId: r.fine_id || null, note: r.note || "" });
 const mapFine = (r: Row): FineEntry => ({ id: r.id, pid: r.player_id, rule: r.rule, date: r.date, ref: r.ref_date || null, amount: r.amount != null ? Number(r.amount) : null, note: r.note || "",
@@ -192,7 +202,7 @@ export class SupabaseApi implements Api {
     if (ids.length) {
       const from = addDays(today, -63);
       const [rpe, well, extra, att, abs, growth, pots, msgs] = await Promise.all([
-        all((a, b) => sb.from("rpe_entries").select("player_id, date, rpe, minutes, entered_at").in("player_id", ids).gte("date", from).range(a, b)),
+        all((a, b) => sb.from("rpe_entries").select("player_id, date, slot, rpe, minutes, entered_at, dives").in("player_id", ids).gte("date", from).range(a, b)),
         all((a, b) => sb.from("wellness_entries").select("*").in("player_id", ids).gte("date", addDays(today, -35)).range(a, b)),
         q(sb.from("extra_activities").select("*").in("player_id", ids).gte("date", addDays(today, -70))),
         all((a, b) => sb.from("attendance").select("player_id, date, status").eq("team_id", tid).gte("date", addDays(today, -70)).range(a, b)),
@@ -201,7 +211,11 @@ export class SupabaseApi implements Api {
         q(sb.from("potentials").select("*").in("player_id", ids).order("created_at")),
         q(sb.from("coach_messages").select("*").in("player_id", ids).order("created_at")),
       ]);
-      for (const r of rpe) (D.rpe[r.player_id] ||= {})[r.date] = { rpe: Number(r.rpe), min: r.minutes, at: r.entered_at || null };
+      for (const r of rpe) {
+        const e: RpeEntry = { rpe: Number(r.rpe), min: r.minutes, at: r.entered_at || null, dives: r.dives ?? null };
+        // Einheit 0 = Mannschaftstraining/Spiel, sonst weitere Einheit des Tages
+        if (!r.slot) (D.rpe[r.player_id] ||= {})[r.date] = e; else ((D.rpeU[r.player_id] ||= {})[r.date] ||= {})[r.slot] = e;
+      }
       for (const r of well) {
         const items = { sq: r.sleep_quality || 0, fat: r.fatigue || 0, doms: r.soreness || 0, stress: r.stress || 0 };
         (D.well[r.player_id] ||= {})[r.date] = { sum: items.sq + items.fat + items.doms + items.stress, schlaf: Number(r.sleep_hours ?? 0), beschw: (r.complaint || "none") as Complaint, ort: r.complaint_location || "", items, areas: cleanAreas(r.complaint_areas || []),
@@ -221,7 +235,7 @@ export class SupabaseApi implements Api {
     {
       // Teamweite Daten – auch ohne Spieler (neues Team: Trainerprofil, Kontakte, Gruppen, Übungen)
       // Spieldaten, Noten, Videos (für Spieler filtern die Zugriffsregeln auf eigene, freigegebene Einträge)
-      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases, contacts, groups, members, blocks, duties, fines, tasks, cash, waivers] = await Promise.all([
+      const [stats, ratings, videos, tests, findings, exercises, templates, staffP, phases, contacts, groups, members, blocks, duties, fines, tasks, cash, waivers, units] = await Promise.all([
         all((a, b) => sb.from("match_stats").select("*").eq("team_id", tid).range(a, b)),
         all((a, b) => sb.from("player_ratings").select("*").eq("team_id", tid).gte("date", addDays(today, -330)).range(a, b)),
         q(sb.from("videos").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
@@ -245,7 +259,10 @@ export class SupabaseApi implements Api {
         // Mannschaftskasse (Kasse/Kassenwart: alles; Spieler: eigene Zahlungen und Befreiungen – Zugriffsregeln)
         all((a, b) => sb.from("cash_entries").select("*").eq("team_id", tid).order("date").order("created_at").range(a, b)),
         all((a, b) => sb.from("cash_waivers").select("*").eq("team_id", tid).range(a, b)),
+        // Weitere Einheiten einzelner Tage (Spieler: für alle bzw. freigegebene eigene Gruppen – Zugriffsregeln)
+        all((a, b) => sb.from("day_units").select("*").eq("team_id", tid).gte("date", addDays(today, -70)).order("date").order("slot").range(a, b)),
       ]);
+      for (const r of units) (D.units[r.date] ||= []).push(mapUnit(r));
       D.blocks = blocks.map(mapBlock); D.duties = duties.map(mapDuty); D.fines = fines.map(mapFine); D.tasks = tasks.map(mapTask);
       D.cash = cash.map(mapCash); D.waivers = waivers.map(r => ({ pid: r.player_id, feeId: r.fee_id, period: r.period }));
       D.cashBalance = null;
@@ -257,7 +274,7 @@ export class SupabaseApi implements Api {
       D.exercises = exercises.map(mapExercise); D.templates = templates.map(mapTemplate); D.staff = staffP.map(mapStaff);
       D.findings = findings.map(mapFinding);
       D.tests = tests.map(mapTest);
-      for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started };
+      for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started, conceded: r.conceded ?? null, saves: r.saves ?? null };
       D.ratings = ratings.map(mapRating);
       D.videos = videos.map(mapVideo);
     }
@@ -335,6 +352,16 @@ export class SupabaseApi implements Api {
     if (!s.length) return;
     await q(this.sb.from("sessions").upsert(s.map(x => ({ team_id: teamId, date: x.date, type: x.typ, duration: x.dauer, time: x.zeit, md: mdToNum(x.md), target_rpe: x.ziel, kind: x.kind ?? null })), { onConflict: "team_id,date", ignoreDuplicates: true }));
   }
+  async saveUnit(teamId: string, date: string, u: DayUnit) {
+    await q(this.sb.from("day_units").upsert(unitRow(teamId, date, u), { onConflict: "team_id,date,slot" }));
+  }
+  async deleteUnit(teamId: string, date: string, slot: number) {
+    await q(this.sb.from("day_units").delete().eq("team_id", teamId).eq("date", date).eq("slot", slot));
+  }
+  async saveUnits(teamId: string, rows: { date: string; u: DayUnit }[]) {
+    if (!rows.length) return;
+    await q(this.sb.from("day_units").upsert(rows.map(x => unitRow(teamId, x.date, x.u)), { onConflict: "team_id,date,slot", ignoreDuplicates: true }));
+  }
   async publishWeekPlan(teamId: string, ws: string, days: PublishedDay[]) {
     await q(this.sb.from("week_plans").upsert({ team_id: teamId, week_start: ws, items: days, computed_at: new Date().toISOString() }));
   }
@@ -380,9 +407,10 @@ export class SupabaseApi implements Api {
     if (!st) await q(this.sb.from("attendance").delete().eq("player_id", pid).eq("date", date));
     else await q(this.sb.from("attendance").upsert({ player_id: pid, date, team_id: teamId, status: st }));
   }
-  async saveRpe(pid: string, date: string, e: RpeEntry | null) {
-    if (!e) await q(this.sb.from("rpe_entries").delete().eq("player_id", pid).eq("date", date));
-    else await q(this.sb.from("rpe_entries").upsert({ player_id: pid, date, rpe: e.rpe, minutes: e.min, entered_at: e.at || new Date().toISOString() }));
+  async saveRpe(pid: string, date: string, e: RpeEntry | null, slot = 0) {
+    if (!e) await q(this.sb.from("rpe_entries").delete().eq("player_id", pid).eq("date", date).eq("slot", slot));
+    else await q(this.sb.from("rpe_entries").upsert({ player_id: pid, date, slot, rpe: e.rpe, minutes: e.min, entered_at: e.at || new Date().toISOString(),
+      dives: e.dives != null ? Math.max(0, Math.min(300, Math.round(e.dives))) : null }, { onConflict: "player_id,date,slot" }));
   }
   async saveWellness(pid: string, date: string, w: Wellness) {
     await q(this.sb.from("wellness_entries").upsert({
@@ -431,10 +459,12 @@ export class SupabaseApi implements Api {
   // ---------- Spiele, Bewertungen, Videos ----------
   async saveStat(teamId: string, matchId: string, pid: string, st: MatchStat | null) {
     if (!st) { await q(this.sb.from("match_stats").delete().eq("match_id", matchId).eq("player_id", pid)); return; }
-    await q(this.sb.from("match_stats").upsert({ team_id: teamId, match_id: matchId, player_id: pid, minutes: st.min, goals: st.goals, assists: st.assists, started: st.start }));
+    await q(this.sb.from("match_stats").upsert({ team_id: teamId, match_id: matchId, player_id: pid, minutes: st.min, goals: st.goals, assists: st.assists, started: st.start,
+      conceded: st.conceded ?? null, saves: st.saves ?? null }));
   }
   async saveRating(teamId: string, x: Rating) {
-    const row: Row = { team_id: teamId, player_id: x.pid, date: x.date, kind: x.kind, rating: x.rating, text: x.text || null, visible: x.vis };
+    const row: Row = { team_id: teamId, player_id: x.pid, date: x.date, kind: x.kind, rating: x.rating, text: x.text || null, visible: x.vis,
+      mark: x.kind === "training" ? x.mark ?? null : null, tags: (x.tags || []).slice(0, 8), slot: x.slot ?? 0 };
     const r = isTmp(x.id) ? await q<Row>(this.sb.from("player_ratings").insert(row).select().single()) : await q<Row>(this.sb.from("player_ratings").update(row).eq("id", x.id).select().single());
     return mapRating(r);
   }
@@ -489,7 +519,7 @@ export class SupabaseApi implements Api {
   // ---------- Trainingstag ----------
   async saveBlock(teamId: string, b: DayBlock) {
     const row: Row = { team_id: teamId, date: b.date, sort: b.sort, title: b.title.trim().slice(0, 120) || "–", minutes: Math.max(1, Math.min(180, Math.round(b.min))), staff_id: b.staffId,
-      exercise_id: b.exId && !isTmp(b.exId) ? b.exId : null, text: b.text || null, points: b.points.filter(x => x.trim()).slice(0, 12), drawing: b.drawing, photo_path: b.photo, group_id: b.groupId };
+      exercise_id: b.exId && !isTmp(b.exId) ? b.exId : null, text: b.text || null, points: b.points.filter(x => x.trim()).slice(0, 12), drawing: b.drawing, photo_path: b.photo, group_id: b.groupId, slot: b.slot ?? 0 };
     const r = isTmp(b.id) ? await q<Row>(this.sb.from("session_blocks").insert(row).select().single()) : await q<Row>(this.sb.from("session_blocks").update(row).eq("id", b.id).select().single());
     return mapBlock(r);
   }

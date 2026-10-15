@@ -12,6 +12,8 @@ export interface TestDef {
   min: number; max: number;
   /** Für welche Altersgruppen der Test empfohlen ist */
   groups: Group[];
+  /** nur für Torhüter (Torwartdiagnostik) */
+  gk?: boolean;
 }
 
 export const TESTS: TestDef[] = [
@@ -23,6 +25,9 @@ export const TESTS: TestDef[] = [
   { key: "agility505", unit: "s", lower: true, dec: 2, min: 1.8, max: 4.0, groups: ["u15", "u19", "akt"] },
   { key: "slalom", unit: "s", lower: true, dec: 1, min: 5, max: 40, groups: ["u11"] },
   { key: "standweit", unit: "cm", lower: false, dec: 0, min: 60, max: 320, groups: ["u11", "u15"] },
+  // Torhüter: seitliche Sprungkraft (Abdruck zum Ball) und Weite des Abschlags/Abstoßes
+  { key: "tw_lateral", unit: "cm", lower: false, dec: 0, min: 60, max: 400, groups: ["u15", "u19", "akt"], gk: true },
+  { key: "tw_kick", unit: "m", lower: false, dec: 0, min: 10, max: 90, groups: ["u15", "u19", "akt"], gk: true },
 ];
 export const testDef = (k: TestKey): TestDef => TESTS.find(x => x.key === k) || TESTS[0];
 export const testsFor = (g: Group): TestDef[] => TESTS.filter(x => x.groups.includes(g));

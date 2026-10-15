@@ -502,6 +502,9 @@ set local request.jwt.claim.sub = :'coachA';
 -- Konflikt-Daten: Trainer hat für "Max Muster" am 04.10. bereits RPE 4 erfasst
 select tst.affects(format($q$insert into public.rpe_entries (player_id, date, rpe, minutes) values (%L, '2026-10-04', 4, 60)$q$,
                           tst.get('max')), 1, 'T05c Trainer-RPE für Max am 04.10.');
+-- weitere Einheit (Athletik) an der Beitritts-Zeile am selben Tag: kein Konflikt mit dem Mannschaftstraining (Paket A)
+select tst.affects(format($q$insert into public.rpe_entries (player_id, date, slot, rpe, minutes) values (%L, '2026-10-04', 1, 5, 30)$q$,
+                          tst.get('p1_player')), 1, 'T05c RPE einer weiteren Einheit an der Beitritts-Zeile');
 -- Daten an der Beitritts-Zeile, die beim Zusammenführen mitwandern müssen
 select tst.affects(format($q$insert into public.performance_tests (player_id, test, date, value) values (%L, 'cmj', '2026-10-03', 41)$q$,
                           tst.get('p1_player')), 1, 'T05c Leistungstest an der Beitritts-Zeile');
@@ -555,8 +558,11 @@ begin
                  'T05c leere Stammdaten werden ergänzt');
   perform tst.eq((select count(*) from public.players where id = tst.get('p1_player')::uuid)::text, '0',
                  'T05c Beitritts-Zeile wurde gelöscht');
-  perform tst.eq((select rpe::text from public.rpe_entries where player_id = tst.get('max')::uuid and date = '2026-10-04'),
+  perform tst.eq((select rpe::text from public.rpe_entries where player_id = tst.get('max')::uuid and date = '2026-10-04' and slot = 0),
                  '4.0', 'T05c Konflikt: vorhandene RPE der Trainer-Zeile bleibt');
+  perform tst.eq((select rpe::text from public.rpe_entries where player_id = tst.get('max')::uuid and date = '2026-10-04' and slot = 1),
+                 '5.0', 'T05c RPE der weiteren Einheit am selben Tag wurde verschoben (merge v5)');
+  delete from public.rpe_entries where slot <> 0;
   perform tst.eq((select count(*) from public.wellness_entries where player_id = tst.get('max')::uuid)::text, '1',
                  'T05c Wellness ohne Konflikt wurde verschoben');
   perform tst.eq((select count(*) from public.consents where player_id = tst.get('max')::uuid)::text, '1',
@@ -1924,6 +1930,140 @@ do $$ begin
 end $$;
 commit;
 delete from public.wellness_entries where date = '2026-11-20';
+
+-- =====================================================================
+-- T43 Mehrere Einheiten am Tag, Torwarttraining, Trainingseindruck (Paket A)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{units}', '{"1": [{"slot": 1, "art": "athletik", "title": "", "zeit": "17:30", "dauer": 30, "rpe": 6, "groupId": null, "staffId": null, "inhalt": ""}]}') where id = %L$q$, tst.get('team_a')),
+                   1, 'T43 Owner legt wiederkehrende Athletik an');
+with ins as (insert into public.team_groups (team_id, name, kind, visible) values (tst.get('team_a')::uuid, 'T43 intern', 'custom', false) returning id)
+select tst.put('grp_hidden', id::text) from ins;
+with ins as (insert into public.team_groups (team_id, name, kind, visible) values (tst.get('team_a')::uuid, 'T43 Torhüter', 'tw', true) returning id)
+select tst.put('grp_tw43', id::text) from ins;
+insert into public.group_members (group_id, player_id) values (tst.get('grp_hidden')::uuid, tst.get('max')::uuid),
+  (tst.get('grp_tw43')::uuid, tst.get('max')::uuid), (tst.get('grp_tw43')::uuid, tst.get('p2_player')::uuid);
+select tst.affects(format($q$insert into public.sessions (team_id, date, type, duration, time) values (%L, '2026-09-21', 'Training', 90, '18:00')$q$, tst.get('team_a')), 1, 'T43 Mannschaftstraining am Doppeltag');
+select tst.affects(format($q$insert into public.day_units (team_id, date, slot, art, time, duration, target_rpe, group_id) values
+                             (%L, '2026-09-21', 1, 'athletik', '17:30', 30, 6, null), (%L, '2026-09-21', 2, 'tw', '16:30', 60, 7, %L), (%L, '2026-09-21', 3, 'reha', '17:00', 45, null, %L)$q$,
+                          tst.get('team_a'), tst.get('team_a'), tst.get('grp_tw43'), tst.get('team_a'), tst.get('grp_hidden')),
+                   3, 'T43 drei weitere Einheiten an einem Tag (Athletik, Torwarttraining, Reha)');
+select tst.throws(format($q$insert into public.day_units (team_id, date, slot) values (%L, '2026-09-21', 1)$q$, tst.get('team_a')), 'T43 je Tag und Nummer eine Einheit', 'duplicate key');
+select tst.throws(format($q$insert into public.day_units (team_id, date, slot) values (%L, '2026-09-21', 10)$q$, tst.get('team_a')), 'T43 Nummer 1–9', 'check constraint');
+select tst.throws(format($q$insert into public.day_units (team_id, date, slot, art) values (%L, '2026-09-21', 4, 'yoga')$q$, tst.get('team_a')), 'T43 unbekannte Art', 'check constraint');
+select tst.throws(format($q$insert into public.day_units (team_id, date, slot, time) values (%L, '2026-09-21', 4, '25:00')$q$, tst.get('team_a')), 'T43 ungültige Uhrzeit', 'check constraint');
+select tst.throws(format($q$insert into public.day_units (team_id, date, slot, duration) values (%L, '2026-09-21', 4, 300)$q$, tst.get('team_a')), 'T43 Dauer 5–240 Min.', 'check constraint');
+select tst.throws(format($q$insert into public.day_units (team_id, date, slot, group_id) values (%L, '2026-09-21', 4, %L)$q$, tst.get('team_a'), tst.get('grp_b')), 'T43 Gruppe eines anderen Teams', 'different_teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.affects($q$update public.day_units set duration = 35 where date = '2026-09-21' and slot = 1$q$, 1, 'T43 Co-Trainer mit „plan“ ändert eine Einheit');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select public.set_staff_perms(tst.get('team_a')::uuid, tst.uid('coachC'), array['health', 'squad']);
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.day_units where date = '2026-09-21')::text, '3', 'T43 Trainerteam sieht Einheiten auch ohne „plan“');
+end $$;
+select tst.affects($q$update public.day_units set duration = 40 where date = '2026-09-21'$q$, 0, 'T43 ohne „plan“ keine Änderung an Einheiten');
+select tst.throws(format($q$update public.teams set settings = jsonb_set(settings, '{units}', '{}') where id = %L$q$, tst.get('team_a')), 'T43 wiederkehrende Einheiten nur mit „plan“', 'forbidden');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select public.set_staff_perms(tst.get('team_a')::uuid, tst.uid('coachC'), null);
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select string_agg(slot::text, ',' order by slot) from public.day_units where date = '2026-09-21'), '1,2',
+                 'T43 Spieler sieht Einheiten für alle und für freigegebene eigene Gruppen (nicht für verborgene)');
+end $$;
+select tst.affects(format($q$insert into public.rpe_entries (player_id, date, slot, rpe, minutes, dives) values (%L, '2026-09-21', 2, 7, 60, 28)$q$, tst.get('max')),
+                   1, 'T43 RPE des Torwarttrainings mit Sprüngen');
+do $$ begin
+  perform tst.eq((select count(*) from public.attendance where player_id = tst.get('max')::uuid and date = '2026-09-21')::text, '0',
+                 'T43 RPE einer weiteren Einheit setzt keine Anwesenheit');
+end $$;
+select tst.affects(format($q$insert into public.rpe_entries (player_id, date, rpe, minutes) values (%L, '2026-09-21', 6, 90)$q$, tst.get('max')),
+                   1, 'T43 RPE des Mannschaftstrainings am selben Tag');
+do $$ begin
+  perform tst.eq((select status from public.attendance where player_id = tst.get('max')::uuid and date = '2026-09-21'), 'da',
+                 'T43 RPE des Mannschaftstrainings setzt Anwesenheit');
+end $$;
+select tst.throws(format($q$insert into public.rpe_entries (player_id, date, slot, rpe, minutes) values (%L, '2026-09-21', 2, 5, 60)$q$, tst.get('max')), 'T43 je Einheit eine RPE', 'duplicate key');
+select tst.throws(format($q$insert into public.rpe_entries (player_id, date, slot, rpe, minutes, dives) values (%L, '2026-09-21', 1, 5, 30, 500)$q$, tst.get('max')), 'T43 Sprünge 0–300', 'check constraint');
+select tst.throws(format($q$insert into public.rpe_entries (player_id, date, slot, rpe, minutes) values (%L, '2026-09-21', 10, 5, 30)$q$, tst.get('max')), 'T43 Einheit 0–9', 'check constraint');
+select tst.affects($q$update public.day_units set duration = 10$q$, 0, 'T43 Spieler ändert keine Einheiten');
+select tst.throws(format($q$insert into public.day_units (team_id, date, slot) values (%L, '2026-09-23', 1)$q$, tst.get('team_a')), 'T43 Spieler legt keine Einheiten an', 'row-level security');
+select tst.affects(format($q$insert into public.rpe_entries (player_id, date, slot, rpe, minutes) values (%L, '2026-09-22', 1, 5, 30)$q$, tst.get('max')),
+                   1, 'T43 RPE einer weiteren Einheit an einem Tag ohne Mannschaftstraining');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select string_agg(slot::text, ',' order by slot) from public.day_units where date = '2026-09-21'), '1,2', 'T43 Mitspieler in der Torhüter-Gruppe sieht das Torwarttraining');
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('max')::uuid)::text, '0', 'T43 Mitspieler sieht keine RPE anderer');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.sessions (team_id, date, type, duration, time) values (%L, '2026-09-22', 'Training', 90, '18:00')$q$, tst.get('team_a')), 1, 'T43 Einheit nachträglich gespeichert');
+do $$ begin
+  perform tst.eq((select count(*) from public.attendance where player_id = tst.get('max')::uuid and date = '2026-09-22')::text, '0',
+                 'T43 nachträgliche Einheit: nur die RPE des Mannschaftstrainings setzt Anwesenheit');
+  perform tst.eq((select dives::text from public.rpe_entries where player_id = tst.get('max')::uuid and date = '2026-09-21' and slot = 2), '28', 'T43 Trainerteam sieht die Sprünge');
+end $$;
+with ins as (insert into public.matches (team_id, date, opponent) values (tst.get('team_a')::uuid, '2026-09-20', 'T43 FC') returning id)
+select tst.put('m43', id::text) from ins;
+select tst.affects(format($q$insert into public.match_stats (match_id, player_id, minutes, conceded, saves) values (%L, %L, 90, 0, 5)$q$, tst.get('m43'), tst.get('max')), 1, 'T43 Torwart-Spieldaten (Gegentore, Paraden)');
+select tst.throws(format($q$update public.match_stats set conceded = 31 where match_id = %L$q$, tst.get('m43')), 'T43 Gegentore 0–30', 'check constraint');
+select tst.affects(format($q$insert into public.player_ratings (player_id, date, kind, mark, tags, slot, visible) values (%L, '2026-09-21', 'training', 'good', '{catching,diving}', 2, true), (%L, '2026-09-21', 'training', 'poor', '{focus}', 0, false)$q$, tst.get('max'), tst.get('p2_player')),
+                   2, 'T43 Trainingseindruck: besonders gut (Torwarttraining) und besonders schwach');
+select tst.throws(format($q$insert into public.player_ratings (player_id, date, kind, mark) values (%L, '2026-09-21', 'training', 'top')$q$, tst.get('max')), 'T43 nur gut/schwach', 'check constraint');
+select tst.throws(format($q$insert into public.player_ratings (player_id, date, kind, mark) values (%L, '2026-09-20', 'spiel', 'good')$q$, tst.get('max')), 'T43 Eindruck nur für Training', 'check constraint');
+select tst.throws(format($q$insert into public.player_ratings (player_id, date, kind, mark, tags) values (%L, '2026-09-21', 'training', 'good', '{a,b,c,d,e,f,g,h,i}')$q$, tst.get('max')), 'T43 höchstens 8 Gründe', 'check constraint');
+select tst.affects(format($q$insert into public.performance_tests (player_id, test, date, value) values (%L, 'tw_lateral', '2026-09-21', 210), (%L, 'tw_kick', '2026-09-21', 52)$q$, tst.get('max'), tst.get('max')),
+                   2, 'T43 Torwarttests (seitlicher Sprung, Abschlagweite)');
+select tst.throws(format($q$insert into public.performance_tests (player_id, test, date, value) values (%L, 'tw_foo', '2026-09-21', 1)$q$, tst.get('max')), 'T43 unbekannter Test', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_ratings where date = '2026-09-21')::text, '0', 'T43 nicht freigegebener Eindruck bleibt beim Trainerteam');
+end $$;
+commit;
+
+do $$
+begin
+  delete from public.day_units where team_id = tst.get('team_a')::uuid;
+  delete from public.rpe_entries where date in ('2026-09-21', '2026-09-22');
+  delete from public.attendance where date in ('2026-09-21', '2026-09-22');
+  delete from public.sessions where date in ('2026-09-21', '2026-09-22');
+  delete from public.player_ratings where date = '2026-09-21';
+  delete from public.matches where id = tst.get('m43')::uuid;
+  delete from public.performance_tests where test in ('tw_lateral', 'tw_kick');
+  delete from public.team_groups where id in (tst.get('grp_hidden')::uuid, tst.get('grp_tw43')::uuid);
+  update public.teams set settings = settings - 'units' where id = tst.get('team_a')::uuid;
+end
+$$;
 
 -- =====================================================================
 -- T17 Einwilligungen

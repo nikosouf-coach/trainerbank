@@ -10,7 +10,8 @@ import { applyOp, applyOutbox, enqueue, prune, withClientId, type OutboxItem, ty
 import { PERMS, effectivePerms, teamPatchPerms, viewFor, type Perm } from "../core/perms";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
-import type { CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, DayBlock, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
+import { recurringOn } from "../core/units";
+import type { CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -208,6 +209,14 @@ function useStoreValue() {
       else if (it.train && it.train.kind !== "frei") add.push({ date: d, typ: "Training", dauer: it.train.dauer, zeit: E.zeitOf(d), md: it.md, ziel: it.train.rpe, kind: it.train.kind });
     }
     if (add.length) { D.sessions.push(...add); D.sessions.sort((a, b) => a.date < b.date ? -1 : 1); api.saveSessions(m.teamId, add).catch(() => undefined); }
+    // Vergangene wiederkehrende Einheiten festhalten – spätere Änderungen am Wochenrhythmus verändern sie nicht mehr
+    const units: { date: string; u: DayUnit }[] = [];
+    for (let k = 42; k >= 1; k--) {
+      const d = addDays(E.TODAY, -k), dated = D.units[d] || [];
+      if (!recurringOn(D.team.settings, d).length) continue;
+      for (const u of E.unitsOn(d)) if (!dated.some(x => x.slot === u.slot)) units.push({ date: d, u: { ...u, from: null } });
+    }
+    if (units.length) { for (const x of units) (D.units[x.date] ||= []).push(x.u); api.saveUnits(m.teamId, units).catch(() => undefined); }
     publishPlans();
   }
   const pubTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -293,7 +302,7 @@ function useStoreValue() {
   async function exec(api: Api, teamId: string, o: OutboxOp): Promise<Extra | Absence | void> {
     const sid = (id: string): string => id.startsWith("c-") ? id.slice(2) : id;
     switch (o.op) {
-      case "rpe": return api.saveRpe(o.pid, o.date, o.e);
+      case "rpe": return api.saveRpe(o.pid, o.date, o.e, o.slot || 0);
       case "well": return api.saveWellness(o.pid, o.date, o.w);
       case "extra": return api.saveExtra(o.pid, o.x);
       case "extraDel": return api.deleteExtra(sid(o.id));
@@ -470,6 +479,18 @@ function useStoreValue() {
       set({ version: ref.current.version + 1 }); publishPlans(); return saved;
     },
     deleteKind: (id: string) => change(D => { D.kinds = D.kinds.filter(x => x.id !== id); }, (api, t) => api.deleteKind(t, id), { plan: true }),
+    // Weitere Einheiten (Doppeleinheiten, Torwarttraining): für einen Tag bzw. wiederkehrend je Wochentag
+    saveUnit: (date: string, u: DayUnit) => change(D => {
+      const L = (D.units[date] ||= []), i = L.findIndex(x => x.slot === u.slot); if (i >= 0) L[i] = u; else L.push(u);
+    }, (api, t) => api.saveUnit(t, date, u), { plan: true }),
+    deleteUnit: (date: string, slot: number) => change(D => {
+      D.units[date] = (D.units[date] || []).filter(x => x.slot !== slot); if (!D.units[date].length) delete D.units[date];
+    }, (api, t) => api.deleteUnit(t, date, slot), { plan: true }),
+    saveWeeklyUnits: (wd: number, list: DayUnit[]) => {
+      const D = ref.current.D; if (!D) return Promise.resolve();
+      const units = { ...(D.team.settings.units || {}) }; if (list.length) units[wd] = list; else delete units[wd];
+      return actions.updateTeam({ settings: { ...D.team.settings, units } });
+    },
 
     // Spieler
     savePlayer: async (p: Player): Promise<Player> => {
@@ -493,7 +514,11 @@ function useStoreValue() {
     },
     // Einträge: funktionieren auch ohne Netz (Warteschlange, siehe entry)
     setAttendance: (date: string, pid: string, st: AttStatus | null) => entry({ op: "att", date, pid, st }),
-    saveRpe: (pid: string, date: string, e: RpeEntry | null) => entry({ op: "rpe", pid, date, e: e ? { ...e, at: e.at ?? ref.current.D?.rpe[pid]?.[date]?.at ?? null } : null }),
+    /** RPE eintragen (slot 0 = Mannschaftstraining/Spiel, 1–9 = weitere Einheit des Tages) */
+    saveRpe: (pid: string, date: string, e: RpeEntry | null, slot = 0) => {
+      const prev = slot ? ref.current.D?.rpeU[pid]?.[date]?.[slot] : ref.current.D?.rpe[pid]?.[date];
+      return entry({ op: "rpe", pid, date, e: e ? { ...e, at: e.at ?? prev?.at ?? null } : null, ...(slot ? { slot } : {}) });
+    },
     saveWellness: (pid: string, date: string, w: Wellness) => entry({ op: "well", pid, date, w }),
     saveExtra: (pid: string, x: Extra) => entry({ op: "extra", pid, x }),
     deleteExtra: (pid: string, id: string) => entry({ op: "extraDel", pid, id }),
@@ -654,7 +679,7 @@ function useStoreValue() {
   // ---------- Rechte: Aktionen des Trainerteams nur mit passendem Recht (Server prüft zusätzlich) ----------
   const NEED: Partial<Record<keyof typeof actions, Perm | Perm[]>> = {
     saveMatch: "plan", deleteMatch: "plan", saveEvent: "plan", deleteEvent: "plan", setCal: "plan", setOver: "plan", setWeekMode: "plan",
-    saveKind: "plan", deleteKind: "plan", savePhase: "plan", deletePhase: "plan", saveVideo: "plan", deleteVideo: "plan",
+    saveKind: "plan", deleteKind: "plan", savePhase: "plan", deletePhase: "plan", saveVideo: "plan", deleteVideo: "plan", saveUnit: "plan", deleteUnit: "plan",
     savePlayer: "squad", deletePlayer: "squad", mergePlayers: "squad", uploadPhoto: "squad", setAttendance: "squad",
     saveGroup: "squad", deleteGroup: "squad", setGroupMember: "squad", saveContact: "squad", deleteContact: "squad",
     saveAbsence: ["squad", "health"], deleteAbsence: ["squad", "health"],
