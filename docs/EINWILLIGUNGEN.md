@@ -126,7 +126,8 @@ Knöpfe: **„Einwilligen und weiter“** · **„Ohne Gesundheitsdaten fortfahr
 **Langfassung (Mehr lesen):**
 > **Einwilligung in die Verarbeitung deiner Gesundheitsdaten**
 >
-> **Welche Daten?** Dein Belastungsempfinden nach Training und Spiel (RPE) und die Dauer; dein morgendliches
+> **Welche Daten?** Dein Belastungsempfinden nach Training und Spiel (RPE) und die Dauer – je Einheit, also z. B. auch für
+> Athletik- oder Torwarttraining, bei Torhütern mit der ungefähren Zahl der Sprünge/Hechtsprünge; dein morgendliches
 > Wohlbefinden (Schlafdauer, Schlafqualität, Müdigkeit, Muskelkater, Stress, Beschwerden und betroffene
 > Körperregionen mit Angaben zum Schmerz wie Stärke, Art und Beginn); Zusatzsport; Körpergröße und Gewicht; Abwesenheiten wegen Krankheit oder Verletzung mit
 > Rückkehrstufe, verletzter Körperregion und Notiz; deine Zugehörigkeit zu Gruppen wie „Reha“, „Belastungsaufbau“ oder
@@ -161,6 +162,10 @@ Knöpfe: **„Einwilligen und weiter“** · **„Ohne Gesundheitsdaten fortfahr
 >
 > Verantwortlich: [Herausgeber], [E-Mail]. Mehr in der [Datenschutzerklärung].
 
+> **Prüfhinweis (Paket A):** Ergänzt wurden die Belastung je Einheit (mehrere Einheiten am Tag) und – nur bei Torhütern –
+> die ungefähre Zahl der Sprünge/Hechtsprünge. Prüfen, ob diese Erweiterung vom bisherigen Zweck gedeckt ist oder eine
+> neue Textversion (`CONSENT_VERSION`) und damit eine erneute Einwilligung erforderlich ist.
+
 ### English
 
 **Short version (checkbox):**
@@ -173,7 +178,8 @@ Buttons: **"Consent and continue"** · **"Continue without health data"**
 **Long version (Read more):**
 > **Consent to the processing of your health data**
 >
-> **What data?** Your perceived exertion after training and matches (RPE) and the duration; your morning wellness
+> **What data?** Your perceived exertion after training and matches (RPE) and the duration – per session, e.g. also for
+> athletics or goalkeeper training, for goalkeepers with the approximate number of jumps/dives; your morning wellness
 > (sleep hours, sleep quality, fatigue, muscle soreness, stress, complaints and affected body regions with pain details
 > such as intensity, character and onset); extra sport;
 > height and weight; absences due to illness or injury with return-to-play stage, injured body region and note; your
@@ -248,7 +254,7 @@ Knöpfe: **„Einwilligen“** · **„Abbrechen“**
 > Nachrichten des Trainerteams und kann eintragen, wie anstrengend ein Training war und wie es sich morgens fühlt.
 >
 > **Welche Daten:** Konto (E-Mail-Adresse, Anzeigename), Vor- und Nachname, Geburtsdatum, Position, Rückennummer,
-> optional Foto und Gewicht. Außerdem **Gesundheitsdaten**: Belastungsempfinden und Trainingsminuten, Schlaf,
+> optional Foto und Gewicht. Außerdem **Gesundheitsdaten**: Belastungsempfinden und Trainingsminuten je Einheit (bei Torhütern mit Sprüngen), Schlaf,
 > Müdigkeit, Muskelkater, Stress, Beschwerden und betroffene Körperregionen, Zusatzsport, Körpergröße und Gewicht,
 > Abwesenheiten wegen Krankheit oder Verletzung mit Rückkehrstufe und verletzter Körperregion, Zugehörigkeit zu
 > Gruppen wie „Reha“ oder „Wachstumsschub“ sowie daraus berechnete Werte. Die Einwilligung gilt
@@ -752,7 +758,7 @@ Spielerin/Spieler: ____________________________  Geburtsdatum: ___________
 Mannschaft: __________________________________  Verein: ___________________
 
 Das Trainerteam unserer Mannschaft nutzt die App Trainerbank, um Training, Spiele und Belastung zu
-planen. Dafür möchte es folgende Gesundheitsdaten erfassen: Belastungsempfinden und Trainingsminuten,
+planen. Dafür möchte es folgende Gesundheitsdaten erfassen: Belastungsempfinden und Trainingsminuten je Einheit,
 Abwesenheiten wegen Krankheit oder Verletzung mit Rückkehrstufe, Körpergröße und ggf. Gewicht.
 Die Daten sieht nur das Trainerteam der Mannschaft; Mitspieler sehen sie nicht. Gespeichert wird
 in der EU (Frankfurt) bei [Herausgeber] bzw. dessen Dienstleister. Die App stellt keine Diagnosen.

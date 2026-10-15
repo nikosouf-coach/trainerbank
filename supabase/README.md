@@ -34,6 +34,7 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `migrations/20261008…18_kasse.sql` | `cash_entries`, `cash_waivers`, Kassenwart (`is_treasurer`), `team_cash_balance`; Zahlung einer Strafe ⇒ bezahlt |
 | `migrations/20261008…19_schmerz.sql` | `wellness_entries.complaint_details` (Angaben zum Schmerz je Region, geprüft) |
 | `migrations/20261008…20_datenschutz_kasse.sql` | `merge_players` und `my_data_export` (v4) für Zahlungen und Befreiungen |
+| `migrations/20261008…21_einheiten.sql` | Mehrere Einheiten am Tag: `day_units`, `rpe_entries.slot` (Schlüssel `player_id, date, slot`) und `.dives` (Torhüter), Anwesenheit nur über Einheit 0, `session_blocks.slot`, Trainingseindruck (`player_ratings.mark/tags/slot`), `match_stats.conceded/saves`, Torwarttests, `settings.units` braucht `plan`, `merge_players` v5 |
 | `functions/finding` | Befund-Auswertung: prüft Recht „Befunde“ (`staff_can(team,'medical')`) und Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
 | `functions/delete-account` | Konto löschen (Fotos, Befund-Dateien, Skizzen verwaister Teams, verwaiste Teams, Auth-Nutzer ⇒ Cascade) |

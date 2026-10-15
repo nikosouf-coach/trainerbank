@@ -50,7 +50,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `sessions` | pk(`team_id`,`date`), `type` ('Training'/'Spiel'), `duration`, `time`, `md`, `target_rpe`, `kind` | Schnappschuss stattgefundener Einheiten |
 | `week_plans` | pk(`team_id`,`week_start`), `items` jsonb, `computed_at` | vom Trainer-Client veröffentlichter Plan für Spieler |
 | `attendance` | pk(`player_id`,`date`), `team_id`, `status` ('da'/'ent'/'unent') | |
-| `rpe_entries` | pk(`player_id`,`date`), `rpe` 0–10, `minutes` 1–300, `created_by`, `created_at` | Trigger setzt Anwesenheit 'da', falls leer |
+| `rpe_entries` | pk(`player_id`,`date`,`slot`) (bis …0021: pk(`player_id`,`date`)), `rpe` 0–10, `minutes` 1–300, `created_by`, `created_at` | Trigger setzt Anwesenheit 'da', falls leer |
 | `wellness_entries` | pk(`player_id`,`date`), `sleep_hours` 0–16, `sleep_quality`/`fatigue`/`soreness`/`stress` 1–7, `complaint` ('none'/'light'/'clear'), `complaint_location` | Hooper-Fragebogen |
 | `extra_activities` | `id`, `player_id`, `date`, `type` ('gym'/'schule'/'lauf'/'verein'/'sonst'), `minutes`, `rpe` | Zusatzsport |
 | `absences` | `id`, `team_id`, `player_id`, `type` ('urlaub'/'krank'/'verletzung'/'schule'/'arbeit'/'sonst'), `from_date`, `to_date` (null = offen), `stage` 1–4, `note`, `reported_by_player` bool, `created_by` | |
@@ -88,6 +88,11 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `cash_entries` (…0018) | Kassenbuch: `date`, `amount`, `kind` (in/out), `cat`, `player_id` (bei Löschung null), `fee_id` + `period` (Beitrag), `fine_id` (Strafe) | Staff mit `cash` und Kassenwart; Spieler eigene Zahlungen |
 | `cash_waivers` (…0018) | erlassene Beiträge: pk(`team_id`,`player_id`,`fee_id`,`period`), `period` „*“ = ganzer Beitrag | Staff mit `cash`; Kassenwart und Spieler lesen (Spieler nur eigene) |
 | `wellness_entries.complaint_details` (…0019) | Angaben zum Schmerz je gemeldeter Region (Stärke, Art, Beginn, Dauer, Situation, Kontakt, Zeichen, Trainierbarkeit) | wie Wellness |
+| `day_units` (…0021) | weitere Einheiten einzelner Tage: pk(`team_id`,`date`,`slot` 1–9), `art` (athletik/kraft/tw/technik/taktik/praev/reha/sonst), `title`, `time`, `duration`, `target_rpe`, `group_id` (ohne Fremdschlüssel: gelöschte Gruppe = niemand), `staff_id`, `content`, `themes`, `cancelled` | lesen Staff; Spieler Einheiten für alle und für freigegebene eigene Gruppen; schreiben `plan` |
+| `rpe_entries.slot`, `.dives` (…0021) | Einheit des Tages (0 = Mannschaftstraining/Spiel, 1–9 = weitere Einheit), Schlüssel (`player_id`,`date`,`slot`); Sprünge/Hechtsprünge der Torhüter (0–300). Anwesenheit „da“ setzt nur Einheit 0 | wie RPE |
+| `session_blocks.slot` (…0021) | Ablauf auch für weitere Einheiten (z. B. Torwarttraining) | nur Staff |
+| `player_ratings.mark`, `.tags`, `.slot` (…0021) | Trainingseindruck: nur `good`/`poor` (Standard Durchschnitt = keine Zeile), bis 8 Gründe, Einheit | wie Bewertungen |
+| `match_stats.conceded`, `.saves` (…0021) | Torhüter: Gegentore in der eigenen Spielzeit, Paraden | wie Spieldaten |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -95,6 +100,9 @@ mit Automatik-Regeln (`settings.fines`, jede Regel mit Startdatum `since` – ni
 (`settings.testRank`: aus / eigener Platz / Platz + Teambestwert) liegen ebenfalls in `teams.settings`. Die Mannschaftskasse
 steht in `settings.kasse` (an/aus, Währung, Geldstrafen, Kassenstand für Spieler, Kassenwart = Spieler-ID, Zahlungshinweis,
 Beiträge); ändern darf sie nur, wer das Recht `cash` hat (Trigger `teams_perm_guard` prüft je geändertem Schlüssel).
+Weitere Einheiten im Wochenrhythmus stehen in `settings.units` (Schlüssel = Wochentag, Recht `plan`); sie gelten ab
+ihrem Startdatum, fallen an Spieltagen, in Pausen und bei abgesagtem Mannschaftstraining aus und werden für vergangene
+Tage (42 Tage) als `day_units` festgehalten, damit spätere Änderungen am Wochenrhythmus die Historie nicht verändern.
 
 ### Rechte im Trainerteam
 
@@ -140,7 +148,8 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `join_staff(code)` → Team-ID (Rolle 'coach').
 - `regenerate_codes(team)` (nur Owner).
 - `team_by_join_code(code)` → Vereins-/Teamname zur Anzeige vor dem Beitritt (keine weiteren Daten).
-- `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen).
+- `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen,
+  Kasse; v5: RPE je Einheit des Tages).
 - `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v4`: Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse.
@@ -178,6 +187,10 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `kasse.ts` – Beiträge (fällige Zeiträume), offene Beträge je Spieler, Kassenstand, Formatierung.
 - `figure.ts` – Körperfigur (Kind/Jugend/Erwachsene, vorne/hinten) mit Trefferflächen.
 - `pain.ts` – Angaben zum Schmerz, Warnzeichen und Steuerung, Häufungen im Team mit Prävention.
+- `units.ts` – mehrere Einheiten am Tag (wiederkehrend/Tageseinträge, Ausfall, Mitglieder), RPE je Einheit,
+  Torwarttraining (Schwerpunkte, Periodisierung nach Spieltag, Sprünge), Trainingseindruck (nur Ausreißer).
+  Die Engine rechnet weitere Einheiten in Tageslast, ACWR, Erholung und den Abgleich der Wochenlast ein
+  (`WeekPlan.unitAU`; die Ziel-RPE weiterer Einheiten wird nie automatisch verändert).
 - `demo.ts` – Demo-Mannschaft (für Demo-Modus, Tests und „Beispieldaten laden“).
 - Tests: `src/core/__tests__` (`node --test`).
 

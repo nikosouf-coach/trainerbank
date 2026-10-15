@@ -74,6 +74,9 @@ FÜR TRAINERINNEN UND TRAINER
 • Belastungssteuerung mit Session-RPE: Belastung pro Einheit, Verlauf über die Wochen, akute und chronische Belastung im Vergleich
 • Ampel und Hinweise: Wer braucht mehr Erholung, wer kann mehr?
 • Regeneration nach Alter: Erholungszeiten für neun Altersstufen
+• Mehrere Einheiten am Tag: z. B. Athletik vor dem Mannschaftstraining, Torwarttraining oder eine Reha-Gruppe – jede Woche oder für einzelne Tage
+• Torhüter im Blick: Torwarttraining mit Schwerpunkten, Sprünge als Belastung, Gegentore, Paraden und Torwarttests
+• Trainingseindruck in Sekunden: nur besonders gute oder schwache Leistungen markieren – Durchschnitt ist Standard
 • Anwesenheit in Sekunden erfassen
 • Abwesenheiten mit Grund und stufenweiser Rückkehr ins Training
 • Wachstum im Blick: Körpergröße erfassen und Wachstumsphasen im Jugendbereich berücksichtigen
@@ -132,6 +135,9 @@ FOR COACHES
 • Load management with session RPE: load per session, trends over the weeks, acute vs. chronic load
 • Traffic light and hints: who needs more recovery, who can handle more?
 • Age-based recovery: recovery times for nine age groups
+• Several sessions per day: e.g. athletics before team training, goalkeeper training or a rehab group – weekly or for single days
+• Goalkeepers in focus: goalkeeper sessions with focus areas, jumps as load, goals conceded, saves and goalkeeper tests
+• Training impressions in seconds: only mark particularly good or weak performances – average is the default
 • Take attendance in seconds
 • Absences with reason and a step-by-step return to training
 • Growth tracking: record height and take growth phases in youth football into account
@@ -177,7 +183,7 @@ Legal notice: [Impressum-URL]
 ```
 <!-- desc-en:end -->
 
-Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE ca. 3.100 Zeichen, EN ca. 2.790 Zeichen – Puffer für
+Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE ca. 3.480 Zeichen, EN ca. 3.150 Zeichen – Puffer für
 Preisangaben vorhanden.
 
 ### Formulierungsregeln für alle Store- und Werbetexte

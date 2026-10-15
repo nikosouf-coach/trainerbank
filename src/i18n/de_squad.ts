@@ -41,7 +41,7 @@ export const de_squad: Dict = {
   pm_plan: "Planung", pm_planD: "Kalender, Spiele, Termine, Wochenplan, Vorbereitung, Videos",
   pm_squad: "Kader", pm_squadD: "Spieler, Gruppen, Anwesenheit, Abwesenheiten, Kontakte",
   pm_perf: "Leistung & Statistik", pm_perfD: "Leistungstests und Spieldaten (Minuten, Tore …) eintragen",
-  pm_notes: "Notizen & Bewertungen", pm_notesD: "Trainernotizen, Potenziale, Noten mit Feedback",
+  pm_notes: "Notizen & Bewertungen", pm_notesD: "Trainernotizen, Potenziale, Noten mit Feedback, Trainingseindruck",
   pm_messages: "Nachrichten", pm_messagesD: "Nachrichten an Spieler und Gruppen",
   pm_tasks: "Aufgaben & Strafen", pm_tasksD: "Aufgaben, Dienste, Strafenkatalog und Automatik verwalten (eigene Todos abhaken darf jeder)",
   pm_cash: "Mannschaftskasse", pm_cashD: "Beiträge, Zahlungen und Kassenbuch",

@@ -38,7 +38,7 @@ export const en_squad: Dict = {
   pm_plan: "Planning", pm_planD: "Calendar, matches, events, weekly plan, pre-season, videos",
   pm_squad: "Squad", pm_squadD: "Players, groups, attendance, absences, contacts",
   pm_perf: "Performance & stats", pm_perfD: "Enter performance tests and match data (minutes, goals …)",
-  pm_notes: "Notes & ratings", pm_notesD: "Coach notes, potentials, ratings with feedback",
+  pm_notes: "Notes & ratings", pm_notesD: "Coach notes, potentials, ratings with feedback, training impressions",
   pm_messages: "Messages", pm_messagesD: "Messages to players and groups",
   pm_tasks: "Tasks & fines", pm_tasksD: "Manage tasks, duties, fine catalogue and automation (anyone may tick off their own to-dos)",
   pm_cash: "Team kitty", pm_cashD: "Fees, payments and cash book",

@@ -257,6 +257,8 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R28 | **Mannschaftskasse:** Befreiungen/offene Beträge deuten auf finanzielle Notlage; Kassenwart (Spieler) sieht Beträge der Mitspieler; Geldstrafen bei Minderjährigen | Spieler, v. a. Jugendliche | Bloßstellung, Druck | 2 | 2 | gering |
 | R29 | **Detaillierte Schmerzangaben** werden als Diagnose missverstanden oder führen zu Druck, Beschwerden zu verschweigen | Spieler | gesundheitlicher Schaden | 2 | 3 | Risiko |
 | R30 | **Offline-Zeitpunkte** werden manipuliert (Gerätezeit), um Fristen zu umgehen | Team | unfaire Automatik | 2 | 1 | gering |
+| R31 | **Trainingseindruck:** negative Markierungen stigmatisieren, werden als Druckmittel genutzt oder erreichen den Spieler unvermittelt über die App | Spieler, v. a. Jugendliche | psychischer Druck, Demotivation | 2 | 2 | gering |
+| R32 | **Einheiten für Gruppen** (z. B. Reha-Gruppe, Torhüter) lassen auf die Gruppenzugehörigkeit schließen; Sprünge der Torhüter als zusätzliche Gesundheitsangabe | Spieler in Reha-/Aufbaugruppen, Torhüter | Offenlegung von Gesundheitsinformationen | 1 | 3 | gering |
 
 ---
 
@@ -294,6 +296,8 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | Integrität | `entered_at`: Eingabezeitpunkt nie in der Zukunft, nie vor der Einheit, frühester bleibt; Automatik erlässt nur bei rechtzeitig belegter Eingabe (RLS-Test T39) | R30, R23 |
 | Datenminimierung | Kasse: Spieler sehen nur eigene Beträge, Kassenstand nur bei Freigabe; Befreiungen in eigener Tabelle (nicht in den für alle lesbaren Einstellungen); keine Konto-/Kartendaten; Geldstrafen bei Jugend standardmäßig aus mit Warnhinweis; „RPE fehlt“ nie als Geldstrafe vorgeschlagen; Kassenwart ohne Gesundheitsdaten und ohne Befreiungen ändern (RLS-Test T41) | R28 |
 | Transparenz | Schmerzangaben: Hinweise als Orientierung („abklären lassen“), keine Diagnose; Angaben freiwillig; Prüfung der Schlüssel und Größe in der Datenbank (RLS-Test T42) | R29 |
+| Datenminimierung | Trainingseindruck nur für Ausreißer (`good`/`poor`, Durchschnitt wird nicht gespeichert), keine Rangliste; Kritik standardmäßig nicht für Spieler sichtbar (erst persönlich besprechen), Lob sichtbar; nur für Training (Check), höchstens 8 Gründe; Schreiben nur mit Recht „Notizen & Bewertungen“ (RLS-Test T43) | R31 |
+| Vertraulichkeit | Weitere Einheiten (`day_units`): Spieler lesen nur Einheiten für alle und für eigene freigegebene Gruppen, nie Teilnehmerlisten; gelöschte Gruppe ⇒ niemand statt alle; RPE je Einheit mit denselben Regeln und derselben Einwilligung wie die übrige Belastung; Anwesenheit nur über das Mannschaftstraining; Sprünge der Torhüter freiwillig, Plausibilitätsgrenze 0–300 (RLS-Test T43) | R32 |
 
 ### 6.2 Zusätzliche Maßnahmen (geplant)
 
@@ -361,6 +365,8 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | R28 | 1 | 2 | gering | nur eigene Beträge, Befreiungen getrennt, Jugend ohne Geld |
 | R29 | 1 | 3 | gering | vorsichtige Formulierungen, Freiwilligkeit |
 | R30 | 1 | 1 | gering | Plausibilitätsgrenzen in der Datenbank |
+| R31 | 1 | 2 | gering | nur Ausreißer, Kritik standardmäßig verborgen, Leitfaden zur fairen Nutzung (M-18) |
+| R32 | 1 | 2 | gering | keine Teilnehmerlisten, Einheiten verborgener Gruppen nicht für Spieler |
 
 **Bewertung:** Nach Umsetzung aller P1-Maßnahmen verbleibt **kein hohes Restrisiko**. Eine vorherige Konsultation der
 Aufsichtsbehörde nach Art. 36 DSGVO ist dann voraussichtlich nicht erforderlich.
@@ -442,3 +448,4 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 | 0.2 | [TT.MM.JJJJ] | Ergänzt: Spieldaten/Noten, Leistungstests, Befunde mit KI-Auswertung (R19, R20), Vorbereitung/Pausen, Kontaktliste (R21). Umgesetzte Maßnahmen: privater Bucket `findings` mit Pfad- und Zeilenprüfung, eigene Einwilligung `findings` (serverseitig geprüft), Löschung der Dateien bei Spieler-, Konto- und Teamlöschung, Export v2, Sichtbarkeit je Bereich im Baukasten | [ ] |
 | 0.3 | [TT.MM.JJJJ] | Ergänzt: Gruppen mit Sichtbarkeit (R22), Aufgaben/Dienste/Strafen mit Automatik (R23), Platzierung in Tests (R24), Trainingstag mit Skizzen-Fotos (R25), Körperregionen bei Beschwerden und Verletzungen. Umgesetzte Maßnahmen: Gruppen-Sichtbarkeit nur eigene Mitgliedschaft (RLS), Automatik nur ab Einschalten und nur mit Gesundheits-Einwilligung, `my_test_ranks` ohne fremde Werte (ab 5), privater Bucket `sketches`, Export v3 | [ ] |
 | 0.4 | [TT.MM.JJJJ] | Ergänzt: Offline-Einträge und lokale Kopie (R26, R30), Rechte je Mitglied (R27), Mannschaftskasse mit Kassenwart (R28), Körperkarte mit Schmerzangaben (R29). Umgesetzte Maßnahmen: `staff_can()` in allen Regeln, `entered_at` mit Plausibilitätsprüfung, `cash_entries`/`cash_waivers` mit eigenen Regeln, `complaint_details` geprüft, Export v4 | [ ] |
+| 0.5 | [TT.MM.JJJJ] | Ergänzt: mehrere Einheiten am Tag mit RPE je Einheit und Sprüngen der Torhüter (R32), Trainingseindruck nur für Ausreißer (R31), Torwart-Spieldaten und -Tests. Umgesetzte Maßnahmen: `day_units` mit Gruppen-Sichtbarkeit, Anwesenheit nur über Einheit 0, Checks für Eindruck/Sprünge, `merge_players` v5 | [ ] |

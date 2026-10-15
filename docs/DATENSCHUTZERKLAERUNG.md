@@ -102,7 +102,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.4 | Team- und Kalenderdaten | Verein, Teamname, Altersklasse, Teameinstellungen und Spielprinzipien; Spiele (Datum, Uhrzeit, Gegner, Heim/Auswärts, Wettbewerb), Termine, Trainingszeiten, Absagen und Zusatztrainings, Wochenpläne, eigene Trainingsarten, durchgeführte Einheiten | Trainerteam | – |
 | 4.5 | Anwesenheit | Status je Termin (anwesend, entschuldigt, unentschuldigt) | Trainerteam; automatisch „anwesend“, wenn eine Belastung eingetragen wird | – |
 | 4.6 | Abwesenheiten | Art (Urlaub, krank, Verletzung, Schule, Arbeit, Sonstiges), Zeitraum, Stufe der Rückkehr ins Training (1–4), bei Verletzungen die betroffene Körperregion (z. B. „Sprunggelenk rechts“, keine Diagnose), Notiz, ob selbst gemeldet | du oder das Trainerteam | freiwillig |
-| 4.7 | Trainingsbelastung | Belastungsempfinden je Einheit (Session-RPE, Skala 0–10) und Dauer in Minuten | du oder das Trainerteam | freiwillig, Einwilligung erforderlich |
+| 4.7 | Trainingsbelastung | Belastungsempfinden je Einheit (Session-RPE, Skala 0–10) und Dauer in Minuten – auch für weitere Einheiten am selben Tag (z. B. Athletik, Torwarttraining); bei Torhütern die ungefähre Zahl der Sprünge/Hechtsprünge | du oder das Trainerteam | freiwillig, Einwilligung erforderlich |
 | 4.8 | Morgendliches Wohlbefinden | Schlafdauer, Schlafqualität, Müdigkeit, Muskelkater, Stress, Beschwerden (keine, leicht, deutlich) und betroffene Körperregionen (aus einer festen Liste, ggf. mit Seite links/rechts) | du | freiwillig, Einwilligung erforderlich |
 | 4.9 | Zusatzsport | Art (z. B. Fitnessstudio, Schulsport, Laufen, anderer Verein), Dauer, Belastungsempfinden | du | freiwillig, Einwilligung erforderlich |
 | 4.10 | Wachstum und Körperdaten | Körpergröße mit Messdatum, Körpergewicht | du oder das Trainerteam | freiwillig, Einwilligung erforderlich |
@@ -113,12 +113,12 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.15 | KI-Coach | Inhalt deiner Anfrage und ein reduzierter Datenkontext (siehe Abschnitt 11); Anzahl der KI-Anfragen pro Tag | du | freiwillig, gesonderte Einwilligung |
 | 4.16 | Technische Daten | IP-Adresse, Zeitpunkt, aufgerufener Dienst, Statuscodes, technische Kennung des App-Clients in Server-Protokollen | dein Gerät | technisch erforderlich |
 | 4.17 | Kommunikation mit uns | Inhalt deiner Nachricht, E-Mail-Adresse, ggf. Name | du | freiwillig |
-| 4.18 | Spieldaten und Bewertungen | Einsatzminuten, Startelf, Tore, Vorlagen je Spiel; Noten (1–10) mit Rückmeldung des Trainerteams zu Spielen und Trainings; Links zu Videos | Trainerteam | – |
-| 4.19 | Leistungstests | Ergebnisse von Leistungstests (z. B. Sprintzeiten, Sprunghöhe, Ausdauertest) mit Datum; daraus berechnete Einordnung und persönliche Laufvorgaben | Trainerteam | freiwillig |
+| 4.18 | Spieldaten und Bewertungen | Einsatzminuten, Startelf, Tore, Vorlagen je Spiel, bei Torhütern Gegentore und Paraden; Noten (1–10) mit Rückmeldung des Trainerteams zu Spielen; Trainingseindruck (nur „besonders gut“ oder „besonders schwach“ je Einheit, mit Gründen und Notiz – Durchschnitt wird nicht gespeichert); Links zu Videos | Trainerteam | – |
+| 4.19 | Leistungstests | Ergebnisse von Leistungstests (z. B. Sprintzeiten, Sprunghöhe, Ausdauertest, bei Torhütern Seitsprung und Abschlagweite) mit Datum; daraus berechnete Einordnung und persönliche Laufvorgaben | Trainerteam | freiwillig |
 | 4.20 | Befunde | Fotos oder PDF-Dateien von Arztbriefen und Befunden, Titel, Datum, Art der Einwilligung; auf Wunsch eine KI-Zusammenfassung | Trainerteam | freiwillig, gesonderte Einwilligung |
 | 4.21 | Vorbereitung und Pausen | Zeiträume, Wochenaufbau, Trainingsprogramm für die freie Zeit; welche Programm-Einheiten du abgehakt hast (Dauer, Belastungsempfinden) | Trainerteam, du | freiwillig |
 | 4.22 | Kontaktliste des Teams | Name, Funktion, Telefon, E-Mail, Adresse und Hinweise von Ansprechpersonen (z. B. Koordinator, Physio, Arztpraxis) | Trainerteam | – |
-| 4.23 | Trainingsplanung | Übungen mit Zeichnungen und Coachingpunkten, gespeicherte Einheiten, Profile des Trainerteams (Name, Rolle, Aufgaben, Kontakt); Ablauf eines Trainingstags in Blöcken mit zuständigem Trainer, Coachingpunkten, Zeichnungen und Fotos von Skizzen | Trainerteam | – |
+| 4.23 | Trainingsplanung | Übungen mit Zeichnungen und Coachingpunkten, gespeicherte Einheiten, Profile des Trainerteams (Name, Rolle, Aufgaben, Kontakt); Ablauf eines Trainingstags in Blöcken mit zuständigem Trainer, Coachingpunkten, Zeichnungen und Fotos von Skizzen; weitere Einheiten am Tag (Art, Uhrzeit, Dauer, Ziel-Intensität, Gruppe, zuständiger Trainer, Inhalt) | Trainerteam | – |
 | 4.24 | Gruppen | Gruppen des Teams (Name, Art wie Reha, Torhüter, Belastungsaufbau, Wachstumsschub, Mannschaftsrat, Talent oder eigene; ob für Spieler sichtbar) und wer Mitglied ist; an Gruppen gerichtete Videos und Aufgaben | Trainerteam (Vorschläge der App aus den Daten, Entscheidung durch das Trainerteam) | – |
 | 4.25 | Aufgaben, Dienste und Strafen | Aufgaben (Titel, Hinweis, Fälligkeit, erledigt am/von), eingeteilte Dienste (z. B. Material, Bälle; Datum, Herkunft: reihum, Strafe oder von Hand, Status), Strafen aus dem Strafenkatalog des Teams (Regel, Datum, betroffene Einheit, ggf. Betrag, Status, automatisch oder von Hand) | Trainerteam; automatisch aus Regeln, die das Trainerteam einschaltet | – |
 | 4.26 | Platzierung in Leistungstests | dein Platz je Test unter den aktiven Spielern deines Teams und – wenn das Trainerteam es einstellt – der Teambestwert ohne Namen | berechnet aus 4.19 | – |
@@ -162,6 +162,18 @@ erhalten, damit der Kassenstand stimmt.
 „Gesundheitsdaten“ sieht z. B. ein Betreuer keine Belastungs-, Morgen-Check- oder Schmerzangaben – das prüft der Server,
 nicht nur die App. Abwesenheiten (inklusive Art und Rückkehrstufe) sieht das ganze Trainerteam, weil sie für die
 Planung nötig sind.
+
+**Trainingseindruck (4.18):** Bewertet werden nur Ausreißer – eine besonders gute oder besonders schwache
+Trainingsleistung, gern mit Grund (z. B. „Einsatz“, „Konzentration“). Der Durchschnitt ist der Normalfall und wird
+nicht gespeichert; es gibt keine Rangliste daraus. Kritik ist standardmäßig nicht für dich sichtbar, damit das
+Trainerteam sie zuerst persönlich mit dir besprechen kann; Lob kannst du sehen. Was freigegeben ist, erscheint in deiner
+App unter Bewertungen. Eintragen dürfen nur Mitglieder des Trainerteams mit dem Recht „Notizen & Bewertungen“.
+
+**Weitere Einheiten am Tag (4.7, 4.23):** Für jede Einheit – z. B. 30 Minuten Athletik vor dem Mannschaftstraining
+oder ein Torwarttraining – kannst du deine Belastung getrennt eintragen; zusammen ergeben sie deine Tagesbelastung.
+Einheiten für eine Gruppe siehst du nur, wenn du Mitglied einer für dich freigegebenen Gruppe bist; wer sonst
+teilnimmt, siehst du nicht. Bei Torhütern fragt die App zusätzlich nach der ungefähren Zahl der Sprünge und
+Hechtsprünge, weil sie den Körper anders belasten als Laufen.
 
 **Platzierung (4.26):** Du siehst nur deinen eigenen Platz (z. B. „Platz 3 von 18“), erst wenn mindestens fünf Spieler
 einen Wert haben. Werte oder Namen anderer Spieler werden nie angezeigt. Das Trainerteam kann die Platzierung abschalten.
@@ -308,6 +320,8 @@ bleibt unberührt.
 | deine Leistungstests | wenn freigegeben | ja | nein | nein |
 | deine Platzierung in Tests | wenn eingeschaltet (nur eigener Platz, ab 5 Werten) | ja (sieht alle Werte) | nein | nein |
 | Ablauf des Trainingstags, Skizzen | nein | ja | nein | nein |
+| weitere Einheiten (Zeit, Art, Inhalt) | die für dich bestimmten | ja | Einheiten für alle bzw. für ihre eigenen freigegebenen Gruppen – nie, wer teilnimmt | nein |
+| dein Trainingseindruck | wenn freigegeben | mit Recht „Notizen & Bewertungen“ zum Eintragen; lesen das Trainerteam | nein | nein |
 | deine Einwilligungen | ja | ja (als Nachweis) | nein | nein |
 
 Diese Regeln setzt die Datenbank selbst durch (zeilenbasierte Zugriffsregeln), nicht nur die Oberfläche der App.
@@ -603,7 +617,10 @@ master data (name, date of birth, position, shirt number, optional weight and ph
 sessions; attendance; absences including illness or injury and return-to-play stage; session RPE and minutes; morning
 wellness (sleep hours and quality, fatigue, muscle soreness, stress, complaints and body region); extra sport; height
 measurements; coach notes, potentials/goals and coach messages; derived metrics (e.g. acute:chronic workload, traffic
-light); match stats, ratings and videos; performance tests and – if enabled – your own rank (never other players'
+light); match stats (for goalkeepers also goals conceded and saves), ratings, training impressions (only "particularly good" or
+"particularly weak" per session – average is not stored; criticism hidden from the player by default) and videos;
+several sessions per day (e.g. athletics before team training, goalkeeper training) with RPE per session and, for
+goalkeepers, the approximate number of jumps/dives (health data); performance tests and – if enabled – your own rank (never other players'
 values or names, only from 5 results); medical findings (separate consent); team groups and memberships (players see
 only their own membership in groups released by the staff); tasks, duties and fines from the team's catalogue
 (automatic rules apply only from the day they are switched on and only check *whether* load was logged, for players
