@@ -23,7 +23,7 @@ export const en_squad: Dict = {
   pv_ratings: "Ratings & feedback", pv_stats: "Match stats (minutes, goals, assists)", pv_tests: "Fitness tests", pv_videos: "Videos", pv_contacts: "Contact list",
   pabs_t: "Cancellations by players", pabs_d: "Players may cancel sessions in the app and enter absences. Off: only the coaching staff enters them.",
   mh_team: "Club & team", mh_training: "Training & principles", mh_access: "Player app & coaching staff", mh_account: "Account & privacy",
-  mh_trainingSub: "{n} training days · principles · own session types",
+  mh_trainingSub: "{n} training days · athletics & goalkeeping · principles · own session types",
   cd_title: "Invite players", cd_sub: "Players download the app, enter the team code and create their profile.",
   cd_join: "Team code for players", cd_staff: "Staff code (assistant coaches, physio)", cd_share: "Share", cd_new: "Create new codes",
   cd_newQ: "Create new codes? The old codes will stop working.", cd_shareText: "Join our team “{t}” in the Trainerbank app: code {c}",

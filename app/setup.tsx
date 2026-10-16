@@ -7,10 +7,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { View } from "react-native";
 import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "../src/core/classes";
+import { iso } from "../src/core/dates";
 import type { ClassKey, Depth, Modules, Principles, StaffRoleKey, TeamSettings } from "../src/core/types";
 import { useStore } from "../src/data/store";
-import { ClassPicker, DaysEditor, DepthPicker, ModuleList, PrinciplesEditor, allModules, moduleCount } from "../src/ui/editors";
-import { Banner, Btn, Card, CardTitle, Col, Field, Header, Muted, Row, Screen, Seg, T, ToggleRow } from "../src/ui/kit";
+import { ClassPicker, DaysEditor, DepthPicker, ModuleList, PrinciplesEditor, SetupUnitsEditor, allModules, moduleCount } from "../src/ui/editors";
+import { Banner, Btn, Card, CardTitle, Col, Field, Header, Info, Muted, Row, Screen, Seg, T, ToggleRow } from "../src/ui/kit";
 import {
   ColorPicker, ImageSlot, PlayerViewFields, ProfileFields, ReminderFields, SetupOverview, StaffQuickAdd, TestPicker, emptyProfile, profileName, type ProfileDraft,
 } from "../src/ui/setupParts";
@@ -59,13 +60,17 @@ export default function Setup() {
   const finish = async () => {
     for (let i = 0; i < steps.length; i++) { const m = check(steps[i]); if (m) { setStep(i); setMsg(m); return; } }
     setBusy(true); setMsg("");
+    // Weitere Einheiten gelten ab heute (Kinderfußball: keine weiteren Einheiten)
+    const today = iso(new Date());
+    const units = kids ? undefined : Object.fromEntries(Object.entries(settings.units || {}).filter(([, L]) => L.length).map(([d, L]) => [d, L.map(u => ({ ...u, from: u.from || today }))]));
+    const S: TeamSettings = { ...settings, units: units && Object.keys(units).length ? units : undefined };
     const meProfile = { name: profileName(me), role: me.role, license: me.license === "none" ? "" : me.license, birth: me.birth, phone: me.phone.trim(), photo: me.photo };
     try {
       if (demo) {
-        await s.startDemo(cls, depth, { modules: mods, settings, principles, club, team, accent, logo, me: meProfile.name ? meProfile : { ...meProfile, name: "" }, staff, prefs: { info } });
+        await s.startDemo(cls, depth, { modules: mods, settings: S, principles, club, team, accent, logo, me: meProfile.name ? meProfile : { ...meProfile, name: "" }, staff, prefs: { info } });
         router.replace("/"); return;
       }
-      await s.createTeam({ club: club.trim(), name: team.trim() || cls.toUpperCase(), cls, depth, settings, principles, modules: mods, lang: tr.lang,
+      await s.createTeam({ club: club.trim(), name: team.trim() || cls.toUpperCase(), cls, depth, settings: S, principles, modules: mods, lang: tr.lang,
         me: meProfile, staff, logoUri: logo, prefs: { info } });
       s.toast(t("su_done")); router.replace("/");
     } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
@@ -126,6 +131,11 @@ export default function Setup() {
       {cur === "days" ? <>
         <Header title={t("su_daysT")} /><Muted>{t("su_daysB")}</Muted>
         <Card testID="su-days"><DaysEditor value={settings} onChange={x => { setSettings(x); setMsg(""); }} tr={tr} /></Card>
+        {!kids ? <Card testID="su-units">
+          <CardTitle title={t("su_unitsT")} info={<Info title={t("un_weeklyT")} text={[t("un_titleInfo"), t("un_loadNote")]} />} />
+          <Muted small>{t("su_unitsB")}</Muted>
+          <SetupUnitsEditor value={settings} onChange={setSettings} tr={tr} />
+        </Card> : null}
       </> : null}
 
       {cur === "orga" ? <>

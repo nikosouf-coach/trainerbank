@@ -3,9 +3,10 @@ import React, { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { CLASSES, KINDS, MDS, PACKAGES, PITCH, classLabel, defaultPrinciples, groupOf, isGrowthAge } from "../core/classes";
 import type { Translator } from "../core/i18n";
-import type { ClassKey, CustomKind, Depth, Kind, Modules, Principles, TeamSettings } from "../core/types";
-import { Banner, Btn, Col, Info, Muted, Picker, Row, T, Tag, TimeField, ToggleRow } from "./kit";
-import { radius, rpeColor, useTheme } from "./theme";
+import type { ClassKey, CustomKind, DayUnit, Depth, Kind, Modules, Principles, TeamSettings, UnitArt } from "../core/types";
+import { MAX_UNITS_DAY, UNIT_ARTS, UNIT_DEF, cleanUnit, freeWeeklySlot, shiftTime } from "../core/units";
+import { Banner, Btn, Col, Info, Muted, NumField, Picker, Row, T, Tag, TimeField, ToggleRow } from "./kit";
+import { radius, rpeColor, useTheme, withAlpha } from "./theme";
 
 export function ClassPicker({ value, onChange, tr }: { value: ClassKey; onChange: (k: ClassKey) => void; tr: Translator }) {
   const { c } = useTheme();
@@ -140,6 +141,76 @@ export function DaysEditor({ value, onChange, tr }: { value: TeamSettings; onCha
     </Col>
   );
 }
+/**
+ * Einrichtung: weitere Einheiten jede Woche (z. B. 30 Min. Athletik vor dem Training, Torwarttraining) – nur Art,
+ * Beginn und Dauer. Inhalte, Gruppen, Zuständige und Ziel-RPE folgen später unter Mehr → Training & Prinzipien.
+ */
+export function SetupUnitsEditor({ value, onChange, tr }: { value: TeamSettings; onChange: (s: TeamSettings) => void; tr: Translator }) {
+  const { c } = useTheme();
+  const order = [1, 2, 3, 4, 5, 6, 0], wd = tr.tl("wd");
+  const [open, setOpen] = useState<number[]>([]);
+  const list = (d: number): DayUnit[] => value.units?.[d] || [];
+  const put = (d: number, L: DayUnit[]) => {
+    const units = { ...(value.units || {}) };
+    if (L.length) units[d] = [...L].sort((a, b) => a.zeit < b.zeit ? -1 : a.zeit > b.zeit ? 1 : a.slot - b.slot); else delete units[d];
+    onChange({ ...value, units });
+  };
+  // Direkt vor dem Mannschaftstraining (endet mit dessen Beginn); ohne Mannschaftstraining am Wochenende vormittags, sonst 17:30
+  const startOf = (d: number, dauer: number): string => value.days[d] ? shiftTime(value.days[d].zeit, -dauer) : d === 0 || d === 6 ? "10:00" : "17:30";
+  const add = (d: number, art: UnitArt) => {
+    const slot = freeWeeklySlot(value, d); if (slot == null || list(d).length >= MAX_UNITS_DAY) return;
+    const dauer = UNIT_DEF[art].dauer;
+    put(d, [...list(d), cleanUnit({ slot, art, title: "", zeit: startOf(d, dauer), dauer, rpe: null, groupId: null, staffId: null, inhalt: "", themes: [] })]);
+  };
+  const patch = (d: number, slot: number, p: Partial<DayUnit>) => put(d, list(d).map(u => u.slot === slot ? { ...u, ...p } : u));
+  const setArt = (d: number, u: DayUnit, art: UnitArt) => {
+    const p: Partial<DayUnit> = { art, themes: [] };
+    // Dauer und Beginn mitziehen, solange noch die Richtwerte der bisherigen Art eingestellt sind
+    if (u.dauer === UNIT_DEF[u.art].dauer) { p.dauer = UNIT_DEF[art].dauer; if (u.zeit === startOf(d, u.dauer)) p.zeit = startOf(d, p.dauer); }
+    patch(d, u.slot, p);
+  };
+  // Endet die Einheit bisher mit dem Beginn des Mannschaftstrainings, bleibt das auch bei anderer Dauer so
+  const setDur = (d: number, u: DayUnit, dauer: number) => patch(d, u.slot, { dauer, ...(value.days[d] && u.zeit === startOf(d, u.dauer) ? { zeit: startOf(d, dauer) } : {}) });
+  const shown = order.filter(d => value.days[d] || list(d).length || open.includes(d));
+  const more = order.filter(d => !shown.includes(d));
+  const arts = UNIT_ARTS.map(k => ({ key: k, label: tr.t("ua_" + k) }));
+  return (
+    <Col gap={12} testID="su-units-editor">
+      {shown.map(d => {
+        const tday = value.days[d], L = list(d), full = L.length >= MAX_UNITS_DAY;
+        return (
+          <Col key={d} gap={8} testID={"su-u-day-" + d} style={{ borderTopWidth: 1, borderTopColor: c.line, paddingTop: 10 }}>
+            <T bold>{wd[d]}<Text style={{ color: c.muted, fontWeight: "400" }}>{"  ·  " + (tday ? `${tr.t("un_main")} ${tday.zeit}, ${tday.dauer || value.dauer} ${tr.t("min")}` : tr.t("un_noTraining"))}</Text></T>
+            {L.map(u => { const col = u.art === "tw" ? c.event : c.accent; return (
+              <Col key={u.slot} gap={8} testID={`su-u-${d}-${u.slot}`} style={{ padding: 10, borderRadius: radius.m, backgroundColor: withAlpha(col, 0.07), borderLeftWidth: 3, borderLeftColor: col }}>
+                <Row gap={8} align="flex-end">
+                  <Picker testID={`su-u-${d}-${u.slot}-art`} label={tr.t("su_unitArt")} value={u.art} options={arts} onChange={k => setArt(d, u, k)} style={{ flex: 1 }} />
+                  <Btn small kind="ghost" icon="trash" label="" testID={`su-u-${d}-${u.slot}-del`} a11y={tr.t("un_del")} onPress={() => put(d, L.filter(x => x.slot !== u.slot))} />
+                </Row>
+                <Row gap={8} align="flex-end" wrap>
+                  <TimeField testID={`su-u-${d}-${u.slot}-zeit`} label={tr.t("un_time")} value={u.zeit} onChange={z => patch(d, u.slot, { zeit: z })} style={{ width: 96 }} />
+                  <NumField testID={`su-u-${d}-${u.slot}-dauer`} label={tr.t("minutes")} value={u.dauer} min={5} max={240} onChange={m => setDur(d, u, m ?? UNIT_DEF[u.art].dauer)} style={{ width: 96 }} />
+                  <Muted small style={{ paddingBottom: 13 }}>{tr.tf("su_unitUntil", { t: shiftTime(u.zeit, u.dauer) })}</Muted>
+                </Row>
+              </Col>
+            ); })}
+            {full ? <Muted small>{tr.tf("un_max", { n: MAX_UNITS_DAY })}</Muted> : <Row wrap gap={6}>
+              <Btn small icon="plus" testID={`su-u-${d}-add-athletik`} label={tr.t("ua_athletik")} onPress={() => add(d, "athletik")} />
+              <Btn small icon="plus" testID={`su-u-${d}-add-tw`} label={tr.t("ua_tw")} onPress={() => add(d, "tw")} />
+              <Btn small kind="ghost" icon="plus" testID={`su-u-${d}-add-other`} label={tr.t("su_unitOther")} onPress={() => add(d, "kraft")} />
+            </Row>}
+          </Col>
+        );
+      })}
+      {more.length ? <Col gap={6}>
+        <Muted small>{tr.t("su_unitsOtherDay")}</Muted>
+        <Row wrap gap={6}>{more.map(d => <Btn key={d} small kind="ghost" testID={"su-u-open-" + d} label={"+ " + wd[d]} onPress={() => setOpen(o => [...o, d])} />)}</Row>
+      </Col> : null}
+      <Muted small>{tr.t("un_blockedNote")} {tr.t("su_unitsLater")}</Muted>
+    </Col>
+  );
+}
+
 function MinutesField({ label, value, onChange, testID }: { label: string; value: number; onChange: (m: number) => void; testID?: string }) {
   const { c } = useTheme(); const [txt, setTxt] = useState(String(value)); const [last, setLast] = useState(value);
   if (value !== last) { setLast(value); setTxt(String(value)); }

@@ -20,7 +20,7 @@ export const en_units: Dict = {
   un_weeklyNone: "No extra sessions.", un_weeklyAdd: "Add session for {d}", un_noTraining: "no team training",
   un_blockedNote: "Automatically dropped on match days, during breaks and when team training is cancelled.",
   un_loadNote: "Counts towards load (RPE × minutes). You set the target RPE – it is not adjusted automatically; weekly steering takes it into account for team training.",
-  un_editWeekly: "Edit weekly rhythm", un_dayOnly: "Changes here apply to this day only. For every week: Settings → Training days.",
+  un_editWeekly: "Edit weekly rhythm", un_dayOnly: "Changes here apply to this day only. For every week: More → Training & principles.",
   un_fromWeekly: "from the weekly rhythm", un_extraDay: "this day only", un_saved: "Session saved", un_deleted: "Session deleted",
   un_cancelledT: "Session cancelled", un_restored: "Session reinstated", un_noMembers: "Nobody is assigned to this session.", un_avg: "Avg RPE {r}", un_entered: "{a} of {n} entered",
   un_allTarget: "All at target RPE", un_allTargetD: "Fill missing entries with the session's target RPE and duration (only players who were there).",
@@ -66,4 +66,9 @@ export const en_units: Dict = {
   tsd_tw_lateral: "Lateral jump power · push towards the ball", tsd_tw_kick: "Distance of the punt",
   tsp_tw_lateral: "From the set position, take off sideways from one leg and land on both; distance from the inside edge of the take-off foot to the nearest landing point. 3 trials per side, mean of the best of both sides.",
   tsp_tw_kick: "Kick from the hands (volley or drop kick) – measured to the first bounce. 3 trials, best counts. Same ball, ideally no wind.",
+  su_unitsT: "Athletics, goalkeeping & extra sessions",
+  su_unitsB: "Optional: sessions that take place every week in addition to team training – e.g. 30 min athletics right before it or goalkeeper training. Players enter their RPE per session and everything counts towards load.",
+  su_unitArt: "Type", su_unitOther: "Other", su_unitsOtherDay: "Also on days without team training (e.g. athletics on Saturday):",
+  su_unitsLater: "Set content, groups, staff and target RPE later under More → Training & principles; single days in the day plan.",
+  su_unitUntil: "until {t}", su_unitsSum: "Extra sessions",
 };

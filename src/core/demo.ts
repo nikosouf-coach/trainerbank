@@ -299,6 +299,7 @@ function demoKasse(D: TeamData, lang: Lang, TODAY: string, money: boolean): void
  * Weitere Einheiten: Athletik & Prävention vor dem ersten Trainingstag der Woche (alle), Torwarttraining vor einem
  * späteren Trainingstag (Torhüter, TW-Trainer), eine Reha-Einheit für die Reha-Gruppe am nächsten Trainingstag.
  * Dazu RPE der vergangenen Einheiten, Sprünge der Torhüter, ein Eindruck aus dem Torwarttraining und ein Ablauf.
+ * Hat die Einrichtung schon Einheiten festgelegt, gelten diese statt der Beispiele.
  */
 function demoUnits(D: TeamData, lang: Lang, now: Date): void {
   if (groupOf(D.team.cls) === "u11" || !D.players.length) return;
@@ -310,13 +311,21 @@ function demoUnits(D: TeamData, lang: Lang, now: Date): void {
   const mk = (p: Partial<DayUnit> & { slot: number; art: UnitArt }, from: string | null): DayUnit =>
     ({ ...cleanUnit({ title: "", zeit: "17:30", dauer: 30, rpe: null, groupId: null, staffId: null, inhalt: "", themes: [], ...p }), cancel: undefined, from });
   const since = addDays(TODAY, -70), units: Record<number, DayUnit[]> = {};
-  const d0 = wds[0];
-  units[d0] = [mk({ slot: 1, art: "athletik", title: en ? "Athletics & prevention" : "Athletik & Prävention", zeit: shiftTime(S.days[d0].zeit, -30), dauer: 30, rpe: 6, staffId: sPhy,
-    inhalt: en ? "Running drills, jumps and landings, Nordic hamstrings (2 × 6)." : "Lauf-ABC, Sprünge und Landungen, Nordic Hamstrings (2 × 6)." }, since)];
-  if (wds.length >= 2) {
-    const d1 = wds.length >= 3 ? wds[wds.length - 2] : wds[1];
-    units[d1] = [...(units[d1] || []), mk({ slot: (units[d1] || []).length + 1, art: "tw", zeit: shiftTime(S.days[d1].zeit, -60), dauer: 60, rpe: 7, groupId: tw, staffId: sTw,
-      themes: ["hechten", "flanken", "eins"], inhalt: en ? "Diving sets left/right, crosses under pressure, 1 v 1 in the box." : "Hechtsprung-Serien links/rechts, Flanken unter Gegnerdruck, 1-gegen-1 im Strafraum." }, since)];
+  const given = Object.entries(S.units || {}).filter(([, L]) => L?.length);
+  if (given.length) {
+    // Einheiten aus der Einrichtung übernehmen – seit zehn Wochen, damit Verlauf und Belastung gefüllt sind; Zuständige nach Rolle
+    const sAth = D.staff.find(x => x.role === "athletik")?.id || sPhy;
+    const who: Partial<Record<UnitArt, string | null>> = { tw: sTw, athletik: sAth, kraft: sAth, praev: sPhy, reha: sPhy };
+    for (const [d, L] of given) units[Number(d)] = L.map(u => mk({ ...u, staffId: u.staffId || who[u.art] || null, groupId: u.groupId || (u.art === "reha" ? reha?.id || null : null) }, since));
+  } else {
+    const d0 = wds[0];
+    units[d0] = [mk({ slot: 1, art: "athletik", title: en ? "Athletics & prevention" : "Athletik & Prävention", zeit: shiftTime(S.days[d0].zeit, -30), dauer: 30, rpe: 6, staffId: sPhy,
+      inhalt: en ? "Running drills, jumps and landings, Nordic hamstrings (2 × 6)." : "Lauf-ABC, Sprünge und Landungen, Nordic Hamstrings (2 × 6)." }, since)];
+    if (wds.length >= 2) {
+      const d1 = wds.length >= 3 ? wds[wds.length - 2] : wds[1];
+      units[d1] = [...(units[d1] || []), mk({ slot: (units[d1] || []).length + 1, art: "tw", zeit: shiftTime(S.days[d1].zeit, -60), dauer: 60, rpe: 7, groupId: tw, staffId: sTw,
+        themes: ["hechten", "flanken", "eins"], inhalt: en ? "Diving sets left/right, crosses under pressure, 1 v 1 in the box." : "Hechtsprung-Serien links/rechts, Flanken unter Gegnerdruck, 1-gegen-1 im Strafraum." }, since)];
+    }
   }
   S.units = units;
   let E = createEngine(D, { lang, now });

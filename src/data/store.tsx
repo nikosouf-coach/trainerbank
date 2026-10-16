@@ -16,7 +16,7 @@ import { cleanBody, demoMe, putMsg, toggleReaction, visibleChats } from "../core
 import { indivUnit } from "../core/dev";
 import { uuid4 } from "../core/outbox";
 import type { Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
+  CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -482,15 +482,23 @@ function useStoreValue() {
       const id = await api.createTeam(input); const ms = await api.memberships();
       await loadActive(api, ms.find(m => m.teamId === id) || null, { memberships: ms });
       // Danach: eigenes Trainerprofil (mit Konto verknüpft), Anzeigename, Logo, weitere Trainer, Einstellungen
-      const uid = ref.current.user?.id || null;
+      const uid = ref.current.user?.id || null, team: StaffProfile[] = [];
       if (input.me?.name?.trim()) {
         const me: StaffProfile = { id: tmpId(), name: input.me.name.trim(), role: input.me.role || "chef", areas: input.me.areas || [], phone: input.me.phone || "", email: input.me.email || ref.current.user?.email || "", note: "",
           userId: uid, birth: input.me.birth || null, license: input.me.license || "", photo: null };
-        const saved = await api.saveStaff(id, me);
+        const saved = await api.saveStaff(id, me); team.push(saved);
         if (input.me.photo) { const path = await api.uploadTeamImage(id, `staff-${saved.id}`, input.me.photo); await api.saveStaff(id, { ...saved, photo: path }); }
         await api.setDisplayName(me.name).catch(() => undefined);
       }
-      for (const x of (input.staff || []).filter(y => y.name.trim())) await api.saveStaff(id, { id: tmpId(), name: x.name.trim(), role: x.role, areas: [], phone: "", email: "", note: "" });
+      for (const x of (input.staff || []).filter(y => y.name.trim())) team.push(await api.saveStaff(id, { id: tmpId(), name: x.name.trim(), role: x.role, areas: [], phone: "", email: "", note: "" }));
+      // Weitere Einheiten aus der Einrichtung: Zuständige nach Rolle (TW-Trainer, Athletiktrainer, Physio)
+      const U = input.settings.units;
+      if (U && Object.keys(U).length && team.length) {
+        const by = (r: StaffRoleKey): string | null => team.find(x => x.role === r)?.id || null;
+        const who: Partial<Record<UnitArt, string | null>> = { tw: by("tw"), athletik: by("athletik") || by("physio"), kraft: by("athletik") || by("physio"), praev: by("physio") || by("athletik"), reha: by("physio") };
+        const units = Object.fromEntries(Object.entries(U).map(([d, L]) => [d, L.map(u => ({ ...u, staffId: u.staffId || who[u.art] || null }))]));
+        if (Object.values(units).some(L => L.some(u => u.staffId))) await api.updateTeam(id, { settings: { ...input.settings, units } }).catch(() => undefined);
+      }
       if (input.logoUri) { const path = await api.uploadTeamImage(id, "logo", input.logoUri); await api.updateTeam(id, { logo: path }); }
       if (input.prefs) { const u = ref.current.user; if (u) { const prefs = { ...(u.prefs || {}), ...input.prefs }; await api.savePrefs(prefs).catch(() => undefined); set({ user: { ...u, prefs } }); } }
       await reload();

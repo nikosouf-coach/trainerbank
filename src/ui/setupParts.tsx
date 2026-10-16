@@ -3,7 +3,7 @@
 import * as ImagePicker from "expo-image-picker";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
-import { classDef, classLabel, PACKAGES, PLAYER_VIEW, teamLabel } from "../core/classes";
+import { classDef, classLabel, groupOf, PACKAGES, PLAYER_VIEW, teamLabel } from "../core/classes";
 import type { Translator } from "../core/i18n";
 import { testsFor } from "../core/perf";
 import type { ClassKey, Depth, Group, Modules, PlayerViewKey, Reminders, StaffRoleKey, TeamSettings, TestKey } from "../core/types";
@@ -165,6 +165,8 @@ export function SetupOverview({ tr, me, club, team, cls, depth, modules, setting
   const { t } = tr; const { c } = useTheme(); const wd = tr.tl("wd");
   const days = Object.keys(settings.days).map(Number).sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7))
     .map(d => `${wd[d]} ${settings.days[d].zeit} (${settings.days[d].dauer || settings.dauer}′)`).join(" · ") || "–";
+  const units = groupOf(cls) === "u11" ? "" : [1, 2, 3, 4, 5, 6, 0].flatMap(d => [...(settings.units?.[d] || [])].sort((a, b) => a.zeit < b.zeit ? -1 : 1)
+    .map(u => `${wd[d]} ${u.zeit} ${u.title || t("ua_" + u.art)} (${u.dauer}′)`)).join(" · ");
   const mods = PACKAGES.flatMap(pk => pk.mods).filter(k => modules[k]).map(k => t("m_" + k));
   const row = (k: string, v: string) => <Row between align="flex-start" gap={10}><Muted>{k}</Muted><T bold style={{ flex: 1, textAlign: "right" }}>{v}</T></Row>;
   return (
@@ -174,6 +176,7 @@ export function SetupOverview({ tr, me, club, team, cls, depth, modules, setting
       {row(t("ageClass"), classLabel(classDef(cls), tr.lang))}
       {row(t("su_preset"), t("dp_" + depth))}
       {row(t("su_daysT"), days)}
+      {units ? row(t("su_unitsSum"), units) : null}
       {row(t("su_info"), info ? t("cs_active") : t("cs_inactive"))}
       <View style={{ height: 1, backgroundColor: c.line }} />
       <T v="small" bold color={c.muted}>{t("su_mods")} ({mods.length})</T>

@@ -25,7 +25,7 @@ export const de_squad: Dict = {
   pabs_t: "Absagen durch Spieler", pabs_d: "Spieler dürfen Trainings in der App absagen und Abwesenheiten eintragen. Aus: Nur das Trainerteam trägt ein.",
   // Mehr (Übersicht)
   mh_team: "Verein & Mannschaft", mh_training: "Training & Prinzipien", mh_access: "Spieler-App & Trainerteam", mh_account: "Konto & Datenschutz",
-  mh_trainingSub: "{n} Trainingstage · Prinzipien · eigene Trainingsarten",
+  mh_trainingSub: "{n} Trainingstage · Athletik & Torwarttraining · Prinzipien · eigene Trainingsarten",
   // Team-Codes & Trainerteam
   cd_title: "Spieler einladen", cd_sub: "Spieler laden die App, geben den Team-Code ein und legen ihr Profil an.",
   cd_join: "Team-Code für Spieler", cd_staff: "Trainer-Code (für Co-Trainer, Physio)", cd_share: "Teilen", cd_new: "Neue Codes erzeugen",

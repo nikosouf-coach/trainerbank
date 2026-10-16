@@ -22,7 +22,7 @@ export const de_units: Dict = {
   un_weeklyNone: "Keine weiteren Einheiten.", un_weeklyAdd: "Einheit für {d} hinzufügen", un_noTraining: "kein Mannschaftstraining",
   un_blockedNote: "Fällt an Spieltagen, in Pausen und bei abgesagtem Mannschaftstraining automatisch aus.",
   un_loadNote: "Zählt zur Belastung (RPE × Minuten). Die Ziel-RPE gibst du vor – sie wird nicht automatisch angepasst; die Wochensteuerung berücksichtigt sie beim Mannschaftstraining.",
-  un_editWeekly: "Wochenrhythmus bearbeiten", un_dayOnly: "Änderungen hier gelten nur für diesen Tag. Für jede Woche: Einstellungen → Trainingstage.",
+  un_editWeekly: "Wochenrhythmus bearbeiten", un_dayOnly: "Änderungen hier gelten nur für diesen Tag. Für jede Woche: Mehr → Training & Prinzipien.",
   un_fromWeekly: "aus dem Wochenrhythmus", un_extraDay: "nur an diesem Tag", un_saved: "Einheit gespeichert", un_deleted: "Einheit gelöscht",
   un_cancelledT: "Einheit abgesagt", un_restored: "Einheit wieder angesetzt", un_noMembers: "Für diese Einheit ist niemand eingeteilt.", un_avg: "Ø RPE {r}", un_entered: "{a} von {n} eingetragen",
   un_allTarget: "Alle mit Ziel-RPE", un_allTargetD: "Fehlende Einträge mit der Ziel-RPE und Dauer der Einheit ergänzen (nur, wer da war).",
@@ -71,4 +71,9 @@ export const de_units: Dict = {
   tsd_tw_lateral: "Seitliche Sprungkraft · Abdruck zum Ball", tsd_tw_kick: "Weite des Abschlags",
   tsp_tw_lateral: "Aus der Grundstellung einbeinig seitlich abspringen und beidbeinig landen; Weite vom Innenrand des Absprungfußes bis zur nächsten Landestelle. Je 3 Versuche pro Seite, Mittel der besten Werte beider Seiten.",
   tsp_tw_kick: "Abschlag aus der Hand (Volley oder Dropkick) – gemessen bis zum ersten Aufsprung. 3 Versuche, bester zählt. Gleicher Ball, möglichst windstill.",
+  su_unitsT: "Athletik, Torwarttraining & weitere Einheiten",
+  su_unitsB: "Optional: Einheiten, die jede Woche zusätzlich zum Mannschaftstraining stattfinden – z. B. 30 Min. Athletik direkt davor oder Torwarttraining. Spieler tragen ihre RPE je Einheit ein, alles zählt zur Belastung.",
+  su_unitArt: "Art", su_unitOther: "Andere", su_unitsOtherDay: "Auch an Tagen ohne Mannschaftstraining (z. B. Athletik am Samstag):",
+  su_unitsLater: "Inhalte, Gruppen, Zuständige und Ziel-RPE legst du später unter Mehr → Training & Prinzipien fest; einzelne Tage im Tagesplan.",
+  su_unitUntil: "bis {t} Uhr", su_unitsSum: "Weitere Einheiten",
 };
