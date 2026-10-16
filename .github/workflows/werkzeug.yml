@@ -1,7 +1,9 @@
-# Werkzeug: Expo-SDK aktualisieren und echte Typprüfung erzeugen.
+# Werkzeug: Expo-SDK aktualisieren und echte Typprüfung erzeugen – oder einzelne Expo-Pakete hinzufügen.
 # Start: Actions → Werkzeug → Run workflow (SDK-Version angeben).
 # Ergebnis: Branch "werkzeug/expo-sdk-<SDK>" mit angepasster package.json, package-lock.json und Berichten in
 # reports/ (TypeScript, expo-doctor). Danach Pull Request öffnen und prüfen lassen.
+# Mit „pakete“ (z. B. expo-screen-capture): nur diese Pakete in der zum SDK passenden Version installieren;
+# Ergebnis im Branch "werkzeug/pakete" (package.json und package-lock.json, sonst unverändert).
 name: Werkzeug
 
 on:
@@ -11,12 +13,43 @@ on:
         description: Expo-SDK (Hauptversion, z. B. 57)
         default: "57"
         required: true
+      pakete:
+        description: Zusätzliche Expo-Pakete, durch Leerzeichen getrennt (leer = SDK-Upgrade)
+        default: ""
+        required: false
 
 permissions:
   contents: write
 
 jobs:
+  pakete:
+    if: inputs.pakete != ''
+    runs-on: ubuntu-24.04
+    env:
+      PAKETE: ${{ inputs.pakete }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Pakete passend zum SDK installieren
+        run: |
+          echo "$PAKETE" | grep -Eq '^[a-z0-9@/._ -]+$' || { echo "Ungültige Paketnamen"; exit 1; }
+          npm ci
+          # shellcheck disable=SC2086
+          npx expo install $PAKETE
+          git diff --stat
+      - name: Branch schreiben
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B werkzeug/pakete
+          git add package.json package-lock.json
+          git commit -m "Pakete hinzugefügt: $PAKETE" || echo "keine Änderungen"
+          git push -f origin werkzeug/pakete
+
   expo-upgrade:
+    if: inputs.pakete == ''
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
