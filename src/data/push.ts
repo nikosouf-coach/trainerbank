@@ -1,14 +1,20 @@
-// Push-Erinnerungen (RPE nach der Einheit, Morgen-Check). Nur in der App auf dem Handy.
+// Push-Nachrichten (RPE nach der Einheit, Morgen-Check, Pausenprogramm, Chat). Nur in der App auf dem Handy.
 import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import { useStore } from "./store";
 
+/** Gerade geöffneter Chat: dafür keine Banner (die Nachricht ist ohnehin sichtbar) */
+export const openChatRef: { id: string | null } = { id: null };
+
 Notifications.setNotificationHandler({
-  handleNotification: async () => ({ shouldShowBanner: true, shouldShowList: true, shouldPlaySound: false, shouldSetBadge: false }),
+  handleNotification: async n => {
+    const d = n.request.content.data || {}, here = d.type === "chat" && d.chat === openChatRef.id;
+    return { shouldShowBanner: !here, shouldShowList: !here, shouldPlaySound: false, shouldSetBadge: false };
+  },
 });
 
 export type PushStatus = "unsupported" | "denied" | "granted" | "undetermined";
@@ -28,13 +34,20 @@ export async function enablePush(register: (token: string, platform: "ios" | "an
 
 /** Meldet das Gerät automatisch an, wenn die Berechtigung schon besteht, und öffnet bei Tipp auf eine Erinnerung das Eintragen. */
 export function usePush(): void {
-  const s = useStore();
+  const s = useStore(); const sr = useRef(s); sr.current = s;
   const ready = s.phase === "ready" && s.api.kind === "supabase";
   useEffect(() => {
     if (!ready) return;
     enablePush((tok, pf) => s.api.registerPushToken(tok, pf), false).catch(() => undefined);
     const sub = Notifications.addNotificationResponseReceivedListener(r => {
-      const type = r.notification.request.content.data?.type;
+      const d = r.notification.request.content.data || {}, type = d.type;
+      if (type === "chat" && typeof d.chat === "string") {
+        // Chat im richtigen Team öffnen (ggf. Team wechseln)
+        const area = d.area === "coach" ? "coach" : "player", open = () => router.push(`/${area}/chat/${d.chat}`);
+        const st = sr.current, m = st.memberships.find(x => x.teamId === d.team && x.role !== "pending");
+        if (m && st.active?.teamId !== m.teamId) st.selectTeam(m).then(open).catch(() => undefined); else open();
+        return;
+      }
       if (type === "rpe") router.push("/player/eintragen?tab=rpe");
       else if (type === "wellness") router.push("/player/eintragen?tab=well");
       else if (type === "program") router.push("/player/programm");

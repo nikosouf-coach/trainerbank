@@ -1,5 +1,5 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
-import type { CashEntry, CashWaiver,
+import type { CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -177,6 +177,51 @@ export interface Api {
   /** Spieler mit App-Konto und Einwilligung in Gesundheitsdaten (dürfen RPE eintragen) */
   healthConsentPlayers(teamId: string): Promise<string[]>;
 
+  // Spielerentwicklung (Trainerteam mit Recht „Notizen“; Spieler: Selbsteinschätzung, eigene Ziele, Fortschritt)
+  saveAssessment(teamId: string, a: Assessment): Promise<Assessment>;
+  deleteAssessment(id: string): Promise<void>;
+  saveGoal(teamId: string, g: Goal): Promise<Goal>;
+  /** Spieler: nur Schritte eines Ziels des Trainerteams abhaken */
+  saveGoalSteps(id: string, steps: Goal["steps"]): Promise<void>;
+  deleteGoal(id: string): Promise<void>;
+  saveGoalEntry(e: GoalEntry): Promise<GoalEntry>;
+  deleteGoalEntry(id: string): Promise<void>;
+  /** Gespräch mit interner Notiz (eigene Tabelle, nie für Spieler) */
+  saveTalk(teamId: string, t: DevTalk): Promise<DevTalk>;
+  deleteTalk(id: string): Promise<void>;
+  // Wochenchallenge
+  saveChallenge(teamId: string, c: Challenge): Promise<Challenge>;
+  deleteChallenge(id: string): Promise<void>;
+  saveChallengeEntry(e: ChallengeEntry): Promise<void>;
+  /** Teamsummen einer Woche (Spieler: ohne Werte anderer; Bestenliste nur, wenn eingeschaltet) */
+  challengeTotals(teamId: string, ws: string): Promise<ChallengeTotals[]>;
+  // Individualtraining
+  saveIndiv(teamId: string, r: IndivRequest): Promise<IndivRequest>;
+
+  // Chat
+  /** Team-, Trainerteam-, Gruppen- oder Einzelchat öffnen (wird bei Bedarf angelegt) */
+  chatOpen(teamId: string, kind: ChatKind, groupId?: string | null, other?: string | null): Promise<Chat>;
+  /** Eigene Gruppe anlegen oder ändern */
+  chatSaveCustom(teamId: string, chatId: string | null, title: string, members: string[], readOnly: boolean): Promise<Chat>;
+  chatLeave(chatId: string): Promise<void>;
+  /** Gruppen-/Trainerteam-Chat: nur Trainerteam schreibt (Recht „messages“) */
+  chatSetReadOnly(chatId: string, readOnly: boolean): Promise<void>;
+  chatSend(teamId: string, chatId: string, body: string, replyTo: string | null, clientId: string): Promise<ChatMsg>;
+  chatDelete(id: string): Promise<void>;
+  chatReact(msgId: string, emoji: string, on: boolean): Promise<void>;
+  chatRead(chatId: string, at: string): Promise<void>;
+  chatMute(chatId: string, muted: boolean): Promise<void>;
+  chatReport(msgId: string, reason: ChatReportReason, note: string): Promise<void>;
+  chatSetReport(id: string, done: boolean): Promise<void>;
+  /** Ältere Nachrichten eines Chats (vor dem Zeitpunkt) */
+  chatOlder(chatId: string, before: string): Promise<{ msgs: ChatMsg[]; more: boolean }>;
+  /** Neue und gelöschte Nachrichten seit dem Zeitpunkt (mit Reaktionen) – falls Echtzeit nicht ankommt */
+  chatSince(teamId: string, since: string): Promise<ChatMsg[]>;
+  /** Chats, Personen, Meldungen und eigener Lesestand neu laden */
+  chatList(teamId: string): Promise<ChatListData>;
+  /** Echtzeit: neue und gelöschte Nachrichten, Reaktionen; liefert die Abmeldung */
+  chatSubscribe(teamId: string, on: (ev: ChatEvent) => void): () => void;
+
   // Einwilligungen, Push, Datenschutz
   consents(): Promise<ConsentState>;
   giveConsent(kind: ConsentKind, opts?: { parentEmail?: string; playerId?: string }): Promise<void>;
@@ -191,3 +236,9 @@ export interface Api {
 }
 
 export const CONSENT_VERSION = "2026-10";
+
+export interface ChatListData { chats: Chat[]; people: ChatPerson[]; reports: ChatReport[]; read: Record<string, string>; old: Record<string, string> }
+/** Ereignis aus der Echtzeit-Verbindung des Chats */
+export type ChatEvent =
+  | { type: "msg"; msg: Omit<ChatMsg, "reactions"> }
+  | { type: "react"; msgId: string; chatId: string; uid: string; emoji: string; on: boolean };

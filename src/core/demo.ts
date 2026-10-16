@@ -6,9 +6,12 @@ import { createEngine } from "./engine";
 import { duePeriods, periodStart, seasonStart } from "./kasse";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
-import type { FeeDef, FineEntry, Wellness, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles, DayUnit, UnitArt } from "./types";
+import type { Chat, ChatMsg, Goal, FeeDef, FineEntry, Wellness, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles, DayUnit, UnitArt } from "./types";
 import { cleanUnit, freeDateSlot, isGoalkeeper, shiftTime } from "./units";
 import { emptyTeamData } from "./types";
+import { challengeDefsFor, fromDef } from "./challenge";
+import { demoPeople } from "./chat";
+import { compsOf, posGroupOf } from "./dev";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
 const OPP = ["SV Nordheim", "TuS Rheinblick", "FC Eintracht Waldau", "SpVgg Ostfeld", "VfR Lindenhof", "DJK Sonnenberg", "BV Hafenstadt", "SC Bergtal", "Rot-Weiß Auenfeld", "TSV Mühlbach", "SG Kirchdorf", "1. FC Talheim", "SV Grünwiese"];
@@ -231,6 +234,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoContacts(D, en);
   demoGroups(D, en, TODAY);
   demoUnits(D, lang, now);
+  demoDev(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   const tw = D.players.filter(p => (p.groups || []).includes("g1")).map(p => p.id);
@@ -511,4 +515,135 @@ function demoArchive(D: TeamData, en: boolean): void {
     { id: "tp2", title: en ? "Finishing day (MD-2)" : "Abschluss-Tag (MD-2)", theme: en ? "Finishing" : "Torabschluss", notes: "", blocks: [
       { exId: "e1", text: "", min: 10, staffId: null }, { exId: "e2", text: "", min: 20, staffId: "s1" }, { exId: "e6", text: "", min: 15, staffId: "s3" }, { exId: "e7", text: "", min: 10, staffId: null }] },
   ];
+}
+
+/** Spielerentwicklung, Wochenchallenge und Individualtraining für die Demo (Einschätzungen, Ziele, Gespräche, Anfragen). */
+function demoDev(D: TeamData, lang: Lang, now: Date): void {
+  const TODAY = iso(now), en = lang === "en", { t } = translator(lang), grp = classDef(D.team.cls).grp, r = rng(311);
+  const P = (id: string) => D.players.find(p => p.id === id);
+  if (!P("p8") || !P("p6") || !P("p1")) return;
+  // Kompetenzprofil: Trainer vor 7 Wochen und vor 1 Woche (freigegeben), Selbsteinschätzung
+  const scoresFor = (pid: string, base: number, spread: number): Record<string, number> => {
+    const out: Record<string, number> = {}; const p = P(pid)!;
+    for (const { key } of compsOf(posGroupOf(D, p, grp))) out[key] = Math.max(1, Math.min(5, Math.round(base + (r() - 0.5) * spread)));
+    return out;
+  };
+  let aid = 1; const A = (pid: string, date: string, by: "coach" | "self", scores: Record<string, number>, note: string, vis: boolean) =>
+    D.assessments.push({ id: "da" + (aid++), pid, date, by, scores, note, vis });
+  const s8a = scoresFor("p8", 3, 2), s8b = { ...s8a }; for (const k of Object.keys(s8b).slice(0, 4)) s8b[k] = Math.min(5, s8b[k] + 1);
+  A("p8", addDays(TODAY, -49), "coach", s8a, en ? "Start of season" : "Saisonstart", true);
+  A("p8", addDays(TODAY, -6), "coach", s8b, en ? "Clear progress in passing and duels." : "Deutliche Fortschritte im Passspiel und in den Zweikämpfen.", true);
+  const self8 = { ...s8b }; const k8 = Object.keys(self8); if (k8[5]) self8[k8[5]] = Math.min(5, self8[k8[5]] + 2); if (k8[9]) self8[k8[9]] = Math.max(1, self8[k8[9]] - 2);
+  A("p8", addDays(TODAY, -4), "self", self8, en ? "My left foot is getting better." : "Mein linker Fuß wird besser.", true);
+  A("p6", addDays(TODAY, -21), "coach", scoresFor("p6", 3, 2.5), "", false);
+  const self6 = scoresFor("p6", 4, 1.5); A("p6", addDays(TODAY, -2), "self", self6, "", true);
+  A("p1", addDays(TODAY, -30), "coach", scoresFor("p1", 3.5, 2), en ? "Very good on crosses." : "Sehr stark bei Flanken.", true);
+  for (const pid of ["p2", "p12", "p17"]) if (P(pid)) A(pid, addDays(TODAY, -35 - Math.floor(r() * 20)), "coach", scoresFor(pid, 3, 2), "", r() < 0.5);
+  // Ziele
+  let gid = 1; const G = (g: Partial<Goal> & Pick<Goal, "pid" | "title">): Goal => {
+    const x: Goal = { id: "dg" + (gid++), area: "tech", kind: "process", metric: "count", unit: "", start: null, target: null, lower: false, test: null, stat: null, from: addDays(TODAY, -42), due: addDays(TODAY, 35),
+      why: "", steps: [], status: "active", vis: true, by: "coach", talkId: null, ...g };
+    D.goals.push(x); return x;
+  };
+  const sprint = D.tests.filter(x => x.pid === "p8" && x.test === "sprint30").sort((a, b) => a.date < b.date ? -1 : 1)[0];
+  const g1 = G({ pid: "p8", title: en ? "Weak foot: 300 passes against the wall" : "Schwacher Fuß: 300 Wandpässe", unit: en ? "passes" : "Pässe", start: 0, target: 300,
+    why: en ? "So I can play out under pressure on both sides." : "Damit ich unter Druck zu beiden Seiten aufbauen kann.",
+    steps: [{ text: en ? "3× per week 10 min after training" : "3× pro Woche 10 Min. nach dem Training", done: true }, { text: en ? "Film once and watch with the coach" : "Einmal filmen und mit dem Trainer anschauen", done: false }] });
+  if (sprint && grp !== "u11") G({ pid: "p8", title: en ? "30 m sprint 2 % faster" : "30-m-Sprint 2 % schneller", area: "ath", kind: "perf", metric: "test", test: "sprint30", start: sprint.value, target: Math.round(sprint.value * 0.98 * 100) / 100, lower: true, due: addDays(TODAY, 49) });
+  G({ pid: "p8", title: en ? "Five starts before the winter break" : "Fünf Startelf-Einsätze bis zur Winterpause", area: "takt", kind: "outcome", metric: "stat", stat: "starts", start: 0, target: 5, due: addDays(TODAY, 60) });
+  G({ pid: "p8", title: en ? "10 min mobility after every session" : "Nach jedem Training 10 Min. Mobility", area: "ath", metric: "check", by: "player", from: addDays(TODAY, -10), due: addDays(TODAY, 20),
+    steps: [{ text: en ? "Week 1" : "Woche 1", done: true }, { text: en ? "Week 2" : "Woche 2", done: false }, { text: en ? "Week 3" : "Woche 3", done: false }, { text: en ? "Week 4" : "Woche 4", done: false }] });
+  G({ pid: "p6", title: en ? "Crosses: 6 of 10 reach the far post" : "Flanken: 6 von 10 an den zweiten Pfosten", kind: "perf", metric: "value", unit: en ? "of 10" : "von 10", start: 3, target: 6, from: addDays(TODAY, -28), due: addDays(TODAY, 14) });
+  G({ pid: "p6", title: en ? "Attend 90 % of training sessions" : "90 % Trainingsbeteiligung", area: "ment", metric: "att", start: null, target: 90, vis: false });
+  const tw = D.tests.filter(x => x.pid === "p1" && x.test === "tw_lateral").sort((a, b) => a.date < b.date ? -1 : 1)[0];
+  if (tw) G({ pid: "p1", title: en ? "Lateral jump: +10 cm" : "Seitlicher Sprung: +10 cm", area: "ath", kind: "perf", metric: "test", test: "tw_lateral", start: tw.value, target: tw.value + 10 });
+  let eid = 1;
+  for (const [d, v] of [[-38, 40], [-30, 60], [-21, 45], [-12, 50], [-3, 35]] as [number, number][]) D.goalEntries.push({ id: "de" + (eid++), goalId: g1.id, pid: "p8", date: addDays(TODAY, d), value: v, note: "", by: "player" });
+  const g6 = D.goals.find(g => g.pid === "p6" && g.metric === "value");
+  if (g6) for (const [d, v] of [[-20, 4], [-6, 5]] as [number, number][]) D.goalEntries.push({ id: "de" + (eid++), goalId: g6.id, pid: "p6", date: addDays(TODAY, d), value: v, note: "", by: "coach" });
+  // Gespräche
+  D.talks.push({ id: "dt1", pid: "p8", date: addDays(TODAY, -45), kind: "start", vis: true, next: addDays(TODAY, 9),
+    player: en ? "Wants to become a regular starter; feels confident in duels, unsure with the left foot." : "Will Stammspieler werden; fühlt sich in Zweikämpfen sicher, mit links noch unsicher.",
+    strengths: en ? "Duels, work rate, leading by example" : "Zweikämpfe, Laufbereitschaft, Vorbild im Training",
+    focus: en ? "Weak foot, scanning before receiving" : "Schwacher Fuß, Schulterblick vor der Ballannahme",
+    agreements: [{ id: "ag1", text: en ? "3× per week 10 min weak foot after training" : "3× pro Woche 10 Min. schwacher Fuß nach dem Training", who: "player", due: null, done: true },
+      { id: "ag2", text: en ? "Coach sends 3 video clips on scanning" : "Trainer schickt 3 Videoclips zum Schulterblick", who: "coach", due: addDays(TODAY, -30), done: true },
+      { id: "ag3", text: en ? "Try the 6 position in the friendly" : "Im Testspiel auf der 6 ausprobieren", who: "both", due: addDays(TODAY, 7), done: false }],
+    notes: en ? "Parents very supportive. Possibly captain material next season." : "Eltern unterstützen sehr. Perspektivisch Kandidat für den Mannschaftsrat." });
+  D.talks.push({ id: "dt2", pid: "p6", date: addDays(TODAY, -60), kind: "start", vis: false, next: addDays(TODAY, -3), player: "", strengths: en ? "Pace, 1 v 1 going forward" : "Tempo, 1 gegen 1 nach vorne",
+    focus: en ? "Defensive positioning" : "Defensives Stellungsspiel", agreements: [{ id: "ag4", text: en ? "Extra crossing session on Tuesdays" : "Dienstags Flanken-Zusatzschicht", who: "player", due: null, done: false }], notes: "" });
+  // Individualtraining: zwei offene Anfragen, eine zugesagte mit Einheit nur für den Spieler
+  D.indiv.push({ id: "di1", pid: "p8", topic: "schwach", note: en ? "I'd like to work on passing with my left foot." : "Ich möchte an meinen Pässen mit links arbeiten.", wish: en ? "Tue or Thu before training" : "Di oder Do vor dem Training",
+    status: "open", answer: "", date: null, slot: null, staffId: null, created: new Date(now.getTime() - 26 * 3600e3).toISOString() });
+  if (P("p17")) D.indiv.push({ id: "di2", pid: "p17", topic: "schuss", note: en ? "Finishing with the first touch" : "Abschluss mit dem ersten Kontakt", wish: en ? "Any day from 4 pm" : "Ab 16 Uhr an jedem Tag",
+    status: "open", answer: "", date: null, slot: null, staffId: null, created: new Date(now.getTime() - 5 * 3600e3).toISOString() });
+  const d3 = addDays(TODAY, 3), slot = freeDateSlot(D, d3), s1 = D.staff.find(x => x.role === "co")?.id || D.staff[0]?.id || null;
+  if (slot) {
+    D.indiv.push({ id: "di3", pid: "p6", topic: "taktik", note: en ? "Positioning as a full-back" : "Stellungsspiel als Außenverteidiger", wish: "", status: "accepted",
+      answer: en ? "Let's do 45 min with video, Thursday 5 pm." : "Wir machen 45 Min. mit Video, Donnerstag 17 Uhr.", date: d3, slot, staffId: s1, created: new Date(now.getTime() - 4 * 86400e3).toISOString() });
+    (D.units[d3] ||= []).push(cleanUnit({ slot, art: "taktik", title: t("iq_t_taktik"), zeit: "17:00", dauer: 45, rpe: 3, groupId: null, staffId: s1, inhalt: en ? "Positioning as a full-back, video clips" : "Stellungsspiel AV, Videoclips", themes: [], pids: ["p6"] }));
+  }
+  // Wochenchallenge: diese Woche zwei, letzte Woche eine (mit Einträgen)
+  const ws = monday(TODAY), defs = challengeDefsFor(grp);
+  const pick = (k: string) => defs.find(d => d.key === k) || defs[0];
+  const mk = (id: string, w: string, key: string) => { const d = pick(key); const c = fromDef(d, w, id, t("chk_" + d.key), t("chkd_" + d.key)); D.challenges.push(c); return c; };
+  const c1 = mk("dc1", ws, grp === "u11" || grp === "u15" ? "schwach100" : "schwach1000");
+  const c2 = mk("dc2", ws, grp === "u11" || grp === "u15" ? "jonglier" : "jonglierSchwach");
+  const c0 = mk("dc0", addDays(ws, -7), "mastery");
+  const days = (n: number) => Array.from({ length: n }, (_, i) => addDays(c0.ws, i));
+  const atNow = now.toISOString();
+  D.players.slice(0, 18).forEach((p, i) => {
+    if (i % 3 !== 2) { const n = 2 + (i % 4); D.chEntries.push({ cid: c0.id, pid: p.id, value: n + (i % 2), days: days(n + (i % 2)), done: n + (i % 2) >= 5, at: atNow }); }
+    if (i % 2 === 0) { const v = Math.round((c1.target || 100) * (0.3 + r() * 0.9)); D.chEntries.push({ cid: c1.id, pid: p.id, value: v, days: [], done: v >= (c1.target || 1), at: atNow }); }
+    if (i % 3 === 0) D.chEntries.push({ cid: c2.id, pid: p.id, value: Math.round(5 + r() * (grp === "u11" ? 25 : 40)), days: [], done: true, at: atNow });
+  });
+}
+
+/** Chat der Demo: Teamchat, Trainerteam, Torhüter-Gruppe, Einzelchats (Jugend: transparent), eigene Gruppe, eine Meldung. */
+export function demoChat(D: TeamData, lang: Lang, now: Date, me: string): void {
+  const en = lang === "en";
+  D.chatPeople = demoPeople(D);
+  const uidP = (pid: string) => D.chatPeople.find(x => x.pid === pid)?.uid || "", uidS = (sid: string) => { const s = D.staff.find(x => x.id === sid); return s ? s.userId || "demo-" + s.id : ""; };
+  const nameOf = (uid: string) => D.chatPeople.find(x => x.uid === uid)?.name || "–";
+  const youth = groupOf(D.team.cls) !== "akt";
+  let n = 1;
+  const at = (minAgo: number) => new Date(now.getTime() - minAgo * 60e3).toISOString();
+  const chat = (id: string, kind: Chat["kind"], extra: Partial<Chat> = {}): Chat => { const c: Chat = { id, kind, title: "", groupId: null, members: [], readOnly: false, transparent: false, createdBy: null, lastAt: null, muted: false, ...extra }; D.chats.push(c); return c; };
+  const msg = (c: Chat, uid: string, minAgo: number, body: string, react: Record<string, string[]> = {}, replyTo: string | null = null): ChatMsg => {
+    const m: ChatMsg = { id: "dm" + (n++), chatId: c.id, uid, name: nameOf(uid), body, at: at(minAgo), replyTo, deleted: false, reactions: react };
+    (D.chatMsgs[c.id] ||= []).push(m); c.lastAt = m.at; return m;
+  };
+  const pl = D.players.map(p => uidP(p.id)).filter(Boolean);
+  const team = chat("dch-team", "team"), staff = chat("dch-staff", "staff");
+  msg(team, me, 60 * 26, en ? "Departure on Saturday 12:45 at the clubhouse – please be on time. Black kit." : "Abfahrt Samstag 12:45 Uhr am Vereinsheim – bitte pünktlich. Schwarzer Trikotsatz.",
+    { "✅": pl.slice(0, 15), "👍": pl.slice(15, 18) });
+  const q = msg(team, uidP("p10"), 60 * 25, en ? "Can anyone give me a lift? I live near the station." : "Kann mich jemand mitnehmen? Wohne am Bahnhof.");
+  msg(team, uidP("p12"), 60 * 24, en ? "I still have a seat 👍" : "Ich hab noch einen Platz frei 👍", { "❤️": [uidP("p10")] }, q.id);
+  msg(team, uidP("p19"), 60 * 5, en ? "Ole, you muppet, missed again 🙄" : "Ole, du Flasche, wieder verschossen 🙄");
+  msg(team, me, 60 * 3, en ? "Please remember the morning check this week – thanks! 💪" : "Denkt diese Woche an euren Morgen-Check – danke! 💪", { "💪": pl.slice(2, 9) });
+  msg(team, uidP("p8"), 25, en ? "Is training at 18:30 today as usual?" : "Ist das Training heute wie immer um 18:30?");
+  msg(staff, uidS("s2"), 60 * 20, en ? "Pressing clips are uploaded – 6 scenes for the back line." : "Pressing-Clips sind hochgeladen – 6 Szenen für die Abwehrkette.", { "👏": [me] });
+  msg(staff, uidS("s4"), 60 * 4, en ? "Samuel only does the rehab programme today, load according to pain." : "Samuel heute nur Reha-Programm, Belastung nach Schmerz.");
+  msg(staff, me, 60 * 3.5, en ? "Thanks! Then I'll plan him in for Thursday." : "Danke! Dann plane ich ihn für Donnerstag ein.", { "👍": [uidS("s4")] });
+  const gk = D.groups.find(g => g.kind === "tw" && g.vis);
+  if (gk) {
+    const g = chat("dch-gk", "group", { groupId: gk.id });
+    msg(g, uidS("s3"), 60 * 30, en ? "Thursday 5 pm goalkeeper session – focus on crosses." : "Donnerstag 17 Uhr Torwarttraining – Schwerpunkt Flanken.", { "👍": D.players.filter(p => (p.groups || []).includes(gk.id)).map(p => uidP(p.id)) });
+  }
+  const d1 = chat("dch-d1", "direct", { members: [me, uidP("p8")], transparent: youth });
+  msg(d1, uidP("p8"), 60 * 28, en ? "Coach, could I do an individual session for my left foot next week?" : "Trainer, kann ich nächste Woche ein Individualtraining für meinen linken Fuß machen?");
+  msg(d1, me, 60 * 27, en ? "Sure! Just request it in the app (Me → Development) and I'll plan it in." : "Klar! Frag es gern direkt in der App an (Ich → Entwicklung), dann plane ich es ein.");
+  const d2 = chat("dch-d2", "direct", { members: [uidS("s2"), uidP("p6")], transparent: youth });
+  msg(d2, uidS("s2"), 60 * 8, en ? "Leon, please send me your self-assessment by Friday." : "Leon, schick mir bitte bis Freitag deine Selbsteinschätzung.");
+  msg(d2, uidP("p6"), 60 * 7, en ? "Will do!" : "Mach ich!", { "👍": [uidS("s2")] });
+  const car = chat("dch-car", "custom", { title: en ? "Car pool Saturday" : "Fahrgemeinschaft Samstag", members: [me, uidP("p10"), uidP("p12"), uidP("p14")].filter(Boolean), createdBy: me, transparent: youth });
+  msg(car, me, 60 * 22, en ? "Who is driving from the station? Please coordinate here." : "Wer fährt vom Bahnhof aus? Bitte hier abstimmen.");
+  msg(car, uidP("p12"), 60 * 21, en ? "My dad drives, 3 seats." : "Mein Vater fährt, 3 Plätze.", { "👍": [me, uidP("p10")] });
+  // Lesestand: Teamchat bis gestern gelesen (heute Neues), Rest gelesen
+  for (const c of D.chats) { const L = D.chatMsgs[c.id] || []; D.chatRead[c.id] = L.length ? L[L.length - 1].at : at(0); }
+  D.chatRead[team.id] = at(60 * 24);
+  D.chatRead[d1.id] = at(60 * 28);
+  // Meldung (offen) zur Nachricht von Ole
+  const rep = (D.chatMsgs[team.id] || []).find(m => m.uid === uidP("p19"));
+  if (rep) D.chatReports.push({ id: "dr1", msgId: rep.id, chatId: team.id, reason: "mean", note: "", snapshot: rep.body, sender: rep.name, sentAt: rep.at, status: "open", reporter: uidP("p13") || pl[0], at: at(60 * 4) });
 }

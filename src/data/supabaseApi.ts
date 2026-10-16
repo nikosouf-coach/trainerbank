@@ -7,24 +7,29 @@ import { isClientId, isNetworkMessage } from "../core/outbox";
 import { cleanPainMap } from "../core/pain";
 import { cleanUnit } from "../core/units";
 import { addDays, iso, monday } from "../core/dates";
-import type { Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
+import type { Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+  Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 import { emptyTeamData } from "../core/types";
 import {
-  ApiError, CONSENT_VERSION, type AiRequest, type Api, type ConsentKind, type ConsentState, type CreateTeamInput,
+  ApiError, CONSENT_VERSION, type AiRequest, type Api, type ChatEvent, type ChatListData, type ConsentKind, type ConsentState, type CreateTeamInput,
   type JoinProfile, type Membership, type PublishedDay, type Role, type StaffEntry, type TeamPatch, type UserInfo, type UserPrefs,
 } from "./api";
 import { supabase } from "./supabase";
 
 type Row = Record<string, any>;
-const KNOWN_CODES = ["invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role"];
+const KNOWN_CODES = ["invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
+  "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day"];
+/** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
+const LIMIT_CODES = ["open_requests", "chat_rate", "members"];
 
 function fail(error: { message?: string; details?: string; code?: string } | null | undefined): never {
   const msg = error?.message || "unknown";
   const code = isNetworkMessage(msg) || isNetworkMessage(error?.details) ? "offline"
-    : KNOWN_CODES.find(c => msg.includes(c)) || (error?.code === "42501" ? "forbidden" : error?.code === "23505" ? "duplicate" : "server");
+    : msg === "limit" && LIMIT_CODES.includes(error?.details || "") ? error!.details!
+    : KNOWN_CODES.find(c => msg.includes(c)) || (error?.code === "42501" || /row-level security/i.test(msg) ? "forbidden" : error?.code === "23505" ? "duplicate" : "server");
   throw new ApiError(code, msg, error?.details);
 }
 async function q<T = Row[]>(p: PromiseLike<{ data: unknown; error: any }>): Promise<T> {
@@ -107,6 +112,35 @@ const mapPhase = (r: Row): Phase => ({ id: r.id, kind: r.kind, title: r.title, f
 const mapPot = (r: Row): Potential => ({ id: r.id, cat: r.category, text: r.text, vis: !!r.visible_to_player, src: r.source || "trainer" });
 const mapMsg = (r: Row): CoachMsg => ({ id: r.id, date: (r.created_at || "").slice(0, 10), typ: r.type, text: r.text, bis: r.valid_until });
 const mapKind = (r: Row): CustomKind => ({ id: r.id, name: r.name, rpe: Number(r.rpe ?? 5), inhalt: r.content || "" });
+const numOrNull = (v: unknown): number | null => v == null ? null : Number(v);
+// Spielerentwicklung, Challenges, Individualtraining
+const mapAssessment = (r: Row): Assessment => ({ id: r.id, pid: r.player_id, date: r.date, by: r.by_player ? "self" : "coach", scores: r.scores || {}, note: r.note || "", vis: !!r.visible });
+const mapGoal = (r: Row): Goal => ({ id: r.id, pid: r.player_id, title: r.title, area: r.area, kind: r.kind, metric: r.metric, unit: r.unit || "", start: numOrNull(r.start_value), target: numOrNull(r.target_value),
+  lower: !!r.lower_better, test: r.test || null, stat: r.stat || null, from: r.date_from, due: r.due || null, why: r.why || "", steps: Array.isArray(r.steps) ? r.steps : [],
+  status: r.status || "active", vis: !!r.visible, by: r.by_player ? "player" : "coach", talkId: r.talk_id || null });
+const mapGoalEntry = (r: Row): GoalEntry => ({ id: r.id, goalId: r.goal_id, pid: r.player_id, date: r.date, value: Number(r.value), note: r.note || "", by: r.by_player ? "player" : "coach" });
+const mapTalk = (r: Row, notes = ""): DevTalk => ({ id: r.id, pid: r.player_id, date: r.date, kind: r.kind || "event", player: r.player_view || "", strengths: r.strengths || "", focus: r.focus || "",
+  agreements: Array.isArray(r.agreements) ? r.agreements : [], notes, next: r.next_date || null, vis: !!r.visible });
+const mapChallenge = (r: Row): Challenge => ({ id: r.id, ws: r.week_start, title: r.title, text: r.text || "", kind: r.kind, unit: r.unit || "", target: numOrNull(r.target), teamTarget: numOrNull(r.team_target),
+  lower: !!r.lower_better, groupId: r.group_id || null, key: r.key || null });
+const mapChEntry = (r: Row): ChallengeEntry => ({ cid: r.challenge_id, pid: r.player_id, value: numOrNull(r.value), days: Array.isArray(r.days) ? r.days : [], done: !!r.done, at: r.updated_at || "" });
+const mapIndiv = (r: Row): IndivRequest => ({ id: r.id, pid: r.player_id, topic: r.topic, note: r.note || "", wish: r.wish || "", status: r.status, answer: r.answer || "",
+  date: r.unit_date || null, slot: r.unit_slot ?? null, staffId: r.staff_id || null, created: r.created_at });
+// Chat
+const mapChat = (r: Row, members: string[], muted: boolean): Chat => ({ id: r.id, kind: r.kind as ChatKind, title: r.title || "", groupId: r.group_id || null, members,
+  readOnly: !!r.read_only, transparent: !!r.transparent, createdBy: r.created_by || null, lastAt: r.last_at || null, muted });
+const mapChatMsg = (r: Row): Omit<ChatMsg, "reactions"> => ({ id: r.id, chatId: r.chat_id, uid: r.user_id || null, name: r.sender_name || "", body: r.body || "", at: r.created_at, replyTo: r.reply_to || null, deleted: !!r.deleted_at });
+const mapReport = (r: Row): ChatReport => ({ id: r.id, msgId: r.message_id || null, chatId: r.chat_id || null, reason: r.reason, note: r.note || "", snapshot: r.snapshot || "", sender: r.sender_name || "",
+  sentAt: r.sent_at || null, status: r.status, reporter: r.reporter, at: r.created_at });
+const mapPerson = (r: Row): ChatPerson => ({ uid: r.user_id, name: r.name || "–", kind: r.kind === "staff" ? "staff" : "player", pid: r.player_id || null, role: r.role || null });
+/** Reaktionen den Nachrichten zuordnen */
+function withReactions(msgs: Row[], reacts: Row[]): ChatMsg[] {
+  const by = new Map<string, Record<string, string[]>>();
+  for (const x of reacts) { const m = by.get(x.message_id) || {}; (m[x.emoji] ||= []).push(x.user_id); by.set(x.message_id, m); }
+  return msgs.map(r => ({ ...mapChatMsg(r), reactions: by.get(r.id) || {} }));
+}
+/** Nachrichten je Chat beim Laden */
+const CHAT_DAYS = 60, CHAT_MAX = 2000;
 
 export class SupabaseApi implements Api {
   readonly kind = "supabase" as const;
@@ -277,6 +311,43 @@ export class SupabaseApi implements Api {
       for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started, conceded: r.conceded ?? null, saves: r.saves ?? null };
       D.ratings = ratings.map(mapRating);
       D.videos = videos.map(mapVideo);
+    }
+    {
+      // Spielerentwicklung, Wochenchallenge, Individualtraining (Spieler: eigene bzw. freigegebene – Zugriffsregeln)
+      const mods = D.team.modules, dev = mods.entwicklung !== false, ch = mods.challenge !== false;
+      const none = Promise.resolve([] as Row[]);
+      const [ass, goals, gEntries, talks, tNotes, chs, chE, indiv] = await Promise.all([
+        dev ? q(sb.from("player_assessments").select("*").eq("team_id", tid).order("date")) : none,
+        dev ? q(sb.from("player_goals").select("*").eq("team_id", tid).order("created_at")) : none,
+        dev ? all((a, b) => sb.from("goal_entries").select("*").eq("team_id", tid).order("date").range(a, b)) : none,
+        dev ? q(sb.from("dev_talks").select("*").eq("team_id", tid).order("date")) : none,
+        dev && staff ? q(sb.from("dev_talk_notes").select("talk_id, text").eq("team_id", tid)) : none,
+        ch ? q(sb.from("team_challenges").select("*").eq("team_id", tid).gte("week_start", addDays(today, -400)).order("week_start")) : none,
+        ch ? all((a, b) => sb.from("challenge_entries").select("*").eq("team_id", tid).gte("updated_at", addDays(today, -400)).range(a, b)) : none,
+        dev ? q(sb.from("indiv_requests").select("*").eq("team_id", tid).or(`status.eq.open,updated_at.gte.${addDays(today, -180)}`).order("created_at")) : none,
+      ]);
+      const nMap = new Map(tNotes.map(r => [r.talk_id as string, r.text as string]));
+      D.assessments = ass.map(mapAssessment); D.goals = goals.map(mapGoal); D.goalEntries = gEntries.map(mapGoalEntry);
+      D.talks = talks.map(r => mapTalk(r, nMap.get(r.id) || "")); D.challenges = chs.map(mapChallenge); D.chEntries = chE.map(mapChEntry); D.indiv = indiv.map(mapIndiv);
+      if (!staff && ch && D.challenges.length) {
+        const ws = monday(today);
+        for (const w of [ws, addDays(ws, -7)]) if (D.challenges.some(c => c.ws === w)) { try { for (const x of await this.challengeTotals(tid, w)) D.chTotals[x.cid] = x; } catch { /* ohne Teamsumme */ } }
+      }
+      // Chat (Teamchat und Trainerteam-Chat werden bei Bedarf angelegt)
+      if (mods.chat !== false) {
+        try {
+          await q(sb.rpc("chat_ensure", { p_team: tid }));
+          const L = await this.chatList(tid);
+          D.chats = L.chats; D.chatPeople = L.people; D.chatReports = L.reports; D.chatRead = L.read;
+          const from = new Date(Date.now() - CHAT_DAYS * 86400e3).toISOString();
+          const [msgs, reacts] = await Promise.all([
+            q(sb.from("chat_messages").select("*").eq("team_id", tid).gte("created_at", from).order("created_at", { ascending: false }).limit(CHAT_MAX)),
+            all((a, b) => sb.from("chat_reactions").select("message_id, user_id, emoji").eq("team_id", tid).gte("created_at", from).range(a, b)),
+          ]);
+          for (const x of withReactions([...msgs].reverse(), reacts)) (D.chatMsgs[x.chatId] ||= []).push(x);
+          for (const c of D.chats) D.chatMore[c.id] = msgs.length >= CHAT_MAX || (L.old[c.id] || "") < from;
+        } catch { /* Chat optional: Rest der App lädt trotzdem */ }
+      }
     }
     if (!staff && m.playerId) {
       // Eigene Platzierungen in Tests (Server rechnet, ohne Werte anderer)
@@ -618,6 +689,142 @@ export class SupabaseApi implements Api {
       throw new ApiError(code, error.message);
     }
     return String((data as { text?: string })?.text || "");
+  }
+
+  // ---------- Spielerentwicklung ----------
+  async saveAssessment(teamId: string, a: Assessment) {
+    const row: Row = { player_id: a.pid, date: a.date, by_player: a.by === "self", scores: a.scores, note: a.note.trim() || null, visible: a.vis };
+    const r = isTmp(a.id) ? await q<Row>(this.sb.from("player_assessments").insert(row).select().single()) : await q<Row>(this.sb.from("player_assessments").update(row).eq("id", a.id).select().single());
+    return mapAssessment(r);
+  }
+  async deleteAssessment(id: string) { await q(this.sb.from("player_assessments").delete().eq("id", id)); }
+  async saveGoal(teamId: string, g: Goal) {
+    const row: Row = { player_id: g.pid, title: g.title, area: g.area, kind: g.kind, metric: g.metric, unit: g.unit, start_value: g.start, target_value: g.target, lower_better: g.lower,
+      test: g.test, stat: g.stat, date_from: g.from, due: g.due, why: g.why || null, steps: g.steps, status: g.status, visible: g.vis, by_player: g.by === "player",
+      talk_id: g.talkId && !isTmp(g.talkId) ? g.talkId : null };
+    const r = isTmp(g.id) ? await q<Row>(this.sb.from("player_goals").insert(row).select().single()) : await q<Row>(this.sb.from("player_goals").update(row).eq("id", g.id).select().single());
+    return mapGoal(r);
+  }
+  async saveGoalSteps(id: string, steps: Goal["steps"]) { await q(this.sb.from("player_goals").update({ steps }).eq("id", id)); }
+  async deleteGoal(id: string) { await q(this.sb.from("player_goals").delete().eq("id", id)); }
+  async saveGoalEntry(e: GoalEntry) {
+    return mapGoalEntry(await q<Row>(this.sb.from("goal_entries").insert({ goal_id: e.goalId, date: e.date, value: e.value, note: e.note.trim() || null, by_player: e.by === "player" }).select().single()));
+  }
+  async deleteGoalEntry(id: string) { await q(this.sb.from("goal_entries").delete().eq("id", id)); }
+  async saveTalk(teamId: string, t: DevTalk) {
+    const row: Row = { player_id: t.pid, date: t.date, kind: t.kind, player_view: t.player || null, strengths: t.strengths || null, focus: t.focus || null,
+      agreements: t.agreements.slice(0, 20), next_date: t.next, visible: t.vis };
+    const r = isTmp(t.id) ? await q<Row>(this.sb.from("dev_talks").insert(row).select().single()) : await q<Row>(this.sb.from("dev_talks").update(row).eq("id", t.id).select().single());
+    // interne Notiz in eigener Tabelle (nur Trainerteam)
+    const note = t.notes.trim().slice(0, 4000);
+    if (note) await q(this.sb.from("dev_talk_notes").upsert({ talk_id: r.id, team_id: teamId, text: note }));
+    else if (!isTmp(t.id)) await q(this.sb.from("dev_talk_notes").delete().eq("talk_id", r.id));
+    return mapTalk(r, note);
+  }
+  async deleteTalk(id: string) { await q(this.sb.from("dev_talks").delete().eq("id", id)); }
+
+  // ---------- Wochenchallenge ----------
+  async saveChallenge(teamId: string, c: Challenge) {
+    const row: Row = { team_id: teamId, week_start: c.ws, title: c.title, text: c.text, kind: c.kind, unit: c.unit, target: c.target, team_target: c.teamTarget, lower_better: c.lower,
+      group_id: c.groupId && !isTmp(c.groupId) ? c.groupId : null, key: c.key };
+    const r = isTmp(c.id) ? await q<Row>(this.sb.from("team_challenges").insert(row).select().single()) : await q<Row>(this.sb.from("team_challenges").update(row).eq("id", c.id).select().single());
+    return mapChallenge(r);
+  }
+  async deleteChallenge(id: string) { await q(this.sb.from("team_challenges").delete().eq("id", id)); }
+  async saveChallengeEntry(e: ChallengeEntry) {
+    await q(this.sb.from("challenge_entries").upsert({ challenge_id: e.cid, player_id: e.pid, value: e.value, days: e.days, done: e.done }, { onConflict: "challenge_id,player_id" }));
+  }
+  async challengeTotals(teamId: string, ws: string): Promise<ChallengeTotals[]> {
+    const rows = await q<Row[]>(this.sb.rpc("challenge_totals", { p_team: teamId, p_week: ws }));
+    return rows.map(r => ({ cid: r.challenge_id, players: r.players ?? 0, done: r.done ?? 0, sum: Number(r.total ?? 0), top: Array.isArray(r.top) ? r.top.map((x: Row) => ({ name: String(x.name), value: Number(x.value) })) : [] }));
+  }
+
+  // ---------- Individualtraining ----------
+  async saveIndiv(teamId: string, x: IndivRequest) {
+    const r = isTmp(x.id)
+      ? await q<Row>(this.sb.from("indiv_requests").insert({ player_id: x.pid, topic: x.topic, note: x.note.trim(), wish: x.wish.trim() }).select().single())
+      : await q<Row>(this.sb.from("indiv_requests").update({ status: x.status, answer: x.answer.trim(), unit_date: x.date, unit_slot: x.slot, staff_id: x.staffId && !isTmp(x.staffId) ? x.staffId : null }).eq("id", x.id).select().single());
+    return mapIndiv(r);
+  }
+
+  // ---------- Chat ----------
+  private async uid(): Promise<string> { const { data } = await this.sb.auth.getSession(); return data.session?.user.id || ""; }
+  async chatList(teamId: string): Promise<ChatListData> {
+    const me = await this.uid();
+    const [chats, members, state, people, reports] = await Promise.all([
+      q(this.sb.from("chats").select("*").eq("team_id", teamId)),
+      all((a, b) => this.sb.from("chat_members").select("chat_id, user_id").eq("team_id", teamId).range(a, b)),
+      q(this.sb.from("chat_state").select("chat_id, read_at, muted").eq("user_id", me)),
+      q(this.sb.rpc("chat_directory", { p_team: teamId })),
+      q(this.sb.from("chat_reports").select("*").eq("team_id", teamId).order("created_at", { ascending: false }).limit(200)),
+    ]);
+    const mem = new Map<string, string[]>(); for (const r of members) { const L = mem.get(r.chat_id) || []; L.push(r.user_id); mem.set(r.chat_id, L); }
+    const st = new Map(state.map(r => [r.chat_id as string, r]));
+    const read: Record<string, string> = {}, old: Record<string, string> = {};
+    for (const r of state) read[r.chat_id] = r.read_at;
+    for (const r of chats) old[r.id] = r.created_at;
+    return { chats: chats.map(r => mapChat(r, mem.get(r.id) || [], !!st.get(r.id)?.muted)), people: people.map(mapPerson), reports: reports.map(mapReport), read, old };
+  }
+  private async chatById(id: string): Promise<Chat> {
+    const me = await this.uid();
+    const [r, members, state] = await Promise.all([
+      q<Row>(this.sb.from("chats").select("*").eq("id", id).single()),
+      q(this.sb.from("chat_members").select("user_id").eq("chat_id", id)),
+      q(this.sb.from("chat_state").select("muted").eq("chat_id", id).eq("user_id", me)),
+    ]);
+    return mapChat(r, members.map(x => x.user_id as string), !!state[0]?.muted);
+  }
+  async chatOpen(teamId: string, kind: ChatKind, groupId?: string | null, other?: string | null) {
+    const id = await q<string>(this.sb.rpc("chat_open", { p_team: teamId, p_kind: kind, p_group: groupId || null, p_other: other || null }));
+    return this.chatById(id);
+  }
+  async chatSaveCustom(teamId: string, chatId: string | null, title: string, members: string[], readOnly: boolean) {
+    const id = await q<string>(this.sb.rpc("chat_save_custom", { p_team: teamId, p_chat: chatId, p_title: title.trim(), p_members: members, p_read_only: readOnly }));
+    return this.chatById(id);
+  }
+  async chatLeave(chatId: string) { await q(this.sb.rpc("chat_leave", { p_chat: chatId })); }
+  async chatSetReadOnly(chatId: string, readOnly: boolean) { await q(this.sb.from("chats").update({ read_only: readOnly }).eq("id", chatId)); }
+  async chatSend(teamId: string, chatId: string, body: string, replyTo: string | null, clientId: string) {
+    // feste ID vom Gerät: Echtzeit-Ereignis und Antwort ergeben dieselbe Nachricht (keine Doppelung)
+    const id = isClientId(clientId) ? clientId.slice(2) : cryptoId();
+    try {
+      const r = await q<Row>(this.sb.from("chat_messages").insert({ id, chat_id: chatId, body, reply_to: replyTo && !isTmp(replyTo) ? replyTo : null }).select().single());
+      return { ...mapChatMsg(r), reactions: {} };
+    } catch (e) {
+      // schon gesendet (Antwort ging verloren): gespeicherte Nachricht übernehmen
+      if (!(e instanceof ApiError) || e.code !== "duplicate") throw e;
+      return { ...mapChatMsg(await q<Row>(this.sb.from("chat_messages").select("*").eq("id", id).single())), reactions: {} };
+    }
+  }
+  async chatDelete(id: string) { await q(this.sb.from("chat_messages").update({ deleted_at: new Date().toISOString() }).eq("id", id)); }
+  async chatReact(msgId: string, emoji: string, on: boolean) {
+    const me = await this.uid();
+    if (on) await q(this.sb.from("chat_reactions").upsert({ message_id: msgId, emoji }, { onConflict: "message_id,user_id,emoji", ignoreDuplicates: true }));
+    else await q(this.sb.from("chat_reactions").delete().eq("message_id", msgId).eq("emoji", emoji).eq("user_id", me));
+  }
+  async chatRead(chatId: string, at: string) { await q(this.sb.from("chat_state").upsert({ chat_id: chatId, read_at: at }, { onConflict: "chat_id,user_id" })); }
+  async chatMute(chatId: string, muted: boolean) { await q(this.sb.from("chat_state").upsert({ chat_id: chatId, muted }, { onConflict: "chat_id,user_id" })); }
+  async chatReport(msgId: string, reason: ChatReportReason, note: string) { await q(this.sb.from("chat_reports").insert({ message_id: msgId, reason, note: note.trim().slice(0, 500) })); }
+  async chatSetReport(id: string, done: boolean) { await q(this.sb.from("chat_reports").update({ status: done ? "done" : "open" }).eq("id", id)); }
+  async chatOlder(chatId: string, before: string) {
+    const rows = await q(this.sb.from("chat_messages").select("*").eq("chat_id", chatId).lt("created_at", before).order("created_at", { ascending: false }).limit(60));
+    const reacts = rows.length ? await q(this.sb.from("chat_reactions").select("message_id, user_id, emoji").in("message_id", rows.map(r => r.id as string))) : [];
+    return { msgs: withReactions([...rows].reverse(), reacts), more: rows.length >= 60 };
+  }
+  async chatSince(teamId: string, since: string) {
+    const rows = await q(this.sb.from("chat_messages").select("*").eq("team_id", teamId).or(`created_at.gt.${since},deleted_at.gt.${since}`).order("created_at").limit(500));
+    const reacts = rows.length ? await q(this.sb.from("chat_reactions").select("message_id, user_id, emoji").in("message_id", rows.slice(-150).map(r => r.id as string))) : [];
+    return withReactions(rows, reacts);
+  }
+  chatSubscribe(teamId: string, on: (ev: ChatEvent) => void) {
+    const f = `team_id=eq.${teamId}`;
+    const ch = this.sb.channel("chat-" + teamId)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: f }, (p: { new: Row }) => on({ type: "msg", msg: mapChatMsg(p.new) }))
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "chat_messages", filter: f }, (p: { new: Row }) => on({ type: "msg", msg: mapChatMsg(p.new) }))
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_reactions", filter: f },
+        (p: { new: Row }) => on({ type: "react", msgId: p.new.message_id, chatId: p.new.chat_id, uid: p.new.user_id, emoji: p.new.emoji, on: true }))
+      .subscribe();
+    return () => { this.sb.removeChannel(ch).catch(() => undefined); };
   }
 
   // ---------- Einwilligungen, Push, Datenschutz ----------

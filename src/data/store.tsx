@@ -10,12 +10,17 @@ import { applyOp, applyOutbox, enqueue, prune, withClientId, type OutboxItem, ty
 import { PERMS, effectivePerms, teamPatchPerms, viewFor, type Perm } from "../core/perms";
 import { createEngine, type Engine } from "../core/engine";
 import { translator, type Translator } from "../core/i18n";
-import { recurringOn } from "../core/units";
-import type { CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
+import { freeDateSlot, recurringOn } from "../core/units";
+import { applyChallenge, entryOf } from "../core/challenge";
+import { cleanBody, demoMe, putMsg, toggleReaction, visibleChats } from "../core/chat";
+import { indivUnit } from "../core/dev";
+import { uuid4 } from "../core/outbox";
+import type { Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+  CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
-import { ApiError, isOffline, isStaffRole, type Api, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo, type UserPrefs } from "./api";
+import { ApiError, isOffline, isStaffRole, type Api, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo, type UserPrefs } from "./api";
 import { DemoApi, type DemoSetup } from "./demoApi";
 import { hasSupabase } from "./supabase";
 import { forgetPhoto } from "../ui/playerAvatar";
@@ -175,7 +180,9 @@ function useStoreValue() {
   }
   function writeCache(user: UserInfo, m: Membership, D: TeamData, consents: ConsentState | null) {
     try {
-      const raw = JSON.stringify({ v: 1, uid: user.id, user, m, D, consents, at: new Date().toISOString() });
+      // Chat: je Chat nur die letzten Nachrichten (Gerätespeicher klein halten)
+      const chatMsgs: TeamData["chatMsgs"] = {}; for (const [k, L] of Object.entries(D.chatMsgs)) chatMsgs[k] = L.filter(x => !x.pending && !x.failed).slice(-40);
+      const raw = JSON.stringify({ v: 1, uid: user.id, user, m, D: { ...D, chatMsgs, chatMore: Object.fromEntries(Object.keys(chatMsgs).map(k => [k, true])) }, consents, at: new Date().toISOString() });
       if (raw.length > CACHE_MAX) { AsyncStorage.removeItem(K_CACHE).catch(() => undefined); return; }
       AsyncStorage.setItem(K_CACHE, raw).catch(() => undefined);
     } catch { /* optional */ }
@@ -382,11 +389,71 @@ function useStoreValue() {
 
   const replaceIn = <T extends { id: string }>(arr: T[], tmpObj: T, saved: T): void => { const i = arr.findIndex(x => x.id === tmpObj.id); if (i >= 0) arr[i] = saved; };
   /** Eintrag in einer Liste von TeamData anlegen oder ersetzen und speichern. */
-  function upsert<K extends "exercises" | "templates" | "staff" | "phases" | "contacts">(key: K, x: TeamData[K][number], save: (api: Api, teamId: string) => Promise<TeamData[K][number]>, opts: { plan?: boolean } = {}) {
+  function upsert<K extends "exercises" | "templates" | "staff" | "phases" | "contacts" | "assessments" | "goals" | "talks" | "challenges" | "indiv" | "goalEntries">(key: K, x: TeamData[K][number], save: (api: Api, teamId: string) => Promise<TeamData[K][number]>, opts: { plan?: boolean; ok?: string } = {}) {
     const isNew = x.id.startsWith("tmp-");
     return change(D => { const L = D[key] as { id: string }[]; const i = L.findIndex(y => y.id === x.id); if (isNew || i < 0) L.push(x); else L[i] = x; },
       async (api, t) => { const saved = await save(api, t); replaceIn(ref.current.D![key] as { id: string }[], x, saved); }, opts);
   }
+
+  // ---------- Chat ----------
+  /** Konto im Chat (Demo: gewählte Ansicht – Spieler, Co-Trainer oder Cheftrainer) */
+  const meNow = (st: State = ref.current): string => {
+    if (!st.D) return st.user?.id || "";
+    if (st.api instanceof DemoApi) { const me = demoMe(st.D, st.demoView, st.demoPlayer, st.demoStaff, st.user?.id || ""); st.api.chatMe = me; return me; }
+    return st.user?.id || "";
+  };
+  const canModerate = (st: State = ref.current): boolean => asStaff(st) && permsNow(st).has("messages");
+  const bump = () => setS(prev => ({ ...prev, version: prev.version + 1 }));
+  /** gerade geöffneter Chat (wird beim Eintreffen neuer Nachrichten als gelesen markiert) */
+  const openChat = useRef<string | null>(null);
+  const readTimer = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const lastSync = useRef<string>(new Date().toISOString());
+  const listTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** Chats, Personen und Meldungen neu laden (z. B. neuer Einzelchat von jemand anderem) */
+  const refreshChatList = useCallback(async () => {
+    const { api, active, D } = ref.current; if (!D || !active || api.kind !== "supabase") return;
+    try { const L = await api.chatList(active.teamId); D.chats = L.chats; D.chatPeople = L.people; D.chatReports = L.reports; for (const [k, v] of Object.entries(L.read)) if (!D.chatRead[k] || D.chatRead[k] < v) D.chatRead[k] = v; bump(); }
+    catch { /* nächster Versuch beim nächsten Abgleich */ }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const scheduleChatList = () => { if (listTimer.current) clearTimeout(listTimer.current); listTimer.current = setTimeout(() => { refreshChatList(); }, 400); };
+  /** Nachricht vom Server übernehmen (Echtzeit/Abgleich): Reaktionen behalten, eigene wartende Kopie ersetzen */
+  const mergeMsg = (m: Omit<ChatMsg, "reactions"> & { reactions?: ChatMsg["reactions"] }) => {
+    const D = ref.current.D; if (!D) return;
+    if (!D.chats.some(c => c.id === m.chatId)) scheduleChatList();
+    const L = (D.chatMsgs[m.chatId] ||= []);
+    const ti = L.findIndex(x => x.id === "c-" + m.id); if (ti >= 0) L.splice(ti, 1);
+    const old = L.find(x => x.id === m.id);
+    putMsg(D, { ...m, reactions: m.reactions ?? old?.reactions ?? {}, pending: false, failed: false });
+    const c = D.chats.find(x => x.id === m.chatId); if (c && (!c.lastAt || c.lastAt < m.at)) c.lastAt = m.at;
+    if (openChat.current === m.chatId) markRead(m.chatId);
+  };
+  const onChatEvent = (ev: ChatEvent) => {
+    const D = ref.current.D; if (!D) return;
+    if (ev.type === "msg") mergeMsg(ev.msg);
+    else {
+      const m = (D.chatMsgs[ev.chatId] || []).find(x => x.id === ev.msgId);
+      if (m && !(m.reactions[ev.emoji] || []).includes(ev.uid)) m.reactions = { ...m.reactions, [ev.emoji]: [...(m.reactions[ev.emoji] || []), ev.uid] };
+    }
+    bump();
+  };
+  function markRead(chatId: string) {
+    const { D, api } = ref.current; if (!D) return;
+    const L = D.chatMsgs[chatId] || [], last = L.filter(m => !m.pending && !m.failed).at(-1)?.at; if (!last) return;
+    if ((D.chatRead[chatId] || "") >= last) return;
+    D.chatRead[chatId] = last; bump();
+    if (readTimer.current[chatId]) clearTimeout(readTimer.current[chatId]);
+    readTimer.current[chatId] = setTimeout(() => { api.chatRead(chatId, last).catch(() => undefined); }, 800);
+  }
+  // Echtzeit für das aktive Team (nur mit Server)
+  const chatTeam = s.phase === "ready" && s.D?.team.modules.chat !== false ? s.active?.teamId || null : null;
+  useEffect(() => {
+    const api = ref.current.api;
+    if (!chatTeam || api.kind !== "supabase") return;
+    lastSync.current = new Date(Date.now() - 30e3).toISOString();
+    let off: (() => void) | null = null;
+    try { off = api.chatSubscribe(chatTeam, onChatEvent); } catch { off = null; }
+    return () => { if (off) off(); };
+  }, [chatTeam, s.api]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const actions = {
     toast, errText, reload, boot,
@@ -669,6 +736,139 @@ function useStoreValue() {
       set({ version: ref.current.version + 1 }); return text;
     },
 
+    // ---------- Spielerentwicklung ----------
+    saveAssessment: (a: Assessment) => upsert("assessments", a, (api, t) => api.saveAssessment(t, a), { ok: translator(ref.current.lang).t(a.by === "self" ? "dv_selfSaved" : "dv_saved") }),
+    deleteAssessment: (id: string) => change(D => { D.assessments = D.assessments.filter(x => x.id !== id); }, api => api.deleteAssessment(id)),
+    /** Ziel speichern; Spieler haken bei Zielen des Trainerteams nur Schritte ab */
+    saveGoal: (g: Goal) => {
+      if (!asStaff() && g.by === "coach" && !g.id.startsWith("tmp-"))
+        return change(D => { const x = D.goals.find(y => y.id === g.id); if (x) x.steps = g.steps; }, api => api.saveGoalSteps(g.id, g.steps));
+      return upsert("goals", g, (api, t) => api.saveGoal(t, g), { ok: translator(ref.current.lang).t("dv_goalSaved") });
+    },
+    deleteGoal: (id: string) => change(D => { D.goals = D.goals.filter(x => x.id !== id); D.goalEntries = D.goalEntries.filter(x => x.goalId !== id); }, api => api.deleteGoal(id)),
+    saveGoalEntry: (e: GoalEntry) => upsert("goalEntries", e, api => api.saveGoalEntry(e), { ok: translator(ref.current.lang).t("dv_entrySaved") }),
+    deleteGoalEntry: (id: string) => change(D => { D.goalEntries = D.goalEntries.filter(x => x.id !== id); }, api => api.deleteGoalEntry(id)),
+    saveTalk: (x: DevTalk) => upsert("talks", x, (api, t) => api.saveTalk(t, x), { ok: translator(ref.current.lang).t("dv_talkSaved") }),
+    deleteTalk: (id: string) => change(D => { D.talks = D.talks.filter(x => x.id !== id); D.goals.forEach(g => { if (g.talkId === id) g.talkId = null; }); }, api => api.deleteTalk(id)),
+
+    // ---------- Wochenchallenge ----------
+    saveChallenge: (c: Challenge) => upsert("challenges", c, (api, t) => api.saveChallenge(t, c), { ok: translator(ref.current.lang).t("cg_saved") }),
+    deleteChallenge: (id: string) => change(D => { D.challenges = D.challenges.filter(x => x.id !== id); D.chEntries = D.chEntries.filter(x => x.cid !== id); delete D.chTotals[id]; }, api => api.deleteChallenge(id)),
+    /** Eintrag zur Challenge (Bestleistung, Menge, Tag, geschafft) – Teamsumme danach neu (Spieler) */
+    saveChallengeEntry: (c: Challenge, pid: string, input: { value?: number | null; day?: string; done?: boolean }) => {
+      let e: ChallengeEntry | null = null;
+      return change(D => {
+        e = applyChallenge(c, entryOf(D, c.id, pid), pid, input, new Date().toISOString());
+        D.chEntries = [...D.chEntries.filter(x => !(x.cid === c.id && x.pid === pid)), e];
+        if (D.chTotals[c.id]) delete D.chTotals[c.id];
+      }, async (api, t) => {
+        await api.saveChallengeEntry(e!);
+        if (!asStaff() && api.kind === "supabase") { try { const L = await api.challengeTotals(t, c.ws); for (const x of L) ref.current.D!.chTotals[x.cid] = x; } catch { /* ohne Teamsumme */ } }
+      });
+    },
+
+    // ---------- Individualtraining ----------
+    requestIndiv: (r: IndivRequest) => upsert("indiv", r, (api, t) => api.saveIndiv(t, r), { ok: translator(ref.current.lang).t("iq_sent") }),
+    cancelIndiv: (r: IndivRequest) => change(D => { const x = D.indiv.find(y => y.id === r.id); if (x) x.status = "cancelled"; }, (api, t) => api.saveIndiv(t, { ...r, status: "cancelled" })),
+    /** Zusagen (legt eine Einheit nur für den Spieler an) oder absagen */
+    answerIndiv: async (r: IndivRequest, accept: boolean, answer: string, unit?: { date: string; zeit: string; dauer: number; staffId: string | null; title: string }): Promise<boolean> => {
+      const { D, lang } = ref.current; if (!D) return false;
+      const tr0 = translator(lang);
+      let upd: IndivRequest = { ...r, status: accept ? "accepted" : "declined", answer: answer.trim() };
+      if (accept && unit) {
+        const slot = freeDateSlot(D, unit.date);
+        if (!slot) { toast(tr0.t("iq_noSlot")); return false; }
+        await actions.saveUnit(unit.date, indivUnit(r, slot, unit.zeit, unit.dauer, unit.staffId, unit.title));
+        upd = { ...upd, date: unit.date, slot, staffId: unit.staffId };
+      }
+      await change(D2 => { const i = D2.indiv.findIndex(y => y.id === r.id); if (i >= 0) D2.indiv[i] = upd; }, (api, t) => api.saveIndiv(t, upd), { ok: tr0.t(accept ? "iq_accepted" : "iq_declined") });
+      return true;
+    },
+
+    // ---------- Chat ----------
+    chatMe: () => meNow(),
+    /** Chat öffnen (wird bei Bedarf angelegt); liefert die ID oder null */
+    chatOpen: async (kind: ChatKind, groupId?: string | null, other?: string | null): Promise<string | null> => {
+      const { api, active, D } = ref.current; if (!D || !active) return null;
+      meNow();
+      try { const c = await api.chatOpen(active.teamId, kind, groupId, other); if (!D.chats.some(x => x.id === c.id)) D.chats.push(c); bump(); return c.id; }
+      catch (e) { toast(errText(e)); return null; }
+    },
+    chatSaveCustom: async (chatId: string | null, title: string, members: string[], readOnly: boolean): Promise<string | null> => {
+      const { api, active, D } = ref.current; if (!D || !active) return null;
+      meNow();
+      try { const c = await api.chatSaveCustom(active.teamId, chatId, title, members, readOnly); const i = D.chats.findIndex(x => x.id === c.id); if (i >= 0) D.chats[i] = c; else D.chats.push(c); bump(); return c.id; }
+      catch (e) { toast(errText(e)); return null; }
+    },
+    chatLeave: async (chatId: string) => {
+      const { api, D, lang } = ref.current; if (!D) return;
+      meNow();
+      try { await api.chatLeave(chatId); D.chats = D.chats.filter(x => x.id !== chatId || (api instanceof DemoApi && x.members.length > 0)); if (!(api instanceof DemoApi)) delete D.chatMsgs[chatId]; bump(); toast(translator(lang).t("ch_left")); }
+      catch (e) { toast(errText(e)); }
+    },
+    chatSetReadOnly: (chatId: string, ro: boolean) => change(D => { const c = D.chats.find(x => x.id === chatId); if (c) c.readOnly = ro; }, api => api.chatSetReadOnly(chatId, ro)),
+    chatSend: async (chatId: string, body: string, replyTo: string | null = null) => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) return;
+      const text = cleanBody(body); if (!text) return;
+      const me = meNow(), name = D.chatPeople.find(p => p.uid === me)?.name || ref.current.user?.displayName || "–";
+      const tmp: ChatMsg = { id: "c-" + uuid4(), chatId, uid: me, name, body: text, at: new Date().toISOString(), replyTo, deleted: false, reactions: {}, pending: true };
+      putMsg(D, tmp); bump();
+      try {
+        const saved = await api.chatSend(active.teamId, chatId, text, replyTo, tmp.id);
+        const L = D.chatMsgs[chatId] || []; const i = L.findIndex(x => x.id === tmp.id); if (i >= 0) L.splice(i, 1);
+        putMsg(D, { ...saved, reactions: L.find(x => x.id === saved.id)?.reactions || {} });
+        const c = D.chats.find(x => x.id === chatId); if (c) c.lastAt = saved.at;
+        markRead(chatId); set({ offline: false });
+      } catch (e) {
+        tmp.pending = false; tmp.failed = true;
+        if (isOffline(e)) { set({ offline: true }); toast(translator(lang).t("ch_offline")); } else toast(errText(e));
+      }
+      bump();
+    },
+    /** Nicht gesendete Nachricht erneut senden */
+    chatRetry: async (m: ChatMsg) => {
+      const D = ref.current.D; if (!D) return;
+      D.chatMsgs[m.chatId] = (D.chatMsgs[m.chatId] || []).filter(x => x.id !== m.id); bump();
+      await actions.chatSend(m.chatId, m.body, m.replyTo);
+    },
+    chatDelete: (m: ChatMsg) => {
+      if (m.pending || m.failed) { const D = ref.current.D; if (D) { D.chatMsgs[m.chatId] = (D.chatMsgs[m.chatId] || []).filter(x => x.id !== m.id); bump(); } return Promise.resolve(); }
+      return change(D => { const x = (D.chatMsgs[m.chatId] || []).find(y => y.id === m.id); if (x) { x.deleted = true; x.body = ""; x.reactions = {}; } }, api => api.chatDelete(m.id));
+    },
+    chatReact: (m: ChatMsg, emoji: string) => {
+      const me = meNow(); let on = true;
+      return change(D => { const x = (D.chatMsgs[m.chatId] || []).find(y => y.id === m.id); if (x) on = toggleReaction(x, emoji, me); }, api => api.chatReact(m.id, emoji, on));
+    },
+    chatMarkRead: (chatId: string) => markRead(chatId),
+    /** Geöffneten Chat merken (neue Nachrichten gelten dann direkt als gelesen) */
+    chatFocus: (chatId: string | null) => { openChat.current = chatId; if (chatId) markRead(chatId); },
+    chatMute: (chatId: string, muted: boolean) => change(D => { const c = D.chats.find(x => x.id === chatId); if (c) c.muted = muted; }, api => api.chatMute(chatId, muted)),
+    chatReport: async (m: ChatMsg, reason: ChatReportReason, note: string): Promise<boolean> => {
+      const { api, D, lang } = ref.current; if (!D) return false;
+      const tr0 = translator(lang), me = meNow();
+      if (D.chatReports.some(r => r.msgId === m.id && r.reporter === me)) { toast(tr0.t("ch_reportedAlready")); return false; }
+      try {
+        await api.chatReport(m.id, reason, note);
+        D.chatReports.unshift({ id: tmpId(), msgId: m.id, chatId: m.chatId, reason, note: note.trim(), snapshot: m.body, sender: m.name, sentAt: m.at, status: "open", reporter: me, at: new Date().toISOString() });
+        bump(); toast(tr0.t("ch_reported")); return true;
+      } catch (e) { toast(e instanceof ApiError && e.code === "duplicate" ? tr0.t("ch_reportedAlready") : errText(e)); return false; }
+    },
+    chatSetReport: (id: string, done: boolean) => change(D => { const r = D.chatReports.find(x => x.id === id); if (r) r.status = done ? "done" : "open"; }, api => api.chatSetReport(id, done)),
+    chatOlder: async (chatId: string) => {
+      const { api, D } = ref.current; if (!D) return;
+      const first = (D.chatMsgs[chatId] || []).find(m => !m.pending && !m.failed)?.at; if (!first) { D.chatMore[chatId] = false; bump(); return; }
+      try { const r = await api.chatOlder(chatId, first); for (const m of r.msgs) putMsg(D, m); D.chatMore[chatId] = r.more; bump(); }
+      catch (e) { toast(errText(e)); }
+    },
+    /** Abgleich mit dem Server (falls die Echtzeit-Verbindung etwas verpasst hat) */
+    chatSync: async () => {
+      const { api, active, D } = ref.current; if (!D || !active || api.kind !== "supabase" || D.team.modules.chat === false) return;
+      const since = lastSync.current, start = new Date(Date.now() - 30e3).toISOString();
+      try { const L = await api.chatSince(active.teamId, since); for (const m of L) mergeMsg(m); lastSync.current = start; if (L.length) bump(); }
+      catch (e) { if (isOffline(e)) set({ offline: true }); }
+    },
+    refreshChatList,
+
     // KI
     ai: (mode: "coach" | "player" | "session" | "potentials" | "kind", prompt: string, context: string) => {
       const { api, active, lang } = ref.current; if (!active) return Promise.reject(new ApiError("server"));
@@ -690,6 +890,9 @@ function useStoreValue() {
     saveStat: "perf", saveTest: "perf", deleteTest: "perf",
     saveDutyDefs: "tasks", saveFineRules: "tasks", saveDuty: "tasks", saveFine: "tasks", deleteFine: "tasks", saveTask: "tasks", deleteTask: "tasks",
     saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
+    saveAssessment: "notes", deleteAssessment: "notes", saveGoal: "notes", deleteGoal: "notes", saveGoalEntry: "notes", deleteGoalEntry: "notes", saveTalk: "notes", deleteTalk: "notes",
+    saveChallenge: "plan", deleteChallenge: "plan", saveChallengeEntry: "plan", answerIndiv: "plan", requestIndiv: "plan", cancelIndiv: "plan",
+    chatSetReport: "messages", chatSetReadOnly: "messages",
   };
   const denied = (need: Perm[]): boolean => {
     if (!asStaff() || !need.length) return false;
@@ -732,7 +935,12 @@ function useStoreValue() {
   const myStaff = !s.D ? null : isDemo && s.demoStaff ? s.D.staff.find(x => x.id === s.demoStaff) || null : s.user ? s.D.staff.find(x => x.userId === s.user!.id) || null : null;
   const prefs: UserPrefs = { info: true, ...(s.user?.prefs || {}) };
 
-  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, perms, can };
+  // Chat: wer bin ich, welche Chats sehe ich (Demo: wie die Zugriffsregeln; echt: liefert der Server nur Erlaubtes)
+  const chatMeId = s.D ? (isDemo ? demoMe(s.D, s.demoView, s.demoPlayer, s.demoStaff, s.user?.id || "") : s.user?.id || "") : "";
+  const chatMod = staffView && perms.has("messages");
+  const chats = useMemo(() => !s.D ? [] : isDemo ? visibleChats(s.D, chatMeId, chatMod) : s.D.chats, [s.D, s.version, chatMeId, chatMod, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, perms, can, chats, chatMeId, chatMod };
 }
 
 export type Store = ReturnType<typeof useStoreValue>;

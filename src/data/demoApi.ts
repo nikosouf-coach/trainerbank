@@ -1,9 +1,10 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
-import { buildDemo, demoExtras, demoTeam } from "../core/demo";
-import type { CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import { buildDemo, demoChat, demoExtras, demoTeam } from "../core/demo";
+import { chatSettings, pairKey } from "../core/chat";
+import type { Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
-import { ApiError, type Api, type ConsentState, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
+import { ApiError, type Api, type ChatListData, type ConsentState, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
 let n = 1;
 const newId = (id: string): string => (!id || id.startsWith("tmp-")) ? "demo-" + (n++) : id;
@@ -64,6 +65,8 @@ export class DemoApi implements Api {
       else D.staff.push({ id: "s" + (D.staff.length + 1), name: x.name.trim(), role: x.role, areas: [], phone: "", email: "", note: "" });
     });
     for (const c of D.contacts) if (c.role === "trainer") { const st = D.staff.find(x => x.role === "co"); if (st) c.name = st.name; }
+    // Chat (nach den Trainerprofilen, damit Namen und Konten stimmen)
+    if (D.team.modules.chat !== false) demoChat(D, this.lang, new Date(), this.user.id);
     // Ein Spieler hat sich zusätzlich selbst per App angemeldet (zeigt das Zusammenführen)
     const dup = D.players.find(p => p.vn === "Tim");
     if (dup) D.players.push({ ...dup, id: "p-app-1", nr: null, kg: null, photo: null, userId: "demo-user-tim", neu: true, groups: [] });
@@ -186,4 +189,64 @@ export class DemoApi implements Api {
   async exportMyData() { return { hinweis: "Demo-Modus: Es sind keine persönlichen Daten gespeichert." }; }
   async deleteAccount() { /* nichts gespeichert */ }
   async ai(): Promise<string> { throw new ApiError("demo_ai"); }
+
+  // Spielerentwicklung, Challenges, Individualtraining (lokal – der Store ändert die Demo-Daten direkt)
+  async saveAssessment(_t: string, a: Assessment) { this.net(); return { ...a, id: newId(a.id) }; }
+  async deleteAssessment() { this.net(); }
+  async saveGoal(_t: string, g: Goal) { this.net(); return { ...g, id: newId(g.id) }; }
+  async saveGoalSteps() { this.net(); }
+  async deleteGoal() { this.net(); }
+  async saveGoalEntry(e: GoalEntry) { this.net(); return { ...e, id: newId(e.id) }; }
+  async deleteGoalEntry() { this.net(); }
+  async saveTalk(_t: string, x: DevTalk) { this.net(); return { ...x, id: newId(x.id) }; }
+  async deleteTalk() { this.net(); }
+  async saveChallenge(_t: string, c: Challenge) { this.net(); return { ...c, id: newId(c.id) }; }
+  async deleteChallenge() { this.net(); }
+  async saveChallengeEntry(_e: ChallengeEntry) { this.net(); }
+  async challengeTotals() { return []; }
+  async saveIndiv(_t: string, r: IndivRequest) { this.net(); return { ...r, id: newId(r.id) }; }
+
+  // Chat (Demo: im Speicher). „Ich“ setzt der Store je nach Ansicht (Trainer, Co-Trainer, Spieler).
+  chatMe = "demo-user";
+  private chatOf(id: string): Chat { const c = this.data?.chats.find(x => x.id === id); if (!c) throw new ApiError("not_found"); return c; }
+  async chatOpen(_t: string, kind: ChatKind, groupId?: string | null, other?: string | null): Promise<Chat> {
+    this.net(); const D = this.data; if (!D) throw new ApiError("not_found");
+    const st = chatSettings(D.team); if (!st.on) throw new ApiError("chat_off");
+    const me = this.chatMe, find = (f: (c: Chat) => boolean) => D.chats.find(f);
+    const mk = (x: Partial<Chat>): Chat => { const c: Chat = { id: newId(""), kind, title: "", groupId: null, members: [], readOnly: false, transparent: false, createdBy: me, lastAt: null, muted: false, ...x }; D.chats.push(c); return c; };
+    if (kind === "team" || kind === "staff") return find(c => c.kind === kind) || mk({ createdBy: null });
+    if (kind === "group") return find(c => c.kind === "group" && c.groupId === groupId) || mk({ groupId: groupId || null });
+    if (kind === "direct" && other) {
+      const k = pairKey(me, other), ex = find(c => c.kind === "direct" && pairKey(c.members[0] || "", c.members[1] || "") === k); if (ex) return ex;
+      const a = D.chatPeople.find(p => p.uid === me)?.kind, b = D.chatPeople.find(p => p.uid === other)?.kind;
+      if (st.dm === "off" || (st.dm === "staff" && a !== "staff" && b !== "staff")) throw new ApiError("dm_off");
+      return mk({ members: [me, other], transparent: st.transparent && a !== b });
+    }
+    throw new ApiError("invalid_kind");
+  }
+  async chatSaveCustom(_t: string, chatId: string | null, title: string, members: string[], readOnly: boolean): Promise<Chat> {
+    this.net(); const D = this.data; if (!D) throw new ApiError("not_found");
+    const me = this.chatMe, all = [...new Set([me, ...members])], st = chatSettings(D.team), kinds = all.map(u => D.chatPeople.find(p => p.uid === u)?.kind);
+    if (all.length < 2) throw new ApiError("invalid_members");
+    const mixed = kinds.includes("staff") && kinds.includes("player"), staff = D.chatPeople.find(p => p.uid === me)?.kind === "staff";
+    if (chatId) { const c = this.chatOf(chatId); Object.assign(c, { title: title.trim().slice(0, 60), members: all, readOnly: readOnly && staff, transparent: c.transparent || (st.transparent && mixed) }); return c; }
+    const c: Chat = { id: newId(""), kind: "custom", title: title.trim().slice(0, 60), groupId: null, members: all, readOnly: readOnly && staff, transparent: st.transparent && mixed, createdBy: me, lastAt: null, muted: false };
+    D.chats.push(c); return c;
+  }
+  async chatLeave(chatId: string) { this.net(); const c = this.chatOf(chatId); c.members = c.members.filter(u => u !== this.chatMe); if (!c.members.length && this.data) this.data.chats = this.data.chats.filter(x => x.id !== chatId); }
+  async chatSetReadOnly(chatId: string, readOnly: boolean) { this.net(); this.chatOf(chatId).readOnly = readOnly; }
+  async chatSend(_t: string, chatId: string, body: string, replyTo: string | null): Promise<ChatMsg> {
+    this.net(); const name = this.data?.chatPeople.find(p => p.uid === this.chatMe)?.name || "–";
+    return { id: newId(""), chatId, uid: this.chatMe, name, body, at: new Date().toISOString(), replyTo, deleted: false, reactions: {} };
+  }
+  async chatDelete() { this.net(); }
+  async chatReact() { this.net(); }
+  async chatRead() { /* lokal */ }
+  async chatMute() { this.net(); }
+  async chatReport() { this.net(); }
+  async chatSetReport() { this.net(); }
+  async chatOlder() { return { msgs: [] as ChatMsg[], more: false }; }
+  async chatSince() { return [] as ChatMsg[]; }
+  async chatList(): Promise<ChatListData> { const D = this.data; return { chats: D?.chats || [], people: D?.chatPeople || [], reports: D?.chatReports || [], read: D?.chatRead || {}, old: {} }; }
+  chatSubscribe() { return () => undefined; }
 }

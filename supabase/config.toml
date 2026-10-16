@@ -33,6 +33,7 @@ enable_confirmations = true
 # Edge Functions
 # ai, delete-account: nur mit gültigem Nutzer-JWT aufrufbar.
 # push-reminders: wird von pg_cron ohne JWT aufgerufen und prüft stattdessen den Header x-cron-secret.
+# chat-push: wird bei neuen Chat-Nachrichten vom Datenbank-Trigger aufgerufen (ebenfalls x-cron-secret).
 [functions.ai]
 verify_jwt = true
 
@@ -43,4 +44,8 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.push-reminders]
+verify_jwt = false
+
+# chat-push: wird vom Datenbank-Trigger (pg_net) ohne JWT aufgerufen und prüft den Header x-cron-secret.
+[functions.chat-push]
 verify_jwt = false

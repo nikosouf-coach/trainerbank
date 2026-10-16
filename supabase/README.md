@@ -35,6 +35,9 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `migrations/20261008…19_schmerz.sql` | `wellness_entries.complaint_details` (Angaben zum Schmerz je Region, geprüft) |
 | `migrations/20261008…20_datenschutz_kasse.sql` | `merge_players` und `my_data_export` (v4) für Zahlungen und Befreiungen |
 | `migrations/20261008…21_einheiten.sql` | Mehrere Einheiten am Tag: `day_units`, `rpe_entries.slot` (Schlüssel `player_id, date, slot`) und `.dives` (Torhüter), Anwesenheit nur über Einheit 0, `session_blocks.slot`, Trainingseindruck (`player_ratings.mark/tags/slot`), `match_stats.conceded/saves`, Torwarttests, `settings.units` braucht `plan`, `merge_players` v5 |
+| `migrations/20261008…22_entwicklung.sql` | Paket C: `player_assessments`, `player_goals` + `goal_entries`, `dev_talks` + `dev_talk_notes` (interne Notiz getrennt), `team_challenges` + `challenge_entries` + `challenge_totals()`, `indiv_requests`; `day_units.player_ids` (Einheit nur für einzelne Spieler); Spieler-Wächter (`dev_rows_prepare`); `indivReq`/`challengeRank` brauchen `plan`; `merge_players` v6 |
+| `migrations/20261008…23_chat.sql` | Chat: `chats`, `chat_members`, `chat_state`, `chat_messages`, `chat_reactions`, `chat_reports`, `chat_push_log`; Regeln `chat_participant`/`chat_observer`/`chat_can_read`/`chat_can_write`/`chat_can_moderate`, RPCs `chat_ensure`/`chat_open`/`chat_save_custom`/`chat_leave`/`chat_directory`, Push-Empfänger `chat_push_targets` (nur Server), Push-Trigger über pg_net, Realtime-Publikation; Löschfristen erweitert; `my_data_export` v5 |
+| `functions/chat-push` | Push bei neuen Chat-Nachrichten (vom Trigger per pg_net, Header `x-cron-secret`): Empfänger aus `chat_push_targets`, Titel/Text ohne Nachrichteninhalt (`_shared/chat.ts`), Versand über Expo (`_shared/expo.ts`) |
 | `functions/finding` | Befund-Auswertung: prüft Recht „Befunde“ (`staff_can(team,'medical')`) und Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
 | `functions/delete-account` | Konto löschen (Fotos, Befund-Dateien, Skizzen verwaister Teams, verwaiste Teams, Auth-Nutzer ⇒ Cascade) |
@@ -59,6 +62,7 @@ supabase functions deploy ai
 supabase functions deploy finding
 supabase functions deploy delete-account
 supabase functions deploy push-reminders
+supabase functions deploy chat-push
 
 # Secrets (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY setzt Supabase selbst)
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-... CRON_SECRET=$(openssl rand -hex 32) AI_DAILY_LIMIT=40
@@ -100,6 +104,11 @@ select status_code, content from net._http_response order by created desc limit 
 
 Manueller Aufruf: `curl -X POST https://<PROJECT_REF>.supabase.co/functions/v1/push-reminders -H "x-cron-secret: <CRON_SECRET>"`
 
+**Chat-Push** nutzt dieselben Vault-Secrets (`project_url`, `cron_secret`): Der Trigger `chat_messages_after` ruft nach
+jeder Nachricht `functions/v1/chat-push` auf. Fehlen pg_net oder die Secrets, werden Nachrichten trotzdem gespeichert
+(nur ohne Push). **Realtime:** Die Migration nimmt `chat_messages` und `chat_reactions` in die Publikation
+`supabase_realtime` auf (Dashboard → Database → Publications prüfen); die Zugriffsregeln gelten auch für Realtime.
+
 ## Lokale Tests
 
 ```bash
@@ -138,7 +147,11 @@ Fehler kommen als `error.message` (genau der angegebene Text); `consent_required
 | `team_by_join_code({ p_code })` | `[{ club, name }]` | auch ohne Login | – |
 | `register_push_token({ p_token, p_platform })` | – | angemeldet (`'ios'\|'android'\|'web'`); statt Upsert, damit ein Gerät den Besitzer wechseln kann | `not_authenticated` |
 | `has_consent({ p_user, p_kind })` | `boolean` | eigenes Konto bzw. Staff für eigene Spieler (sonst `false`) | – |
-| `my_data_export()` | `jsonb` (Art. 15/20, Format v2) | angemeldet: Profil, Einwilligungen, Staff-Rollen, Spielerzeilen, RPE, Wellness, Zusatzsport (inkl. Programm-Einheiten), Abwesenheiten, Anwesenheit, Wachstum, freigegebene Potenziale, Nachrichten, Spieldaten, freigegebene Noten, Leistungstests, Befunde (Metadaten und KI-Text), Push-Tokens, KI-Zähler | `not_authenticated` |
+| `chat_open({ p_team, p_kind, p_group, p_other })` | `uuid` (Chat) | Mitglied; `team`/`staff`/`group`/`direct` (Einzelchat mit Konto `p_other`, nach `settings.chat.dm`) | `forbidden`, `chat_off`, `dm_off`, `not_found` |
+| `chat_save_custom({ p_team, p_chat, p_title, p_members, p_read_only })` | `uuid` | Staff immer, Spieler nur bei `dm = 'all'`; ≤ 60 Mitglieder | `dm_off`, `invalid_name`, `invalid_members`, `different_teams`, `limit` (`members`) |
+| `chat_directory({ p_team })` | `[{ user_id, name, kind, player_id, role }]` | Mitglied (Spieler-IDs nur für Staff bzw. die eigene) | – |
+| `challenge_totals({ p_team, p_week })` | `[{ challenge_id, players, done, total, top }]` | Mitglied | `forbidden` |
+| `my_data_export()` | `jsonb` (Art. 15/20, Format v5) | angemeldet: Profil, Einwilligungen, Staff-Rollen, Spielerzeilen, RPE, Wellness, Zusatzsport (inkl. Programm-Einheiten), Abwesenheiten, Anwesenheit, Wachstum, freigegebene Potenziale, Nachrichten, Spieldaten, freigegebene Noten, Leistungstests, Befunde (Metadaten und KI-Text), Push-Tokens, KI-Zähler | `not_authenticated` |
 
 Hilfsfunktionen für Abfragen: `is_team_staff({ team })`, `is_team_member({ team })`, `is_team_owner({ team })`.
 
@@ -166,7 +179,9 @@ Hilfsfunktionen für Abfragen: `is_team_staff({ team })`, `is_team_member({ team
 
 ### Sonstiges
 
-- **Push-Daten:** `{ type: 'rpe' | 'wellness', date: 'YYYY-MM-DD' }`.
+- **Push-Daten:** `{ type: 'rpe' | 'wellness', date: 'YYYY-MM-DD' }`; Chat: `{ type: 'chat', chat, team, area: 'coach' | 'player' }`.
+- **Grenzen:** `limit` mit `error.details` = `open_requests` (2 offene Anfragen für Individualtraining), `chat_rate`
+  (30 Nachrichten pro Minute), `members` (eigene Gruppe ≤ 60); geschlossene Challenge: `challenge_closed`.
 - **Wochentage für Push-Erinnerungen:** `teams.settings.days` als Array oder Objekt mit Index wie `Date.getDay()`
   (0 = Sonntag … 6 = Samstag; Objektschlüssel `'mo'…'so'` werden ebenfalls erkannt), Eintrag
   `{ zeit: 'HH:MM', dauer: <Minuten> }`; `null`/`false`/`aktiv: false` = kein Training.

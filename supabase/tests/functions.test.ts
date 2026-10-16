@@ -17,6 +17,7 @@ import {
   trainingForWeekday,
 } from '../functions/_shared/schedule.ts';
 import { AI_MODES, buildSystemPrompt, buildUserMessage } from '../functions/_shared/prompts.ts';
+import { chatPushData, chatPushText } from '../functions/_shared/chat.ts';
 
 test('localNow: Ortszeit in Europe/Berlin (Sommer- und Winterzeit)', () => {
   // 2026-10-07 16:45 UTC = 18:45 MESZ (Mittwoch)
@@ -171,4 +172,12 @@ test('Systemprompts: Sprache und Regeln je Modus', () => {
   assert.match(buildSystemPrompt('kind', 'de'), /110 words/);
   assert.equal(buildUserMessage('Kontext', 'Frage'), 'Kontext\n\nFrage');
   assert.equal(buildUserMessage('  ', 'Frage'), 'Frage');
+});
+
+test('chatPushText: ohne Nachrichtentext, Titel je Chat-Art und Sprache', () => {
+  assert.deepEqual(chatPushText({ kind: 'team', title: 'U19 Junioren', sender: 'Max M.', lang: 'de' }), { title: 'U19 Junioren', body: 'Neue Nachricht von Max M.' });
+  assert.deepEqual(chatPushText({ kind: 'staff', title: null, sender: 'Coach A', lang: 'en' }), { title: 'Coaching staff', body: 'New message from Coach A' });
+  assert.deepEqual(chatPushText({ kind: 'direct', title: 'Max M.', sender: 'Max M.', lang: 'fr' }), { title: 'Max M.', body: 'Neue Nachricht' });
+  assert.deepEqual(chatPushText({ kind: 'custom', title: '  ', sender: '', lang: 'de' }), { title: 'Chat', body: 'Neue Nachricht von –' });
+  assert.deepEqual(chatPushData({ chat_id: 'c1', team_id: 't1', area: 'player' }), { type: 'chat', chat: 'c1', team: 't1', area: 'player' });
 });

@@ -41,6 +41,7 @@ export function cleanUnit(u: Partial<DayUnit> & { slot: number; art: UnitArt }):
     themes: art === "tw" ? (u.themes || []).filter(x => (TW_THEMES as readonly string[]).includes(x)).slice(0, 8) : (u.themes || []).slice(0, 8).map(x => String(x).slice(0, 40)),
     cancel: !!u.cancel || undefined,
     from: u.from || null,
+    ...(u.pids?.length ? { pids: [...new Set(u.pids)].slice(0, 30) } : {}),
   };
 }
 
@@ -76,8 +77,9 @@ export function freeDateSlot(D: Pick<TeamData, "units" | "team">, date: string):
 /** Torhüter: Position TW oder Mitglied einer Torhüter-Gruppe */
 export const isGoalkeeper = (D: Pick<TeamData, "groups">, p: Player): boolean => p.pos === "TW" || inKind(D.groups, p, "tw");
 
-/** Gehört der Spieler zu dieser Einheit? Gruppe = ihre Mitglieder; Torwarttraining ohne Gruppe = alle Torhüter; sonst alle */
+/** Gehört der Spieler zu dieser Einheit? Einzelne Spieler (Individualtraining), Gruppe = ihre Mitglieder; Torwarttraining ohne Gruppe = alle Torhüter; sonst alle */
 export function inUnit(D: Pick<TeamData, "groups">, u: DayUnit, p: Player): boolean {
+  if (u.pids?.length) return u.pids.includes(p.id);
   if (u.groupId) return (p.groups || []).includes(u.groupId);
   if (u.art === "tw") return isGoalkeeper(D, p);
   return true;

@@ -2066,6 +2066,389 @@ end
 $$;
 
 -- =====================================================================
+-- T44 Spielerentwicklung, Ziele, Wochenchallenge, Individualtraining (Paket C)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.player_assessments (player_id, date, scores, note, visible) values (%L, '2026-09-01', '{"ballan": 4, "pass": 3, "zweik": 2}', 'Startpunkt', false)$q$, tst.get('max')),
+                   1, 'T44 Trainerteam legt Kompetenzprofil an');
+select tst.throws(format($q$insert into public.player_assessments (player_id, scores) values (%L, '{"pass": 6}')$q$, tst.get('max')), 'T44 Werte nur 1–5', 'check constraint');
+select tst.throws(format($q$insert into public.player_assessments (player_id, scores) values (%L, '{"pass": 2.5}')$q$, tst.get('max')), 'T44 nur ganze Stufen', 'check constraint');
+with ins as (insert into public.player_goals (player_id, title, area, kind, metric, unit, start_value, target_value, steps, visible)
+             values (tst.get('max')::uuid, 'Schwacher Fuß: 500 Pässe', 'tech', 'process', 'count', 'Pässe', 0, 500, '[{"text": "Wandpässe links", "done": false}, {"text": "Video", "done": false}]', true) returning id)
+select tst.put('goal44', id::text) from ins;
+with ins as (insert into public.player_goals (player_id, title, metric, test, target_value, visible) values (tst.get('max')::uuid, 'Intern: 30 m', 'test', 'sprint30', 4.3, false) returning id)
+select tst.put('goal44h', id::text) from ins;
+select tst.throws(format($q$insert into public.player_goals (player_id, title, metric) values (%L, 'Test ohne Test', 'test')$q$, tst.get('max')), 'T44 Testziel braucht einen Test', 'check constraint');
+select tst.throws(format($q$insert into public.player_goals (player_id, title, metric, date_from, due) values (%L, 'Rückwärts', 'count', '2026-10-01', '2026-09-01')$q$, tst.get('max')), 'T44 Frist nach dem Start', 'check constraint');
+select tst.throws(format($q$insert into public.player_goals (player_id, title, steps) values (%L, 'Zu viele Schritte', (select jsonb_agg(jsonb_build_object('text', g, 'done', false)) from generate_series(1, 11) g))$q$, tst.get('max')),
+                  'T44 höchstens 10 Schritte', 'check constraint');
+with ins as (insert into public.dev_talks (player_id, date, kind, player_view, strengths, focus, agreements, visible)
+             values (tst.get('max')::uuid, '2026-09-15', 'start', 'Will Stammspieler werden', 'Passspiel', 'Zweikampf', '[{"id": "a1", "text": "2× pro Woche Zusatzschicht", "who": "player", "due": null, "done": false}]', false) returning id)
+select tst.put('talk44', id::text) from ins;
+select tst.affects(format($q$insert into public.dev_talk_notes (talk_id, text) values (%L, 'Intern: Eltern sprechen')$q$, tst.get('talk44')), 1, 'T44 interne Notiz zum Gespräch');
+with ins as (insert into public.team_challenges (team_id, week_start, title, kind, unit, target, team_target)
+             values (tst.get('team_a')::uuid, date_trunc('week', current_date)::date, '100 Kontakte schwacher Fuß', 'count', 'x', 100, 1000) returning id)
+select tst.put('ch44', id::text) from ins;
+with ins as (insert into public.team_challenges (team_id, week_start, title, kind, unit) values (tst.get('team_a')::uuid, date_trunc('week', current_date)::date, 'Jonglieren', 'best', 'x') returning id)
+select tst.put('ch44b', id::text) from ins;
+with ins as (insert into public.team_challenges (team_id, week_start, title, kind) values (tst.get('team_a')::uuid, date_trunc('week', current_date)::date - 28, 'Alt', 'check') returning id)
+select tst.put('ch44old', id::text) from ins;
+select tst.throws(format($q$insert into public.team_challenges (team_id, week_start, title) values (%L, date_trunc('week', current_date)::date + 2, 'Mittwoch')$q$, tst.get('team_a')), 'T44 Woche beginnt am Montag', 'check constraint');
+select tst.throws(format($q$insert into public.team_challenges (team_id, week_start, title, group_id) values (%L, date_trunc('week', current_date)::date, 'Fremde Gruppe', %L)$q$, tst.get('team_a'), tst.get('grp_b')),
+                  'T44 Challenge nur für Gruppen des Teams', 'different_teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+begin
+  perform tst.eq((select count(*) from public.player_assessments)::text, '0', 'T44 Spieler sieht nicht freigegebenes Profil nicht');
+  perform tst.eq((select string_agg(title, ',') from public.player_goals), 'Schwacher Fuß: 500 Pässe', 'T44 Spieler sieht nur freigegebene Ziele');
+  perform tst.eq((select count(*) from public.dev_talks)::text, '0', 'T44 nicht freigegebenes Gespräch bleibt beim Trainerteam');
+  perform tst.eq((select count(*) from public.dev_talk_notes)::text, '0', 'T44 interne Notizen nie für Spieler');
+end $$;
+select tst.affects(format($q$insert into public.player_assessments (player_id, scores, by_player, visible) values (%L, '{"ballan": 5, "pass": 4, "zweik": 4}', false, false)$q$, tst.get('max')),
+                   1, 'T44 Spieler legt Selbsteinschätzung an');
+do $$ begin
+  perform tst.eq((select by_player::text || '/' || visible::text from public.player_assessments), 'true/true', 'T44 Selbsteinschätzung ist immer als eigene markiert und sichtbar');
+end $$;
+select tst.affects(format($q$update public.player_goals set steps = jsonb_set(steps, '{0,done}', 'true') where id = %L$q$, tst.get('goal44')), 1, 'T44 Spieler hakt Schritt ab');
+select tst.throws(format($q$update public.player_goals set title = 'Leicht' where id = %L$q$, tst.get('goal44')), 'T44 Spieler ändert Ziel des Trainerteams nicht', 'forbidden');
+select tst.throws(format($q$update public.player_goals set steps = jsonb_set(steps, '{1,text}', '"Nichts"') where id = %L$q$, tst.get('goal44')), 'T44 Spieler ändert Schritte nicht um', 'forbidden');
+select tst.throws(format($q$update public.player_goals set status = 'done' where id = %L$q$, tst.get('goal44')), 'T44 Status setzt das Trainerteam', 'forbidden');
+select tst.affects(format($q$update public.player_goals set target_value = 1 where id = %L$q$, tst.get('goal44h')), 0, 'T44 verborgenes Ziel nicht änderbar');
+with ins as (insert into public.player_goals (player_id, title, metric, target_value, visible, by_player, talk_id) values (tst.get('max')::uuid, 'Eigenes Ziel: 20 Min. Mobility', 'count', 20, false, false, tst.get('talk44')::uuid) returning id)
+select tst.put('goal44p', id::text) from ins;
+do $$ begin
+  perform tst.eq((select by_player::text || '/' || visible::text || '/' || coalesce(talk_id::text, '-') from public.player_goals where id = tst.get('goal44p')::uuid), 'true/true/-',
+                 'T44 eigenes Ziel: als Spielerziel sichtbar, ohne Gesprächsbezug');
+end $$;
+select tst.affects(format($q$update public.player_goals set title = 'Eigenes Ziel: 25 Min. Mobility', target_value = 25 where id = %L$q$, tst.get('goal44p')), 1, 'T44 Spieler ändert eigenes Ziel');
+select tst.affects(format($q$insert into public.goal_entries (goal_id, value, note) values (%L, 120, 'Wand links')$q$, tst.get('goal44')), 1, 'T44 Spieler trägt Fortschritt ein');
+select tst.throws(format($q$insert into public.goal_entries (goal_id, value) values (%L, 5)$q$, tst.get('goal44h')), 'T44 kein Eintrag für verborgene Ziele', 'not_found');
+select tst.affects(format($q$insert into public.challenge_entries (challenge_id, player_id, value, done) values (%L, %L, 60, true)$q$, tst.get('ch44'), tst.get('max')), 1, 'T44 Spieler trägt Challenge ein');
+select tst.affects(format($q$insert into public.challenge_entries (challenge_id, player_id, value) values (%L, %L, 37)$q$, tst.get('ch44b'), tst.get('max')), 1, 'T44 Bestleistung eingetragen');
+select tst.throws(format($q$insert into public.challenge_entries (challenge_id, player_id, done) values (%L, %L, true)$q$, tst.get('ch44old'), tst.get('max')), 'T44 alte Challenge ist geschlossen', 'closed');
+select tst.throws(format($q$insert into public.challenge_entries (challenge_id, player_id, days) values (%L, %L, array[current_date - 30])$q$, tst.get('ch44b'), tst.get('max')), 'T44 Tage nur innerhalb der Woche', 'invalid_day');
+do $$
+declare r record;
+begin
+  select * into r from public.challenge_totals(tst.get('team_a')::uuid, date_trunc('week', current_date)::date) where challenge_id = tst.get('ch44b')::uuid;
+  perform tst.eq(r.players::text || '/' || r.total::text || '/' || r.top::text, '1/37.00/[]', 'T44 Teamsumme ohne Bestenliste (Standard)');
+end $$;
+with ins as (insert into public.indiv_requests (player_id, topic, note, wish, status, answer) values (tst.get('max')::uuid, 'schwach', 'Linker Fuß', 'Di oder Do vor dem Training', 'accepted', 'gefälscht') returning id)
+select tst.put('iq44', id::text) from ins;
+do $$ begin
+  perform tst.eq((select status || '/' || answer from public.indiv_requests where id = tst.get('iq44')::uuid), 'open/', 'T44 neue Anfrage ist offen (Status setzt das Trainerteam)');
+end $$;
+with ins as (insert into public.indiv_requests (player_id, topic) values (tst.get('max')::uuid, 'kopf') returning id) select tst.put('iq44b', id::text) from ins;
+select tst.throws(format($q$insert into public.indiv_requests (player_id, topic) values (%L, 'athletik')$q$, tst.get('max')), 'T44 höchstens zwei offene Anfragen', 'limit');
+select tst.affects(format($q$update public.indiv_requests set status = 'cancelled' where id = %L$q$, tst.get('iq44b')), 1, 'T44 Spieler zieht Anfrage zurück');
+select tst.throws(format($q$update public.indiv_requests set status = 'accepted' where id = %L$q$, tst.get('iq44')), 'T44 Spieler sagt nicht selbst zu', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_assessments)::text || '/' || (select count(*) from public.player_goals)::text || '/' || (select count(*) from public.goal_entries)::text
+                 || '/' || (select count(*) from public.challenge_entries)::text || '/' || (select count(*) from public.indiv_requests)::text, '0/0/0/0/0',
+                 'T44 Mitspieler sieht nichts von Max');
+  perform tst.eq((select count(*) from public.team_challenges where week_start = date_trunc('week', current_date)::date)::text, '2', 'T44 Mitspieler sieht die Challenges des Teams');
+end $$;
+select tst.throws(format($q$insert into public.player_goals (player_id, title) values (%L, 'Fremdes Ziel')$q$, tst.get('max')), 'T44 kein Ziel für andere Spieler', 'row-level security');
+select tst.throws(format($q$insert into public.challenge_entries (challenge_id, player_id, value) values (%L, %L, 999)$q$, tst.get('ch44'), tst.get('max')), 'T44 kein Challenge-Eintrag für andere', 'row-level security');
+select tst.throws(format($q$insert into public.indiv_requests (player_id, topic) values (%L, 'tw')$q$, tst.get('max')), 'T44 keine Anfrage für andere', 'row-level security');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_assessments where player_id = tst.get('max')::uuid)::text, '2', 'T44 Trainerteam sieht Fremd- und Selbstbild');
+  perform tst.eq((select sum(value)::text from public.goal_entries where goal_id = tst.get('goal44')::uuid), '120.00', 'T44 Trainerteam sieht den Fortschritt');
+  perform tst.eq((select (steps -> 0 ->> 'done') from public.player_goals where id = tst.get('goal44')::uuid), 'true', 'T44 abgehakter Schritt kommt beim Trainerteam an');
+end $$;
+select tst.affects(format($q$update public.indiv_requests set status = 'accepted', answer = 'Do 17:00', unit_date = '2026-10-22', unit_slot = 4 where id = %L$q$, tst.get('iq44')), 1, 'T44 Trainerteam sagt Individualtraining zu');
+do $$ begin
+  perform tst.eq((select (answered_by = tst.uid('coachA'))::text from public.indiv_requests where id = tst.get('iq44')::uuid), 'true', 'T44 Zusage mit Bearbeiter');
+end $$;
+select tst.affects(format($q$insert into public.day_units (team_id, date, slot, art, title, time, duration, target_rpe, player_ids) values (%L, '2026-10-22', 4, 'technik', 'Individualtraining', '17:00', 45, 4, array[%L]::uuid[])$q$,
+                          tst.get('team_a'), tst.get('max')), 1, 'T44 Einheit nur für Max');
+select tst.throws(format($q$insert into public.day_units (team_id, date, slot, player_ids) values (%L, '2026-10-22', 5, array[%L]::uuid[])$q$, tst.get('team_a'), tst.get('p1_player')),
+                  'T44 Einheit nur mit Spielern des Teams', 'different_teams');
+select tst.affects(format($q$update public.dev_talks set visible = true where id = %L$q$, tst.get('talk44')), 1, 'T44 Gespräch freigegeben');
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{challengeRank}', 'true') where id = %L$q$, tst.get('team_a')), 1, 'T44 Bestenliste eingeschaltet');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{indivReq}', 'true') where id = %L$q$, tst.get('team_a')), 1, 'T44 Co-Trainer (Planung) stellt Individualtraining ein');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare r record;
+begin
+  perform tst.eq((select count(*) from public.day_units where date = '2026-10-22')::text, '1', 'T44 Max sieht seine Einheit');
+  perform tst.eq((select string_agg(kind || ':' || coalesce(player_view, ''), ',') from public.dev_talks), 'start:Will Stammspieler werden', 'T44 Max sieht das freigegebene Protokoll');
+  perform tst.eq((select count(*) from public.dev_talk_notes)::text, '0', 'T44 interne Notiz bleibt intern (auch nach Freigabe)');
+  select * into r from public.challenge_totals(tst.get('team_a')::uuid, date_trunc('week', current_date)::date) where challenge_id = tst.get('ch44b')::uuid;
+  perform tst.eq(r.top -> 0 ->> 'name', 'Max M.', 'T44 Bestenliste mit Vorname und Initial');
+  select * into r from public.challenge_totals(tst.get('team_a')::uuid, date_trunc('week', current_date)::date) where challenge_id = tst.get('ch44')::uuid;
+  perform tst.eq(r.done::text || '/' || r.top::text, '1/[]', 'T44 Mengen-Challenge: nur Teamsumme, keine Bestenliste');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.day_units where date = '2026-10-22')::text, '0', 'T44 Mitspieler sieht fremdes Individualtraining nicht');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_assessments)::text || '/' || (select count(*) from public.player_goals)::text || '/' || (select count(*) from public.dev_talks)::text
+                 || '/' || (select count(*) from public.team_challenges)::text || '/' || (select count(*) from public.indiv_requests)::text, '0/0/0/0/0', 'T44 anderes Team sieht nichts');
+end $$;
+select tst.throws(format($q$select * from public.challenge_totals(%L, current_date)$q$, tst.get('team_a')), 'T44 Teamsumme nur für Mitglieder', 'forbidden');
+commit;
+
+-- Ohne Recht „Notizen“: keine Entwicklungsdaten
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select public.set_staff_perms(tst.get('team_a')::uuid, tst.uid('coachC'), '{health,plan,squad}');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_assessments)::text || '/' || (select count(*) from public.player_goals)::text || '/' || (select count(*) from public.dev_talks)::text,
+                 '0/0/0', 'T44 ohne Recht „Notizen“ keine Entwicklungsdaten');
+  perform tst.eq((select count(*) from public.indiv_requests)::text, '2', 'T44 Anfragen mit Recht „Planung“');
+end $$;
+select tst.throws(format($q$insert into public.player_goals (player_id, title) values (%L, 'Ohne Recht')$q$, tst.get('max')), 'T44 ohne Recht kein Ziel', 'row-level security');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select public.set_staff_perms(tst.get('team_a')::uuid, tst.uid('coachC'), null);
+commit;
+
+do $$
+begin
+  delete from public.player_assessments where team_id = tst.get('team_a')::uuid;
+  delete from public.player_goals where team_id = tst.get('team_a')::uuid;
+  delete from public.dev_talks where team_id = tst.get('team_a')::uuid;
+  delete from public.team_challenges where team_id = tst.get('team_a')::uuid;
+  delete from public.indiv_requests where team_id = tst.get('team_a')::uuid;
+  delete from public.day_units where team_id = tst.get('team_a')::uuid;
+  update public.teams set settings = settings - 'challengeRank' - 'indivReq' where id = tst.get('team_a')::uuid;
+end
+$$;
+
+-- =====================================================================
+-- T45 Chat: Teamchat, Einzelchats, Kinderschutz, Melden, Push-Empfänger
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select public.chat_ensure(tst.get('team_a')::uuid);
+select tst.put('chat_team', public.chat_open(tst.get('team_a')::uuid, 'team')::text);
+select tst.throws(format($q$select public.chat_open(%L, 'staff')$q$, tst.get('team_a')), 'T45 Spieler öffnet den Trainerteam-Chat nicht', 'forbidden');
+select tst.throws(format($q$select public.chat_open(%L, 'direct', null, %L)$q$, tst.get('team_a'), tst.uid('p2')), 'T45 Jugend: kein Einzelchat zwischen Spielern', 'dm_off');
+select tst.throws(format($q$select public.chat_save_custom(%L, null, 'Nur Spieler', array[%L]::uuid[])$q$, tst.get('team_a'), tst.uid('p2')), 'T45 Jugend: Spieler legen keine eigenen Gruppen an', 'dm_off');
+select tst.put('chat_dm', public.chat_open(tst.get('team_a')::uuid, 'direct', null, tst.uid('coachA'))::text);
+with ins as (insert into public.chat_messages (chat_id, body, user_id, sender_name) values (tst.get('chat_team')::uuid, 'Wer kommt Samstag mit dem Rad?', tst.uid('p2'), 'Gefälscht') returning id)
+select tst.put('msg_team', id::text) from ins;
+with ins as (insert into public.chat_messages (chat_id, body) values (tst.get('chat_dm')::uuid, 'Trainer, ich habe eine Frage zum Probetraining.') returning id)
+select tst.put('msg_dm', id::text) from ins;
+select tst.throws(format($q$insert into public.chat_messages (chat_id, body) values (%L, '   ')$q$, tst.get('chat_team')), 'T45 leere Nachricht abgelehnt', 'check constraint');
+select tst.throws(format($q$insert into public.chat_messages (chat_id, body) values (%L, repeat('x', 4001))$q$, tst.get('chat_team')), 'T45 höchstens 4000 Zeichen', 'check constraint');
+do $$
+begin
+  perform tst.eq((select (user_id = tst.uid('p1'))::text || '/' || sender_name from public.chat_messages where id = tst.get('msg_team')::uuid), 'true/Max M.',
+                 'T45 Absender und Name setzt der Server (Vorname + Initial)');
+  perform tst.eq((select transparent::text from public.chats where id = tst.get('chat_dm')::uuid), 'true', 'T45 Jugend: Einzelchat Trainer–Spieler ist transparent');
+  perform tst.eq((select count(*) from public.chat_members where chat_id = tst.get('chat_dm')::uuid)::text, '2', 'T45 Einzelchat mit zwei Mitgliedern');
+  perform tst.ok((select read_at from public.chat_state where chat_id = tst.get('chat_team')::uuid) is not null, 'T45 eigene Nachricht gilt als gelesen');
+  perform tst.ok(exists (select 1 from public.chat_directory(tst.get('team_a')::uuid) d where d.user_id = tst.uid('coachA') and d.kind = 'staff'), 'T45 Verzeichnis zeigt das Trainerteam');
+  perform tst.eq((select string_agg(coalesce(d.player_id::text, '-'), ',') from public.chat_directory(tst.get('team_a')::uuid) d where d.kind = 'player' and d.user_id <> tst.uid('p1')), '-,-,-',
+                 'T45 Verzeichnis: keine Spieler-IDs anderer');
+  perform tst.eq((select string_agg(d.name, ',' order by d.name) from public.chat_directory(tst.get('team_a')::uuid) d where d.kind = 'player'), 'Erik B.,Lena J.,Max M.,Paul N.',
+                 'T45 Verzeichnis: aktive Spieler mit Konto als „Vorname N.“');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.chat_messages)::text, '1', 'T45 Mitspieler sieht den Teamchat, nicht den Einzelchat');
+  perform tst.eq((select count(*) from public.chats where kind = 'direct')::text, '0', 'T45 fremder Einzelchat unsichtbar');
+end $$;
+select tst.affects(format($q$insert into public.chat_reactions (message_id, emoji) values (%L, '👍')$q$, tst.get('msg_team')), 1, 'T45 Reaktion');
+select tst.throws(format($q$insert into public.chat_reactions (message_id, emoji) values (%L, '🍺')$q$, tst.get('msg_team')), 'T45 nur vorgegebene Reaktionen', 'check constraint');
+select tst.throws(format($q$insert into public.chat_reactions (message_id, emoji) values (%L, '👍')$q$, tst.get('msg_dm')), 'T45 keine Reaktion in fremden Chats', 'not_found');
+select tst.throws(format($q$insert into public.chat_messages (chat_id, body) values (%L, 'rein')$q$, tst.get('chat_dm')), 'T45 kein Schreiben in fremde Einzelchats', 'row-level security');
+select tst.affects(format($q$update public.chat_messages set deleted_at = now() where id = %L$q$, tst.get('msg_team')), 0, 'T45 Spieler löscht keine fremden Nachrichten');
+select tst.affects(format($q$insert into public.chat_reports (message_id, reason, note, snapshot) values (%L, 'mean', 'unfreundlich', 'gefälscht')$q$, tst.get('msg_team')), 1, 'T45 Nachricht melden');
+select tst.throws(format($q$insert into public.chat_reports (message_id, reason) values (%L, 'other')$q$, tst.get('msg_dm')), 'T45 nur lesbare Nachrichten melden', 'not_found');
+select tst.affects(format($q$insert into public.chat_state (chat_id, muted) values (%L, true)$q$, tst.get('chat_team')), 1, 'T45 Teamchat stumm schalten');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select body from public.chat_messages where chat_id = tst.get('chat_dm')::uuid), 'Trainer, ich habe eine Frage zum Probetraining.',
+                 'T45 Kinderschutz: Trainerteam (Recht „messages“) liest den Einzelchat mit');
+  perform tst.eq((select snapshot || '/' || sender_name from public.chat_reports), 'Wer kommt Samstag mit dem Rad?/Max M.', 'T45 Meldung mit Kopie des Textes beim Trainerteam');
+end $$;
+select tst.throws(format($q$insert into public.chat_messages (chat_id, body) values (%L, 'Ich mische mich ein')$q$, tst.get('chat_dm')), 'T45 Mitlesen heißt nicht mitschreiben', 'row-level security');
+select tst.throws(format($q$select public.chat_save_custom(%L, null, 'Fremde', array[%L]::uuid[])$q$, tst.get('team_a'), tst.uid('coachB')), 'T45 nur Personen des Teams', 'different_teams');
+select tst.put('chat_custom', public.chat_save_custom(tst.get('team_a')::uuid, null, 'Fahrgemeinschaft', array[tst.uid('p1'), tst.uid('p2')])::text);
+do $$ begin
+  perform tst.eq((select kind || '/' || title || '/' || transparent::text from public.chats where id = tst.get('chat_custom')::uuid), 'custom/Fahrgemeinschaft/true', 'T45 Gruppe des Trainerteams (gemischt: transparent)');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$update public.chat_messages set deleted_at = now() where id = %L$q$, tst.get('msg_team')), 1, 'T45 eigene Nachricht löschen');
+select tst.throws(format($q$update public.chat_messages set body = 'anders' where id = %L$q$, tst.get('msg_dm')), 'T45 Nachrichten nicht nachträglich ändern', 'forbidden');
+do $$ begin
+  perform tst.eq((select body || '/' || (deleted_by = tst.uid('p1'))::text from public.chat_messages where id = tst.get('msg_team')::uuid), '/true', 'T45 gelöscht: Text leer, Löschende(r) vermerkt');
+  perform tst.eq((select count(*) from public.chat_reactions)::text, '1', 'T45 Reaktionen sichtbar für Teilnehmer');
+  perform tst.ok(exists (select 1 from public.chats where id = tst.get('chat_custom')::uuid), 'T45 Spieler sieht die Gruppe, in der er Mitglied ist');
+end $$;
+select tst.throws(format($q$select public.chat_save_custom(%L, %L, 'Umbenannt', array[%L]::uuid[])$q$, tst.get('team_a'), tst.get('chat_custom'), tst.uid('p1')), 'T45 Spieler ändert fremde Gruppe nicht', 'dm_off');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select snapshot from public.chat_reports), 'Wer kommt Samstag mit dem Rad?', 'T45 Kopie bleibt nach dem Löschen erhalten');
+end $$;
+select tst.affects($q$update public.chat_reports set status = 'done'$q$, 1, 'T45 Meldung erledigt');
+select tst.throws($q$update public.chat_reports set snapshot = 'weg'$q$, 'T45 Kopie nicht änderbar', 'forbidden');
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{chat}', '{"teamReadOnly": true}') where id = %L$q$, tst.get('team_a')), 1, 'T45 Teamchat nur für Ankündigungen');
+select tst.affects(format($q$insert into public.chat_messages (chat_id, body) values (%L, 'Abfahrt 13:15 am Vereinsheim')$q$, tst.get('chat_team')), 1, 'T45 Trainerteam schreibt Ankündigung');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$insert into public.chat_messages (chat_id, body) values (%L, 'Ok')$q$, tst.get('chat_team')), 'T45 Ankündigungs-Chat: Spieler schreiben nicht', 'row-level security');
+select tst.affects(format($q$insert into public.chat_reactions (message_id, emoji) select id, '✅' from public.chat_messages where body like 'Abfahrt%%'$q$), 1, 'T45 Ankündigung mit ✅ bestätigen');
+commit;
+
+-- Senioren-Einstellung: Einzelchats für alle, nicht transparent
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{chat}', '{"dm": "all", "transparent": false}') where id = %L$q$, tst.get('team_a')), 1, 'T45 Einzelchats für alle');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.put('chat_pp', public.chat_open(tst.get('team_a')::uuid, 'direct', null, tst.uid('p2'))::text);
+do $$ begin
+  perform tst.eq(public.chat_open(tst.get('team_a')::uuid, 'direct', null, tst.uid('p2'))::text, tst.get('chat_pp'), 'T45 derselbe Einzelchat beim zweiten Öffnen');
+  perform tst.eq((select transparent::text from public.chats where id = tst.get('chat_pp')::uuid), 'false', 'T45 Einzelchat ohne Mitlesen');
+end $$;
+select tst.affects(format($q$insert into public.chat_messages (chat_id, body) values (%L, 'Kommst du heute?')$q$, tst.get('chat_pp')), 1, 'T45 Spieler schreiben sich');
+select tst.put('chat_p_custom', public.chat_save_custom(tst.get('team_a')::uuid, null, 'Kabine', array[tst.uid('p2')])::text);
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.chat_messages where chat_id = tst.get('chat_pp')::uuid)::text, '0', 'T45 privater Einzelchat bleibt privat');
+end $$;
+commit;
+
+-- Push-Empfänger (nur Server)
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$select * from public.chat_push_targets(%L)$q$, tst.get('msg_dm')), 'T45 Push-Empfänger nur für den Server', 'permission denied');
+commit;
+begin;
+set local role service_role;
+insert into public.push_tokens (token, user_id, platform) values ('ExponentPushToken[t45-coachA]', tst.uid('coachA'), 'ios'), ('ExponentPushToken[t45-p2]', tst.uid('p2'), 'android'),
+  ('ExponentPushToken[t45-p1]', tst.uid('p1'), 'ios') on conflict do nothing;
+do $$
+declare v_msg uuid;
+begin
+  perform tst.eq((select string_agg(token || ':' || area || ':' || coalesce(title, '-'), ',' order by token) from public.chat_push_targets(tst.get('msg_dm')::uuid)),
+                 'ExponentPushToken[t45-coachA]:coach:Max M.', 'T45 Push nur an die andere Person (Mitlesende ohne Push)');
+  perform tst.eq((select count(*) from public.chat_push_targets(tst.get('msg_dm')::uuid))::text, '0', 'T45 höchstens eine Push-Nachricht je Minute und Chat');
+  select id into v_msg from public.chat_messages where body like 'Abfahrt%';
+  perform tst.eq((select string_agg(token, ',' order by token) from public.chat_push_targets(v_msg)), 'ExponentPushToken[t45-p1]', 'T45 Teamchat: stumm geschaltete und Absender ohne Push');
+  perform tst.eq((select count(*) from public.chat_push_targets(tst.get('msg_team')::uuid))::text, '0', 'T45 gelöschte Nachricht ohne Push');
+end $$;
+commit;
+
+-- Chat ausgeschaltet: Spieler sehen nichts mehr, Trainerteam behält den Verlauf
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{chat}', '{"on": false}') where id = %L$q$, tst.get('team_a')), 1, 'T45 Chat ausgeschaltet');
+do $$ begin
+  perform tst.ok((select count(*) from public.chat_messages where chat_id = tst.get('chat_team')::uuid) > 0, 'T45 Trainerteam sieht den Verlauf weiter');
+end $$;
+select tst.throws(format($q$insert into public.chat_messages (chat_id, body) values (%L, 'Hallo?')$q$, tst.get('chat_team')), 'T45 ausgeschaltet: niemand schreibt', 'row-level security');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.chat_messages)::text || '/' || (select count(*) from public.chats)::text, '0/0', 'T45 ausgeschaltet: Spieler sehen keine Chats');
+  perform tst.ok((public.my_data_export() -> 'chat_messages') @> '[{"text": "Kommst du heute?"}]', 'T45 Datenexport enthält eigene Nachrichten');
+end $$;
+select tst.throws(format($q$select public.chat_open(%L, 'team')$q$, tst.get('team_a')), 'T45 ausgeschaltet: kein Chat öffnen', 'chat_off');
+commit;
+
+-- Spam-Schutz: höchstens 30 Nachrichten pro Minute
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+update public.teams set settings = settings - 'chat' where id = tst.get('team_a')::uuid;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$
+declare i int;
+begin
+  for i in 1..30 loop insert into public.chat_messages (chat_id, body) values (tst.get('chat_team')::uuid, 'Nachricht ' || i); end loop;
+end $$;
+select tst.throws(format($q$insert into public.chat_messages (chat_id, body) values (%L, 'eine zu viel')$q$, tst.get('chat_team')), 'T45 Spam-Schutz', 'limit');
+commit;
+
+do $$
+begin
+  delete from public.chats where team_id = tst.get('team_a')::uuid;
+  delete from public.push_tokens where token like 'ExponentPushToken[t45-%';
+  update public.teams set settings = settings - 'chat' where id = tst.get('team_a')::uuid;
+end
+$$;
+
+-- =====================================================================
 -- T17 Einwilligungen
 -- =====================================================================
 begin;
@@ -2319,8 +2702,10 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v4', 'T21b Exportformat v4');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v5', 'T21b Exportformat v5');
   perform tst.ok(x ?& array['groups', 'tasks', 'duties', 'fines', 'cash', 'cash_waivers'], 'T21b Export enthält Gruppen, Aufgaben, Dienste, Strafen, Kasse');
+  perform tst.ok(x ?& array['assessments', 'goals', 'goal_entries', 'dev_talks', 'challenge_entries', 'indiv_requests', 'chat_messages', 'chat_reactions', 'chat_reports', 'chats'],
+                 'T21b Export enthält Entwicklung, Challenges, Individualtraining und Chat');
   perform tst.eq(jsonb_array_length(x -> 'players')::text, '1', 'T21b Export: eigene Spielerzeile');
   perform tst.eq(jsonb_array_length(x -> 'consents')::text, '4', 'T21b Export: eigene Einwilligungen');
   perform tst.eq(jsonb_array_length(x -> 'rpe_entries')::text, '3', 'T21b Export: eigene RPE-Einträge');

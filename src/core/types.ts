@@ -37,6 +37,7 @@ export interface DayUnit {
   /** Schwerpunkte (Torwart: core/units → TW_THEMES) */ themes?: string[];
   /** nur für ein Datum: diese (wiederkehrende) Einheit fällt an diesem Tag aus */ cancel?: boolean;
   /** nur wiederkehrend: gilt ab diesem Tag (ältere Tage bleiben unverändert) */ from?: string | null;
+  /** nur diese Spieler (Individualtraining); leer = Gruppe bzw. alle */ pids?: string[];
 }
 export interface TeamSettings {
   /** Schlüssel = Wochentag wie Date.getDay() (0 = Sonntag). */
@@ -66,7 +67,19 @@ export interface TeamSettings {
   kasse?: KasseSettings;
   /** Weitere Einheiten je Wochentag (Schlüssel wie days) – z. B. Athletik vor dem Training, Torwarttraining */
   units?: Record<number, DayUnit[]>;
+  /** Chat im Team (Kinderschutz-Einstellungen: core/chat → chatSettings) */
+  chat?: ChatSettings;
+  /** Spieler dürfen Individualtraining anfragen (Standard: ja) */
+  indivReq?: boolean;
+  /** Wochenchallenge: Bestenliste anzeigen (Standard: aus – persönliche Bestleistung und Teamziel statt Vergleich) */
+  challengeRank?: boolean;
 }
+/**
+ * Chat: wer Einzelchats starten darf (aus / nur mit dem Trainerteam / auch Spieler untereinander), ob das ganze Trainerteam
+ * Einzelchats zwischen Trainer und Spieler lesen kann (Kinderschutz, Standard in Jugendteams) und ob im Teamchat nur das
+ * Trainerteam schreibt (Ankündigungen).
+ */
+export interface ChatSettings { on: boolean; dm: "off" | "staff" | "all"; transparent: boolean; teamReadOnly: boolean }
 /** Beitrag: einmalig, monatlich (Zeitraum „JJJJ-MM“) oder je Saison Juli–Juni („JJJJ/JJ“) */
 export type FeeEvery = "once" | "month" | "season";
 export interface FeeDef { id: string; name: string; amount: number; every: FeeEvery; from: string; to?: string | null;
@@ -108,7 +121,7 @@ export interface TeamGroup {
   /** Spieler sehen in ihrer App, dass sie in dieser Gruppe sind */
   vis?: boolean;
 }
-export type PlayerViewKey = "plan" | "load" | "tips" | "ai" | "goals" | "att" | "ratings" | "stats" | "tests" | "videos" | "contacts" | "program";
+export type PlayerViewKey = "plan" | "load" | "tips" | "ai" | "goals" | "att" | "ratings" | "stats" | "tests" | "videos" | "contacts" | "program" | "dev";
 export interface Principle { kind: Kind; rpe: number }
 export type Principles = Record<string, Principle>;
 export interface Modules {
@@ -117,6 +130,8 @@ export interface Modules {
   /** Neue Bausteine (Pakete) */
   leistung: boolean; befunde: boolean; spielanalyse: boolean; videos: boolean;
   archiv: boolean; vorbereitung: boolean; kontakte: boolean;
+  /** Spielerentwicklung (Ziele, Kompetenzprofil, Selbsteinschätzung, Gespräche), Wochenchallenge, Chat */
+  entwicklung: boolean; challenge: boolean; chat: boolean;
 }
 export interface Team {
   id: string;
@@ -266,6 +281,81 @@ export interface StaffProfile {
 /** Leistungstests (Katalog in perf.ts) */
 export type TestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit" | "tw_lateral" | "tw_kick";
 export interface TestResult { id: string; pid: string; test: TestKey; date: string; value: number; note?: string }
+// ---------- Spielerentwicklung (Paket C) ----------
+/** Kompetenzbereiche: Technik, Taktik, Athletik, Persönlichkeit (Mentales & Soziales) */
+export type DevArea = "tech" | "takt" | "ath" | "ment";
+/** Einschätzung im Kompetenzprofil (1–5 je Kompetenz) – vom Trainerteam oder Selbsteinschätzung des Spielers */
+export interface Assessment { id: string; pid: string; date: string; by: "coach" | "self"; scores: Record<string, number>; note: string;
+  /** Trainereinschätzung für den Spieler freigegeben (Selbsteinschätzung sieht der Spieler immer) */ vis: boolean }
+/** Messung eines Ziels: Test, Spielstatistik, Beteiligung, Zähler, eigener Messwert oder Meilenstein */
+export type GoalMetric = "test" | "stat" | "att" | "count" | "value" | "check";
+export type GoalStat = "goals" | "assists" | "minutes" | "games" | "starts" | "clean";
+/** Zielart nach Sportpsychologie: Prozess (Verhalten), Leistung (Messwert), Ergebnis */
+export type GoalKind = "process" | "perf" | "outcome";
+export interface Goal {
+  id: string; pid: string; title: string; area: DevArea; kind: GoalKind; metric: GoalMetric;
+  unit: string; start: number | null; target: number | null;
+  /** kleiner ist besser (z. B. Zeiten) */ lower: boolean;
+  test: TestKey | null; stat: GoalStat | null;
+  /** Beginn und Ziel-Datum */ from: string; due: string | null;
+  /** Warum ist das Ziel wichtig? */ why: string;
+  /** Schritte/Maßnahmen (bei Meilenstein-Zielen abhakbar) */ steps: { text: string; done: boolean }[];
+  status: "active" | "done" | "missed" | "dropped";
+  /** für den Spieler sichtbar */ vis: boolean; by: "coach" | "player";
+  /** aus einem Entwicklungsgespräch */ talkId: string | null;
+}
+/** Fortschritt eines Ziels (Zähler: Menge, Messwert: Wert) */
+export interface GoalEntry { id: string; goalId: string; pid: string; date: string; value: number; note: string; by: "coach" | "player" }
+export interface Agreement { id: string; text: string; who: "player" | "coach" | "both"; due: string | null; done: boolean }
+/** Entwicklungsgespräch mit Protokoll und Vereinbarungen */
+export interface DevTalk {
+  id: string; pid: string; date: string; kind: "start" | "mid" | "end" | "event";
+  /** Sicht des Spielers */ player: string; strengths: string; focus: string;
+  agreements: Agreement[];
+  /** interne Notiz (nur Trainerteam) */ notes: string;
+  next: string | null;
+  /** Protokoll (ohne interne Notiz) für den Spieler freigegeben */ vis: boolean;
+}
+/** Wochenchallenge (optional, z. B. Jonglier-Rekord, Wandpässe, Ball-Mastery an 5 Tagen) */
+export type ChallengeKind = "best" | "count" | "days" | "check";
+export interface Challenge {
+  id: string; ws: string; title: string; text: string; kind: ChallengeKind; unit: string;
+  /** persönliches Ziel (z. B. 5 Tage, 30 Kontakte) */ target: number | null;
+  /** gemeinsames Teamziel (Summe aller Werte) */ teamTarget: number | null;
+  lower: boolean; groupId: string | null; key: string | null;
+}
+export interface ChallengeEntry { cid: string; pid: string; value: number | null; days: string[]; done: boolean; at: string }
+/** Zusammenfassung einer Challenge für Spieler (vom Server, ohne Werte einzelner – außer Bestenliste ist an) */
+export interface ChallengeTotals { cid: string; players: number; done: number; sum: number; top: { name: string; value: number }[] }
+/** Anfrage eines Spielers für ein Individualtraining */
+export type IndivTopic = "technik" | "schuss" | "kopf" | "schwach" | "athletik" | "tw" | "taktik" | "video" | "reha" | "mental" | "sonst";
+export interface IndivRequest {
+  id: string; pid: string; topic: IndivTopic; note: string; wish: string;
+  status: "open" | "accepted" | "declined" | "cancelled";
+  answer: string; date: string | null; slot: number | null; staffId: string | null; created: string;
+}
+
+// ---------- Chat ----------
+export type ChatKind = "team" | "staff" | "group" | "direct" | "custom";
+export interface Chat {
+  id: string; kind: ChatKind; title: string; groupId: string | null;
+  /** Mitglieder (Konten) bei Einzel- und eigenen Chats */ members: string[];
+  /** nur das Trainerteam schreibt */ readOnly: boolean;
+  /** Trainerteam liest mit (Kinderschutz) */ transparent: boolean;
+  createdBy: string | null; lastAt: string | null;
+  /** eigene Einstellung: stumm (keine Push-Nachrichten) */ muted: boolean;
+}
+export interface ChatMsg { id: string; chatId: string; uid: string | null; name: string; body: string; at: string; replyTo: string | null; deleted: boolean;
+  /** Emoji → Konten */ reactions: Record<string, string[]>;
+  /** nur auf dem Gerät: wird gesendet bzw. Senden fehlgeschlagen */ pending?: boolean; failed?: boolean }
+export type ChatReportReason = "mean" | "bully" | "private" | "other";
+/** Gemeldete Nachricht (Trainerteam mit Recht „messages“; Spieler: eigene Meldungen) */
+export interface ChatReport { id: string; msgId: string | null; chatId: string | null; reason: ChatReportReason; note: string;
+  /** Kopie des Textes zum Zeitpunkt der Meldung */ snapshot: string; sender: string; sentAt: string | null;
+  status: "open" | "done"; reporter: string; at: string }
+/** Person, mit der man im Team chatten kann (Konto) */
+export interface ChatPerson { uid: string; name: string; kind: "staff" | "player"; pid: string | null; role: string | null }
+
 /** Video-Link (YouTube, Veo, Hudl, Vimeo, Cloud …) zu Spiel, Spielern oder Übung. */
 export type ContactRole = "trainer" | "koordinator" | "vorstand" | "physio" | "arzt" | "betreuer" | "sonst";
 /** Eintrag der Kontaktliste; vis = für Spieler sichtbar. */
@@ -341,6 +431,18 @@ export interface TeamData {
   duties: DutyEntry[]; fines: FineEntry[]; tasks: TeamTask[];
   /** Inaktive Spieler (nur für das Trainerteam; nicht in Berechnungen) */
   inactive: Player[];
+  /** Spielerentwicklung: Einschätzungen, Ziele mit Fortschritt, Gespräche (Spieler: eigene, freigegebene) */
+  assessments: Assessment[]; goals: Goal[]; goalEntries: GoalEntry[]; talks: DevTalk[];
+  /** Wochenchallenges, Einträge (Spieler: eigene) und Teamsummen */
+  challenges: Challenge[]; chEntries: ChallengeEntry[]; chTotals: Record<string, ChallengeTotals>;
+  /** Anfragen für Individualtraining (Spieler: eigene) */
+  indiv: IndivRequest[];
+  /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
+  chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
+  /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
+  chatReports: ChatReport[];
+  /** Chats mit älteren, noch nicht geladenen Nachrichten */
+  chatMore: Record<string, boolean>;
 }
 
 export function emptyTeamData(team: Team): TeamData {
@@ -348,5 +450,7 @@ export function emptyTeamData(team: Team): TeamData {
     team, players: [], matches: [], events: [], cal: {}, over: {}, wkMode: {}, absences: [], sessions: [],
     rpe: {}, rpeU: {}, units: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
     stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], duties: [], fines: [], tasks: [], cash: [], waivers: [], inactive: [],
+    assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
+    chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
   };
 }

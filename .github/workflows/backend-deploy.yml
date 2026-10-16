@@ -74,6 +74,6 @@ jobs:
       - name: Edge Functions deployen
         if: steps.check.outputs.ok == 'true'
         run: |
-          for fn in ai finding delete-account push-reminders; do
+          for fn in ai finding delete-account push-reminders chat-push; do
             supabase functions deploy "$fn" --project-ref "$PROJECT_REF"
           done

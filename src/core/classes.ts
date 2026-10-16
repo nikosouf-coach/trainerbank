@@ -27,6 +27,7 @@ export function modsFor(depth: Depth, k: ClassKey): Modules {
     wachstum: depth !== "org" && isGrowthAge(k), ki: true, matchplan: false, kaderplanung: false,
     leistung: depth !== "org", befunde: depth !== "org", spielanalyse: true, videos: true,
     archiv: true, vorbereitung: depth !== "org", kontakte: true,
+    entwicklung: depth !== "org", challenge: true, chat: true,
   };
   if (grp === "u11") { m.belastung = false; m.regeneration = false; m.wachstum = false; }
   return m;
@@ -87,11 +88,12 @@ export function posGroup(pos: string): PosGroup {
 
 /** Pakete des Baukastens: welche Module zusammengehören. "basis" ist immer enthalten. */
 export const PACKAGES: { key: string; mods: (keyof Modules)[] }[] = [
-  { key: "basis", mods: ["beteiligung", "kontakte"] },
+  { key: "basis", mods: ["beteiligung", "kontakte", "chat"] },
   { key: "belastung", mods: ["belastung", "regeneration", "wachstum"] },
   { key: "planung", mods: ["planung", "archiv", "vorbereitung"] },
   { key: "leistung", mods: ["leistung", "befunde"] },
   { key: "analyse", mods: ["spielanalyse", "videos"] },
+  { key: "entwicklung", mods: ["entwicklung", "challenge"] },
   { key: "ki", mods: ["ki"] },
 ];
 /** Was Spieler sehen dürfen – mit Standardwert und dem Modul, das dafür nötig ist. */
@@ -101,6 +103,7 @@ export const PLAYER_VIEW: { key: PlayerViewKey; def: boolean; needs?: keyof Modu
   { key: "att", def: true, needs: "beteiligung" },
   { key: "tips", def: true },
   { key: "goals", def: true },
+  { key: "dev", def: true, needs: "entwicklung" },
   { key: "ai", def: true, needs: "ki" },
   { key: "ratings", def: true, needs: "spielanalyse" },
   { key: "stats", def: true, needs: "spielanalyse" },
