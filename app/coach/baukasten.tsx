@@ -2,6 +2,7 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { PLAYER_VIEW } from "../../src/core/classes";
+import { ChatSettingsCard } from "../../src/ui/chat";
 import type { PlayerViewKey } from "../../src/core/types";
 import { useEngine, useStore } from "../../src/data/store";
 import { ModuleList } from "../../src/ui/editors";
@@ -31,6 +32,7 @@ export default function Baukasten() {
           })}
         </Col>
       </Card>
+      <ChatSettingsCard />
       <Card testID="bk-reminders">
         <CardTitle title={t("rm_title")} info={<Info title={t("rm_title")} text={t("rm_info")} />} />
         <ReminderFields value={rm} onChange={r => s.updateTeam({ settings: { ...team.settings, reminders: r } })} tr={E.tr} load={load} prep={!!team.modules.vorbereitung} />

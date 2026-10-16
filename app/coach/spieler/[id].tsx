@@ -18,6 +18,8 @@ import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
 import { InjuryCard } from "../../../src/ui/injury";
 import { PerfCard } from "../../../src/ui/perf";
 import { ExtraCard, GamesCard, PotCard, RecCard } from "../../../src/ui/squad/ProfileCards";
+import { DevSummaryCard } from "../../../src/ui/dev";
+import { canDirect, chatSettings } from "../../../src/core/chat";
 import { radius, statusColor, useTheme } from "../../../src/ui/theme";
 import type { Player } from "../../../src/core/types";
 
@@ -52,6 +54,10 @@ export default function Spieler() {
   const recCol = !rec || rec.none ? c.ok : rec.notReady ? c.crit : rec.remaining > 0 ? c.warn : c.ok;
   const adv = E.advice(pr);
   const noteVal = note ?? (E.D.notes[p.id] || "");
+  // Chat: Einzelchat mit dem Spieler (wenn er ein App-Konto hat und Einzelchats erlaubt sind)
+  const chatSt = chatSettings(E.team), chatP = mods.chat && chatSt.on ? E.D.chatPeople.find(x => x.pid === p.id) : undefined;
+  const meKind = E.D.chatPeople.find(x => x.uid === s.chatMeId)?.kind;
+  const openChat = async () => { if (!chatP) return; const cid = await s.chatOpen("direct", null, chatP.uid); if (cid) router.push("/coach/chat/" + cid); };
 
   const pickPhoto = async () => {
     try {
@@ -80,6 +86,7 @@ export default function Spieler() {
           {nx?.train ? <MyTarget pid={p.id} date={nx.date} detail label={`${E.wt(nx.date)} ${E.de(nx.date)}`} testID="profile-target" /> : null}
           <Row gap={8} wrap>
             <Btn small testID="profile-edit" label={t("pr_edit")} onPress={() => setEdit(p)} />
+            {chatP && meKind && canDirect(chatSt, meKind, "player") ? <Btn small testID="profile-chat" icon="chat" label={t("ch_direct")} onPress={openChat} /> : null}
             {p.neu ? <Btn small testID="profile-merge" label={t("kd_merge")} onPress={() => setMerge(p)} /> : null}
           </Row>
         </Col>
@@ -177,6 +184,7 @@ export default function Spieler() {
       {mods.befunde || pr.st === "inj" ? <InjuryCard p={p} /> : null}
       {mods.leistung ? <PerfCard p={p} editable /> : null}
       <GamesCard p={p} />
+      {mods.entwicklung ? <DevSummaryCard p={p} onOpen={() => router.push("/coach/entwicklung/" + p.id)} /> : null}
       <PotCard p={p} />
       <ExtraCard p={p} />
       {wide ? <Row align="flex-start" gap={18}>{absCard}{notes}</Row> : <>{absCard}{notes}</>}

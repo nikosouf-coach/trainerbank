@@ -7,7 +7,7 @@ import { Btn, Col, Muted, Row, Sheet, ToggleRow } from "./kit";
 import { radius, useTheme } from "./theme";
 
 /** Karten der Trainer-Startseite (Standard-Reihenfolge). */
-export const DASH_COACH = ["next", "tasks", "phase", "status", "attn", "absent", "week", "events", "last", "load", "ai"] as const;
+export const DASH_COACH = ["next", "tasks", "inbox", "phase", "status", "attn", "absent", "week", "events", "last", "load", "ai"] as const;
 export type DashKey = typeof DASH_COACH[number];
 /** Standardmäßig aus (wirken eher als Detail) */
 const DEF_OFF: string[] = [];

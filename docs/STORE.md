@@ -82,6 +82,9 @@ FÜR TRAINERINNEN UND TRAINER
 • Wachstum im Blick: Körpergröße erfassen und Wachstumsphasen im Jugendbereich berücksichtigen
 • Potenziale und Ziele für jeden Spieler – auf Wunsch für den Spieler sichtbar
 • Kurze Nachrichten an einzelne Spieler, z. B. Pause, Regeneration oder Zusatzaufgabe
+• Team-Chat statt WhatsApp-Gruppe: Teamchat, Trainerteam, Gruppen und Einzelchats – ohne Telefonnummern, mit Kinderschutz für Jugendteams
+• Spielerentwicklung: Kompetenzprofil nach Position, messbare Ziele mit automatischem Fortschritt, Entwicklungsgespräche mit Vorbereitung und Saisonrückblick
+• Wochenchallenge für zu Hause und Anfragen für Individualtraining
 • Eigene Trainingsarten und Spielprinzipien
 • Trainerteam mit Rollen für Cheftrainer, Co-Trainer und Physio
 
@@ -93,6 +96,7 @@ FÜR SPIELERINNEN UND SPIELER
 • Zusatzsport wie Schulsport oder Fitnessstudio ergänzen
 • Abwesenheiten selbst melden
 • Persönliche Tipps zu Erholung und Belastung
+• Mit dem Team chatten, eigene Ziele setzen, sich selbst einschätzen und bei der Wochenchallenge mitmachen
 
 KI-COACH (OPTIONAL)
 Stell Fragen zu Training, Belastung und Erholung. Der KI-Coach ist freiwillig, erst nach gesonderter Einwilligung nutzbar und hat ein Tageslimit. Antworten sind als KI-generiert gekennzeichnet.
@@ -143,6 +147,9 @@ FOR COACHES
 • Growth tracking: record height and take growth phases in youth football into account
 • Potentials and goals for each player – visible to the player if you choose
 • Short messages to individual players, e.g. rest, recovery or extra task
+• Team chat instead of a WhatsApp group: team chat, coaching staff, groups and direct messages – no phone numbers, with safeguarding for youth teams
+• Player development: position-based competency profile, measurable goals with automatic progress, development talks with preparation and a season review
+• Weekly challenge for at home and requests for individual sessions
 • Custom session types and playing principles
 • Coaching staff roles for head coach, assistant coach and physio
 
@@ -154,6 +161,7 @@ FOR PLAYERS
 • Add extra sport such as school PE or the gym
 • Report absences yourself
 • Personal tips on recovery and load
+• Chat with your team, set your own goals, assess yourself and join the weekly challenge
 
 AI COACH (OPTIONAL)
 Ask questions about training, load and recovery. The AI coach is optional, only available after separate consent and has a daily limit. Answers are labelled as AI-generated.
@@ -268,7 +276,7 @@ sinngemäß; **Wortlaut und Antwortoptionen in App Store Connect abgleichen**.
 | Altersverifikation (Age Assurance) | Nein | Alter wird nur selbst angegeben (Geburtsdatum) – zu prüfen |
 | Uneingeschränkter Webzugang | Nein | nur eigene Seiten (Datenschutz, Support) |
 | Nutzergenerierte Inhalte | **Ja** (konservativ) | Trainer-Nachrichten, Potenziale, Notizen sind für andere Nutzer im Team sichtbar |
-| Nachrichten und Chat | **Ja** (konservativ) | Trainer → Spieler, einseitig, nur innerhalb des Teams; kein Chat zwischen Spielern |
+| Nachrichten und Chat | **Ja** | Team-Chat nur innerhalb des eigenen Teams (Teamchat, Gruppen, Einzelchats); in Jugendteams Einzelchats nur mit dem Trainerteam und für das Trainerteam einsehbar; Melden und Löschen |
 | Werbung | Nein | – |
 | Obszöne Sprache, Horror, Alkohol/Tabak/Drogen | Keine | – |
 | Medizinische oder Behandlungsinformationen | Keine oder Selten – zu prüfen | allgemeine Erholungs- und Belastungshinweise, Rückkehrstufen; keine Behandlungsinformationen |
@@ -281,8 +289,11 @@ Erwartetes Ergebnis: [4+ / 9+ / 13+ – Ergebnis nach Ausfüllen eintragen]. Die
 nutzergenerierten Inhalten und Nachrichten können die Einstufung anheben; das ist mit Mindestalter 13 vereinbar.
 
 **Hinweis Richtlinie 1.2 (nutzergenerierte Inhalte):** Apple verlangt bei solchen Inhalten Filter-, Melde- und
-Blockiermöglichkeiten sowie veröffentlichte Kontaktdaten. Ob das für einen geschlossenen Trainer-Spieler-Kanal gilt,
-ist zu prüfen. Vorbereitung: Melde-Möglichkeit für Nachrichten an [Support-E-Mail] und Staff-Liste mit Entfernen.
+Blockiermöglichkeiten sowie veröffentlichte Kontaktdaten. Umgesetzt im Chat: Melden jeder Nachricht (mit Kopie an das
+Trainerteam), Löschen eigener Nachrichten, Moderation (Löschen) durch das Trainerteam, Stummschalten von Chats,
+Ankündigungs-Modus, Chat-Regeln in der App, Spam-Grenze, Entfernen von Personen über Kader/Trainerteam. **Zu prüfen:**
+ob zusätzlich „Nutzer blockieren“ verlangt wird (im geschlossenen Team-Kontext ersetzt durch Moderation und Einzelchat-
+Einstellungen) und ob Meldungen auch den Herausgeber erreichen müssen ([Support-E-Mail] in den Chat-Regeln nennen).
 
 ### 8.3 Google Play – IARC-Fragebogen
 
@@ -290,7 +301,7 @@ ist zu prüfen. Vorbereitung: Melde-Möglichkeit für Nachrichten an [Support-E-
 |---|---|
 | App-Kategorie im Fragebogen | keine Spiele-App; passende Kategorie für Referenz/Bildung bzw. sonstige Apps wählen – zu prüfen |
 | Gewalt, Angst, Sexualität, Glücksspiel, Sprache, Drogen, derber Humor | Nein |
-| Nutzer können miteinander interagieren oder Inhalte austauschen | **Ja** (Trainer-Nachrichten im Team) |
+| Nutzer können miteinander interagieren oder Inhalte austauschen | **Ja** (Team-Chat und Trainer-Nachrichten im Team) |
 | Teilt den aktuellen Standort mit anderen Nutzern | Nein |
 | Kauf digitaler Güter | [Nein / Ja – je nach Abschnitt 12] |
 | Uneingeschränkter Internetzugang | Nein |
@@ -320,8 +331,8 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Gesundheit & Fitness | Fitness | ja | ja | nein | App-Funktionalität | Session-RPE, Minuten, Zusatzsport |
 | Benutzerinhalte | Fotos oder Videos | ja | ja | nein | App-Funktionalität | optionales Profilfoto, Fotos von Befunden (Arztbriefe) |
 | Gesundheit & Fitness | Gesundheit (Ergänzung) | ja | ja | nein | App-Funktionalität | Befunde (Bild/PDF) und deren KI-Zusammenfassung, Leistungstests |
-| Benutzerinhalte | E-Mails oder Textnachrichten | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Trainer-Nachrichten an Spieler |
-| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen |
+| Benutzerinhalte | E-Mails oder Textnachrichten | ja | ja | nein | App-Funktionalität | Chat-Nachrichten, Reaktionen, Meldungen; Trainer-Nachrichten an Spieler |
+| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen, Selbsteinschätzung, Ziele, Gesprächsprotokolle, Challenge-Einträge, Anfragen für Individualtraining |
 | Identifikatoren | Benutzer-ID | ja | ja | nein | App-Funktionalität | Konto-ID |
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |
@@ -362,7 +373,7 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 | Personenbezogene Daten | Sonstige Informationen | ja | nein | nein | Pflicht (Geburtsdatum), sonst optional | App-Funktionalität |
 | Gesundheit und Fitness | Gesundheitsinformationen | ja | nein | nein | optional | App-Funktionalität |
 | Gesundheit und Fitness | Fitnessinformationen | ja | nein | nein | optional | App-Funktionalität |
-| Nachrichten | Sonstige In-App-Nachrichten | ja | nein | nein | optional | App-Funktionalität |
+| Nachrichten | Sonstige In-App-Nachrichten | ja | nein | nein | optional | App-Funktionalität (Team-Chat, Trainer-Nachrichten) |
 | Fotos und Videos | Fotos | ja | nein | nein | optional | App-Funktionalität (Profilbild, Befund-Fotos) |
 | Dateien und Dokumente | Dateien und Dokumente | ja | nein | nein | optional | App-Funktionalität (Befunde als PDF) |
 | App-Aktivitäten | Sonstige nutzergenerierte Inhalte | ja | nein | nein (KI-Anfragen: ja, sofern nicht gespeichert – zu prüfen) | optional | App-Funktionalität |

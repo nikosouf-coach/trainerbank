@@ -23,6 +23,10 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 | Trainingstag | verfügbare Spieler, Ablauf in Blöcken mit Zuständigkeit je Trainer, Coachingpunkten und Skizzen (auch als Foto), Dienste, Todos | – |
 | Trainingsplanung | Taktiktafel, Übungsarchiv mit Coachingpunkten, Einheiten-Vorlagen mit Intensitätscheck, Trainerprofile | – |
 | Vorbereitung & Pausen | Wochenaufbau mit Ziel-Last, Testtagen, Taper; Pausen ohne Mannschaftstraining; Umsetzung je Spieler | persönliches Programm für die freie Zeit (angepasst bei Verletzung/Aufbau) mit Anleitungen |
+| Spielerentwicklung | Kompetenzprofil nach Positionsgruppe (Trainer- und Selbsteinschätzung 1–5, Unterschiede ab 2 Stufen markiert, Verlauf), messbare Ziele (Test, Spielstatistik, Beteiligung, Zähler, Messwert, Meilensteine) mit automatischem Fortschritt und „hinter Plan“, Entwicklungsgespräche mit Vorbereitung aus den Daten, Vereinbarungen und interner Notiz, Saisonrückblick, Team-Überblick mit To-dos | eigene Ziele setzen und Fortschritt eintragen, Selbsteinschätzung, freigegebene Sicht des Trainerteams und Gesprächsprotokolle, „Saison bisher“ |
+| Individualtraining | Anfragen beantworten; Zusage legt eine Einheit nur für den Spieler an (RPE, Belastung, Tagesplan) | Individualtraining mit Thema und Wunschzeit anfragen (höchstens 2 offen), Antwort und Termin sehen |
+| Wochenchallenge | Vorschläge je Altersgruppe (Jonglieren, Wandpässe, schwacher Fuß, Ball-Mastery, Schlaf, Copenhagen …) oder eigene, für alle oder Gruppen, Teilnahme und Teamziel, Bestenliste optional | mitmachen, Bestwert/Menge/Tage eintragen, Teamziel, Serie |
+| Chat | Teamchat, Trainerteam, Gruppen-Chats, Einzelchats, eigene Gruppen, Ankündigungs-Modus, Reaktionen, Antworten, Echtzeit, Push ohne Text; Kinderschutz in Jugendteams (Einzelchats nur mit dem Trainerteam, Trainerteam liest mit), Meldungen mit Kopie | Teamchat, Gruppen, Einzelchats nach Einstellung, stumm schalten, löschen, melden |
 | Kommunikation | Kontaktliste (Koordinator, Vorstand, Physio, Ärzte), Push-Erinnerungen, Nachrichten | Kontakte, Erinnerungen |
 | Aufgaben & Dienste | Todos für Trainer und Spieler, Dienste reihum (fair), milder Strafenkatalog mit Automatik (nur mit Zustimmung, nie rückwirkend) | eigene Aufgaben, Dienste, Strafen |
 | Mannschaftskasse | Beiträge (einmalig, monatlich, je Saison), Geldstrafen (Senioren), Kassenbuch, offene Beträge je Spieler, Befreiungen, Kassenwart | „Meine Kasse“, optional Kassenstand; Kassenwart bucht Zahlungen |
@@ -35,7 +39,7 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 | Pfad | Inhalt |
 |---|---|
 | `app/` | Bildschirme (Expo Router): `coach/…`, `player/…`, Anmeldung, Konto |
-| `src/core/` | Fachlogik ohne React und Datenbank (Wochenplan, Erholung, Leistung, Pausen, Gruppen, Reha, Dienste, Gamification) mit Tests |
+| `src/core/` | Fachlogik ohne React und Datenbank (Wochenplan, Erholung, Leistung, Pausen, Gruppen, Reha, Dienste, Gamification, Entwicklung, Challenge, Chat-Regeln) mit Tests |
 | `src/data/` | Datenzugriff: Supabase oder Demo-Modus im Speicher |
 | `src/ui/` | Bausteine der Oberfläche |
 | `src/i18n/` | Texte Deutsch/Englisch |

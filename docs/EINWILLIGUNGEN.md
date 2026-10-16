@@ -252,6 +252,11 @@ Knöpfe: **„Einwilligen“** · **„Abbrechen“**
 >
 > **Was Ihr Kind in der App tut:** Es sieht den Teamkalender und den Wochenplan, meldet Abwesenheiten, liest
 > Nachrichten des Trainerteams und kann eintragen, wie anstrengend ein Training war und wie es sich morgens fühlt.
+> Wenn das Trainerteam es einschaltet, nutzt es den **Team-Chat**: Es schreibt im Teamchat und in Gruppen seines Teams
+> (mit Vorname und erstem Buchstaben des Nachnamens) und kann Einzelchats nur mit dem Trainerteam führen; diese
+> Einzelchats kann das ganze Trainerteam mitlesen (Kinderschutz). Push-Mitteilungen zeigen keinen Nachrichtentext,
+> unpassende Nachrichten lassen sich melden. Außerdem kann Ihr Kind sich selbst einschätzen, eigene Trainingsziele
+> setzen, an freiwilligen Wochenchallenges teilnehmen und ein Individualtraining anfragen.
 >
 > **Welche Daten:** Konto (E-Mail-Adresse, Anzeigename), Vor- und Nachname, Geburtsdatum, Position, Rückennummer,
 > optional Foto und Gewicht. Außerdem **Gesundheitsdaten**: Belastungsempfinden und Trainingsminuten je Einheit (bei Torhütern mit Sprüngen), Schlaf,
@@ -321,7 +326,11 @@ Buttons: **"Consent"** · **"Cancel"**
 > training load. Because your child is under 16, we need your consent (Art. 8 GDPR).
 >
 > **What your child does in the app:** views the team calendar and weekly plan, reports absences, reads messages from
-> the coaching staff, and can record how hard a session was and how they feel in the morning.
+> the coaching staff, and can record how hard a session was and how they feel in the morning. If the coaching staff
+> switches it on, your child uses the **team chat**: team chat and groups of the team (shown with first name and last
+> initial) and direct messages only with the coaching staff, which the whole staff can read (safeguarding). Push
+> notifications never show the text; inappropriate messages can be reported. Your child can also assess themselves,
+> set their own training goals, join optional weekly challenges and request an individual session.
 >
 > **Which data:** account (e-mail address, display name), first and last name, date of birth, position, shirt number,
 > optional photo and weight. Also **health data**: perceived exertion and training minutes, sleep, fatigue, muscle
@@ -557,6 +566,16 @@ Buttons: **"Consent and open AI coach"** · **"Not now"**
 > - Setze niemanden unter Druck, Gesundheitsdaten anzugeben. Spieler dürfen ohne Einwilligung ganz normal am Training
 >   teilnehmen.
 > - Schreibe in Notizen und Nachrichten nur, was für das Training nötig ist.
+> - **Chat mit Kindern und Jugendlichen:** Schreibe sachlich und so, dass jeder im Trainerteam und die Eltern es lesen
+>   könnten. Keine privaten Einzelchats außerhalb der App (z. B. WhatsApp) mit Kindern. In Jugendteams liest das
+>   Trainerteam Einzelchats zwischen Trainer und Spieler mit – nutze das nur zum Schutz der Kinder, nicht zur
+>   Kontrolle, und behandle die Inhalte vertraulich. Gemeldete Nachrichten zeitnah prüfen; bei Verdacht auf
+>   Grenzverletzungen die Kinderschutzbeauftragten des Vereins einbeziehen.
+> - **Individualtraining** mit Minderjährigen möglichst auf dem Vereinsgelände, zu bekannten Zeiten und im
+>   Sechs-Augen-Prinzip (zweite erwachsene Person oder weitere Spieler); keine Fahrten allein mit einem Kind ohne
+>   Absprache mit den Eltern.
+> - **Entwicklungsgespräche** mit Jugendlichen nicht unter vier Augen hinter verschlossener Tür; interne Notizen nur
+>   sachlich.
 > - Trainerbank ersetzt keine ärztliche Beurteilung. Bei Verletzungen und Beschwerden zählt die Freigabe durch Arzt
 >   oder Physiotherapeut.
 > - Melde Verdachtsfälle (z. B. verlorenes Gerät, fremder Zugriff) sofort an [E-Mail].
@@ -584,6 +603,14 @@ Buttons: **"Consent and open AI coach"** · **"Not now"**
 >   written consent (for children under 16, from their parents).
 > - Never pressure anyone to provide health data. Players may take part in training normally without consent.
 > - Only write in notes and messages what is necessary for training.
+> - **Chat with children and young people:** write factually, as if the whole staff and the parents could read it. No
+>   private one-to-one chats with children outside the app (e.g. WhatsApp). In youth teams the staff can read direct
+>   messages between a coach and a player – use this only to protect children, not to control them, and keep the
+>   content confidential. Review reported messages promptly; involve the club's welfare officer if misconduct is
+>   suspected.
+> - **Individual sessions** with minors preferably on club grounds, at known times and with a second adult or other
+>   players present; no driving alone with a child without the parents' agreement.
+> - **Development talks** with young people not behind closed doors; internal notes factual only.
 > - Trainerbank does not replace a medical assessment. For injuries and complaints, clearance by a doctor or
 >   physiotherapist is what counts.
 > - Report suspected incidents (e.g. lost device, unauthorised access) immediately to [E-Mail].

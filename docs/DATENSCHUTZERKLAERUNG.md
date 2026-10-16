@@ -34,6 +34,12 @@
 - **Du siehst nur deine eigenen Daten.** Deine Mitspieler sehen deine Daten nicht. Dein Trainerteam (Trainer,
   Co-Trainer, Physio) sieht die Daten aller Spieler im Team. Bei Leistungstests siehst du höchstens deinen eigenen
   Platz – nie die Werte oder Namen anderer.
+- **Chat:** Was du im Chat schreibst, sehen die Mitglieder des jeweiligen Chats (z. B. im Teamchat dein Team) mit
+  deinem Vornamen und dem ersten Buchstaben deines Nachnamens. Telefonnummern werden nicht gebraucht. In Jugendteams
+  gibt es Einzelchats nur mit dem Trainerteam, und das Trainerteam kann sie mitlesen (Kinderschutz). Push-Mitteilungen
+  zeigen nie den Text. Unpassende Nachrichten kannst du melden.
+- **Entwicklung:** Deine Selbsteinschätzung und deine eigenen Ziele sieht dein Trainerteam. Einschätzungen und
+  Gesprächsprotokolle des Trainerteams siehst du, wenn es sie freigibt.
 - Die Daten liegen auf Servern in der EU (Frankfurt). Es gibt **keine Werbung, kein Tracking und keinen Verkauf** von Daten.
 - Der KI-Coach ist freiwillig. Wenn du ihn nutzt, geht deine Frage an einen KI-Anbieter in den USA.
 - Du kannst deine Daten jederzeit in der App herunterladen und dein Konto mit allen Gesundheitsdaten löschen.
@@ -126,6 +132,10 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.28 | Mannschaftskasse | Beiträge des Teams (Name, Betrag, Zeitraum), deine Zahlungen (Datum, Betrag, wofür), erlassene Beiträge, Geldstrafen; Kassenbuch des Teams (Einnahmen und Ausgaben, z. B. Mannschaftsabend) | Trainerteam, Kassenwart | – |
 | 4.29 | Rechte im Trainerteam | welche Rechte ein Mitglied des Trainerteams hat (z. B. Gesundheitsdaten, Befunde, Kasse) | Owner | – |
 | 4.30 | Offline-Einträge | Einträge, die ohne Netz gemacht wurden, mit dem Zeitpunkt der Eingabe auf dem Gerät; letzter geladener Stand der App auf dem Gerät | dein Gerät | – |
+| 4.31 | Spielerentwicklung | Kompetenzprofil (Einschätzung je Kompetenz von 1 bis 5 durch das Trainerteam und als Selbsteinschätzung, mit Datum und Notiz), Ziele (Titel, Bereich, Art, Messung, Start- und Zielwert, Zeitraum, Begründung, Schritte, Status) und eingetragener Fortschritt, Entwicklungsgespräche (Datum, Anlass, deine Sicht, Stärken, Entwicklungsfelder, Vereinbarungen, nächster Termin) und eine **interne Notiz** des Trainerteams zum Gespräch | Trainerteam, du | Selbsteinschätzung und eigene Ziele freiwillig |
+| 4.32 | Wochenchallenge | Challenges des Teams (Aufgabe, Woche, Ziel) und deine Einträge (Bestwert, Menge, erledigte Tage oder „geschafft“) | Trainerteam, du | freiwillig |
+| 4.33 | Individualtraining | deine Anfrage (Thema, Beschreibung, Wunschzeit), Status, Antwort, zugesagter Termin, zuständiger Trainer; die zugehörige Einheit (wie 4.23, nur für dich) | du, Trainerteam | freiwillig |
+| 4.34 | Chat | Chats, in denen du Mitglied bist (Teamchat, Trainerteam, Gruppen, Einzelchats, eigene Gruppen), deine Nachrichten (Text, Zeitpunkt, Antwort auf, gelöscht am/von), Reaktionen, dein Lesestand und ob du einen Chat stumm geschaltet hast; Meldungen (Grund, Anmerkung, **Kopie der gemeldeten Nachricht** mit Absender und Zeitpunkt); Zeitpunkt der letzten Chat-Push-Mitteilung je Chat (zur Drosselung) | du, andere Mitglieder des Teams | freiwillig |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -175,6 +185,31 @@ Einheiten für eine Gruppe siehst du nur, wenn du Mitglied einer für dich freig
 teilnimmt, siehst du nicht. Bei Torhütern fragt die App zusätzlich nach der ungefähren Zahl der Sprünge und
 Hechtsprünge, weil sie den Körper anders belasten als Laufen.
 
+**Spielerentwicklung (4.31):** Bewertet wird relativ zur Altersklasse und als Grundlage für Gespräche, nicht als
+Urteil über dich. Trainereinschätzungen und Gesprächsprotokolle siehst du erst, wenn das Trainerteam sie freigibt; die
+interne Notiz zum Gespräch siehst du nie. Bei Zielen des Trainerteams kannst du Schritte abhaken und Fortschritt
+eintragen; eigene Ziele kannst du selbst anlegen, ändern und löschen. Ziele, deren Fortschritt aus Leistungstests,
+Spieldaten oder der Trainingsbeteiligung berechnet wird, nutzen diese Daten nur für die Anzeige des Fortschritts. Zugriff
+hat im Trainerteam nur, wer das Recht „Notizen & Bewertungen“ hat.
+
+**Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
+geschafft haben, sowie die gemeinsame Summe – nicht deine Werte. Nur wenn das Trainerteam die Bestenliste einschaltet,
+erscheinen bei Bestleistungs-Challenges die drei besten Werte mit Vorname und Initial.
+
+**Individualtraining (4.33):** Deine Anfrage sieht das Trainerteam mit dem Recht „Planung“. Eine zugesagte Einheit
+erscheint nur bei dir; Mitspieler sehen sie nicht.
+
+**Chat (4.34):** Im Chat sieht jedes Mitglied eines Chats die Nachrichten dieses Chats mit Vorname und Initial des
+Nachnamens der Absender (beim Trainerteam der Name aus dem Trainerprofil). Spieler ohne App-Konto sind nicht dabei.
+In **Jugendteams** (alle Altersklassen außer Senioren und Ü32) sind Einzelchats standardmäßig nur zwischen Spielern und
+dem Trainerteam möglich, und **das Trainerteam (mit dem Recht „Nachrichten“) kann Einzelchats zwischen einem Trainer und
+einem Spieler mitlesen** – das steht sichtbar im Chat. Das folgt den Empfehlungen des DFB und der Deutschen Sportjugend
+zum Kinderschutz (keine „geheimen“ Einzelchats zwischen Trainer und Kind) und schützt Spieler und Trainer. Das
+Trainerteam kann die Einstellungen ändern; einmal mitlesbare Chats bleiben mitlesbar. Du kannst eigene Nachrichten
+jederzeit löschen (der Text wird entfernt, es bleibt „Nachricht gelöscht“). Meldest du eine Nachricht, geht eine Kopie
+an das Trainerteam, damit es auch dann handeln kann, wenn die Nachricht gelöscht wird. Push-Mitteilungen zum Chat
+nennen nur, von wem die Nachricht ist und in welchem Chat – nie den Text.
+
 **Platzierung (4.26):** Du siehst nur deinen eigenen Platz (z. B. „Platz 3 von 18“), erst wenn mindestens fünf Spieler
 einen Wert haben. Werte oder Namen anderer Spieler werden nie angezeigt. Das Trainerteam kann die Platzierung abschalten.
 
@@ -197,11 +232,12 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.30 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung, Wochenchallenge, Individualtraining, Chat | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.34 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
 | Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests, Angaben zum Schmerz (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26, 4.27 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
 | Push-Erinnerungen und Team-Mitteilungen | 4.14 | Art. 6 Abs. 1 lit. b DSGVO; Zugriff auf das Endgerät nach § 25 Abs. 2 Nr. 2 TDDDG (vom Nutzer ausdrücklich gewünschter Dienst) nach Freigabe in den Systemeinstellungen |
 | Nachweis von Einwilligungen | 4.13 | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 DSGVO |
+| Kinderschutz und Schutz vor Missbrauch im Chat (Mitlesen in Jugendteams, Meldungen mit Kopie, Begrenzung auf 30 Nachrichten pro Minute) | 4.34 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Spieler am Schutz von Kindern und Jugendlichen; § 72a SGB VIII, Kinderschutzkonzepte der Verbände) |
 | Sicherheit, Missbrauchsabwehr, Fehleranalyse, Tageslimit für den KI-Coach | 4.15 (Zähler), 4.16 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und bezahlbaren Betrieb) |
 | Speicherung auf deinem Gerät (Anmeldesitzung, Sprache, Einstellungen) | – | § 25 Abs. 2 Nr. 2 TDDDG (unbedingt erforderlich); Art. 6 Abs. 1 lit. b DSGVO |
 | Beantwortung von Anfragen | 4.17 | Art. 6 Abs. 1 lit. b DSGVO, sonst Art. 6 Abs. 1 lit. f DSGVO |
@@ -291,8 +327,11 @@ bleibt unberührt.
   die Einwilligung jederzeit widerrufen – per E-Mail an [E-Mail] [oder über den Link in der Bestätigungs-E-Mail].
 - **Spieler ohne Konto:** Für Spieler, die das Trainerteam anlegt, ist das Team bzw. der Verein dafür zuständig, die
   Spieler und ihre Eltern zu informieren und erforderliche Einwilligungen einzuholen.
-- **Kein Kontakt durch Fremde:** Spieler sehen keine Daten anderer Spieler. Nachrichten in der App kommen nur vom
-  Trainerteam des eigenen Teams.
+- **Kein Kontakt durch Fremde:** Spieler sehen keine Daten anderer Spieler. Im Chat schreiben nur Mitglieder des
+  eigenen Teams; Spieler sehen dort Vorname und Initial der anderen, keine Telefonnummern.
+- **Kinderschutz im Chat:** In Jugendteams sind Einzelchats nur mit dem Trainerteam möglich und für das Trainerteam
+  sichtbar; jede Nachricht lässt sich melden. Bei Grenzverletzungen sollten Spieler und Eltern sich auch an die
+  Vertrauensperson bzw. die Kinderschutzbeauftragten des Vereins wenden.
 
 > **Prüfhinweis:** Die Bestätigungs-E-Mail an die Eltern („angemessene Anstrengungen“ nach Art. 8 Abs. 2 DSGVO) ist
 > laut Datenmodell noch nicht umgesetzt; derzeit wird nur die E-Mail-Adresse gespeichert. Ebenso die erneute
@@ -323,6 +362,12 @@ bleibt unberührt.
 | weitere Einheiten (Zeit, Art, Inhalt) | die für dich bestimmten | ja | Einheiten für alle bzw. für ihre eigenen freigegebenen Gruppen – nie, wer teilnimmt | nein |
 | dein Trainingseindruck | wenn freigegeben | mit Recht „Notizen & Bewertungen“ zum Eintragen; lesen das Trainerteam | nein | nein |
 | deine Einwilligungen | ja | ja (als Nachweis) | nein | nein |
+| deine Selbsteinschätzung und eigenen Ziele | ja | mit Recht „Notizen & Bewertungen“ | nein | nein |
+| Einschätzungen und Gesprächsprotokolle des Trainerteams | wenn freigegeben (nie die interne Notiz) | mit Recht „Notizen & Bewertungen“ | nein | nein |
+| deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
+| deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
+| deine Chat-Nachrichten | ja | in Chats, in denen das Trainerteam Mitglied ist; in Jugendteams auch Einzelchats Trainer–Spieler (Recht „Nachrichten“) | Mitglieder des jeweiligen Chats | nein |
+| deine Meldungen im Chat | ja | mit Recht „Nachrichten“ (mit Kopie der Nachricht) | nein | nein |
 
 Diese Regeln setzt die Datenbank selbst durch (zeilenbasierte Zugriffsregeln), nicht nur die Oberfläche der App.
 
@@ -439,12 +484,15 @@ widerrufen; danach sind keine neuen Auswertungen möglich.
 ## 12. Push-Mitteilungen
 
 Trainerbank kann dir Push-Mitteilungen senden, z. B. Erinnerungen an die Eingabe von Belastung oder Wohlbefinden
-[und Hinweise des Trainerteams]. Dafür musst du Mitteilungen in den Systemeinstellungen deines Geräts erlauben. Du
-kannst sie dort [und in der App unter Pfad] jederzeit wieder abschalten.
+[und Hinweise des Trainerteams] sowie Hinweise auf neue Chat-Nachrichten (höchstens eine je Chat und Minute, nur für
+Chats, die du nicht stumm geschaltet hast). Dafür musst du Mitteilungen in den Systemeinstellungen deines Geräts
+erlauben. Du kannst sie dort [und in der App unter Pfad] jederzeit wieder abschalten; einzelne Chats schaltest du im
+Chat stumm.
 
 Wir speichern dazu den Push-Token deines Geräts mit Plattform und Zeitpunkt. Der Versand läuft über den Push-Dienst
 von Expo und die Zustelldienste von Apple bzw. Google (Abschnitte 9 und 10). **Mitteilungstexte enthalten keine
-Gesundheitsangaben**, weil sie auf dem Sperrbildschirm sichtbar sein können.
+Gesundheitsangaben und keine Chat-Inhalte** (nur „Neue Nachricht von …“), weil sie auf dem Sperrbildschirm sichtbar
+sein können.
 
 ## 13. Web-Version und Speicherung auf deinem Gerät
 
@@ -495,6 +543,12 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Gruppenmitgliedschaften | sofort beim Entfernen aus der Gruppe, beim Löschen der Gruppe, des Spielerprofils oder des Teams |
 | Aufgaben, Dienste und Strafen | bei Löschung durch das Trainerteam, Löschung des Spielerprofils oder des Teams; automatisch 12 Monate nach dem Datum: vergangene Dienste, erledigte oder erlassene Strafen und erledigte Aufgaben (offene Strafen bleiben, bis das Trainerteam entscheidet) |
 | Ablauf des Trainingstags und Skizzen-Fotos | bei Löschung des Blocks durch das Trainerteam oder Löschung des Teams |
+| Spielerentwicklung (Einschätzungen, Ziele, Fortschritt, Gespräche, interne Notizen) | bei Löschung durch das Trainerteam (eigene Selbsteinschätzungen und Ziele auch durch dich), Löschung des Spielerprofils oder des Teams |
+| Wochenchallenge | mit der Challenge, dem Spielerprofil oder dem Team |
+| Anfragen für Individualtraining | automatisch 12 Monate nach Abschluss (zugesagt, abgesagt, zurückgezogen); offene mit dem Spielerprofil bzw. Team |
+| Chat-Nachrichten und Reaktionen | automatisch **24 Monate** nach dem Senden; sofort bei Löschung deines Kontos; gelöschte Nachrichten verlieren ihren Text sofort; Einzel- und eigene Chats auch, wenn alle Mitglieder sie verlassen |
+| Meldungen im Chat | automatisch 12 Monate, nachdem das Trainerteam sie erledigt hat; deine eigenen Meldungen mit deinem Konto |
+| Lesestand, „stumm“, Push-Drosselung | mit dem Konto bzw. Chat; Push-Drosselung nach 30 Tagen |
 | Angaben zum Schmerz | wie Gesundheitsdaten (mit dem Morgen-Check-Eintrag) |
 | Mannschaftskasse | Buchungen und Befreiungen bei Löschung durch Kasse/Trainerteam oder des Teams; beim Löschen eines Spielers werden Befreiungen gelöscht und Buchungen anonymisiert |
 | Offline-Einträge und Stand auf dem Gerät | nach dem Senden bzw. spätestens nach 14 Tagen; der Stand beim Abmelden und Löschen des Kontos |
@@ -629,7 +683,11 @@ data); team kitty (fees, your payments and exemptions, money fines, team cash bo
 processing; players see only their own amounts and, if enabled, the total); permissions of coaching staff members
 (the owner decides who sees health data, findings or the kitty – enforced on the server); entries made offline and the
 last loaded state on your device (max. 14 days, deleted on sign-out); session plans, coaching points and sketch photos (staff only); consent records (incl. a parent's
-e-mail address for players under 16); push tokens; AI usage counters; technical server logs. Load, wellness,
+e-mail address for players under 16); player development (competency profile 1–5 by the staff and as
+self-assessment, measurable goals with progress, development talks with agreements and an internal staff note never
+shown to the player); weekly challenges and your entries (team-mates only see participation and the team total; a
+top-3 list only if the staff enables it); requests for individual sessions; chat (messages, reactions, read state,
+muted chats, reports with a copy of the reported message); push tokens; AI usage counters; technical server logs. Load, wellness,
 complaints and body regions, injury, illness, height and weight, rehab/load-build/growth group membership and test
 results are treated as **health data** (Art. 9 GDPR).
 
@@ -639,7 +697,11 @@ the AI coach – explicit consent (Art. 9(2)(a), Art. 6(1)(a)); consent records 
 Art. 7(1)); security and abuse prevention – legitimate interests (Art. 6(1)(f)); device storage – § 25(2) no. 2 TDDDG.
 
 **Who sees what:** players see only their own data; the coaching staff of the team (owner, coach, physio) see the data
-of their team's players; team-mates never see each other's data. Enforced by database row-level security.
+of their team's players; team-mates never see each other's data. In the chat, members of a chat see its messages
+with the sender's first name and last initial. In youth teams, direct messages are only possible with the coaching
+staff and staff members with the "Messages" permission can read direct messages between a coach and a player
+(safeguarding, shown in the chat). Push notifications never contain the message text. Chat messages are deleted after
+24 months. Enforced by database row-level security.
 
 **Minors:** own accounts from [minimum age]; under 16, a parent or guardian must consent (we store their e-mail
 address). Younger players can be managed by the coaching staff without an account.

@@ -203,9 +203,12 @@ export function NextDates({ pid, max = 6 }: { pid: string; max?: number }) {
 export function Goals({ pid }: { pid: string }) {
   const E = useEngine(); const { t } = E; const { c } = useTheme();
   const goals = (E.D.pot[pid] || []).filter(x => x.vis);
+  // Mit „Entwicklung“ gibt es eigene, messbare Ziele – Potenziale dann nur, wenn welche freigegeben sind
+  const dev = E.playerSees("dev");
+  if (dev && !goals.length) return null;
   return (
     <Card testID="player-goals">
-      <Row between><T v="h2">{t("pl_goals")}</T>{goals.length ? <Muted small>{goals.length}</Muted> : null}</Row>
+      <Row between><T v="h2">{dev ? t("dv_potTitle") : t("pl_goals")}</T>{goals.length ? <Muted small>{goals.length}</Muted> : null}</Row>
       {goals.length ? <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
         {goals.map(g => { const col = potColor(c, g.cat); return (
           <View key={g.id} testID={"goal-" + g.id} style={{ width: 220, padding: 12, borderRadius: radius.l, backgroundColor: withAlpha(col, 0.12), borderWidth: 1, borderColor: withAlpha(col, 0.35), gap: 6 }}>

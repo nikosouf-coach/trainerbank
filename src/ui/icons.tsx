@@ -6,7 +6,8 @@ import Svg, { Circle, Path, Rect } from "react-native-svg";
 export type IconName =
   | "heute" | "kalender" | "plan" | "kader" | "mehr" | "eintragen" | "daten" | "tipps" | "ich"
   | "spark" | "plus" | "back" | "close" | "check" | "chevron" | "camera" | "person" | "info" | "trash"
-  | "flame" | "star" | "trophy" | "moon" | "bolt" | "calendar" | "target";
+  | "flame" | "star" | "trophy" | "moon" | "bolt" | "calendar" | "target"
+  | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people";
 
 const P: Record<IconName, React.ReactNode> = {
   heute: <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -35,6 +36,13 @@ const P: Record<IconName, React.ReactNode> = {
   bolt: <Path d="M13 2L4 14h7l-1 8 9-12h-7z" />,
   calendar: <><Rect x={3} y={4} width={18} height={17} rx={2} /><Path d="M3 9h18M8 2v4M16 2v4" /></>,
   target: <><Circle cx={12} cy={12} r={9} /><Circle cx={12} cy={12} r={5} /><Circle cx={12} cy={12} r={1.5} /></>,
+  chat: <Path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.9A8 8 0 1 1 21 12z" />,
+  send: <><Path d="M22 2L11 13" /><Path d="M22 2l-7 20-4-9-9-4z" /></>,
+  eye: <><Path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><Circle cx={12} cy={12} r={3} /></>,
+  mute: <><Path d="M13.7 21a2 2 0 0 1-3.4 0M18.6 13A17.7 17.7 0 0 1 18 8M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h14M18 8a6 6 0 0 0-9.3-5M3 3l18 18" /></>,
+  reply: <><Path d="M9 14L4 9l5-5" /><Path d="M4 9h10.5A5.5 5.5 0 0 1 20 14.5V20" /></>,
+  flag: <><Path d="M4 22V4" /><Path d="M4 4h13l-2 4 2 4H4" /></>,
+  people: <><Circle cx={9} cy={8} r={3.2} /><Path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><Circle cx={17} cy={9} r={2.6} /><Path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8" /></>,
 };
 
 export function Icon({ name, size = 22, color = "#000", strokeWidth = 1.8 }: { name: IconName; size?: number; color?: ColorValue; strokeWidth?: number }) {

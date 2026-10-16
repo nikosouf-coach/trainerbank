@@ -238,7 +238,7 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R9 | Übermäßige Speicherdauer: keine automatische Löschung; ehemalige Spieler bleiben mit Gesundheitshistorie für das Trainerteam sichtbar | ehemalige Spieler | Offenlegung veralteter Gesundheitsdaten, Nachteile beim Vereinswechsel | 4 | 2 | Risiko |
 | R10 | Gesundheitsangaben in Push-Mitteilungen auf dem Sperrbildschirm | Spieler | Offenlegung gegenüber Umfeld | 2 | 2 | Risiko |
 | R11 | Profilfotos Minderjähriger öffentlich abrufbar (öffentlicher Bucket, erratbare Pfade) oder mit Standort-Metadaten (EXIF/GPS) | Spieler mit Foto | Identifizierung, Auffindbarkeit von Kindern | 2 | 3 | Risiko |
-| R12 | Missbrauch des Nachrichtenkanals Erwachsener → Minderjährige | Kinder, Jugendliche | Kinderschutz (Grooming) | 1 | 4 | Risiko |
+| R12 | Missbrauch des Nachrichtenkanals bzw. **Chats** Erwachsener → Minderjährige („geheime“ Einzelchats, Grooming) | Kinder, Jugendliche | Kinderschutz (Grooming, Grenzverletzungen) | 2 | 4 | **hoch** |
 | R13 | Erraten oder Ausprobieren von Team-Codes (Enumeration über `team_by_join_code`, `join_team`) | Teams | Einsicht in Kalender (Trainings- und Spielzeiten von Kindern) | 1 | 3 | gering |
 | R14 | Web-Version: Sitzungstoken im Browser-Speicher (XSS, gemeinsam genutzte Rechner) | Web-Nutzer | Kontoübernahme | 2 | 3 | Risiko |
 | R15 | Datenverlust oder Nichtverfügbarkeit (Ausfall, Fehlbedienung, fehlerhafte Migration) | alle | Verlust der Trainingshistorie, fehlende Information bei Rückkehr nach Verletzung | 2 | 2 | Risiko |
@@ -259,6 +259,12 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R30 | **Offline-Zeitpunkte** werden manipuliert (Gerätezeit), um Fristen zu umgehen | Team | unfaire Automatik | 2 | 1 | gering |
 | R31 | **Trainingseindruck:** negative Markierungen stigmatisieren, werden als Druckmittel genutzt oder erreichen den Spieler unvermittelt über die App | Spieler, v. a. Jugendliche | psychischer Druck, Demotivation | 2 | 2 | gering |
 | R32 | **Einheiten für Gruppen** (z. B. Reha-Gruppe, Torhüter) lassen auf die Gruppenzugehörigkeit schließen; Sprünge der Torhüter als zusätzliche Gesundheitsangabe | Spieler in Reha-/Aufbaugruppen, Torhüter | Offenlegung von Gesundheitsinformationen | 1 | 3 | gering |
+| R33 | **Cybermobbing und Ausgrenzung im Chat** (Beleidigungen, Bloßstellung, Fotos/private Daten, Gruppen ohne einzelne Mitspieler), Spam | Spieler, v. a. Jugendliche | psychischer Schaden, Ausgrenzung | 3 | 3 | **hoch** |
+| R34 | **Mitlesen** von Einzelchats durch das Trainerteam wird als Überwachung empfunden oder trifft Erwachsene; nachträgliches Einschalten legt früher private Chats offen | Spieler, Trainer | Eingriff in die Vertraulichkeit der Kommunikation | 2 | 2 | gering |
+| R35 | Chat-Inhalte auf dem Sperrbildschirm (Push) oder in der lokalen Kopie; dauerhafte Speicherung alter Unterhaltungen | Spieler | Offenlegung gegenüber Umfeld, Kontrollverlust | 2 | 2 | gering |
+| R36 | **Kompetenzprofil, Ziele und Gesprächsprotokolle** werden als Urteil missverstanden, setzen unter Druck oder gelangen unvermittelt zum Spieler (z. B. schlechte Einschätzung, interne Notiz) | Spieler, v. a. Jugendliche | Demotivation, Stigmatisierung, Offenlegung interner Einschätzungen | 2 | 3 | Risiko |
+| R37 | **Wochenchallenge:** sozialer Vergleich (Bestenliste), Überlastung oder Verletzung durch Zusatzaufgaben (Kinder, Spieltag) | Spieler, v. a. Kinder | Druck, Überlastung | 2 | 2 | gering |
+| R38 | **Individualtraining:** Einzeltermin zwischen Erwachsenem und Kind ohne Transparenz | Kinder, Jugendliche | Kinderschutz | 1 | 4 | Risiko |
 
 ---
 
@@ -285,7 +291,14 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | Transparenz | Einwilligungsnachweise in `consents` (Art, Version, Zeitpunkt, Eltern-E-Mail) | R8 |
 | Transparenz | Info-Texte mit sportwissenschaftlichen Quellen; Hinweis „kein Medizinprodukt“ | R16 |
 | Verfügbarkeit / Missbrauch | Tageslimit für KI-Anfragen (`ai_usage`) | R6, R7 |
-| Kinderschutz | Nachrichten nur vom Staff an einzelne Spieler, strukturierte Typen; kein Chat zwischen Spielern; alle Staff-Mitglieder sehen alle Nachrichten | R12 |
+| Kinderschutz | Nachrichten (Empfehlungen) nur vom Staff an einzelne Spieler, strukturierte Typen; alle Staff-Mitglieder sehen alle Nachrichten | R12 |
+| Kinderschutz | **Chat:** Standard für Jugendteams (alle außer Senioren/Ü32, serverseitig `chat_cfg`): Einzelchats nur mit dem Trainerteam (keine Einzelchats und keine eigenen Gruppen nur unter Spielern), Einzelchats und gemischte Gruppen zwischen Trainerteam und Spielern sind **transparent** – alle im Trainerteam mit Recht „messages“ lesen mit (nicht mitschreiben), sichtbar im Chat; Transparenz wird beim Anlegen festgelegt und bleibt; nur Mitglieder des eigenen Teams, keine Telefonnummern, Spieler als „Vorname N.“; Spieler ohne Konto nicht im Chat (RLS-Test T45) | R12, R38 |
+| Vertraulichkeit / Schutz | Chat: Melden mit Kopie des Textes (bleibt nach Löschen erhalten), Bearbeitung durch das Trainerteam (Recht „messages“), Löschen eigener Nachrichten (Text wird geleert), Moderation durch das Trainerteam, höchstens 30 Nachrichten pro Minute, Ankündigungs-Modus, Hinweis auf Vertrauenspersonen/Kinderschutzbeauftragte des Vereins, Chat-Regeln in der App; Nachrichten nach 24 Monaten gelöscht, erledigte Meldungen nach 12 Monaten (RLS-Test T45, T24) | R33, R35 |
+| Datenminimierung | Chat-Push ohne Nachrichtentext („Neue Nachricht von …“), höchstens eine je Chat und Minute, nicht an Mitlesende, stumm schaltbar (`chat_push_targets`, Unit-Test `chatPushText`); lokale Kopie höchstens 40 Nachrichten je Chat | R35 |
+| Transparenz | Senioren: Einzelchats für alle, nicht transparent (Standard); spätere Änderung der Einstellung gilt nur für neue Chats | R34 |
+| Vertraulichkeit | Spielerentwicklung nur mit Recht „Notizen & Bewertungen“; Trainereinschätzungen und Gesprächsprotokolle erst nach Freigabe sichtbar; interne Gesprächsnotiz in eigener Tabelle (`dev_talk_notes`, nie für Spieler, nicht im Export); Spieler ändern bei Zielen des Trainerteams nur Schritte (Trigger); Einschätzung relativ zur Altersklasse, Unterschiede Selbst-/Fremdbild als Gesprächsanlass; höchstens 5 aktive Ziele empfohlen (RLS-Test T44) | R36 |
+| Freiwilligkeit | Wochenchallenge freiwillig; Spieler sehen nur Teilnahme und Teamsumme (`challenge_totals`), Bestenliste nur auf Wunsch des Trainerteams (Vorname + Initial, Top 3, nur bei Bestleistungen); Vorschläge ohne maximale Kraftbelastung für Kinder, Sicherheitshinweis (ohne Schmerzen, nicht am Vortag des Spiels) (RLS-Test T44) | R37 |
+| Kinderschutz | Individualtraining: Anfrage und Zusage für das ganze Trainerteam (Recht „plan“) sichtbar, Einheit erscheint im Tagesplan des Trainerteams mit zuständigem Trainer; Spieler sehen nur die eigene Einheit; Leitfaden empfiehlt Termine auf dem Vereinsgelände bzw. im Sechs-Augen-Prinzip (M-18) | R38 |
 | Vertraulichkeit | Gruppen: Spieler sehen nur freigegebene Gruppen und nur die eigene Mitgliedschaft (`group_visible_to_me`, RLS); nie Mitgliederlisten; Wachstumsschub, Talent und eigene Gruppen standardmäßig verborgen; Trigger erzwingt gleiches Team für Gruppe und Spieler; Videos an Gruppen gehen an die Mitglieder zum Zeitpunkt des Versands (`player_ids`) (RLS-Test T33) | R22 |
 | Freiwilligkeit | Strafenkatalog ist optional, Automatik-Regeln sind standardmäßig aus und schlagen Dienste statt Geld vor; jede Automatik-Regel wirkt erst ab dem Einschalten (`since`), nie rückwirkend; höchstens ein Eintrag je Regel, Spieler und Einheit (Unique-Index); „Belastung nicht eingetragen“ prüft nur das Vorhandensein eines Eintrags und gilt nur für Spieler mit Konto **und** Gesundheits-Einwilligung – ohne Einwilligung keine Strafe; Trainerteam kann jede Strafe erlassen; Spieler sehen nur eigene Einträge, bei Aufgaben nur „erledigt“ änderbar (RLS-Test T36); veraltete erledigte Einträge löscht `purge_stale_health_data` nach 12 Monaten (T24) | R23, R5, R8 |
 | Datenminimierung | Platzierung serverseitig (`my_test_ranks`): nur für die eigene Spielerzeile, erst ab 5 Werten, nie Werte oder Namen anderer; Teambestwert nur, wenn das Trainerteam es einstellt; abschaltbar (RLS-Test T37) | R24 |
@@ -349,7 +362,7 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | R9 | 1 | 2 | gering | Löschroutinen |
 | R10 | 1 | 2 | gering | generische Texte |
 | R11 | 1 | 3 | gering | privater Bucket, Metadaten entfernt |
-| R12 | 1 | 4 | Risiko | strukturierter, für Staff transparenter Kanal; Kinderschutzkonzept liegt beim Verein |
+| R12 | 1 | 4 | Risiko | Jugend: Einzelchats nur mit dem Trainerteam und transparent, Melden; Kinderschutzkonzept liegt beim Verein |
 | R13 | 1 | 2 | gering | – |
 | R14 | 2 | 3 | Risiko | nach M-20 (P2) gering |
 | R15 | 1 | 2 | gering | – |
@@ -367,6 +380,12 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | R30 | 1 | 1 | gering | Plausibilitätsgrenzen in der Datenbank |
 | R31 | 1 | 2 | gering | nur Ausreißer, Kritik standardmäßig verborgen, Leitfaden zur fairen Nutzung (M-18) |
 | R32 | 1 | 2 | gering | keine Teilnehmerlisten, Einheiten verborgener Gruppen nicht für Spieler |
+| R33 | 2 | 2 | gering | Melden mit Kopie, Moderation, Jugend ohne Chats nur unter Spielern; Restrisiko im Verhalten der Nutzer (Kinderschutzkonzept des Vereins) |
+| R34 | 1 | 2 | gering | sichtbare Kennzeichnung, Senioren standardmäßig privat, nicht rückwirkend |
+| R35 | 1 | 2 | gering | Push ohne Inhalt, Löschfristen, begrenzte lokale Kopie |
+| R36 | 1 | 3 | gering | Freigabe durch das Trainerteam, interne Notiz getrennt, Recht „Notizen“ |
+| R37 | 1 | 2 | gering | ohne Bestenliste als Standard, freiwillig, Sicherheitshinweis |
+| R38 | 1 | 3 | gering | Transparenz im Trainerteam, Leitfaden (Vereinsgelände, Sechs-Augen-Prinzip) |
 
 **Bewertung:** Nach Umsetzung aller P1-Maßnahmen verbleibt **kein hohes Restrisiko**. Eine vorherige Konsultation der
 Aufsichtsbehörde nach Art. 36 DSGVO ist dann voraussichtlich nicht erforderlich.
@@ -449,3 +468,4 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 | 0.3 | [TT.MM.JJJJ] | Ergänzt: Gruppen mit Sichtbarkeit (R22), Aufgaben/Dienste/Strafen mit Automatik (R23), Platzierung in Tests (R24), Trainingstag mit Skizzen-Fotos (R25), Körperregionen bei Beschwerden und Verletzungen. Umgesetzte Maßnahmen: Gruppen-Sichtbarkeit nur eigene Mitgliedschaft (RLS), Automatik nur ab Einschalten und nur mit Gesundheits-Einwilligung, `my_test_ranks` ohne fremde Werte (ab 5), privater Bucket `sketches`, Export v3 | [ ] |
 | 0.4 | [TT.MM.JJJJ] | Ergänzt: Offline-Einträge und lokale Kopie (R26, R30), Rechte je Mitglied (R27), Mannschaftskasse mit Kassenwart (R28), Körperkarte mit Schmerzangaben (R29). Umgesetzte Maßnahmen: `staff_can()` in allen Regeln, `entered_at` mit Plausibilitätsprüfung, `cash_entries`/`cash_waivers` mit eigenen Regeln, `complaint_details` geprüft, Export v4 | [ ] |
 | 0.5 | [TT.MM.JJJJ] | Ergänzt: mehrere Einheiten am Tag mit RPE je Einheit und Sprüngen der Torhüter (R32), Trainingseindruck nur für Ausreißer (R31), Torwart-Spieldaten und -Tests. Umgesetzte Maßnahmen: `day_units` mit Gruppen-Sichtbarkeit, Anwesenheit nur über Einheit 0, Checks für Eindruck/Sprünge, `merge_players` v5 | [ ] |
+| 0.6 | [TT.MM.JJJJ] | Ergänzt: Chat (R12 neu bewertet, R33–R35), Spielerentwicklung (R36), Wochenchallenge (R37), Individualtraining (R38). Umgesetzte Maßnahmen: Chat-Regeln je Altersklasse mit Mitlesen in Jugendteams, Melden mit Kopie, Push ohne Inhalt, Spam-Grenze, Löschfristen; interne Gesprächsnotiz getrennt, Freigabe von Einschätzungen/Protokollen, `challenge_totals` ohne Einzelwerte, Einheit nur für einzelne Spieler (`day_units.player_ids`), Export v5, `merge_players` v6 | [ ] |

@@ -93,6 +93,21 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `session_blocks.slot` (…0021) | Ablauf auch für weitere Einheiten (z. B. Torwarttraining) | nur Staff |
 | `player_ratings.mark`, `.tags`, `.slot` (…0021) | Trainingseindruck: nur `good`/`poor` (Standard Durchschnitt = keine Zeile), bis 8 Gründe, Einheit | wie Bewertungen |
 | `match_stats.conceded`, `.saves` (…0021) | Torhüter: Gegentore in der eigenen Spielzeit, Paraden | wie Spieldaten |
+| `day_units.player_ids` (…0022) | Einheit nur für einzelne Spieler (Individualtraining, ≤ 30, gleiches Team per Trigger) | Spieler sehen sie nur, wenn sie dabei sind (`my_player_in`) |
+| `player_assessments` (…0022) | Kompetenzprofil: `date`, `by_player` (Selbsteinschätzung), `scores` jsonb (Kompetenz → 1–5, ≤ 40, `scores_ok`), `note`, `visible` | Staff mit `notes`; Spieler eigene Selbsteinschätzungen (immer sichtbar) und freigegebene Trainereinschätzungen |
+| `player_goals` (…0022) | messbare Ziele: `area`, `kind` (process/perf/outcome), `metric` (test/stat/att/count/value/check), `test`/`stat`, `start_value`, `target_value`, `lower_better`, `date_from`, `due`, `why`, `steps` jsonb, `status`, `visible`, `by_player`, `talk_id` | Staff mit `notes`; Spieler eigene sichtbare bzw. selbst gesetzte; bei Zielen des Trainerteams nur Schritte abhaken (Trigger `dev_rows_prepare`) |
+| `goal_entries` (…0022) | Fortschritt (Menge/Messwert) je Ziel, `by_player` | Staff mit `notes`; Spieler für eigene sichtbare Ziele |
+| `dev_talks` (…0022) | Entwicklungsgespräch: `kind` (start/mid/end/event), `player_view`, `strengths`, `focus`, `agreements` jsonb (≤ 20), `next_date`, `visible` | Staff mit `notes`; Spieler freigegebene Protokolle |
+| `dev_talk_notes` (…0022) | interne Notiz zum Gespräch (eigene Tabelle, damit sie nie mit dem Protokoll an Spieler geht) | nur Staff mit `notes` |
+| `team_challenges` (…0022) | Wochenchallenge: `week_start` (Montag), `title`, `text`, `kind` (best/count/days/check), `unit`, `target`, `team_target`, `lower_better`, `group_id`, `key` | lesen Mitglieder (Gruppe: nur Mitglieder), schreiben `plan` |
+| `challenge_entries` (…0022) | pk(`challenge_id`,`player_id`), `value`, `days` (nur Tage der Woche), `done`; Spieler bis 13 Tage nach Wochenbeginn | Staff; Spieler nur eigene. Teamsumme für Spieler über `challenge_totals` |
+| `indiv_requests` (…0022) | Individualtraining: `topic`, `note`, `wish`, `status` (open/accepted/declined/cancelled), `answer`, `unit_date`, `unit_slot`, `staff_id`, `answered_by`; höchstens 2 offene je Spieler, `settings.indivReq` | Staff mit `plan`; Spieler eigene (anlegen, zurückziehen) |
+| `chats` (…0023) | `kind` (team/staff/group/direct/custom), `title` (eigene Gruppen), `group_id`, `pair_key` (Einzelchat, eindeutig je Team), `read_only`, `transparent`, `last_at` | über `chat_can_read`; anlegen nur über `chat_ensure`/`chat_open`/`chat_save_custom` |
+| `chat_members` (…0023) | Mitglieder von Einzel- und eigenen Chats (Team-, Trainerteam- und Gruppen-Chats ergeben sich aus Kader und Gruppen) | lesen Teilnehmer |
+| `chat_messages` (…0023) | `user_id` (Konto gelöscht ⇒ Nachrichten gelöscht), `sender_name` (vom Server), `body` ≤ 4000, `reply_to`, `deleted_at`/`deleted_by` (Löschen leert den Text) | lesen `chat_can_read`, schreiben `chat_can_write`, löschen Absender bzw. Moderation (`messages`); höchstens 30 je Minute |
+| `chat_reactions`, `chat_state` (…0023) | Reaktionen (6 Emojis) bzw. Lesestand und „stumm“ je Konto | Teilnehmer bzw. eigene Zeilen |
+| `chat_reports` (…0023) | Meldung mit Kopie (`snapshot`, `sender_name`, `sent_at`), `reason`, `note`, `status` | Meldende(r) eigene; Staff mit `messages` alle des Teams |
+| `chat_push_log` (…0023) | Drosselung der Chat-Push-Nachrichten (je Konto und Chat) | nur Server |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -103,6 +118,21 @@ Beiträge); ändern darf sie nur, wer das Recht `cash` hat (Trigger `teams_perm_
 Weitere Einheiten im Wochenrhythmus stehen in `settings.units` (Schlüssel = Wochentag, Recht `plan`); sie gelten ab
 ihrem Startdatum, fallen an Spieltagen, in Pausen und bei abgesagtem Mannschaftstraining aus und werden für vergangene
 Tage (42 Tage) als `day_units` festgehalten, damit spätere Änderungen am Wochenrhythmus die Historie nicht verändern.
+`settings.indivReq` (Anfragen für Individualtraining an/aus) und `settings.challengeRank` (Bestenliste der Challenge)
+gehören zur Planung (`plan`); `settings.chat` = `{ on, dm: off|staff|all, transparent, teamReadOnly }` zu `admin`.
+
+### Chat und Kinderschutz
+
+`chat_participant(chat, uid)`: Teamchat alle aktiven Mitglieder mit Konto, Trainerteam-Chat nur Staff, Gruppen-Chat
+Staff und Mitglieder der freigegebenen Gruppe, Einzel-/eigene Chats die Mitglieder (solange sie im Team sind).
+`chat_observer(chat)`: transparente Einzel-/eigene Chats lesen alle im Trainerteam mit `messages` mit (nicht schreiben).
+Standard je Altersklasse (`chat_cfg`): Jugend – Einzelchats nur mit dem Trainerteam, transparent; Senioren/Ü32 – frei.
+Die Transparenz wird beim Anlegen festgelegt und bleibt (später geänderte Einstellung gilt nur für neue Chats).
+Nach jeder Nachricht ruft ein Trigger (pg_net, wie die Erinnerungen) die Edge Function `chat-push` auf;
+`chat_push_targets(message)` bestimmt die Empfänger (Teilnehmer ohne Absender, nicht stumm, noch nicht gelesen, höchstens
+eine Push-Nachricht je Chat und Minute, keine an Mitlesende). Push-Nachrichten enthalten nie den Text. Die App bekommt
+neue Nachrichten über Supabase Realtime (`chat_messages`, `chat_reactions` in der Publikation `supabase_realtime`, RLS
+gilt) und gleicht zusätzlich alle 20 s ab, solange der Chat offen ist.
 
 ### Rechte im Trainerteam
 
@@ -149,10 +179,19 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `regenerate_codes(team)` (nur Owner).
 - `team_by_join_code(code)` → Vereins-/Teamname zur Anzeige vor dem Beitritt (keine weiteren Daten).
 - `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen,
-  Kasse; v5: RPE je Einheit des Tages).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v4`: Profil, Gesundheitsdaten
+  Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining).
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v5`: Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
-  Befreiungen der Mannschaftskasse.
+  Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
+  Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
+  Reaktionen, Meldungen und Chat-Mitgliedschaften.
+- `challenge_totals(team, week)` – Teilnehmer, geschafft und Summe je Challenge; Bestenliste (Vorname + Initial, Top 3)
+  nur bei `settings.challengeRank` und Art „Bestleistung“.
+- `chat_ensure(team)`, `chat_open(team, kind, group, other)`, `chat_save_custom(team, chat, title, members, read_only)`,
+  `chat_leave(chat)`, `chat_directory(team)` (Trainerteam mit Namen und Funktion, aktive Spieler mit Konto als „Vorname N.“;
+  Spieler-IDs nur für Staff), `chat_push_targets(message)` (nur Server).
+- `purge_stale_health_data()` – zusätzlich: Chat-Nachrichten nach 24 Monaten, erledigte Meldungen und abgeschlossene
+  Anfragen für Individualtraining nach 12 Monaten, Push-Drosselung nach 30 Tagen.
 - `staff_can(team, perm)`, `team_staff_perms(team)`, `set_staff_perms(team, user, perms)` – Rechte im Trainerteam.
 - `is_treasurer(team)`, `can_manage_cash(team)`, `team_cash_balance(team)` – Kasse; der Kassenstand geht an Spieler
   nur, wenn er freigegeben ist.
@@ -191,6 +230,14 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Torwarttraining (Schwerpunkte, Periodisierung nach Spieltag, Sprünge), Trainingseindruck (nur Ausreißer).
   Die Engine rechnet weitere Einheiten in Tageslast, ACWR, Erholung und den Abgleich der Wochenlast ein
   (`WeekPlan.unitAU`; die Ziel-RPE weiterer Einheiten wird nie automatisch verändert).
+- `dev.ts` – Spielerentwicklung: Kompetenzen je Positionsgruppe (TW, IV, AV, ZM, Flügel, Sturm, Kinder), Einschätzungen,
+  Unterschiede Selbst-/Fremdbild (ab 2 Stufen), Zielfortschritt (Test, Statistik, Beteiligung, Zähler, Messwert,
+  Meilensteine; „hinter Plan“ nach verstrichener Zeit), Gesprächsvorbereitung aus den Daten, Saisonrückblick,
+  Individualtraining (Einheit nur für den Spieler).
+- `challenge.ts` – Wochenchallenge: Vorschläge je Altersgruppe, Eintragen (Bestleistung, Menge, Tage, geschafft),
+  Fortschritt, Teamsumme, Serie.
+- `chat.ts` – Chat-Regeln wie in der Datenbank (Teilnehmer, Mitlesen, Schreiben, Einzelchats nach Einstellung),
+  Titel, Ungelesen, Sortierung, Vorschau.
 - `demo.ts` – Demo-Mannschaft (für Demo-Modus, Tests und „Beispieldaten laden“).
 - Tests: `src/core/__tests__` (`node --test`).
 
@@ -203,4 +250,7 @@ Maughan et al. 2018, Thomas et al. 2016 (Ernährung), Ardern et al. 2016 (Return
 van der Horst et al. 2015 (Hamstrings), Vuurberg et al. 2018 (Sprunggelenk), Hölmich 2010, Harøy et al. 2019 (Leiste),
 Patricios et al. 2023 (Gehirnerschütterung), Hawker et al. 2011 (Schmerzskalen), Stiell et al. 1992 (Ottawa Ankle Rules),
 Mueller-Wohlfahrt et al. 2013 (Muskelverletzungen), Cook & Purdam 2009 (Tendinopathie), Warden et al. 2014 (Stressfrakturen),
-Dubois & Esculier 2020 (PEACE & LOVE), Soligard et al. 2008 (FIFA 11+), Hupperets et al. 2009 (Sprunggelenk).
+Dubois & Esculier 2020 (PEACE & LOVE), Soligard et al. 2008 (FIFA 11+), Hupperets et al. 2009 (Sprunggelenk),
+Locke & Latham 2002 (Zielsetzung), Kingston & Hardy 1997 (Prozessziele), Deci & Ryan 2000 (Selbstbestimmung),
+Ames 1992, Duda 2001 (aufgabenorientiertes Motivationsklima), DFB/Deutsche Sportjugend (Kinderschutz in der digitalen
+Kommunikation).

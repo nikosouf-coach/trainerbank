@@ -16,6 +16,7 @@ import { firstName, greetKey } from "../../../src/core/people";
 import { MyTasksCard } from "../../../src/ui/day/MyTasks";
 import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
+import { InboxCard } from "../../../src/ui/inbox";
 import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
 function HeroPill({ label }: { label: string }) {
@@ -147,10 +148,10 @@ export default function Heute() {
     onQuick={k => { if (k === "ki_q1" && nx?.train) { sheets.open({ k: "ai", date: nx.date }); return true; } return false; }} /> : null;
 
   const cards: Record<string, React.ReactNode> = {
-    next: hero, tasks: <MyTasksCard />, phase: <CoachPhaseCard />, status: tiles, attn: attnCard, absent: absentCard,
+    next: hero, tasks: <MyTasksCard />, inbox: <InboxCard />, phase: <CoachPhaseCard />, status: tiles, attn: attnCard, absent: absentCard,
     week: weekCard, events: eventsCard, last: lastCard, load: loadCard, ai: aiCard,
   };
-  const available = (k: string): boolean => ({ status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;
+  const available = (k: string): boolean => ({ inbox: !!mods.entwicklung || !!mods.chat, status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;
 
   return (
     <Screen testID="coach-heute">

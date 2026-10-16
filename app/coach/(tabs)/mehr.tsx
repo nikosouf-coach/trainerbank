@@ -1,6 +1,7 @@
 // Trainer – Mehr: Übersicht über Einstellungen (Verein, Training, Baukasten, Zugang) und Konto.
 import { useRouter } from "expo-router";
 import React from "react";
+import { openRequests } from "../../../src/core/dev";
 import { classDef, classLabel, teamLabel } from "../../../src/core/classes";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Icon } from "../../../src/ui/icons";
@@ -25,6 +26,9 @@ export default function Mehr() {
         {E.mods.vorbereitung ? <ListItem testID="mehr-vorbereitung" title={t("vb_title")} sub={t("vb_sub")} right={chev} onPress={() => go("/coach/vorbereitung")} /> : null}
         {E.mods.archiv ? <ListItem testID="mehr-archiv" title={t("ar_title")} sub={t("ar_sub")} right={chev} onPress={() => go("/coach/archiv")} /> : null}
         {E.mods.leistung ? <ListItem testID="mehr-leistung" title={t("lt_title")} sub={t("lt_sub")} right={chev} onPress={() => go("/coach/leistung")} /> : null}
+        {E.mods.entwicklung ? <ListItem testID="mehr-entwicklung" title={t("dv_overview")} sub={t("dv_menuSub")} right={chev} onPress={() => go("/coach/entwicklung")} /> : null}
+        {E.mods.entwicklung ? <ListItem testID="mehr-individual" title={t("iq_title")} sub={openRequests(E.D).length ? `${t("iq_open")}: ${openRequests(E.D).length}` : t("iq_menuSub")} right={chev} onPress={() => go("/coach/individual")} /> : null}
+        {E.mods.challenge ? <ListItem testID="mehr-challenge" title={t("cg_title")} sub={t("cg_menuSub")} right={chev} onPress={() => go("/coach/challenge")} /> : null}
         {E.mods.spielanalyse ? <ListItem testID="mehr-spiele" title={t("sp_list")} sub={t("sp_listSub")} right={chev} onPress={() => go("/coach/spiele")} /> : null}
         {E.mods.videos ? <ListItem testID="mehr-videos" title={t("sp_lib")} sub={t("sp_libSub")} right={chev} onPress={() => go("/coach/videos")} /> : null}
         <ListItem testID="mehr-wiki" title={t("wk_menu")} sub={t("wk_menuSub")} right={chev} onPress={() => go("/wiki")} />

@@ -12,6 +12,8 @@ import { msgColor } from "../../../src/ui/squad/ProfileCards";
 import { PlayerRehaCard } from "../../../src/ui/reha";
 import { PlayerTasksCard } from "../../../src/ui/tasks/widgets";
 import { MyKasseCard } from "../../../src/ui/kasse";
+import { ChallengeCard } from "../../../src/ui/challenge";
+import { MyGoalsCard } from "../../../src/ui/dev";
 import { useTheme } from "../../../src/ui/theme";
 
 export default function PlayerHeute() {
@@ -32,6 +34,7 @@ export default function PlayerHeute() {
         <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} done={!open} color="#f0762b" onPress={() => router.push("/player/eintragen?tab=rpe" + (open ? `&date=${open.date}&slot=${open.slot}` : ""))} />
       </Row> : null}
       <PlayerTasksCard pid={p.id} />
+      <ChallengeCard pid={p.id} />
       <PlayerRehaCard pid={p.id} />
       <MyKasseCard pid={p.id} compact onManage={() => router.push("/player/kasse")} />
       <PlayerProgramCard pid={p.id} />
@@ -50,6 +53,7 @@ export default function PlayerHeute() {
       </Card> : null}
       <WeekRings g={g} />
       <NextDates pid={p.id} />
+      {E.playerSees("dev") ? <MyGoalsCard p={p} onOpen={() => router.push("/player/entwicklung")} /> : null}
       {E.playerSees("goals") ? <Goals pid={p.id} /> : null}
       <Badges g={g} compact />
     </Screen>
