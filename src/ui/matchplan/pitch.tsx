@@ -58,6 +58,20 @@ function Markings() {
   );
 }
 
+/** Nur das Spielfeld (Rasen und Linien), ganzes Feld hochkant – z. B. als Hintergrund für den Schattenkader */
+export function PitchSurface({ width, height, testID }: { width: number; height: number; testID?: string }) {
+  const stripes = 10, sh = PL / stripes;
+  return (
+    <View testID={testID} pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, width, height, borderRadius: 12, overflow: "hidden", backgroundColor: GRASS }}>
+      <Svg width={width} height={height} viewBox={`-2 -3 ${PW + 4} ${PL + 6}`} preserveAspectRatio="none">
+        <Rect x={-2} y={-3} width={PW + 4} height={PL + 6} fill={GRASS} />
+        {Array.from({ length: stripes }).map((_, i) => i % 2 ? <Rect key={i} x={-4} y={i * sh} width={PW + 8} height={sh} fill={GRASS2} /> : null)}
+        <Markings />
+      </Svg>
+    </View>
+  );
+}
+
 function arrowHead(x1: number, y1: number, x2: number, y2: number, size: number): string {
   const a = Math.atan2(y2 - y1, x2 - x1);
   const p1 = [x2 - size * Math.cos(a - 0.45), y2 - size * Math.sin(a - 0.45)], p2 = [x2 - size * Math.cos(a + 0.45), y2 - size * Math.sin(a + 0.45)];

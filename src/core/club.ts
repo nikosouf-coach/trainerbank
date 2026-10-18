@@ -15,8 +15,8 @@ export const CLUB_ROLES: ClubRole[] = ["admin", "leiter", "nlz", "koord"];
 /** Standardrechte je Funktion in den Teams (identisch mit public.club_default_perms) – sparsam: keine Gesundheitsdaten */
 export const CLUB_PERMS: Record<ClubRole, Perm[]> = {
   admin: ["plan", "squad"],
-  leiter: ["plan", "squad", "perf", "notes", "tasks"],
-  nlz: ["plan", "squad", "perf", "notes", "tasks"],
+  leiter: ["plan", "squad", "perf", "notes", "tasks", "scout"],
+  nlz: ["plan", "squad", "perf", "notes", "tasks", "scout"],
   koord: ["plan", "squad"],
 };
 

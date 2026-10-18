@@ -1,6 +1,6 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
 import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "../core/club";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -242,6 +242,19 @@ export interface Api {
   planOpen(id: string, platform: "ios" | "android" | "web"): Promise<MpOpened>;
   /** Spieler: erkannter Screenshot */
   planShot(id: string, platform: "ios" | "android" | "web"): Promise<void>;
+
+  // Kaderplanung & Scouting (Recht „scout“; Spieler nie)
+  saveScout(teamId: string, x: ScoutPlayer): Promise<ScoutPlayer>;
+  deleteScout(id: string): Promise<void>;
+  saveScoutReport(teamId: string, r: ScoutReport): Promise<ScoutReport>;
+  deleteScoutReport(id: string): Promise<void>;
+  saveScoutList(teamId: string, l: ScoutList): Promise<ScoutList>;
+  deleteScoutList(id: string): Promise<void>;
+  /** Saisonplanung speichern (eine je Saison) */
+  saveSquadPlan(teamId: string, p: SquadPlan): Promise<SquadPlan>;
+  deleteSquadPlan(id: string): Promise<void>;
+  /** Aufrücker aus jüngeren Teams des Vereins mit passendem Jahrgang */
+  clubRisers(teamId: string, years: number[]): Promise<Riser[]>;
 
   // Chat
   /** Team-, Trainerteam-, Gruppen- oder Einzelchat öffnen (wird bei Bedarf angelegt) */

@@ -7,7 +7,7 @@ export type IconName =
   | "heute" | "kalender" | "plan" | "kader" | "mehr" | "eintragen" | "daten" | "tipps" | "ich"
   | "spark" | "plus" | "back" | "close" | "check" | "chevron" | "camera" | "person" | "info" | "trash"
   | "flame" | "star" | "trophy" | "moon" | "bolt" | "calendar" | "target"
-  | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people";
+  | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people" | "scout" | "search" | "filter" | "up" | "down";
 
 const P: Record<IconName, React.ReactNode> = {
   heute: <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -42,6 +42,11 @@ const P: Record<IconName, React.ReactNode> = {
   mute: <><Path d="M13.7 21a2 2 0 0 1-3.4 0M18.6 13A17.7 17.7 0 0 1 18 8M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h14M18 8a6 6 0 0 0-9.3-5M3 3l18 18" /></>,
   reply: <><Path d="M9 14L4 9l5-5" /><Path d="M4 9h10.5A5.5 5.5 0 0 1 20 14.5V20" /></>,
   flag: <><Path d="M4 22V4" /><Path d="M4 4h13l-2 4 2 4H4" /></>,
+  scout: <><Circle cx={6.5} cy={15.5} r={3.8} /><Circle cx={17.5} cy={15.5} r={3.8} /><Path d="M10.3 15h3.4M3.6 12.6L6 5h3.2l1 6.3M20.4 12.6L18 5h-3.2l-1 6.3" /></>,
+  search: <><Circle cx={11} cy={11} r={6.5} /><Path d="M16 16l5 5" /></>,
+  filter: <Path d="M3 5h18l-7 8.2V19l-4 2v-7.8z" />,
+  up: <Path d="M6 15l6-6 6 6" />,
+  down: <Path d="M6 9l6 6 6-6" />,
   people: <><Circle cx={9} cy={8} r={3.2} /><Path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><Circle cx={17} cy={9} r={2.6} /><Path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8" /></>,
 };
 

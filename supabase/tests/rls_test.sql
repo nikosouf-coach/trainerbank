@@ -1752,7 +1752,7 @@ begin
                  'T40 Co-Trainer (Standard): keine Befunde, keine Kasse, keine Team-Einstellungen');
   perform tst.eq((select count(*) from public.findings)::text, '0', 'T40 Co-Trainer ohne Recht sieht keine Befunde');
   perform tst.ok((select count(*) from public.rpe_entries) > 0, 'T40 Co-Trainer mit Recht sieht RPE-Daten');
-  perform tst.eq((select perms::text from public.team_staff_perms(t) where user_id = tst.uid('coachC')), '{health,plan,squad,perf,notes,messages,tasks}', 'T40 Rechteliste zeigt Standardrechte');
+  perform tst.eq((select perms::text from public.team_staff_perms(t) where user_id = tst.uid('coachC')), '{health,plan,squad,perf,notes,messages,tasks,scout}', 'T40 Rechteliste zeigt Standardrechte');
 end
 $$;
 select tst.throws(format($q$insert into storage.objects (bucket_id, name) values ('findings', %L)$q$, tst.get('team_a') || '/' || tst.get('max') || '/41414141-4141-4141-8141-414141414141.pdf'),
@@ -2684,7 +2684,7 @@ select tst.throws(format($q$select public.club_set_staff(%L, %L, 'leiter', '', n
 select tst.throws(format($q$select public.club_remove_staff(%L, %L)$q$, tst.get('club'), tst.uid('coachA')), 'T47 letzter Admin bleibt', 'last_admin');
 do $$ begin
   perform tst.eq((select array_to_string(perms, ',') from public.team_staff where team_id = tst.get('team_b')::uuid and user_id = tst.uid('coachC') and club_id is not null),
-                 'notes,perf,plan,squad,tasks', 'T47 Funktionär erhält Standardrechte im Team B (ohne Gesundheitsdaten)');
+                 'notes,perf,plan,scout,squad,tasks', 'T47 Funktionär erhält Standardrechte im Team B (ohne Gesundheitsdaten)');
   perform tst.eq((select (club_id is null)::text from public.team_staff where team_id = tst.get('team_a')::uuid and user_id = tst.uid('coachC')), 'true',
                  'T47 bestehende Mitgliedschaft (Trainer in Team A) hat Vorrang');
 end $$;
@@ -2809,6 +2809,161 @@ end $$;
 commit;
 -- Aufräumen: Spieler aus T47 (Zählungen in späteren Tests)
 delete from public.players where id in (tst.get('p5_player')::uuid, tst.get('tom_b')::uuid, tst.get('p5_b')::uuid);
+
+-- =====================================================================
+-- T48 Kaderplanung & Scouting: Recht „scout“, externe Spieler, Berichte, Merklisten, Saisonplanung,
+-- Aufrücker aus dem Verein; Spieler und andere Teams ohne Zugriff
+-- =====================================================================
+do $$ begin
+  perform tst.ok('scout' = any (public.default_perms('coach')) and 'scout' = any (public.default_perms('owner')), 'T48 Trainer und Owner haben standardmäßig „scout“');
+  perform tst.ok(not ('scout' = any (public.default_perms('physio'))), 'T48 Physio standardmäßig ohne „scout“');
+  perform tst.ok('scout' = any (public.club_default_perms('leiter')) and not ('scout' = any (public.club_default_perms('koord'))), 'T48 sportliche Leitung mit, Koordination ohne „scout“');
+end $$;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+with ins as (insert into public.scout_lists (team_id, name) values (tst.get('team_b')::uuid, 'Liste B') returning id) select tst.put('sl_b', id::text) from ins;
+with ins as (insert into public.players (team_id, first_name, birthdate) values (tst.get('team_b')::uuid, 'T48 Fremd', '2004-04-04') returning id) select tst.put('pb48', id::text) from ins;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select public.set_staff_perms(tst.get('team_a')::uuid, tst.uid('coachC'), null);
+with ins as (insert into public.scout_lists (team_id, name, color) values (tst.get('team_a')::uuid, 'Top-Ziele', '#aa3300') returning id) select tst.put('sl_a', id::text) from ins;
+with ins as (insert into public.scout_players (team_id, first_name, last_name, birthdate, positions, foot, club, status, priority, lists, informed_at)
+  values (tst.get('team_a')::uuid, '  Jan ', ' Kaiser ', '2009-04-02', array['IV', 'DM'], 'l', 'SV Nordheim', 'scout', 'a', array[tst.get('sl_a')::uuid], current_date) returning id) select tst.put('sc1', id::text) from ins;
+select tst.throws(format($q$insert into public.scout_players (team_id, first_name, positions) values (%L, 'X', array['Libero'])$q$, tst.get('team_a')), 'T48 nur bekannte Positionen', 'check constraint');
+select tst.throws(format($q$insert into public.scout_players (team_id, first_name, status) values (%L, 'X', 'gekauft')$q$, tst.get('team_a')), 'T48 nur bekannte Status', 'check constraint');
+select tst.throws(format($q$insert into public.scout_players (team_id, first_name, video_url) values (%L, 'X', 'javascript:alert(1)')$q$, tst.get('team_a')), 'T48 Video nur als Link', 'check constraint');
+select tst.throws(format($q$insert into public.scout_players (team_id, first_name, lists) values (%L, 'X', array[%L::uuid])$q$, tst.get('team_a'), tst.get('sl_b')), 'T48 nur Merklisten des eigenen Teams', 'different_teams');
+select tst.throws(format($q$insert into public.scout_players (team_id, first_name, player_id) values (%L, 'X', %L)$q$, tst.get('team_a'), tst.get('pb48')),
+  'T48 übernommener Spieler nur aus dem eigenen Team', 'different_teams');
+with ins as (insert into public.players (team_id, first_name, last_name, birthdate, position) values (tst.get('team_a')::uuid, 'Jan', 'Kaiser', '2009-04-02', 'IV') returning id) select tst.put('own48', id::text) from ins;
+select tst.affects(format($q$update public.scout_players set player_id = %L where id = %L$q$, tst.get('own48'), tst.get('sc1')), 1, 'T48 Verknüpfung mit eigenem Spieler (nach der Zusage übernommen)');
+do $$ begin
+  perform tst.eq((select first_name || '|' || last_name || '|' || birth_year from public.scout_players where id = tst.get('sc1')::uuid), 'Jan|Kaiser|2009', 'T48 Namen bereinigt, Jahrgang aus dem Geburtsdatum');
+  perform tst.eq((select (created_by = tst.uid('coachA'))::text from public.scout_players where id = tst.get('sc1')::uuid), 'true', 'T48 Ersteller gesetzt');
+end $$;
+select tst.put('sc1_upd', (select updated_at::text from public.scout_players where id = tst.get('sc1')::uuid));
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.scout_reports (team_id, scout_id, date, event, kind, minutes, position, scores, grade, verdict, strengths, author_name)
+  values (tst.get('team_a')::uuid, tst.get('sc1')::uuid, current_date - 3, 'SV Nordheim – TuS Rheinblick', 'match', 90, 'IV', '{"tech": 4, "takt": 3, "ath": 5, "ment": 4}', 4, 'sign', 'Kopfball, Tempo', 'Gefälscht') returning id) select tst.put('rep1', id::text) from ins;
+do $$ begin
+  perform tst.eq((select author_name || '|' || (author = tst.uid('coachA'))::text from public.scout_reports where id = tst.get('rep1')::uuid), 'Coach A|true', 'T48 Autor des Berichts setzt der Server');
+  perform tst.ok((select updated_at > tst.get('sc1_upd')::timestamptz from public.scout_players where id = tst.get('sc1')::uuid), 'T48 neuer Bericht = Aktivität am Kandidaten');
+end $$;
+select tst.throws(format($q$insert into public.scout_reports (team_id, scout_id, grade) values (%L, %L, 7)$q$, tst.get('team_a'), tst.get('sc1')), 'T48 Gesamteindruck 1–5', 'check constraint');
+select tst.affects(format($q$update public.scout_reports set author_name = 'X', summary = 'Top' where id = %L$q$, tst.get('rep1')), 1, 'T48 Bericht ändern');
+do $$ begin
+  perform tst.eq((select author_name || '|' || summary from public.scout_reports where id = tst.get('rep1')::uuid), 'Coach A|Top', 'T48 Autor bleibt beim Ändern');
+end $$;
+with ins as (insert into public.squad_plans (team_id, season, content) values (tst.get('team_a')::uuid, 2027, jsonb_build_object('formation', '4-3-3', 'slots', jsonb_build_object('IV-l', jsonb_build_object('own', '[]'::jsonb, 'shadow', jsonb_build_array('s:' || tst.get('sc1')), 'target', 2, 'need', 'Linksfuß')))) returning id) select tst.put('plan27', id::text) from ins;
+select tst.throws(format($q$insert into public.squad_plans (team_id, season) values (%L, 2027)$q$, tst.get('team_a')), 'T48 eine Planung je Saison', 'duplicate');
+select tst.throws(format($q$update public.squad_plans set season = 2028 where id = %L$q$, tst.get('plan27')), 'T48 Saison nicht änderbar', 'forbidden');
+do $$ begin
+  perform tst.eq((select (updated_by = tst.uid('coachA'))::text || '|' || (content -> 'slots' -> 'IV-l' ->> 'need') from public.squad_plans where id = tst.get('plan27')::uuid), 'true|Linksfuß', 'T48 Planung gespeichert');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+select tst.throws(format($q$insert into public.scout_reports (team_id, scout_id) values (%L, %L)$q$, tst.get('team_b'), tst.get('sc1')), 'T48 Bericht nur zu Kandidaten des eigenen Teams', 'different_teams');
+do $$ begin
+  perform tst.eq(((select count(*) from public.scout_players) + (select count(*) from public.scout_reports) + (select count(*) from public.squad_plans where team_id = tst.get('team_a')::uuid))::text, '0', 'T48 anderes Team sieht kein Scouting von Team A');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.scout_players where team_id = tst.get('team_a')::uuid)::text || '/' || (select count(*) from public.scout_reports)::text, '1/1', 'T48 Trainer (Standardrechte) sieht das Scouting');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select public.set_staff_perms(tst.get('team_a')::uuid, tst.uid('coachC'), array['plan', 'squad']);
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq(((select count(*) from public.scout_players) + (select count(*) from public.scout_reports) + (select count(*) from public.squad_plans) + (select count(*) from public.scout_lists))::text, '0', 'T48 ohne Recht „scout“ kein Zugriff');
+end $$;
+select tst.throws(format($q$insert into public.scout_players (team_id, first_name) values (%L, 'X')$q$, tst.get('team_a')), 'T48 ohne Recht „scout“ nichts anlegen', 'row-level security');
+select tst.throws(format($q$select * from public.club_risers(%L, array[2010])$q$, tst.get('team_a')), 'T48 Aufrücker nur mit Recht „scout“', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq(((select count(*) from public.scout_players) + (select count(*) from public.scout_reports) + (select count(*) from public.squad_plans) + (select count(*) from public.scout_lists))::text, '0', 'T48 Spieler sehen kein Scouting');
+end $$;
+select tst.throws(format($q$insert into public.squad_plans (team_id, season) values (%L, 2030)$q$, tst.get('team_a')), 'T48 Spieler planen nicht', 'row-level security');
+commit;
+
+-- Aufrücker: Team B (jünger) im selben Verein
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select count(*) from public.club_risers(tst.get('team_a')::uuid, array[2010]))::text, '0', 'T48 ohne Verein keine Aufrücker');
+end $$;
+select tst.throws(format($q$select * from public.club_risers(%L, '{}')$q$, tst.get('team_a')), 'T48 Jahrgänge nötig', 'invalid_years');
+select tst.put('club48', public.club_create('SG Scouting', tst.get('team_a')::uuid)::text);
+with ins as (insert into public.players (team_id, first_name, last_name, birthdate, position) values (tst.get('team_a')::uuid, ' dup ', 'LICHT', '2010-06-06', 'ZM') returning id) select tst.put('dup_a', id::text) from ins;
+select tst.put('club48_link', (select link_code from public.my_clubs() where club_id = tst.get('club48')::uuid));
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+select public.club_link_team(tst.get('club48_link'), tst.get('team_b')::uuid);
+with ins as (insert into public.players (team_id, first_name, last_name, birthdate, position) values (tst.get('team_b')::uuid, 'Lio', 'Aufrücker', '2010-03-03', 'LV') returning id) select tst.put('ris1', id::text) from ins;
+with ins as (insert into public.players (team_id, first_name, last_name, birthdate, position) values (tst.get('team_b')::uuid, 'Dup', 'Licht', '2010-06-06', 'ZM') returning id) select tst.put('ris2', id::text) from ins;
+with ins as (insert into public.players (team_id, first_name, last_name, birthdate, position) values (tst.get('team_b')::uuid, 'Zu', 'Jung', '2012-01-01', 'ST') returning id) select tst.put('ris3', id::text) from ins;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select string_agg(first_name || ' ' || last_name || '/' || "position" || '/' || birth_year || '/' || team_name, ',') from public.club_risers(tst.get('team_a')::uuid, array[2010, 2011])),
+                 'Lio Aufrücker/LV/2010/U17', 'T48 Aufrücker: passender Jahrgang aus dem Verein, ohne Spieler, die schon im Team stehen');
+end $$;
+select public.club_delete(tst.get('club48')::uuid);
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.put('sc1_upd2', (select updated_at::text from public.scout_players where id = tst.get('sc1')::uuid));
+delete from public.scout_lists where id = tst.get('sl_a')::uuid;
+do $$ begin
+  perform tst.eq((select cardinality(lists)::text from public.scout_players where id = tst.get('sc1')::uuid), '0', 'T48 gelöschte Merkliste aus Kandidaten entfernt');
+  perform tst.eq((select updated_at::text from public.scout_players where id = tst.get('sc1')::uuid), tst.get('sc1_upd2'), 'T48 Merkliste löschen startet die Löschfrist nicht neu');
+end $$;
+select tst.affects(format($q$delete from public.scout_players where id = %L$q$, tst.get('sc1')), 1, 'T48 Kandidat löschen');
+do $$ begin
+  perform tst.eq((select count(*) from public.scout_reports where id = tst.get('rep1')::uuid)::text, '0', 'T48 Berichte werden mitgelöscht');
+end $$;
+delete from public.squad_plans where id = tst.get('plan27')::uuid;
+commit;
+delete from public.players where id in (tst.get('ris1')::uuid, tst.get('ris2')::uuid, tst.get('ris3')::uuid, tst.get('dup_a')::uuid, tst.get('pb48')::uuid, tst.get('own48')::uuid);
+delete from public.scout_lists where id = tst.get('sl_b')::uuid;
+-- Rechte von Coach C wieder auf Standard (spätere Tests)
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
 
 -- =====================================================================
 -- T17 Einwilligungen
@@ -3205,6 +3360,17 @@ insert into public.match_plan_views (team_id, plan_id, player_id, kind, at)
 select tst.get('team_a')::uuid, ins.id, tst.get('p2_player')::uuid, 'open', v.at
   from ins, (values (now() - interval '7 months'), (now() - interval '5 months')) v(at);
 
+-- Scouting: abgeschlossene Kandidaten nach 6 Monaten, übrige nach 24 Monaten ohne Aktivität; alte Saisonplanungen
+insert into public.scout_players (team_id, first_name, status)
+select public.player_team(tst.get('p2_player')::uuid), v.n, v.s
+  from (values ('purge absage alt', 'declined'), ('purge absage neu', 'declined'), ('purge beobachten alt', 'watch'), ('purge beobachten mittel', 'watch')) v(n, s);
+alter table public.scout_players disable trigger scout_players_prepare;
+update public.scout_players set updated_at = now() - interval '7 months' where first_name in ('purge absage alt', 'purge beobachten mittel');
+update public.scout_players set updated_at = now() - interval '25 months' where first_name = 'purge beobachten alt';
+alter table public.scout_players enable trigger scout_players_prepare;
+insert into public.squad_plans (team_id, season)
+select public.player_team(tst.get('p2_player')::uuid), v.y from (values (2020), (extract(year from current_date)::int)) v(y);
+
 begin;
 set local role service_role;
 do $$
@@ -3228,6 +3394,11 @@ begin
   perform tst.eq((r ->> 'match_plan_views') || '/' || (select count(*) from public.match_plan_views v join public.match_plans mp on mp.id = v.plan_id where mp.title = 'T24 purge')::text,
                  '1/1', 'T24 Zugriffsprotokoll der Matchpläne nach 6 Monaten gelöscht');
   delete from public.match_plans where title = 'T24 purge';
+  perform tst.eq((r ->> 'scout_players') || '/' || (select string_agg(first_name, ',' order by first_name) from public.scout_players where first_name like 'purge%'),
+                 '2/purge absage neu,purge beobachten mittel', 'T24 Scouting: Absage nach 6 Monaten, sonst nach 24 Monaten gelöscht');
+  perform tst.eq((r ->> 'squad_plans') || '/' || (select count(*) from public.squad_plans where season = 2020)::text, '1/0', 'T24 alte Saisonplanung gelöscht');
+  delete from public.scout_players where first_name like 'purge%';
+  delete from public.squad_plans where team_id = public.player_team(tst.get('p2_player')::uuid);
   perform tst.eq((select string_agg(title, ',' order by title) from public.team_tasks where title like 'purge%'), 'purge neu erledigt,purge offen',
                  'T24 offene und jüngere erledigte Aufgabe bleiben');
   delete from public.team_fines where rule like 'purge%';

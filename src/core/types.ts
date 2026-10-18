@@ -499,7 +499,60 @@ export interface TeamData {
   chatMore: Record<string, boolean>;
   /** Matchpläne (nur Trainerteam), Zugriffsprotokoll je Plan; Spieler: freigegebene Pläne */
   plans: MatchPlan[]; planLogs: Record<string, MpLog[]>; myPlans: MpAvail[];
+  /** Kaderplanung & Scouting (nur Trainerteam mit Recht „Scouting“): Kandidaten, Berichte, Merklisten, Saisonplanungen */
+  scouts: ScoutPlayer[]; scoutReports: ScoutReport[]; scoutLists: ScoutList[]; squadPlans: SquadPlan[];
 }
+
+// ---------- Kaderplanung & Scouting (Paket E) ----------
+/** Status eines Kandidaten: Pipeline (Beobachten → Sichtung → Probetraining → Gespräche → Zusage) bzw. abgeschlossen */
+export type ScoutStatus = "watch" | "scout" | "trial" | "talks" | "signed" | "declined" | "dropped";
+export type ScoutPrio = "a" | "b" | "c";
+export type Foot = "r" | "l" | "b";
+/** Externer Spieler in der Scouting-Datenbank (kein App-Konto; Art. 14 DSGVO) */
+export interface ScoutPlayer {
+  id: string; vn: string; nn: string;
+  /** Jahrgang (Pflicht für die Planung), Geburtsdatum nur wenn bekannt */
+  year: number | null; geb: string | null;
+  /** Positionen (Hauptposition zuerst, höchstens 3) */
+  pos: string[]; foot: Foot | null; cm: number | null;
+  /** Verein und Mannschaft/Liga */
+  club: string; clubTeam: string;
+  status: ScoutStatus; prio: ScoutPrio | null;
+  /** Einschätzung 1–5 bezogen auf das eigene Team: aktuelles Niveau und Potenzial */
+  level: number | null; potential: number | null;
+  tags: string[]; lists: string[];
+  source: string; contact: string; video: string | null; note: string;
+  /** Nächster Schritt (z. B. Sichtung am …) */
+  next: string | null; nextNote: string;
+  /** Über die Datenverarbeitung informiert am (Art. 14 DSGVO) */
+  informed: string | null;
+  /** Nach der Zusage in den Kader übernommen */
+  playerId: string | null;
+  createdAt: string; updatedAt: string;
+}
+export type ReportKind = "match" | "tournament" | "training" | "video" | "trial" | "other";
+export type Verdict = "sign" | "watch" | "no";
+/** Scouting-Bericht: Bereiche (tech, takt, ath, ment) und optional Kompetenzen der Positionsgruppe, je 1–5 */
+export interface ScoutReport {
+  id: string; sid: string; date: string; event: string; kind: ReportKind; min: number | null; pos: string | null;
+  scores: Record<string, number>; grade: number | null; verdict: Verdict | null;
+  strengths: string; weaknesses: string; summary: string;
+  author: string | null; authorName: string; createdAt: string;
+}
+export interface ScoutList { id: string; name: string; color: string; sort: number }
+/** Stand eines eigenen Spielers in der Saisonplanung (ohne Eintrag = offen) */
+export type PlanStatus = "fix" | "persp" | "unsure" | "leave";
+/** Eine Position der Planung: geplanter Kader (Reihenfolge = Stamm, Ersatz …) und Schattenkandidaten (Rang) */
+export interface SpSlot { own: string[]; shadow: string[]; target: number; need: string }
+/** Inhalt einer Saisonplanung. Verweise: "p:<id>" eigener Spieler, "r:<id>" Aufrücker aus dem Verein, "s:<id>" Kandidat */
+export interface SpContent {
+  formation: string; slots: Record<string, SpSlot>; status: Record<string, { s: PlanStatus; note: string }>; notes: string;
+  /** Angaben zu Aufrückern („r:<id>“: Name, Position, Jahrgang, Team) – falls die Liste aus dem Verein nicht geladen ist */
+  ext?: Record<string, { n: string; pos: string; y: number | null; t: string }>;
+}
+export interface SquadPlan { id: string; season: number; content: SpContent; updatedAt: string }
+/** Spieler eines jüngeren Teams im Verein, der in der Saison für dieses Team spielberechtigt wird */
+export interface Riser { id: string; vn: string; nn: string; pos: string; year: number; teamId: string; team: string; cls: ClassKey }
 
 export function emptyTeamData(team: Team): TeamData {
   return {
@@ -509,5 +562,6 @@ export function emptyTeamData(team: Team): TeamData {
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
+    scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],
   };
 }

@@ -115,6 +115,10 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `club_staff` (…0025) | Funktionär: `role` (admin/leiter/nlz/koord/pending), `title`, `perms` (wie `team_staff`), `teams` (null = alle Teams) | lesen Funktionäre des Vereins und die Person selbst; schreiben nur über RPCs (Vereinsadmin) |
 | `teams.club_id`, `team_staff.club_id`, `players.linked_from`/`origin` (…0025) | Team gehört zu höchstens einem Verein; `team_staff.club_id` = Zugriff über den Verein (gespiegelt von `club_sync`); übernommener Spieler mit Herkunftsteam | `teams.club_id` nur über `club_link_team`/`club_unlink_team`; Vereinszeilen in `team_staff` nur durch den Verein (Trigger `team_staff_club_guard`) |
 | `match_plan_views` (…0024) | Zugriffsprotokoll: `player_id`, `kind` (open/shot), `platform`, `at`; höchstens ein Aufruf je Spieler und Plan in 10 Minuten, ≤ 20 Screenshot-Meldungen | lesen Staff; schreiben nur `match_plan_open`/`match_plan_event`; Löschfrist 6 Monate |
+| `scout_lists` (…0026) | Merklisten der Scouting-Datenbank: `name`, `color`, `sort` (App: höchstens 20); Löschen entfernt die Liste bei allen Kandidaten | nur Staff mit `scout` |
+| `scout_players` (…0026) | externer Spieler: `first_name`, `last_name`, `birth_year`/`birthdate`, `positions` (≤ 3, Hauptposition zuerst), `foot`, `height_cm`, `club`, `club_team`, `status` (watch/scout/trial/talks/signed/declined/dropped), `priority` (a/b/c), `level`/`potential` 1–5, `tags`, `lists`, `source`, `contact`, `video_url` (nur http/https), `note`, `next_date`/`next_note`, `informed_at` (Information nach Art. 14 DSGVO), `player_id` (nach Übernahme in den Kader); **keine Gesundheitsdaten** | nur Staff mit `scout`; Spieler nie |
+| `scout_reports` (…0026) | Beobachtung: `date`, `event`, `kind` (match/tournament/training/video/trial/other), `minutes`, `position`, `scores` jsonb (Bereiche und Kompetenzen 1–5), `grade` 1–5, `verdict` (sign/watch/no), `strengths`, `weaknesses`, `summary`, `author`/`author_name` (setzt der Server) | nur Staff mit `scout`; ein neuer Bericht frischt `scout_players.updated_at` auf (Löschfrist) |
+| `squad_plans` (…0026) | Saisonplanung je Team und Saison (`season` = Beginnjahr, unique, nicht änderbar): `content` jsonb (Spielform, Grundordnung, je Position Soll, Anforderungsprofil, eingeplanter Kader und Schattenkandidaten in Reihenfolge, Stand der eigenen Spieler, Kurzangaben zu Aufrückern, Notizen; ≤ 200 kB) | nur Staff mit `scout` |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -170,13 +174,39 @@ zusätzlich ins Zielteam (Hochziehen; Konto in beiden Teams) oder wechselt ihn d
 Historie); optional mit Belastung (6 Wochen als Vereinstraining je Tag), Morgen-Checks (4 Wochen) und laufenden
 Ausfällen – nur mit `health` in beiden Teams. `club_announce` schreibt eine Ankündigung in die Teamchats.
 
+### Kaderplanung & Scouting
+
+Die Saisonplanung (`squad_plans.content`, App: `core/scout`) verweist auf Personen nur über Schlüssel: `p:<Spieler>`
+(eigener Kader), `r:<Spieler>` (Aufrücker aus einem jüngeren Team des Vereins; Name, Position und Jahrgang zusätzlich
+als Kurzangabe in `ext`, damit die Planung lesbar bleibt, wenn der Spieler dort nicht mehr gelistet ist) und
+`s:<Kandidat>` (Scouting). Je Position der Grundordnung (Schlüssel aus Position und Seite, z. B. `IV-l`) stehen Soll,
+Anforderungsprofil, der eingeplante Kader (`own`, Reihenfolge) und der Schattenkader (`shadow`, Rang). Wechselt die
+Grundordnung, ordnet `remapPlan` die Einträge der nächstgelegenen Position zu (Abstand auf dem Feld, seitlich stärker
+gewichtet). Wer in der Saison die Altersgrenze erreicht, erkennt die App aus Jahrgang und Altersklasse (Stichtag 1. Juli,
+`eligibleYears`/`agesOut`); bei Senioren gibt es keine Grenze. Die Ampel einer Position (`slotDepth`): fest = Soll
+erreicht, wackelt = nur mit unsicheren Spielern oder offenen Kandidaten, fehlt = darunter.
+
+`club_risers(team, years[])` liefert Aufrücker: Spieler jüngerer Teams desselben Vereins mit passendem Jahrgang – nur
+Vorname, Nachname, Position, Jahrgang, Team und Altersklasse, keine weiteren Daten (Recht `scout` im anfragenden Team,
+höchstens 20 Jahrgänge, Spieler mit Konto im eigenen Team ausgenommen). Hochziehen läuft weiter über
+`club_move_player` und braucht dort das Recht `squad` im Herkunftsteam. Ein zugesagter Kandidat wird per „In den Kader
+übernehmen“ als Spieler angelegt (`players`, Positionen LA/RA werden zu LM/RM) und mit `player_id` verknüpft.
+
+Datenschutz: Externe Spieler werden nicht gefragt, also informiert (Art. 14 DSGVO) – die App erinnert, wenn
+`informed_at` fehlt und die Aufnahme 30 Tage zurückliegt oder der Status Kontakt bedeutet (Probetraining, Gespräche,
+Zusage), stellt den Infotext und eine Auskunft (Art. 15) zum Teilen bereit und zeigt das Löschdatum. Löschfristen in
+`purge_stale_health_data()`: abgesagte/uninteressante Kandidaten 6 Monate nach der letzten Änderung, alle übrigen
+24 Monate ohne Aktivität (Berichte zählen als Aktivität), Saisonplanungen, sobald die übernächste Saison begonnen hat.
+Der Datenexport (`my_data_export`) bleibt unverändert, da Scouting keine Daten über Konto-Inhaber speichert.
+
 ### Rechte im Trainerteam
 
 `staff_can(team, perm)` ist die zentrale Prüfung: Owner immer, sonst `team_staff.perms` bzw. `default_perms(role)`
-(coach: health, plan, squad, perf, notes, messages, tasks; physio: health, medical, perf, messages). Die Regeln nutzen
+(coach: health, plan, squad, perf, notes, messages, tasks, scout; physio: health, medical, perf, messages). Die Regeln nutzen
 sie für Gesundheitsdaten (`health`), Befunde inkl. Dateien und KI-Auswertung (`medical`), Planung (`plan`), Kader,
 Gruppen, Anwesenheit, Kontakte (`squad`), Tests/Statistik (`perf`), Notizen/Bewertungen (`notes`), Nachrichten
-(`messages`), Aufgaben/Dienste/Strafen (`tasks`), Kasse (`cash`) und Team-Einstellungen (`admin`). Eigene Todos darf
+(`messages`), Aufgaben/Dienste/Strafen (`tasks`), Kaderplanung und Scouting (`scout`), Kasse (`cash`) und
+Team-Einstellungen (`admin`). Eigene Todos darf
 jeder im Trainerteam abhaken. In der App wirken fehlende Rechte wie ausgeschaltete Module (`core/perms.viewFor`).
 
 ### Offline
@@ -228,7 +258,8 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Spieler-IDs nur für Staff), `chat_push_targets(message)` (nur Server).
 - `purge_stale_health_data()` – zusätzlich: Chat-Nachrichten nach 24 Monaten, erledigte Meldungen und abgeschlossene
   Anfragen für Individualtraining nach 12 Monaten, Zugriffsprotokoll der Matchpläne nach 6 Monaten, Push-Drosselung
-  nach 30 Tagen.
+  nach 30 Tagen; Scouting: abgeschlossene Kandidaten nach 6 Monaten, übrige nach 24 Monaten ohne Aktivität,
+  Saisonplanungen ab der übernächsten Saison.
 - `my_match_plans(team)` – Spieler: jetzt freigegebene Pläne (Titel, Spiel, bis wann, schon gesehen).
 - `match_plan_open(plan, platform)` – Spieler: freigegebener Stand mit Name für das Wasserzeichen; protokolliert den Aufruf.
 - `match_plan_event(plan, 'shot', platform)` – Spieler: erkannter Screenshot ins Protokoll.
@@ -239,6 +270,8 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   `club_remove_staff(club, user)`, `club_regenerate_codes(club)`, `club_delete(club)` (Teams bleiben), `my_clubs()`,
   `club_staff_list(club)`, `club_teams(club)`, `club_overview(club)`, `club_move_player(player, target, add|move, copy)`,
   `club_announce(club, body, teams)`.
+- `club_risers(team, years[])` – Aufrücker aus jüngeren Teams des Vereins für die Kaderplanung (nur Name, Position,
+  Jahrgang, Team; Recht `scout`).
 - `is_treasurer(team)`, `can_manage_cash(team)`, `team_cash_balance(team)` – Kasse; der Kassenstand geht an Spieler
   nur, wenn er freigegeben ist.
 - `my_test_ranks(player)` – nur für den eigenen Spieler: Platz je Test unter den aktiven Spielern (jeweils letzter
@@ -290,8 +323,14 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Zugriffsstatistik, Bereinigung.
 - `club.ts` – Verein: Funktionen und Standardrechte (wie `club_default_perms`), Kennzahlen je Team (wie
   `club_overview`), Summen der Übersicht, Ziele für Hochziehen/Wechsel, Belastung mitnehmen (Recht in beiden Teams).
+- `scout.ts` – Kaderplanung & Scouting: Saisons (Stichtag 1. Juli), spielberechtigte Jahrgänge und Altersgrenze,
+  Positionen der Grundordnung, Verweise (`p:`/`r:`/`s:`), Einplanen/Reihenfolge, automatische Zuordnung, Umstellen der
+  Grundordnung, Stand eigener Spieler, Ampel je Position, Überblick (geplant, Abgänge, Zugänge, Bedarf), Jahrgänge,
+  Berichtsstatistik (Ø, Bereiche, Trend, Empfehlungen), passende Kandidaten je Position, Filter/Sortierung,
+  Information nach Art. 14 und Löschdatum (wie `purge_stale_health_data`), Übernahme in den Kader.
 - `demo.ts` – Demo-Mannschaft (für Demo-Modus, Tests und „Beispieldaten laden“); `demoClub.ts` – Demo-Verein mit drei
-  weiteren Teams (eigene Namen, Trainer, Spielpläne) und Funktionären.
+  weiteren Teams (eigene Namen, Trainer, Spielpläne) und Funktionären; `demoScout.ts` – Demo-Scouting (Merklisten,
+  Kandidaten mit Berichten, Saisonplanung mit Schattenkader).
 - Tests: `src/core/__tests__` (`node --test`).
 
 Wissenschaftliche Grundlagen (in den Info-Texten der App zitiert): Foster et al. 2001 (Session-RPE),

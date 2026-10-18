@@ -6,9 +6,10 @@ import { cleanAreas } from "../core/body";
 import { isClientId, isNetworkMessage } from "../core/outbox";
 import { cleanPainMap } from "../core/pain";
 import { cleanUnit } from "../core/units";
-import { cleanContent } from "../core/matchplan";
+import { cleanContent, fmtOf } from "../core/matchplan";
+import { cleanPlanContent } from "../core/scout";
 import { addDays, iso, monday } from "../core/dates";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -22,7 +23,7 @@ import { supabase } from "./supabase";
 import { cleanClubPerms, type ClubInfo, type ClubRole, type ClubStaffEntry, type ClubTeam, type TeamSummary } from "../core/club";
 
 type Row = Record<string, any>;
-const KNOWN_CODES = ["managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
+const KNOWN_CODES = ["invalid_years", "managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
   "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day"];
 /** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
 const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams"];
@@ -141,6 +142,21 @@ const mapPlan = (r: Row, cls: ClassKey = "sen"): MatchPlan => ({
   share: r.published ? { sections: r.share_sections || [], from: r.share_from || null, until: r.share_until, squadOnly: !!r.share_squad, ownTasks: r.share_own_tasks !== false } : null,
   published: r.published || null, publishedAt: r.published_at || null, updatedAt: r.updated_at || null,
 });
+// Kaderplanung & Scouting
+const mapScout = (r: Row): ScoutPlayer => ({
+  id: r.id, vn: r.first_name || "", nn: r.last_name || "", year: r.birth_year ?? null, geb: r.birthdate || null, pos: Array.isArray(r.positions) ? r.positions : [],
+  foot: r.foot || null, cm: r.height_cm ?? null, club: r.club || "", clubTeam: r.club_team || "", status: r.status || "watch", prio: r.priority || null,
+  level: r.level ?? null, potential: r.potential ?? null, tags: Array.isArray(r.tags) ? r.tags : [], lists: Array.isArray(r.lists) ? r.lists : [],
+  source: r.source || "", contact: r.contact || "", video: r.video_url || null, note: r.note || "", next: r.next_date || null, nextNote: r.next_note || "",
+  informed: r.informed_at || null, playerId: r.player_id || null, createdAt: r.created_at, updatedAt: r.updated_at,
+});
+const mapScoutReport = (r: Row): ScoutReport => ({
+  id: r.id, sid: r.scout_id, date: r.date, event: r.event || "", kind: r.kind || "match", min: r.minutes ?? null, pos: r.position || null,
+  scores: r.scores && typeof r.scores === "object" ? r.scores : {}, grade: r.grade ?? null, verdict: r.verdict || null,
+  strengths: r.strengths || "", weaknesses: r.weaknesses || "", summary: r.summary || "", author: r.author || null, authorName: r.author_name || "", createdAt: r.created_at,
+});
+const mapScoutList = (r: Row): ScoutList => ({ id: r.id, name: r.name, color: r.color || "#3a6db5", sort: r.sort ?? 0 });
+const mapSquadPlan = (r: Row, cls: ClassKey): SquadPlan => ({ id: r.id, season: r.season, content: cleanPlanContent(r.content, fmtOf(cls)), updatedAt: r.updated_at });
 const mapPlanLog = (r: Row): MpLog => ({ pid: r.player_id, at: r.at, kind: r.kind === "shot" ? "shot" : "open", platform: r.platform || null });
 const mapPerson = (r: Row): ChatPerson => ({ uid: r.user_id, name: r.name || "–", kind: r.kind === "staff" ? "staff" : "player", pid: r.player_id || null, role: r.role || null });
 /** Reaktionen den Nachrichten zuordnen */
@@ -375,6 +391,18 @@ export class SupabaseApi implements Api {
           for (const r of logs) (D.planLogs[r.plan_id] ||= []).push(mapPlanLog(r));
         } else D.myPlans = await this.myPlans(tid);
       } catch { /* Matchplan optional: Rest der App lädt trotzdem */ }
+    }
+    if (staff && D.team.modules.kaderplanung) {
+      // Kaderplanung & Scouting: nur mit Recht „scout“ (sonst liefert die Datenbank nichts)
+      try {
+        const [sc, rp, ls, sp] = await Promise.all([
+          all((a, b) => sb.from("scout_players").select("*").eq("team_id", tid).order("updated_at", { ascending: false }).range(a, b)),
+          all((a, b) => sb.from("scout_reports").select("*").eq("team_id", tid).order("date").range(a, b)),
+          q(sb.from("scout_lists").select("*").eq("team_id", tid).order("sort")),
+          q(sb.from("squad_plans").select("*").eq("team_id", tid).order("season")),
+        ]);
+        D.scouts = sc.map(mapScout); D.scoutReports = rp.map(mapScoutReport); D.scoutLists = ls.map(mapScoutList); D.squadPlans = sp.map(r => mapSquadPlan(r, team.cls));
+      } catch { /* Scouting optional: Rest der App lädt trotzdem */ }
     }
     if (!staff && m.playerId) {
       // Eigene Platzierungen in Tests (Server rechnet, ohne Werte anderer)
@@ -811,6 +839,39 @@ export class SupabaseApi implements Api {
   async challengeTotals(teamId: string, ws: string): Promise<ChallengeTotals[]> {
     const rows = await q<Row[]>(this.sb.rpc("challenge_totals", { p_team: teamId, p_week: ws }));
     return rows.map(r => ({ cid: r.challenge_id, players: r.players ?? 0, done: r.done ?? 0, sum: Number(r.total ?? 0), top: Array.isArray(r.top) ? r.top.map((x: Row) => ({ name: String(x.name), value: Number(x.value) })) : [] }));
+  }
+
+  // ---------- Kaderplanung & Scouting ----------
+  async saveScout(teamId: string, x: ScoutPlayer) {
+    const row: Row = { team_id: teamId, first_name: x.vn, last_name: x.nn, birth_year: x.geb ? null : x.year, birthdate: x.geb, positions: x.pos, foot: x.foot, height_cm: x.cm,
+      club: x.club, club_team: x.clubTeam, status: x.status, priority: x.prio, level: x.level, potential: x.potential, tags: x.tags, lists: x.lists.filter(l => !isTmp(l)),
+      source: x.source, contact: x.contact, video_url: x.video, note: x.note, next_date: x.next, next_note: x.nextNote, informed_at: x.informed,
+      player_id: x.playerId && !isTmp(x.playerId) ? x.playerId : null };
+    const r = isTmp(x.id) ? await q<Row>(this.sb.from("scout_players").insert(row).select().single()) : await q<Row>(this.sb.from("scout_players").update(row).eq("id", x.id).select().single());
+    return mapScout(r);
+  }
+  async deleteScout(id: string) { await q(this.sb.from("scout_players").delete().eq("id", id)); }
+  async saveScoutReport(teamId: string, x: ScoutReport) {
+    const row: Row = { team_id: teamId, scout_id: x.sid, date: x.date, event: x.event, kind: x.kind, minutes: x.min, position: x.pos, scores: x.scores, grade: x.grade, verdict: x.verdict,
+      strengths: x.strengths, weaknesses: x.weaknesses, summary: x.summary };
+    const r = isTmp(x.id) ? await q<Row>(this.sb.from("scout_reports").insert(row).select().single()) : await q<Row>(this.sb.from("scout_reports").update(row).eq("id", x.id).select().single());
+    return mapScoutReport(r);
+  }
+  async deleteScoutReport(id: string) { await q(this.sb.from("scout_reports").delete().eq("id", id)); }
+  async saveScoutList(teamId: string, l: ScoutList) {
+    const row: Row = { team_id: teamId, name: l.name.trim().slice(0, 40), color: l.color, sort: l.sort };
+    const r = isTmp(l.id) ? await q<Row>(this.sb.from("scout_lists").insert(row).select().single()) : await q<Row>(this.sb.from("scout_lists").update(row).eq("id", l.id).select().single());
+    return mapScoutList(r);
+  }
+  async deleteScoutList(id: string) { await q(this.sb.from("scout_lists").delete().eq("id", id)); }
+  async saveSquadPlan(teamId: string, p: SquadPlan) {
+    const r = await q<Row>(this.sb.from("squad_plans").upsert({ team_id: teamId, season: p.season, content: p.content }, { onConflict: "team_id,season" }).select().single());
+    return { id: r.id, season: r.season, content: p.content, updatedAt: r.updated_at };
+  }
+  async deleteSquadPlan(id: string) { await q(this.sb.from("squad_plans").delete().eq("id", id)); }
+  async clubRisers(teamId: string, years: number[]): Promise<Riser[]> {
+    const rows = await q<Row[]>(this.sb.rpc("club_risers", { p_team: teamId, p_years: years }));
+    return rows.map(r => ({ id: r.player_id, vn: r.first_name || "", nn: r.last_name || "", pos: r.position || "", year: r.birth_year, teamId: r.team_id, team: r.team_name || "", cls: (r.age_class || "u17") as ClassKey }));
   }
 
   // ---------- Matchplan ----------

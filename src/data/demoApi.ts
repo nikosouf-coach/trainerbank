@@ -5,8 +5,10 @@ import { chatSettings, pairKey, putMsg } from "../core/chat";
 import { classDef } from "../core/classes";
 import { CLUB_PERMS, cleanClubPerms, teamSummary, type ClubInfo, type ClubRole, type ClubStaffEntry, type ClubTeam, type TeamSummary } from "../core/club";
 import { addDays, iso } from "../core/dates";
+import { addRef, isYounger, makeResolver, planSlots, posMatch, refOf, riserSnap, riserYears, slotDepth } from "../core/scout";
+import { fmtOf } from "../core/matchplan";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -97,7 +99,29 @@ export class DemoApi implements Api {
       : [["tech", "Schwacher Fuß: 2 zusätzliche Passserien pro Woche"], ["ath", "Absprungkraft: saubere einbeinige Sprünge"], ["takt", "Abwehrkette früher und lauter organisieren"], ["ment", "Nach Fehlern: in der nächsten Aktion abhaken"], ["verf", "Jeden Tag Morgen-Check – Serie halten"]];
     D.pot.p1 = [...(D.pot.p1 || []), ...goals.map(([cat, text], i) => ({ id: "demo-goal-" + i, cat, text, vis: true, src: "trainer" as const }))];
     D.team.clubId = this.clubTeamIds().includes("demo") ? DEMO_CLUB : null;
-    this.sets.demo = D; return D;
+    this.sets.demo = D;
+    this.planDemoRisers(D);
+    return D;
+  }
+  /** Demo: in der Saisonplanung Aufrücker aus dem jüngeren Team auf Positionen mit Bedarf einplanen (zeigt den Ablauf) */
+  private planDemoRisers(D: TeamData): void {
+    const plan = D.squadPlans[0];
+    if (!plan || !D.team.modules.kaderplanung || !this.clubTeamIds().includes("demo")) return;
+    const R = this.risersFor("demo", riserYears(D.team.cls, plan.season)), fmt = fmtOf(D.team.cls);
+    let c = plan.content, n = 0;
+    for (const r of R) {
+      if (n >= 6) break;
+      const info = makeResolver(D, c, plan.season, R);
+      // passende Position mit Bedarf (genaue Position vor Ausweichposition)
+      const slot = planSlots(fmt, c.formation).filter(sl => posMatch([r.pos], sl.pos) <= 2 && slotDepth(c.slots[sl.key], info).level !== "ok")
+        .sort((a, b) => posMatch([r.pos], a.pos) - posMatch([r.pos], b.pos))[0];
+      if (!slot) continue;
+      const ref = refOf("r", r.id);
+      c = addRef(c, slot.key, "own", ref);
+      c = { ...c, ext: { ...(c.ext || {}), [ref]: riserSnap(r) } };
+      n++;
+    }
+    plan.content = c;
   }
 
   // ---------- Demo-Verein: eigenes Team + drei weitere Teams, das Demo-Konto ist Vereinsadmin ----------
@@ -218,8 +242,10 @@ export class DemoApi implements Api {
   }
   async clubMovePlayer(playerId: string, target: string, mode: "add" | "move", copy: boolean): Promise<string> {
     this.net();
-    // Spieler aus dem gerade geöffneten Team
-    const src = this.data, p = src?.players.find(x => x.id === playerId); if (!src || !p) throw new ApiError("not_found");
+    // Spieler aus dem gerade geöffneten Team bzw. Aufrücker aus einem anderen Team des Vereins („Team:Spieler“)
+    const [tid, pid] = playerId.includes(":") ? playerId.split(":") : [null, playerId];
+    const src = tid ? (tid === "demo" ? this.mainTeam() : this.clubSet(tid)) : this.data, p = src?.players.find(x => x.id === pid);
+    if (!src || !p) throw new ApiError("not_found");
     if (mode !== "add" && mode !== "move") throw new ApiError("invalid_mode");
     if (target === src.team.id) throw new ApiError("invalid_target");
     const linked = this.clubTeamIds();
@@ -419,6 +445,38 @@ export class DemoApi implements Api {
   async myPlans(): Promise<MpAvail[]> { return []; }
   async planOpen(): Promise<MpOpened> { throw new ApiError("not_found"); }
   async planShot() { /* lokal */ }
+
+  // Kaderplanung & Scouting (lokal – der Store ändert die Demo-Daten direkt)
+  async saveScout(_t: string, x: ScoutPlayer) { this.net(); const now = new Date().toISOString(); return { ...x, id: newId(x.id), createdAt: x.createdAt || now, updatedAt: now }; }
+  async deleteScout() { this.net(); }
+  async saveScoutReport(_t: string, r: ScoutReport) { this.net(); return { ...r, id: newId(r.id), authorName: r.authorName || this.user.displayName }; }
+  async deleteScoutReport() { this.net(); }
+  async saveScoutList(_t: string, l: ScoutList) { this.net(); return { ...l, id: newId(l.id) }; }
+  async deleteScoutList() { this.net(); }
+  async saveSquadPlan(_t: string, p: SquadPlan) { this.net(); return { ...p, id: newId(p.id), updatedAt: new Date().toISOString() }; }
+  async deleteSquadPlan() { this.net(); }
+  /** Aufrücker aus den jüngeren Teams des Demo-Vereins (IDs „Team:Spieler“) */
+  async clubRisers(teamId: string, years: number[]): Promise<Riser[]> {
+    this.net();
+    return this.risersFor(teamId, years);
+  }
+  private risersFor(teamId: string, years: number[]): Riser[] {
+    const linked = this.clubTeamIds(); if (!linked.includes(teamId)) return [];
+    const mine = (teamId === "demo" ? this.mainTeam() : this.clubSet(teamId)).team, out: Riser[] = [];
+    const clsOf = (id: string): ClassKey => id === "demo" ? this.cls : this.others().find(x => x.id === id)!.cls;
+    for (const id of ["demo", ...this.others().map(x => x.id)]) {
+      // nur jüngere Teams (vor dem Aufbau der Demo-Daten prüfen)
+      if (id === teamId || !linked.includes(id) || !isYounger(clsOf(id), mine.cls)) continue;
+      const D = id === "demo" ? this.mainTeam() : this.clubSet(id);
+      const own = (teamId === "demo" ? this.mainTeam() : this.clubSet(teamId)).players;
+      for (const p of D.players) {
+        const y = Number((p.geb || "").slice(0, 4));
+        if (!years.includes(y) || own.some(q => q.vn === p.vn && q.nn === p.nn && q.geb === p.geb)) continue;
+        out.push({ id: `${id}:${p.id}`, vn: p.vn, nn: p.nn, pos: p.pos, year: y, teamId: id, team: D.team.name, cls: D.team.cls });
+      }
+    }
+    return out.sort((a, b) => a.year - b.year || a.nn.localeCompare(b.nn));
+  }
 
   // Chat (Demo: im Speicher). „Ich“ setzt der Store je nach Ansicht (Trainer, Co-Trainer, Spieler).
   chatMe = "demo-user";

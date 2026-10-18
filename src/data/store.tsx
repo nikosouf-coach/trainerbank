@@ -17,7 +17,9 @@ import { indivUnit } from "../core/dev";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
-import type { MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
+import { fmtOf } from "../core/matchplan";
+import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -66,6 +68,8 @@ interface State {
   cachedAt: string | null;
   /** Eigene Vereine (Funktionär, Trainerteam eines verbundenen Teams oder Anfrage) */
   clubs: ClubInfo[];
+  /** Aufrücker aus dem Verein je Team und Saison („team:season“) */
+  risers: Record<string, Riser[]>;
 }
 
 function systemLang(): Lang {
@@ -85,7 +89,7 @@ function useStoreValue() {
   const [s, setS] = useState<State>(() => ({
     phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(),
     consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
-    outbox: [], offline: false, syncing: false, cachedAt: null, clubs: [],
+    outbox: [], offline: false, syncing: false, cachedAt: null, clubs: [], risers: {},
   }));
   const ref = useRef(s); ref.current = s;
   /** Rechte im aktiven Team (Trainerteam). Demo: Cheftrainer alle, Co-Trainer-Ansicht die Rechte des Profils. */
@@ -918,6 +922,95 @@ function useStoreValue() {
       try { await api.planShot(id, platform); } catch { /* Protokoll ist nachrangig */ }
     },
 
+    // ---------- Kaderplanung & Scouting ----------
+    /** Kandidat anlegen oder ändern – liefert den gespeicherten Stand (neue ID) oder null */
+    saveScout: async (x0: ScoutPlayer): Promise<ScoutPlayer | null> => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) return null;
+      const x = cleanScout(x0), isNew = x.id.startsWith("tmp-");
+      if (!x.vn) { toast(translator(lang).t("sc_needName")); return null; }
+      const prev = D.scouts.find(y => y.id === x.id);
+      if (!isNew && prev) { Object.assign(prev, x); bump(); }
+      try {
+        const saved = await api.saveScout(active.teamId, x);
+        const L = ref.current.D!.scouts, i = L.findIndex(y => y.id === x.id || y.id === saved.id);
+        if (i >= 0) L[i] = saved; else L.unshift(saved);
+        bump(); return saved;
+      } catch (e) { toast(isOffline(e) ? translator(lang).t("off_notSaved") : errText(e)); if (!isNew) reload(); return null; }
+    },
+    /** Kandidat löschen (mit Berichten; aus allen Saisonplanungen entfernt) */
+    deleteScout: async (id: string) => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) return;
+      const r = refOf("s", id), changed = D.squadPlans.filter(p => refsIn(p.content).includes(r));
+      D.scouts = D.scouts.filter(x => x.id !== id); D.scoutReports = D.scoutReports.filter(x => x.sid !== id);
+      for (const p of changed) p.content = removeRef(p.content, r);
+      bump();
+      try {
+        await api.deleteScout(id);
+        for (const p of changed) await api.saveSquadPlan(active.teamId, p);
+        toast(translator(lang).t("sc_deleted"));
+      } catch (e) { toast(isOffline(e) ? translator(lang).t("off_notSaved") : errText(e)); reload(); }
+    },
+    saveScoutReport: async (r0: ScoutReport): Promise<ScoutReport | null> => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) return null;
+      const r = cleanReport(r0), isNew = r.id.startsWith("tmp-");
+      try {
+        const saved = await api.saveScoutReport(active.teamId, r);
+        const L = ref.current.D!.scoutReports, i = L.findIndex(y => y.id === r.id || y.id === saved.id);
+        if (i >= 0) L[i] = saved; else L.push(saved);
+        const sc = ref.current.D!.scouts.find(x => x.id === r.sid); if (sc) sc.updatedAt = new Date().toISOString();
+        bump(); toast(translator(lang).t(isNew ? "sc_repSaved" : "t_saved")); return saved;
+      } catch (e) { toast(isOffline(e) ? translator(lang).t("off_notSaved") : errText(e)); return null; }
+    },
+    deleteScoutReport: (id: string) => change(D => { D.scoutReports = D.scoutReports.filter(x => x.id !== id); }, api => api.deleteScoutReport(id)),
+    saveScoutList: async (l: ScoutList): Promise<ScoutList | null> => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) return null;
+      const name = l.name.trim().slice(0, 40); if (!name) return null;
+      try {
+        const saved = await api.saveScoutList(active.teamId, { ...l, name });
+        const L = ref.current.D!.scoutLists, i = L.findIndex(y => y.id === l.id || y.id === saved.id);
+        if (i >= 0) L[i] = saved; else L.push(saved);
+        bump(); return saved;
+      } catch (e) { toast(isOffline(e) ? translator(lang).t("off_notSaved") : errText(e)); return null; }
+    },
+    deleteScoutList: (id: string) => change(D => { D.scoutLists = D.scoutLists.filter(x => x.id !== id); for (const s of D.scouts) if (s.lists.includes(id)) s.lists = s.lists.filter(x => x !== id); },
+      api => api.deleteScoutList(id)),
+    /** Saisonplanung speichern (neu oder geändert) */
+    saveSquadPlan: async (season: number, content: SpContent): Promise<boolean> => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) return false;
+      const c = cleanPlanContent(content, fmtOf(D.team.cls));
+      let p = D.squadPlans.find(x => x.season === season);
+      if (p) p.content = c; else { p = { id: tmpId(), season, content: c, updatedAt: new Date().toISOString() }; D.squadPlans.push(p); }
+      bump();
+      try {
+        const saved = await api.saveSquadPlan(active.teamId, p);
+        const L = ref.current.D!.squadPlans, i = L.findIndex(x => x.season === season);
+        if (i >= 0) L[i] = { ...saved, content: L[i].content }; bump(); return true;
+      } catch (e) { toast(isOffline(e) ? translator(lang).t("off_notSaved") : errText(e)); reload(); return false; }
+    },
+    deleteSquadPlan: (id: string) => change(D => { D.squadPlans = D.squadPlans.filter(x => x.id !== id); }, api => api.deleteSquadPlan(id), { ok: translator(ref.current.lang).t("sk_planDeleted") }),
+    /** Aufrücker aus dem Verein laden (nur mit Verein; je Team und Saison zwischengespeichert) */
+    loadRisers: async (season: number, force = false): Promise<Riser[]> => {
+      const { api, active, D } = ref.current; if (!D || !active || !D.team.clubId) return [];
+      const key = active.teamId + ":" + season, years = riserYears(D.team.cls, season);
+      if (!years.length) return [];
+      if (!force && ref.current.risers[key]) return ref.current.risers[key];
+      try {
+        const L = (await api.clubRisers(active.teamId, years)).filter(x => isYounger(x.cls, D.team.cls));
+        set({ risers: { ...ref.current.risers, [key]: L } }); return L;
+      } catch { return ref.current.risers[key] || []; }
+    },
+    /** Nach der Zusage: Kandidat als Spieler in den Kader übernehmen (Recht „Kader“) */
+    takeOverScout: async (id: string): Promise<string | null> => {
+      const { D, lang } = ref.current; if (!D) return null;
+      const sc = D.scouts.find(x => x.id === id); if (!sc) return null;
+      if (sc.playerId && D.players.some(p => p.id === sc.playerId)) return sc.playerId;
+      const saved = await actions.savePlayer(takeoverPlayer(sc, tmpId()));
+      if (!saved || saved.id.startsWith("tmp-") || !ref.current.D?.players.some(p => p.id === saved.id)) return null;
+      const r = await actions.saveScout({ ...sc, playerId: saved.id, status: "signed" });
+      toast(translator(lang).t("sc_takenOver"));
+      return r ? saved.id : null;
+    },
+
     // ---------- Chat ----------
     chatMe: () => meNow(),
     /** Chat öffnen (wird bei Bedarf angelegt); liefert die ID oder null */
@@ -1025,6 +1118,8 @@ function useStoreValue() {
     saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
     saveAssessment: "notes", deleteAssessment: "notes", saveGoal: "notes", deleteGoal: "notes", saveGoalEntry: "notes", deleteGoalEntry: "notes", saveTalk: "notes", deleteTalk: "notes",
     savePlan: "plan", deletePlan: "plan",
+    saveScout: "scout", deleteScout: "scout", saveScoutReport: "scout", deleteScoutReport: "scout", saveScoutList: "scout", deleteScoutList: "scout",
+    saveSquadPlan: "scout", deleteSquadPlan: "scout", takeOverScout: ["scout"],
     saveChallenge: "plan", deleteChallenge: "plan", saveChallengeEntry: "plan", answerIndiv: "plan", requestIndiv: "plan", cancelIndiv: "plan",
     chatSetReport: "messages", chatSetReadOnly: "messages",
   };

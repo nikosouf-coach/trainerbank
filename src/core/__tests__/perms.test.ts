@@ -1,7 +1,7 @@
 // Tests: Rechte im Trainerteam (Standard je Rolle wie in der Datenbank, Sicht ohne Rechte, benötigte Rechte für Einstellungen).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { buildDemo, demoTeam } from "../demo";
 import { PERMS, PERM_PRESETS, defaultPerms, effectivePerms, presetOf, teamPatchPerms, viewFor } from "../perms";
@@ -9,7 +9,9 @@ import { PERMS, PERM_PRESETS, defaultPerms, effectivePerms, presetOf, teamPatchP
 const NOW = new Date(2026, 9, 8, 9, 0);
 
 test("Standardrechte je Rolle stimmen mit der Datenbank überein (default_perms)", () => {
-  const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261008000017_rechte.sql"), "utf8");
+  // jeweils die neueste Fassung (spätere Migrationen ersetzen default_perms und den Check)
+  const dir = join(process.cwd(), "supabase/migrations"), files = readdirSync(dir).filter(f => f.endsWith(".sql")).sort();
+  const sql = readFileSync(join(dir, files.filter(f => readFileSync(join(dir, f), "utf8").includes("function public.default_perms")).pop()!), "utf8");
   for (const role of ["owner", "coach", "physio"]) {
     const m = sql.match(new RegExp(`when '${role}'\\s+then array\\[([^\\]]*)\\]`));
     assert.ok(m, role);

@@ -13,6 +13,7 @@ import { challengeDefsFor, fromDef } from "./challenge";
 import { demoPeople } from "./chat";
 import { compsOf, posGroupOf } from "./dev";
 import { demoMatchPlans } from "./demoMatch";
+import { demoScouting } from "./demoScout";
 
 export const DEMO_NAMES: [string, string, string][] = [["Luca", "Brenner", "TW"], ["Jonas", "Albers", "IV"], ["Elias", "Kraft", "IV"], ["Mats", "Ehlert", "IV"], ["Noah", "Petersen", "RV"], ["Leon", "Yildiz", "LV"], ["Finn", "Hartmann", "RV"], ["Ben", "Okafor", "DM"], ["Paul", "Wiese", "ZM"], ["Tim", "Sander", "ZM"], ["Emil", "Rasch", "DM"], ["Milan", "Kovač", "OM"], ["Arda", "Demir", "OM"], ["Nico", "Lindner", "LM"], ["Samuel", "Asante", "RM"], ["Jan", "Vogt", "LM"], ["Henry", "Böhm", "ST"], ["Malik", "Haddad", "ST"], ["Ole", "Brandt", "ST"], ["Kian", "Weber", "TW"], ["Lennard", "Fuchs", "IV"], ["David", "Neumann", "ZM"]];
 const OPP = ["SV Nordheim", "TuS Rheinblick", "FC Eintracht Waldau", "SpVgg Ostfeld", "VfR Lindenhof", "DJK Sonnenberg", "BV Hafenstadt", "SC Bergtal", "Rot-Weiß Auenfeld", "TSV Mühlbach", "SG Kirchdorf", "1. FC Talheim", "SV Grünwiese"];
@@ -239,6 +240,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
+  demoScouting(D, lang, now);
   const tw = D.players.filter(p => (p.groups || []).includes("g1")).map(p => p.id);
   if (tw.length) D.videos.push({ id: "v" + (vid++), title: en ? "Goalkeepers: build-up under pressure – 6 clips" : "Torhüter: Spieleröffnung unter Druck – 6 Clips", url: "https://example.com/video/tw-aufbau", date: addDays(TODAY, -2), matchId: null, pids: tw, groupIds: ["g1"], note: en ? "Watch before Thursday's goalkeeper session." : "Bitte bis zum TW-Training am Donnerstag anschauen.", vis: true });
   D.videos.push({ id: "v" + (vid++), title: en ? "Pressing triggers – clips for the back line" : "Pressing-Auslöser – Clips für die Abwehrkette", url: "https://example.com/video/pressing", date: null, matchId: null, pids: ["p2", "p3", "p4"], note: "", vis: true });

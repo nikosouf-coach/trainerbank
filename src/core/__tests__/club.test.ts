@@ -1,7 +1,7 @@
 // Tests: Verein – Standardrechte (wie in der Datenbank), Kennzahlen je Team, Summen, Ziele für Hochziehen/Wechsel, Demo-Verein.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { CLUB_PERMS, CLUB_ROLES, canCopyHealth, cleanClubPerms, clubTotals, isClubAdmin, isOfficial, moveTargets, seasonOf, teamSummary } from "../club";
 import { addDays, iso } from "../dates";
@@ -13,7 +13,8 @@ const NOW = new Date(2026, 9, 7, 10, 0), TODAY = iso(NOW);
 const own = (): TeamData => { const D = buildDemo(demoTeam("u19", "basis", "de"), "de", NOW); demoExtras(D, "de", NOW); return D; };
 
 test("Standardrechte je Funktion stimmen mit public.club_default_perms überein und enthalten keine Gesundheitsdaten", () => {
-  const sql = readFileSync(join(process.cwd(), "supabase/migrations/20261008000025_verein.sql"), "utf8");
+  const dir = join(process.cwd(), "supabase/migrations"), files = readdirSync(dir).filter(f => f.endsWith(".sql")).sort();
+  const sql = readFileSync(join(dir, files.filter(f => readFileSync(join(dir, f), "utf8").includes("function public.club_default_perms")).pop()!), "utf8");
   for (const r of CLUB_ROLES) {
     const m = sql.match(new RegExp(`when '${r}'\\s+then array\\[([^\\]]*)\\]`));
     assert.ok(m, r);

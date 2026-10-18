@@ -24,7 +24,7 @@ export function modsFor(depth: Depth, k: ClassKey): Modules {
   const grp = groupOf(k);
   const m: Modules = {
     beteiligung: true, planung: depth !== "org", belastung: depth !== "org", regeneration: depth !== "org",
-    wachstum: depth !== "org" && isGrowthAge(k), ki: true, matchplan: true, kaderplanung: false,
+    wachstum: depth !== "org" && isGrowthAge(k), ki: true, matchplan: true, kaderplanung: depth !== "org" && grp !== "u11",
     leistung: depth !== "org", befunde: depth !== "org", spielanalyse: true, videos: true,
     archiv: true, vorbereitung: depth !== "org", kontakte: true,
     entwicklung: depth !== "org", challenge: true, chat: true,
@@ -94,6 +94,7 @@ export const PACKAGES: { key: string; mods: (keyof Modules)[] }[] = [
   { key: "leistung", mods: ["leistung", "befunde"] },
   { key: "analyse", mods: ["spielanalyse", "videos", "matchplan"] },
   { key: "entwicklung", mods: ["entwicklung", "challenge"] },
+  { key: "kader", mods: ["kaderplanung"] },
   { key: "ki", mods: ["ki"] },
 ];
 /** Was Spieler sehen dürfen – mit Standardwert und dem Modul, das dafür nötig ist. */

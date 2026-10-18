@@ -57,6 +57,9 @@ Mitarbeiterzahl).
 5. Optionaler KI-Coach: Beantwortung von Fragen zu Training, Belastung und Erholung.
 5a. Verein: mehrere Teams eines Vereins verbinden – Funktionäre mit Rechten je Team, Vereinsübersicht mit Kennzahlen,
    Hochziehen und Wechsel von Spielern (optional mit Belastung), Ankündigungen an die Teams.
+5b. Kaderplanung & Scouting: Planung der nächsten Saison (Schattenkader je Position, Stand der eigenen Spieler,
+   Altersgrenze, Aufrücker aus jüngeren Teams des Vereins) und Beobachtung von Spielern anderer Teams und Vereine
+   (sportliche Eindrücke, Berichte, Status bis zur Zusage).
 6. Erinnerungen per Push-Mitteilung.
 7. Betrieb, Sicherheit, Missbrauchsbegrenzung, Nachweis von Einwilligungen.
 
@@ -69,6 +72,7 @@ Mitarbeiterzahl).
 | Spieler mit Konto | ab [Mindestalter] bis Erwachsene, Schwerpunkt 14–18 | [Anzahl] |
 | Spieler ohne Konto | ab ca. 7 Jahren (U7 ggf. jünger) | [Anzahl] |
 | Erziehungsberechtigte | Erwachsene | [Anzahl] (nur E-Mail-Adresse) |
+| Beobachtete Spieler (Scouting) – nutzen die App nicht | Schwerpunkt Jugend (ca. 12–19 Jahre), auch Erwachsene | [Anzahl] |
 
 ### 2.3 Datenkategorien
 
@@ -85,6 +89,10 @@ Siehe Tabelle in `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 4. Zusammengefasst:
 - **Organisation:** Gruppen und Mitgliedschaften, Aufgaben, Dienste, Strafen (Katalog mit Automatik-Regeln),
   Ablauf des Trainingstags mit Zuständigkeiten und Skizzen-Fotos.
 - **Freitexte:** Trainernotizen, Potenziale, Nachrichten, Abwesenheitsnotizen, KI-Anfragen.
+- **Kaderplanung und Scouting:** Stand eigener Spieler für die nächste Saison mit Notiz, Schattenkader je Position;
+  Aufrücker (Name, Position, Jahrgang, Team); externe Spieler mit Name, Jahrgang/Geburtsdatum, Positionen, Fuß,
+  Größe, Verein, Status, Priorität, Einschätzung, Merkmalen, Kontaktweg, Videolink, Notiz und Berichten (Bewertung 1–5,
+  Empfehlung, Freitexte), Datum der Information nach Art. 14 – **keine Gesundheitsdaten, keine Fotos**.
 - **Technische Daten:** Push-Token, KI-Nutzungszähler, Server-Protokolle.
 - **Einwilligungsnachweise** inkl. E-Mail der Erziehungsberechtigten.
 
@@ -130,6 +138,8 @@ Siehe Tabelle in `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 4. Zusammengefasst:
 | `team_duties`, `team_fines` | alles im Team | eigene lesen | nein | dto. |
 | `session_blocks`, Bucket `sketches` | alles im Team | nein | nein | dto. |
 | `my_test_ranks` (RPC) | – | eigener Platz je Test (ab 5 Werten), optional Teambestwert ohne Namen | nein | – |
+| `scout_players`, `scout_reports`, `scout_lists`, `squad_plans` | nur mit Recht „scout“ | nein | nein | dto. |
+| `club_risers` (RPC) | mit Recht „scout“: Spieler jüngerer Teams des Vereins (nur Name, Position, Jahrgang, Team) | nein | nein | – |
 
 Die Rollen Owner, Coach und Physio haben laut Architektur dieselben Datenrechte; nur `regenerate_codes` ist dem
 Owner vorbehalten.
@@ -163,12 +173,15 @@ Widerruf, sonst 24 Monate nach letzter Aktivität). **Automatische Löschroutine
 | KI-Coach | Art. 6 Abs. 1 lit. a, Art. 9 Abs. 2 lit. a | gesonderte Einwilligung; Spieler-Daten im Trainer-Kontext nur mit Einwilligung des Spielers |
 | Einwilligungsnachweise | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 | tragfähig |
 | Sicherheit, Logs, KI-Limit | Art. 6 Abs. 1 lit. f | tragfähig |
+| Kaderplanung und Scouting (externe Spieler, Aufrücker, Planung eigener Spieler) | Art. 6 Abs. 1 lit. f | Abwägung dokumentiert (Datenschutzerklärung, Abschnitt 5); erhöhter Schutz Minderjähriger; Information nach Art. 14 ohne Ausnahme nach Abs. 5 lit. b; Widerspruch führt zur Löschung |
 
 ### 3.2 Zweckbindung
 
 - Keine Werbung, kein Tracking, keine Analyse-SDKs von Drittanbietern, kein Verkauf.
 - Daten sind nach Teams getrennt; kein teamübergreifender Zugriff.
-- Keine Verwendung für andere Zwecke (z. B. Scouting durch Dritte, Forschung) ohne neue Rechtsgrundlage.
+- Keine Verwendung für andere Zwecke (z. B. Scouting durch Dritte, Forschung) ohne neue Rechtsgrundlage. Das
+  Scouting im Team (Zweck 5b) dient nur der eigenen Kaderplanung; keine Weitergabe an Dritte (z. B. Berater, andere
+  Vereine), keine Bewertungen eigener Spieler im Scouting.
 - KI-Anbieter: Ausschluss der Nutzung für Modelltraining vertraglich absichern [prüfen].
 
 ### 3.3 Datenminimierung (feldweise)
@@ -191,6 +204,10 @@ Widerruf, sonst 24 Monate nach letzter Aktivität). **Automatische Löschroutine
 | Potenziale, Nachrichten | Entwicklung, Kommunikation | ja | strukturierte Typen statt freiem Chat (umgesetzt) |
 | Push-Token | Erinnerungen | ja, optional | Löschung bei Inaktivität |
 | KI-Zähler | Tageslimit | ja | Löschung nach 30 Tagen |
+| Scouting: Name, Jahrgang, Positionen, Verein | Kaderplanung, Wiedererkennen | ja | Geburtsdatum nur optional (Jahrgang genügt) |
+| Scouting: Berichte, Bewertung, Empfehlung | Entscheidung über Probetraining/Verpflichtung | ja | sportliche Bereiche (1–5) statt freier Urteile; Hinweis „keine Gesundheitsdaten“; Löschfristen |
+| Scouting: Kontaktweg, Videolink | Kontaktaufnahme, Beobachtung | eingeschränkt | optional; kein Adressfeld, kein Foto; nur http(s)-Links |
+| Aufrücker | Planung aus dem eigenen Verein | ja | nur Name, Position, Jahrgang, Team (`club_risers`); keine Gesundheits-, Leistungs- oder Kontaktdaten |
 
 Weitere Minimierung: Infotiefe und Module sind je Team konfigurierbar (`teams.depth`, `teams.modules`). **Zu
 prüfen:** ob Gesundheitsmodule für Kinderteams (z. B. U7–U11) standardmäßig deaktiviert sind. Empfehlung: ja.
@@ -270,6 +287,7 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R38 | **Individualtraining:** Einzeltermin zwischen Erwachsenem und Kind ohne Transparenz | Kinder, Jugendliche | Kinderschutz | 1 | 4 | Risiko |
 | R39 | **Matchplan:** Spieler erfahren über die App (statt persönlich), dass sie nicht im Kader oder nicht in der Startelf stehen; Aufgaben/Kritik an einzelnen werden für alle sichtbar; das **Zugriffsprotokoll** wird als Überwachung empfunden oder gegen Spieler verwendet („hat den Plan nicht gelesen“) | Spieler, v. a. Jugendliche | psychischer Druck, Bloßstellung, Gefühl der Kontrolle | 2 | 2 | gering |
 | R40 | **Verein:** Funktionäre sehen mehr Teams und Daten als nötig (z. B. Gesundheitsdaten ganzer Jahrgänge); Daten wandern beim **Hochziehen/Wechsel** unbemerkt in ein anderes Team; Zugriffe bleiben nach dem Ausscheiden eines Funktionärs oder dem Lösen eines Teams bestehen; Vereinsübersicht wird zum Leistungsvergleich einzelner Spieler genutzt | Spieler, v. a. Jugendliche | Offenlegung über das Erforderliche hinaus, Kontrollverlust | 2 | 3 | Risiko |
+| R41 | **Kaderplanung & Scouting:** externe, oft minderjährige Spieler werden ohne ihr Wissen bewertet und dauerhaft gespeichert; Freitexte enthalten Gesundheitsangaben oder abwertende Urteile; Bewertungen werden an Dritte weitergegeben; eigene Spieler erfahren unvermittelt von ihrer Planung („Abgang“); die Aufrücker-Liste legt Daten jüngerer Teams über das Nötige hinaus offen | externe Spieler, eigene Spieler, Spieler jüngerer Teams | Kontrollverlust, Stigmatisierung, Nachteile beim Vereinswechsel | 3 | 3 | **hoch** |
 
 ---
 
@@ -317,6 +335,7 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | Datenminimierung | Trainingseindruck nur für Ausreißer (`good`/`poor`, Durchschnitt wird nicht gespeichert), keine Rangliste; Kritik standardmäßig nicht für Spieler sichtbar (erst persönlich besprechen), Lob sichtbar; nur für Training (Check), höchstens 8 Gründe; Schreiben nur mit Recht „Notizen & Bewertungen“ (RLS-Test T43) | R31 |
 | Vertraulichkeit | Weitere Einheiten (`day_units`): Spieler lesen nur Einheiten für alle und für eigene freigegebene Gruppen, nie Teilnehmerlisten; gelöschte Gruppe ⇒ niemand statt alle; RPE je Einheit mit denselben Regeln und derselben Einwilligung wie die übrige Belastung; Anwesenheit nur über das Mannschaftstraining; Sprünge der Torhüter freiwillig, Plausibilitätsgrenze 0–300 (RLS-Test T43) | R32 |
 | Datenminimierung / Zugriffssteuerung | **Verein:** Zugriff eines Funktionärs nur auf zugewiesene Teams und nur über eine Zeile im Trainerteam (`club_sync`), damit dieselben Regeln wie für das Trainerteam gelten; Standardrechte ohne Gesundheitsdaten (`club_default_perms`), Hinweis in der App beim Vergeben; Vereinszeilen kann das Team nicht verändern, echte Mitgliedschaften haben Vorrang; Vereinsübersicht nur Kennzahlen je Team (keine Namen), Ausfälle/Beteiligung nur mit „Kader“; Hochziehen/Wechsel nur mit „Kader“ in beiden Teams, Belastung nur auf ausdrückliche Auswahl und mit „Gesundheitsdaten“ in beiden Teams, begrenzt auf 6 Wochen (je Tag zusammengefasst) bzw. 4 Wochen Morgen-Checks; Zugriffe enden sofort beim Entfernen, Niederlegen, Lösen des Teams oder Auflösen des Vereins (Trigger); Anfragen nur über Code und Bestätigung durch den Vereinsadmin; letzter Admin bleibt, Nachfolge bei Kontolöschung; Funktionen im Datenexport (v7) (RLS-Test T47) | R40 |
+| Transparenz / Datenminimierung / Speicherbegrenzung | **Kaderplanung & Scouting:** eigenes Recht „scout“ (Standard: Owner und Rolle Trainer, im Verein sportliche Leitung und NLZ; nicht Physio und Koordination; vom Owner je Person abschaltbar), Modul abschaltbar, Spieler ohne jeden Zugriff (RLS); keine Gesundheits- und Fotofelder, Hinweis im Formular; Information nach Art. 14: Erinnerung nach 30 Tagen bzw. sofort bei Kontakt (Probetraining, Gespräche, Zusage), Hinweis in der Übersicht, Infotext und Auskunft (Art. 15) zum Teilen, Datum der Information; Löschung abgeschlossener Kandidaten nach 6 Monaten, übriger nach 24 Monaten ohne Aktivität (Merklisten löschen zählt nicht als Aktivität), Saisonplanungen ab der übernächsten Saison, Löschdatum im Profil sichtbar; Aufrücker nur mit Name, Position, Jahrgang, Team und nur bei passendem Jahrgang; Stand eigener Spieler nur im Trainerteam (wie Trainernotizen) (RLS-Test T48, T24) | R41 |
 | Vertraulichkeit / Transparenz | **Matchplan:** nur Trainerteam liest die Tabelle; Spieler ausschließlich über `match_plan_open` (Modul an, freigegeben, im Zeitraum, ggf. nur Kader) und nur den freigegebenen Auszug; Aufgaben standardmäßig nur die eigene, Wechselplan standardmäßig nicht freigegeben, Hinweis in der App, Nicht-Nominierte vorher persönlich zu informieren; Zugriffsprotokoll nur Zeitpunkt/Plattform/erkannter Screenshot, höchstens ein Eintrag je 10 Minuten, nur fürs Trainerteam, für Spieler in der App erklärt und im Export, Löschung nach 6 Monaten; Wasserzeichen mit Name, Bildschirmschutz (Android gesperrt, iOS Aufnahmen geschwärzt) (RLS-Test T46, T24) | R39 |
 
 ### 6.2 Zusätzliche Maßnahmen (geplant)
@@ -350,6 +369,7 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | M-22 | Kennzahlen vorsichtig darstellen (ACWR als Orientierung, nicht als Verletzungsprognose); Zweckbestimmung schriftlich fixieren (siehe Abschnitt 9) | R16 | P1 | [ ] | offen |
 | M-23 | Kinderfreundliches Onboarding (kurze Erklärung in einfacher Sprache vor den Einwilligungen) | R18 | P2 | [ ] | offen |
 | M-24 | Externer Sicherheitstest (Penetrationstest, insbesondere RLS und RPCs) | R1 | P2 | [ ] | offen |
+| M-27 | Leitfaden Scouting für Vereine: Information der Spieler bzw. Eltern (wer informiert – Trainerteam oder Verein), sachliche Formulierungen in Berichten, keine Weitergabe von Bewertungen, eigene Spieler persönlich über die Planung informieren; prüfen, ob Status ab „Probetraining“ ohne eingetragene Information gesperrt werden soll | R41 | P2 | [ ] | offen |
 | M-25 | Konsultation der Betroffenen (Art. 35 Abs. 9): Rückmeldung von Pilotverein, Spielern und Eltern zu Einwilligungsablauf und Sichtbarkeit | R5, R18 | P2 | [ ] | offen |
 
 ---
@@ -395,6 +415,7 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | R38 | 1 | 3 | gering | Transparenz im Trainerteam, Leitfaden (Vereinsgelände, Sechs-Augen-Prinzip) |
 | R39 | 1 | 2 | gering | Freigabe nur ausgewählter Bereiche, Aufgaben nur die eigene, Hinweis zur persönlichen Information, Protokoll gedrosselt und befristet |
 | R40 | 1 | 3 | gering | Zugriff nur zugewiesener Teams mit sparsamen Standardrechten (ohne Gesundheitsdaten), Kennzahlen ohne Namen, Übernahme der Belastung nur ausdrücklich und mit Recht in beiden Teams, sofortiges Ende der Zugriffe |
+| R41 | 1 | 3 | gering | eigenes Recht, keine Gesundheitsdaten, Information nach Art. 14 mit Erinnerung, kurze Löschfristen, Aufrücker nur mit Minimaldaten; Leitfaden (M-27) senkt das Risiko unterlassener Information weiter |
 
 **Bewertung:** Nach Umsetzung aller P1-Maßnahmen verbleibt **kein hohes Restrisiko**. Eine vorherige Konsultation der
 Aufsichtsbehörde nach Art. 36 DSGVO ist dann voraussichtlich nicht erforderlich.
@@ -422,6 +443,8 @@ abzuraten bzw. die Aufsichtsbehörde nach Art. 36 DSGVO zu konsultieren.
 10. Abgrenzung Medizinprodukt (Abschnitt 9) und KI-Verordnung (Art. 50 Transparenz, Art. 4 KI-Kompetenz).
 11. Tatsächliche Nutzlast der KI-Anfragen und Push-Texte im Code verifizieren.
 12. E-Mail-Versanddienst und Webhoster festlegen und in DSFA aufnehmen.
+13. Scouting: Verantwortlichkeit für die Daten externer Spieler (Verein oder Herausgeber) und wer die Information nach
+    Art. 14 gibt; Abwägung bei Minderjährigen (Art. 6 Abs. 1 lit. f letzter Halbsatz).
 
 ---
 
@@ -480,3 +503,4 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 | 0.6 | [TT.MM.JJJJ] | Ergänzt: Chat (R12 neu bewertet, R33–R35), Spielerentwicklung (R36), Wochenchallenge (R37), Individualtraining (R38). Umgesetzte Maßnahmen: Chat-Regeln je Altersklasse mit Mitlesen in Jugendteams, Melden mit Kopie, Push ohne Inhalt, Spam-Grenze, Löschfristen; interne Gesprächsnotiz getrennt, Freigabe von Einschätzungen/Protokollen, `challenge_totals` ohne Einzelwerte, Einheit nur für einzelne Spieler (`day_units.player_ids`), Export v5, `merge_players` v6 | [ ] |
 | 0.7 | [TT.MM.JJJJ] | Ergänzt: Matchplan mit Freigabe für Spieler und Zugriffsprotokoll (R39). Umgesetzte Maßnahmen: kein direkter Spielerzugriff (nur `match_plan_open`), Freigabe nur ausgewählter Bereiche mit Zeitraum und „nur Kader“, Aufgaben nur die eigene, Protokoll gedrosselt und nach 6 Monaten gelöscht, Wasserzeichen und Bildschirmschutz, Export v6, `merge_players` v7 | [ ] |
 | 0.8 | [TT.MM.JJJJ] | Ergänzt: Verein mit Funktionären, Vereinsübersicht, Hochziehen/Wechsel und Ankündigungen (R40). Umgesetzte Maßnahmen: Zugriff als gespiegelte Trainerteam-Zeile (`club_sync`, `team_staff_club_guard`), Standardrechte ohne Gesundheitsdaten, `club_overview` nur Kennzahlen, `club_move_player` mit Rechteprüfung in beiden Teams, Nachfolge des Vereinsadmins bei Kontolöschung, Export v7 | [ ] |
+| 0.9 | [TT.MM.JJJJ] | Ergänzt: Kaderplanung & Scouting (Zweck 5b, Betroffene „beobachtete Spieler“, R41, M-27). Umgesetzte Maßnahmen: Recht „scout“, Tabellen nur für das Trainerteam mit diesem Recht, keine Gesundheits- und Fotofelder, Information nach Art. 14 mit Erinnerung, Infotext und Auskunft zum Teilen, Löschfristen 6/24 Monate und für Saisonplanungen, `club_risers` mit Minimaldaten (RLS-Test T48, T24) | [ ] |

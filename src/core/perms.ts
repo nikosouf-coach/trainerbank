@@ -3,15 +3,15 @@
 // Grundsatz: Wer ein Recht nicht hat, für den wirken die zugehörigen Module wie ausgeschaltet.
 import type { StaffRoleKey, TeamData } from "./types";
 
-export type Perm = "health" | "medical" | "plan" | "squad" | "perf" | "notes" | "messages" | "tasks" | "cash" | "admin";
-export const PERMS: Perm[] = ["health", "medical", "plan", "squad", "perf", "notes", "messages", "tasks", "cash", "admin"];
+export type Perm = "health" | "medical" | "plan" | "squad" | "perf" | "notes" | "messages" | "tasks" | "cash" | "admin" | "scout";
+export const PERMS: Perm[] = ["health", "medical", "plan", "squad", "perf", "notes", "messages", "tasks", "cash", "admin", "scout"];
 export const ALL_PERMS: ReadonlySet<Perm> = new Set(PERMS);
 
 /** Standardrechte je Rolle in team_staff (identisch mit public.default_perms in der Datenbank) */
 export function defaultPerms(role: string | null | undefined): Perm[] {
   switch (role) {
     case "owner": return [...PERMS];
-    case "coach": return ["health", "plan", "squad", "perf", "notes", "messages", "tasks"];
+    case "coach": return ["health", "plan", "squad", "perf", "notes", "messages", "tasks", "scout"];
     case "physio": return ["health", "medical", "perf", "messages"];
     default: return [];
   }
@@ -20,12 +20,12 @@ export function defaultPerms(role: string | null | undefined): Perm[] {
 /** Vorlagen nach Funktion im Trainerteam (Trainerprofil) – Ausgangspunkt, danach einzeln anpassbar */
 export const PERM_PRESETS: Record<StaffRoleKey, Perm[]> = {
   chef: [...PERMS],
-  co: ["health", "plan", "squad", "perf", "notes", "messages", "tasks"],
+  co: ["health", "plan", "squad", "perf", "notes", "messages", "tasks", "scout"],
   tw: ["health", "plan", "perf", "notes", "messages"],
   athletik: ["health", "plan", "perf", "messages"],
   physio: ["health", "medical", "perf", "messages"],
   betreuer: ["squad", "tasks", "cash", "messages"],
-  analyst: ["plan", "perf", "notes"],
+  analyst: ["plan", "perf", "notes", "scout"],
 };
 /** Rolle in team_staff passend zur Funktion (Physio = physio, sonst coach) */
 export const accessRoleFor = (r: StaffRoleKey): "coach" | "physio" => r === "physio" ? "physio" : "coach";
@@ -50,18 +50,21 @@ export function presetOf(perms: readonly string[]): StaffRoleKey | null {
  * Gibt bei vollen Rechten dasselbe Objekt zurück.
  */
 export function viewFor(D: TeamData, perms: ReadonlySet<Perm>, strip: boolean): TeamData {
-  const health = perms.has("health"), medical = perms.has("medical"), notes = perms.has("notes");
-  if (health && medical && notes) return D;
+  const health = perms.has("health"), medical = perms.has("medical"), notes = perms.has("notes"), scout = perms.has("scout");
+  if (health && medical && notes && scout) return D;
   const m = { ...D.team.modules };
   if (!health) { m.belastung = false; m.regeneration = false; m.wachstum = false; }
   if (!medical) m.befunde = false;
   // Spielerentwicklung (Ziele, Kompetenzprofil, Gespräche) gehört zum Recht „Notizen & Bewertungen“
   if (!notes) m.entwicklung = false;
+  // Kaderplanung & Scouting (externe Spieler, Abgänge) nur mit Recht „Scouting“
+  if (!scout) m.kaderplanung = false;
   const V: TeamData = { ...D, team: { ...D.team, modules: m } };
   if (strip) {
     if (!health) { V.rpe = {}; V.rpeU = {}; V.well = {}; V.extra = {}; V.growth = {}; }
     if (!medical) V.findings = [];
     if (!notes) { V.notes = {}; V.assessments = []; V.goals = []; V.goalEntries = []; V.talks = []; }
+    if (!scout) { V.scouts = []; V.scoutReports = []; V.scoutLists = []; V.squadPlans = []; }
   }
   return V;
 }

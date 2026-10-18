@@ -48,6 +48,11 @@
   erlaubt wurde. In der Vereinsübersicht stehen nur Zahlen je Team, keine Namen. Wirst du in ein anderes Team des
   Vereins hochgezogen oder wechselst du, kann das Trainerteam deine Belastung der letzten Wochen mitnehmen, damit du im
   neuen Team nicht überlastet wirst.
+- **Kaderplanung:** Für die nächste Saison kann dein Trainerteam festhalten, wie es mit dir plant (z. B. fest,
+  Perspektive, unsicher) – das sieht nur das Trainerteam, wie eine Trainernotiz. Trainerteams älterer Teams deines
+  Vereins sehen dich als möglichen Aufrücker nur mit Name, Position, Jahrgang und Team. Spieler anderer Teams oder
+  Vereine, die ein Trainerteam beobachtet (Scouting), werden darüber informiert; Gesundheitsdaten werden dabei nie
+  erfasst.
 - Die Daten liegen auf Servern in der EU (Frankfurt). Es gibt **keine Werbung, kein Tracking und keinen Verkauf** von Daten.
 - Der KI-Coach ist freiwillig. Wenn du ihn nutzt, geht deine Frage an einen KI-Anbieter in den USA.
 - Du kannst deine Daten jederzeit in der App herunterladen und dein Konto mit allen Gesundheitsdaten löschen.
@@ -101,6 +106,7 @@ E-Mail: [E-Mail des Datenschutzbeauftragten]
 | **Kassenwart** | ein Spieler, den das Trainerteam bestimmt (vor allem bei Senioren) | sieht die Mannschaftskasse aller Spieler und bucht Zahlungen; keine Gesundheitsdaten |
 | **Spieler mit eigenem Konto** | Spielerinnen und Spieler ab [Mindestalter für ein eigenes Konto] bis Erwachsene | treten einem Team mit dem Team-Code bei, sehen Teamkalender und veröffentlichten Wochenplan, tragen eigene Daten ein, sehen nur ihre eigenen Daten |
 | **Spieler ohne Konto** | Spieler, die das Trainerteam selbst anlegt (z. B. jüngere Kinder) | nutzen die App nicht selbst; das Trainerteam erfasst Daten für sie |
+| **Beobachtete Spieler (Scouting)** | Spieler anderer Teams oder Vereine, die ein Trainerteam für seine Kaderplanung beobachtet | nutzen die App nicht; das Trainerteam erfasst sportliche Eindrücke und informiert sie bzw. bei Minderjährigen die Eltern (4.37) |
 | **Erziehungsberechtigte** | Eltern bzw. Sorgeberechtigte von Spielern unter 16 Jahren | erteilen die erforderliche Einwilligung; wir speichern dafür ihre E-Mail-Adresse |
 
 Tritt ein Spieler mit dem Team-Code einem Team bei, in dem das Trainerteam ihn bereits ohne Konto angelegt hat
@@ -147,6 +153,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.34 | Chat | Chats, in denen du Mitglied bist (Teamchat, Trainerteam, Gruppen, Einzelchats, eigene Gruppen), deine Nachrichten (Text, Zeitpunkt, Antwort auf, gelöscht am/von), Reaktionen, dein Lesestand und ob du einen Chat stumm geschaltet hast; Meldungen (Grund, Anmerkung, **Kopie der gemeldeten Nachricht** mit Absender und Zeitpunkt); Zeitpunkt der letzten Chat-Push-Mitteilung je Chat (zur Drosselung) | du, andere Mitglieder des Teams | freiwillig |
 | 4.36 | Verein | Verein (Name, Farbe, Codes) und verbundene Teams; Funktionäre (Konto, Funktion, Bezeichnung, Rechte, zugewiesene Teams; Anfragen); Kennzahlen je Team in der Vereinsübersicht (Zahl der Spieler, nächstes und letztes Spiel, Bilanz, Zahl der Verletzten, Kranken und Abwesenden, Trainingsbeteiligung, Zahl der Trainings, Status des Matchplans – **ohne Namen**); beim Hochziehen oder Wechsel: Spielerprofil im Zielteam (Name, Geburtsdatum, Position, Rückennummer, Gewicht, Herkunftsteam) und – nur auf Wunsch des Trainerteams – Belastung der letzten 6 Wochen (je Tag zusammengefasst als „Training <Team>“), Zusatzsport, Morgen-Checks der letzten 4 Wochen und laufende Abwesenheiten; Ankündigungen des Vereins im Teamchat (wie 4.34) | Funktionäre des Vereins (nach Rechten), Trainerteams der beteiligten Teams | – |
 | 4.35 | Matchplan | Aufstellung (Startelf, Bank, Kapitän, Position), Aufgabe für dich, Folien, Spielidee, Gegneranalyse, Wechselplan (geplante Minuten) – vom Trainerteam erstellt; **Zugriffsprotokoll**: wann du einen freigegebenen Matchplan geöffnet hast, Plattform (iOS/Android/Web) und erkannte Screenshots | Trainerteam; du (freigegebene Bereiche) | – |
+| 4.37 | Kaderplanung und Scouting | **Saisonplanung:** Grundordnung, je Position Soll, Anforderungsprofil, eingeplante Spieler und Schattenkandidaten in Reihenfolge, dein Stand für die Saison (offen, fest, Perspektive, unsicher, Abgang; das Erreichen der Altersgrenze berechnet die App aus deinem Geburtsjahr) mit kurzer Notiz, Notizen zur Saison. **Aufrücker:** Spieler jüngerer Teams des Vereins mit Vorname, Nachname, Position, Jahrgang und Team. **Scouting** (Spieler, die Trainerbank nicht nutzen): Vor- und Nachname, Jahrgang bzw. Geburtsdatum, Positionen, starker Fuß, Größe, Verein und Mannschaft/Liga, Status (beobachten, Sichtung, Probetraining, Gespräche, Zusage, Absage, kein Interesse), Priorität, Einschätzung von aktuellem Niveau und Potenzial, Merkmale, Merklisten, Quelle, Kontaktweg (z. B. „über den Vater“), Videolink, Notiz, nächster Schritt, Berichte (Datum, Anlass, Art der Beobachtung, Minuten, Position, Bewertung 1–5 je Bereich und Kompetenz, Gesamteindruck, Empfehlung, Stärken, Entwicklungsfelder, Fazit, Verfasser), Datum der Information nach Art. 14 DSGVO; **keine Gesundheitsdaten** | Trainerteam; Aufrücker aus den Kaderdaten der Vereinsteams | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -243,6 +250,21 @@ wenn das Trainerteam das auswählt und in **beiden** Teams das Recht „Gesundhe
 und Verletzungsschutz im neuen Team von Anfang an stimmen. Das ist derselbe Zweck, in den du für die Belastungssteuerung
 eingewilligt hast; widerrufst du die Einwilligung, gilt das für alle Teams.
 
+**Kaderplanung und Scouting (4.37):** Diesen Bereich sieht nur, wer im Trainerteam (oder als Funktionär des Vereins)
+das Recht „Scouting & Kaderplanung“ hat – Spieler nie. Dein **Stand für die nächste Saison** und die Notiz dazu sind
+interne Planung des Trainerteams, vergleichbar mit Trainernotizen; sie sind nicht Teil des Datenexports, Auskunft
+bekommst du auf Anfrage (Abschnitt 20). Ist dein Team mit einem Verein verbunden, sehen die Trainerteams **älterer
+Teams desselben Vereins** dich als möglichen Aufrücker – nur mit Vorname, Nachname, Position, Jahrgang und Team, und
+nur, wenn dein Jahrgang in der geplanten Saison bei ihnen spielberechtigt ist. Andere Daten von dir sehen sie dadurch
+nicht; dich tatsächlich hochziehen kann nur, wer in deinem Team das Recht „Kader“ hat (siehe 4.36).
+Im **Scouting** erfasst das Trainerteam Spieler, die Trainerbank nicht nutzen – nur sportliche Eindrücke, keine
+Gesundheitsdaten (die App weist beim Erfassen darauf hin), keine Fotos. Diese Spieler bzw. bei Minderjährigen ihre
+Eltern werden nach Art. 14 DSGVO informiert – spätestens einen Monat nach der Erfassung, beim ersten Kontakt (z. B.
+Einladung zum Probetraining) sofort. Die App erinnert das Trainerteam daran, stellt einen Informationstext und eine
+Auskunft zum Teilen bereit und hält das Datum der Information fest. Wird ein Spieler nach einer Zusage in den Kader
+übernommen, legt das Trainerteam ein Spielerprofil mit Name, Jahrgang bzw. Geburtsdatum und Position an; ab dann gilt
+für ihn diese Erklärung wie für alle Spieler.
+
 **Platzierung (4.26):** Du siehst nur deinen eigenen Platz (z. B. „Platz 3 von 18“), erst wenn mindestens fünf Spieler
 einen Wert haben. Werte oder Namen anderer Spieler werden nie angezeigt. Das Trainerteam kann die Platzierung abschalten.
 
@@ -272,6 +294,7 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Push-Erinnerungen und Team-Mitteilungen | 4.14 | Art. 6 Abs. 1 lit. b DSGVO; Zugriff auf das Endgerät nach § 25 Abs. 2 Nr. 2 TDDDG (vom Nutzer ausdrücklich gewünschter Dienst) nach Freigabe in den Systemeinstellungen |
 | Nachweis von Einwilligungen | 4.13 | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 DSGVO |
 | Kinderschutz und Schutz vor Missbrauch im Chat (Mitlesen in Jugendteams, Meldungen mit Kopie, Begrenzung auf 30 Nachrichten pro Minute) | 4.34 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Spieler am Schutz von Kindern und Jugendlichen; § 72a SGB VIII, Kinderschutzkonzepte der Verbände) |
+| Kaderplanung und Scouting: Planung der nächsten Saison, Aufrücker aus dem Verein, Beobachtung von Spielern anderer Teams und Vereine | 4.37 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins an einer vorausschauenden Kaderplanung und Talentsichtung; Abwägung siehe unten) |
 | Vertraulichkeit des Matchplans: Wasserzeichen, Bildschirmschutz und Zugriffsprotokoll | 4.35 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Mannschaft, die Spielvorbereitung vertraulich zu halten; das Protokoll enthält nur Zeitpunkt, Plattform und erkannte Screenshots und wird nach 6 Monaten gelöscht) |
 | Sicherheit, Missbrauchsabwehr, Fehleranalyse, Tageslimit für den KI-Coach | 4.15 (Zähler), 4.16 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und bezahlbaren Betrieb) |
 | Speicherung auf deinem Gerät (Anmeldesitzung, Sprache, Einstellungen) | – | § 25 Abs. 2 Nr. 2 TDDDG (unbedingt erforderlich); Art. 6 Abs. 1 lit. b DSGVO |
@@ -290,6 +313,21 @@ von Kindern – an der Vertraulichkeit ihrer Daten gegenüber. Wir tragen dem Re
 eigenen Teams diese Daten sieht, nichts veröffentlicht wird, es keine Werbung und kein Tracking gibt und
 Löschfristen gelten. Gesundheitsdaten verarbeiten wir **nicht** auf dieser Grundlage, sondern nur mit
 Einwilligung. Du kannst der Verarbeitung auf Grundlage berechtigter Interessen widersprechen (Abschnitt 20).
+
+**Begründung für Kaderplanung und Scouting (Art. 6 Abs. 1 lit. f DSGVO):**
+Mannschaften planen ihren Kader für die nächste Saison und beobachten dafür auch Spieler anderer Teams und Vereine –
+das ist im Vereinsfußball üblich und für Spieler erwartbar, die im Spielbetrieb öffentlich auftreten. Erfasst werden
+nur sportliche Eindrücke, die für diese Planung nötig sind; Gesundheitsdaten und Fotos gehören nicht dazu, und als
+Kontaktweg genügt ein kurzer Hinweis, wie man in Kontakt kommt (die App fragt keine Anschrift ab). Dem steht das
+Interesse der Spieler – oft Minderjähriger – gegenüber, nicht ohne ihr Wissen bewertet zu werden. Wir tragen dem
+Rechnung durch: Sichtbarkeit nur im Trainerteam mit eigenem Recht, keine Weitergabe, Information nach Art. 14 DSGVO
+mit Erinnerung in der App, kurze Löschfristen (6 Monate nach einer Absage, sonst 24 Monate ohne Aktivität), Auskunft
+und Löschung jederzeit, Widerspruch ohne Begründung genügt (der Eintrag wird dann gelöscht). Aufrücker aus dem eigenen
+Verein sehen ältere Teams nur mit Name, Position, Jahrgang und Team.
+
+> **Prüfhinweis:** Abwägung für das Scouting Minderjähriger prüfen (Art. 6 Abs. 1 lit. f letzter Halbsatz DSGVO),
+> ebenso, wer für Scouting-Daten Verantwortlicher ist (Modell A/B, Abschnitt 1) und ob der Verein die Information nach
+> Art. 14 selbst gibt. Ausnahme nach Art. 14 Abs. 5 lit. b DSGVO wird bewusst **nicht** in Anspruch genommen.
 
 > **Prüfhinweis:**
 > 1. Abwägung nach lit. f bei Minderjährigen (Art. 6 Abs. 1 lit. f letzter Halbsatz DSGVO) prüfen. Je nach
@@ -407,6 +445,8 @@ bleibt unberührt.
 | Zugriffsprotokoll des Matchplans (wann geöffnet, Screenshot erkannt) | in deinem Datenexport | ja | nein | nein |
 | Daten deines Teams für Funktionäre des Vereins | – | – | – | Funktionäre, denen der Vereinsadmin dein Team zuweist – mit denselben Rechten wie ein Mitglied des Trainerteams (Gesundheitsdaten nur mit Recht „Gesundheitsdaten“) |
 | Kennzahlen deines Teams in der Vereinsübersicht (nur Zahlen, keine Namen) | nein | wenn Funktionär | nein | Funktionäre des Vereins mit Zugriff auf dein Team |
+| deine Planung für die nächste Saison (Stand, Notiz, Position im Schattenkader) | nein (Auskunft auf Anfrage, Abschnitt 20) | mit Recht „Scouting & Kaderplanung“ | nein | Trainerteams älterer Teams deines Vereins mit diesem Recht: nur Name, Position, Jahrgang und Team (als möglicher Aufrücker) |
+| Scouting (Spieler, die Trainerbank nicht nutzen) | – | mit Recht „Scouting & Kaderplanung“ | nein | nein |
 | deine Funktion im Verein (als Funktionär) | ja | Trainerteams der zugewiesenen Teams sehen dich als Mitglied „über Verein“ | nein | andere Funktionäre des Vereins |
 
 Diese Regeln setzt die Datenbank selbst durch (zeilenbasierte Zugriffsregeln), nicht nur die Oberfläche der App.
@@ -593,6 +633,8 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Übernommene Daten beim Hochziehen oder Wechsel | wie die übrigen Daten des Zielteams (Spielerprofil, Gesundheitsdaten); das inaktive Profil im bisherigen Team wie inaktive Spieler |
 | Matchplan | bei Löschung durch das Trainerteam oder Löschung des Teams |
 | Zugriffsprotokoll des Matchplans | automatisch **6 Monate** nach dem Aufruf; mit dem Plan oder deinem Spielerprofil |
+| Saisonplanung (Kaderplanung) | bei Löschung durch das Trainerteam oder des Teams; automatisch, sobald die übernächste Saison begonnen hat (die Planung für 2027/28 also ab dem 1. Juli 2029); dein Eintrag darin mit deinem Spielerprofil |
+| Scouting (beobachtete Spieler und Berichte) | bei Löschung durch das Trainerteam, auf Verlangen bzw. nach Widerspruch der Person, mit dem Team; automatisch **6 Monate** nach Absage bzw. „kein Interesse“, sonst **24 Monate** nach der letzten Änderung oder dem letzten Bericht |
 | Angaben zum Schmerz | wie Gesundheitsdaten (mit dem Morgen-Check-Eintrag) |
 | Mannschaftskasse | Buchungen und Befreiungen bei Löschung durch Kasse/Trainerteam oder des Teams; beim Löschen eines Spielers werden Befreiungen gelöscht und Buchungen anonymisiert |
 | Offline-Einträge und Stand auf dem Gerät | nach dem Senden bzw. spätestens nach 14 Tagen; der Stand beim Abmelden und Löschen des Kontos |
@@ -685,6 +727,11 @@ Für alle anderen Anliegen schreib an [E-Mail]. Damit wir keine Daten an Unbefug
 E-Mail-Adresse deines Kontos; gegebenenfalls fragen wir nach. Wir antworten innerhalb eines Monats.
 
 Daten, die das Trainerteam über dich erfasst hat, kannst du ebenfalls über uns berichtigen oder löschen lassen.
+
+**Wenn ein Trainerteam dich beobachtet hat (Scouting, 4.37)**, kannst du – bei Minderjährigen deine Eltern – Auskunft,
+Berichtigung und Löschung verlangen und der Verarbeitung widersprechen: beim Trainerteam bzw. Verein, der dich
+informiert hat, oder bei uns unter [E-Mail]. Das Trainerteam kann die Auskunft direkt in der App erstellen und den
+Eintrag mit allen Berichten löschen.
 [Prüfhinweis: Bei Modell B (Verein verantwortlich) richten sich diese Anfragen an den Verein; wir leiten sie weiter.]
 
 ## 21. Änderungen dieser Datenschutzerklärung
@@ -735,14 +782,19 @@ muted chats, reports with a copy of the reported message); match plans created b
 you opened a shared match plan (platform, detected screenshots; deleted after 6 months); clubs (connected teams,
 officials with role, rights and assigned teams, key figures per team without names, call-ups and transfers with an
 optional copy of the last 6 weeks of load, 4 weeks of morning checks and ongoing absences – only with the health-data
-right in both teams); push tokens; AI usage counters; technical server logs. Load, wellness,
+right in both teams); squad planning for the next season (your planning status with a short note – visible to the
+coaching staff only, like coach notes; older teams of your club see only your name, position, year of birth and team
+as a possible call-up) and scouting of players who do not use the app (sporting impressions only, no health data, no
+photos; they – or for minors their parents – are informed under Art. 14 GDPR; deleted 6 months after a decline,
+otherwise after 24 months without activity); push tokens; AI usage counters; technical server logs. Load, wellness,
 complaints and body regions, injury, illness, height and weight, rehab/load-build/growth group membership and test
 results are treated as **health data** (Art. 9 GDPR).
 
 **Legal bases:** account and app features – contract (Art. 6(1)(b)); data entered by coaching staff about players and
 players without an account – legitimate interests in organising training and matches (Art. 6(1)(f)); health data and
 the AI coach – explicit consent (Art. 9(2)(a), Art. 6(1)(a)); consent records – legal obligation (Art. 6(1)(c),
-Art. 7(1)); security and abuse prevention – legitimate interests (Art. 6(1)(f)); device storage – § 25(2) no. 2 TDDDG.
+Art. 7(1)); squad planning and scouting – legitimate interests in planning the squad and identifying talent
+(Art. 6(1)(f)); security and abuse prevention – legitimate interests (Art. 6(1)(f)); device storage – § 25(2) no. 2 TDDDG.
 
 **Who sees what:** players see only their own data; the coaching staff of the team (owner, coach, physio) see the data
 of their team's players; team-mates never see each other's data. In the chat, members of a chat see its messages
@@ -752,7 +804,8 @@ staff and staff members with the "Messages" permission can read direct messages 
 24 months. Shared match plans are visible to players only for the shared parts and period, shown with a name
 watermark (screenshots blocked on Android, detected on iOS); the staff sees who has opened them. If your team is
 connected to a club, club officials see the teams assigned to them with the rights granted by the club administrator
-(by default planning and squad, no health data); the club overview shows only figures per team. Enforced by database
+(by default planning and squad, no health data); the club overview shows only figures per team. Squad planning and
+scouting require a separate "Scouting & squad planning" permission; players never see this area. Enforced by database
 row-level security.
 
 **Minors:** own accounts from [minimum age]; under 16, a parent or guardian must consent (we store their e-mail
@@ -777,7 +830,8 @@ within 30 days], and otherwise 24 months after your last activity; for further p
 section 16.
 
 **Your rights:** access, rectification, erasure, restriction, portability, objection (Art. 21), withdrawal of consent,
-complaint to a supervisory authority. In the app: export your data (JSON) at [path]; delete your account at
+complaint to a supervisory authority. If a coaching staff has scouted you, you (or your parents) can request access,
+correction or deletion and object at any time – via the club that informed you or at [E-Mail]. In the app: export your data (JSON) at [path]; delete your account at
 "Ich → Konto löschen" (players) or "Mehr → Konto löschen" (coaching staff), or via [Konto-Löschen-URL]. Contact:
 [E-Mail].
 
