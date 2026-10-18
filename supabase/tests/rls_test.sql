@@ -2449,6 +2449,176 @@ end
 $$;
 
 -- =====================================================================
+-- T46 Matchplan: nur Trainerteam, Freigabe mit Zeitraum, nur Kader, Aufgaben nur eigene, Zugriffsprotokoll
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+with ins as (insert into public.players (team_id, first_name) values (tst.get('team_b')::uuid, 'T46 Fremd') returning id)
+select tst.put('p46b', id::text) from ins;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.matches (team_id, date, time, opponent) values (tst.get('team_a')::uuid, current_date + 2, '15:00', 'T46 SV') returning id)
+select tst.put('m46', id::text) from ins;
+with ins as (insert into public.match_plans (team_id, match_id, title, content)
+             values (tst.get('team_a')::uuid, tst.get('m46')::uuid, 'gegen T46 SV',
+                     jsonb_build_object('fmt', 11, 'formation', '4-4-2', 'tasks', jsonb_build_object(tst.get('max'), 'Kette halten', tst.get('p2_player'), 'Tiefe Läufe')))
+             returning id)
+select tst.put('mp46', id::text) from ins;
+select tst.throws(format($q$insert into public.match_plans (team_id, match_id) values (%L, %L)$q$, tst.get('team_a'), tst.get('m46')), 'T46 ein Plan je Spiel', 'duplicate key');
+select tst.throws(format($q$insert into public.match_plans (team_id, title) values (%L, repeat('x', 81))$q$, tst.get('team_a')), 'T46 Titel höchstens 80 Zeichen', 'check constraint');
+select tst.throws(format($q$insert into public.match_plans (team_id, content) values (%L, '[]')$q$, tst.get('team_a')), 'T46 Inhalt ist ein Objekt', 'check constraint');
+select tst.throws(format($q$update public.match_plans set published = '{"sections": []}' where id = %L$q$, tst.get('mp46')), 'T46 Freigabe nur mit Ende', 'check constraint');
+select tst.throws(format($q$update public.match_plans set squad = array[%L]::uuid[] where id = %L$q$, tst.get('p46b'), tst.get('mp46')), 'T46 Kader nur aus dem eigenen Team', 'different_teams');
+select tst.affects(format($q$update public.match_plans
+   set published = jsonb_build_object('sections', '["tasks"]'::jsonb, 'tasks', content -> 'tasks'), share_sections = '{tasks}',
+       share_until = now() + interval '1 day', share_squad = true, squad = array[%L]::uuid[], published_at = '2000-01-01', published_by = null
+ where id = %L$q$, tst.get('max'), tst.get('mp46')), 1, 'T46 Freigabe (nur Kader: Max)');
+do $$ begin
+  perform tst.ok((select published_at > now() - interval '1 minute' and published_by = tst.uid('coachA') from public.match_plans where id = tst.get('mp46')::uuid),
+                 'T46 Zeitpunkt und Person der Freigabe setzt der Server');
+end $$;
+select tst.throws(format($q$update public.match_plans set share_sections = '{intern}' where id = %L$q$, tst.get('mp46')), 'T46 nur bekannte Bereiche', 'check constraint');
+select tst.affects(format($q$update public.match_plans set title = 'gegen T46 SV (neu)', published_at = '2000-01-01' where id = %L$q$, tst.get('mp46')), 1, 'T46 Titel ändern');
+do $$ begin
+  perform tst.ok((select published_at > now() - interval '1 minute' from public.match_plans where id = tst.get('mp46')::uuid), 'T46 Freigabezeitpunkt nicht direkt änderbar');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.match_plans)::text, '0', 'T46 fremdes Trainerteam sieht keine Matchpläne');
+end $$;
+select tst.affects($q$update public.match_plans set title = 'x'$q$, 0, 'T46 fremdes Trainerteam ändert nichts');
+select tst.throws(format($q$select public.match_plan_open(%L)$q$, tst.get('mp46')), 'T46 fremdes Trainerteam öffnet nichts', 'not_found');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare x jsonb;
+begin
+  perform tst.eq((select count(*) from public.match_plans)::text, '0', 'T46 Spieler lesen Matchpläne nie direkt');
+  perform tst.eq((select count(*)::text || '/' || bool_or(seen)::text from public.my_match_plans(tst.get('team_a')::uuid)), '1/false', 'T46 Max sieht den freigegebenen Plan (noch ungelesen)');
+  x := public.match_plan_open(tst.get('mp46')::uuid, 'ios');
+  perform tst.eq(x -> 'content' -> 'tasks' ->> tst.get('max'), 'Kette halten', 'T46 eigene Aufgabe');
+  perform tst.ok(not (x -> 'content' -> 'tasks' ? tst.get('p2_player')), 'T46 Aufgaben anderer bleiben verborgen');
+  perform tst.eq(x ->> 'name' || '/' || (x ->> 'pid'), 'Max Muster/' || tst.get('max'), 'T46 Name für das Wasserzeichen');
+  perform tst.eq(x ->> 'title', 'gegen T46 SV (neu)', 'T46 Titel');
+  x := public.match_plan_open(tst.get('mp46')::uuid, 'ios');
+  perform public.match_plan_event(tst.get('mp46')::uuid, 'shot', 'android');
+  perform tst.eq((select bool_or(seen)::text from public.my_match_plans(tst.get('team_a')::uuid)), 'true', 'T46 als gesehen markiert');
+end $$;
+select tst.throws(format($q$select public.match_plan_event(%L, 'open')$q$, tst.get('mp46')), 'T46 nur Screenshot-Meldungen', 'invalid_kind');
+select tst.throws(format($q$insert into public.match_plan_views (team_id, plan_id, player_id) values (%L, %L, %L)$q$, tst.get('team_a'), tst.get('mp46'), tst.get('max')),
+                  'T46 Protokoll nicht direkt schreibbar', 'row-level security');
+select tst.affects($q$delete from public.match_plan_views$q$, 0, 'T46 Protokoll nicht löschbar');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.my_match_plans(tst.get('team_a')::uuid))::text, '0', 'T46 nur Kader: Paul (nicht im Kader) sieht nichts');
+end $$;
+select tst.throws(format($q$select public.match_plan_open(%L)$q$, tst.get('mp46')), 'T46 nur Kader: Öffnen abgelehnt', 'not_found');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select string_agg(kind || ':' || coalesce(platform, '-'), ',' order by id) from public.match_plan_views where plan_id = tst.get('mp46')::uuid),
+                 'open:ios,shot:android', 'T46 Trainerteam sieht das Zugriffsprotokoll (ein Aufruf je 10 Minuten, Screenshot)');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.match_plans set share_squad = false where id = %L$q$, tst.get('mp46')), 1, 'T46 Freigabe für alle');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$
+declare x jsonb := public.match_plan_open(tst.get('mp46')::uuid);
+begin
+  perform tst.eq((select string_agg(k, ',') from jsonb_object_keys(x -> 'content' -> 'tasks') k), tst.get('p2_player'), 'T46 Paul sieht nur seine Aufgabe');
+  perform tst.ok(x -> 'content' -> 'tasks' ->> tst.get('p2_player') = 'Tiefe Läufe', 'T46 Pauls Aufgabe');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.match_plans set share_own_tasks = false where id = %L$q$, tst.get('mp46')), 1, 'T46 Aufgaben für alle sichtbar');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from jsonb_object_keys(public.match_plan_open(tst.get('mp46')::uuid) -> 'content' -> 'tasks'))::text, '2', 'T46 alle Aufgaben sichtbar');
+end $$;
+commit;
+
+-- Zeitraum, Modul aus, Freigabe beenden
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.match_plans set share_from = now() + interval '1 hour' where id = %L$q$, tst.get('mp46')), 1, 'T46 Freigabe erst später');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$select public.match_plan_open(%L)$q$, tst.get('mp46')), 'T46 vor Beginn der Freigabe nicht sichtbar', 'not_found');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.match_plans set share_from = null, share_until = now() - interval '1 minute' where id = %L$q$, tst.get('mp46')), 1, 'T46 Freigabe abgelaufen');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$select public.match_plan_open(%L)$q$, tst.get('mp46')), 'T46 nach Spielende nicht mehr sichtbar', 'not_found');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+update public.match_plans set share_until = now() + interval '1 day' where id = tst.get('mp46')::uuid;
+update public.teams set modules = modules || '{"matchplan": false}' where id = tst.get('team_a')::uuid;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$select public.match_plan_open(%L)$q$, tst.get('mp46')), 'T46 Modul aus: nicht sichtbar', 'not_found');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+update public.teams set modules = modules || '{"matchplan": true}' where id = tst.get('team_a')::uuid;
+select tst.affects(format($q$update public.match_plans set published = null where id = %L$q$, tst.get('mp46')), 1, 'T46 Freigabe beenden');
+do $$ begin
+  perform tst.eq((select coalesce(share_until::text, '-') || '/' || cardinality(share_sections)::text || '/' || coalesce(published_at::text, '-') from public.match_plans where id = tst.get('mp46')::uuid),
+                 '-/0/-', 'T46 beendete Freigabe räumt Zeitraum und Bereiche auf');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.my_match_plans(tst.get('team_a')::uuid))::text, '0', 'T46 nach Beenden nichts mehr freigegeben');
+  perform tst.ok((public.my_data_export() -> 'match_plan_views') @> '[{"kind": "open", "platform": "ios"}]', 'T46 Datenexport enthält eigene Aufrufe');
+end $$;
+commit;
+
+-- =====================================================================
 -- T17 Einwilligungen
 -- =====================================================================
 begin;
@@ -2702,7 +2872,8 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v5', 'T21b Exportformat v5');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v6', 'T21b Exportformat v6');
+  perform tst.ok(x ? 'match_plan_views', 'T21b Export enthält das Zugriffsprotokoll der Matchpläne');
   perform tst.ok(x ?& array['groups', 'tasks', 'duties', 'fines', 'cash', 'cash_waivers'], 'T21b Export enthält Gruppen, Aufgaben, Dienste, Strafen, Kasse');
   perform tst.ok(x ?& array['assessments', 'goals', 'goal_entries', 'dev_talks', 'challenge_entries', 'indiv_requests', 'chat_messages', 'chat_reactions', 'chat_reports', 'chats'],
                  'T21b Export enthält Entwicklung, Challenges, Individualtraining und Chat');
@@ -2837,6 +3008,11 @@ set local request.jwt.claim.sub = :'coachC';
 select tst.throws($q$select public.purge_stale_health_data()$q$, 'T24 Clients dürfen nicht purgen', 'permission denied');
 commit;
 
+with ins as (insert into public.match_plans (team_id, title) values (tst.get('team_a')::uuid, 'T24 purge') returning id)
+insert into public.match_plan_views (team_id, plan_id, player_id, kind, at)
+select tst.get('team_a')::uuid, ins.id, tst.get('p2_player')::uuid, 'open', v.at
+  from ins, (values (now() - interval '7 months'), (now() - interval '5 months')) v(at);
+
 begin;
 set local role service_role;
 do $$
@@ -2857,6 +3033,9 @@ begin
   perform tst.eq(r ->> 'team_duties', '1', 'T24 Dienst älter als 12 Monate gelöscht');
   perform tst.eq((select count(*) from public.team_duties where duty = 'purge')::text, '1', 'T24 jüngerer Dienst bleibt');
   perform tst.eq(r ->> 'team_tasks', '1', 'T24 erledigte Aufgabe älter als 12 Monate gelöscht');
+  perform tst.eq((r ->> 'match_plan_views') || '/' || (select count(*) from public.match_plan_views v join public.match_plans mp on mp.id = v.plan_id where mp.title = 'T24 purge')::text,
+                 '1/1', 'T24 Zugriffsprotokoll der Matchpläne nach 6 Monaten gelöscht');
+  delete from public.match_plans where title = 'T24 purge';
   perform tst.eq((select string_agg(title, ',' order by title) from public.team_tasks where title like 'purge%'), 'purge neu erledigt,purge offen',
                  'T24 offene und jüngere erledigte Aufgabe bleiben');
   delete from public.team_fines where rule like 'purge%';

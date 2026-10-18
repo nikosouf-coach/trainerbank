@@ -1,0 +1,112 @@
+// Texte: Matchplan (Paket B) – de
+import type { Dict } from "./types";
+
+export const de_match: Dict = {
+  // Baukasten
+  md_matchplan: "Aufstellung per Ziehen, Taktik- und Standardfolien, Spielidee, Gegneranalyse, Spieleraufgaben, Wechselplan und Freigabe für Spieler bis Spielende.",
+  pkd_analyse: "Spieldaten, Noten mit Feedback, Videos und Matchplan.",
+  // Positionen (kurz)
+  mps_TW: "TW", mps_LV: "LV", mps_IV: "IV", mps_RV: "RV", mps_DM: "DM", mps_ZM: "ZM", mps_OM: "OM", mps_LM: "LM", mps_RM: "RM", mps_LA: "LA", mps_RA: "RA", mps_ST: "ST",
+
+  // Allgemein
+  mp_title: "Matchplan", mp_list: "Matchpläne", mp_menuSub: "Aufstellung, Taktik, Standards, Gegner und Freigabe",
+  mp_info: "Plane das Spiel an einem Ort: Aufstellung per Ziehen, Folien für Taktik und Standards (mit Ausschnitt, z. B. nur der Strafraum), Spielidee, Gegneranalyse, Aufgaben je Spieler und Wechselplan.",
+  mp_infoShare: "Für Spieler gibst du nur die Bereiche frei, die sie sehen sollen – standardmäßig bis Spielende. Der Matchplan wird mit Wasserzeichen angezeigt; auf Android sind Screenshots gesperrt, iOS schwärzt Bildschirmaufnahmen. Jeder Aufruf steht im Protokoll.",
+  mp_titleVs: "gegen {g}", mp_titleFree: "Matchplan ohne Spiel", mp_noMatch: "ohne Spiel", mp_notFound: "Dieser Matchplan existiert nicht mehr.",
+  mp_tab_lineup: "Aufstellung", mp_tab_slides: "Taktik & Standards", mp_tab_idea: "Spielidee", mp_tab_opp: "Gegner", mp_tab_tasks: "Aufgaben", mp_tab_subs: "Wechsel", mp_tab_share: "Freigabe",
+  mp_rename: "Umbenennen", mp_titleF: "Titel", mp_preview: "Spieleransicht", mp_previewD: "So sieht ein Spieler den Plan mit den aktuellen Freigabe-Einstellungen (inkl. noch nicht freigegebener Änderungen).",
+  mp_previewAs: "Ansehen als", mp_notInSquad: "nicht im Kader", mp_previewNoAccess: "Mit „Nur Kader“ sieht dieser Spieler den Plan nicht.",
+  mp_delete: "Plan löschen", mp_deleteQ: "Plan mit allen Folien und dem Zugriffsprotokoll löschen?", mp_deleteLive: "Der Plan ist gerade für Spieler freigegeben. Löschen beendet die Freigabe sofort und entfernt auch das Zugriffsprotokoll.",
+  mp_deleted: "Matchplan gelöscht", mp_saving: "Speichert …", mp_unsaved: "Änderungen werden gespeichert …", mp_savedAt: "Gespeichert {d}",
+  mp_ro: "Nur ansehen – zum Bearbeiten brauchst du das Recht „Planung“.",
+  mp_add: "Hinzufügen", mp_del: "Entfernen", mp_open: "Matchplan öffnen", mp_create: "Matchplan erstellen", mp_copyLast: "Vom letzten Plan übernehmen", mp_none: "Noch kein Matchplan.",
+  mp_nextMatches: "Nächste Spiele", mp_noUpcoming: "Keine Spiele geplant.", mp_freePlans: "Pläne ohne Spiel", mp_freeInfo: "Für Turniere, Testspiele ohne Termin oder als Vorlage für Standards. „Vom letzten Plan übernehmen“ kopiert Aufstellung, Folien, Spielidee und Aufgaben.",
+  mp_freeNone: "Keine.", mp_pastPlans: "Frühere Matchpläne", mp_slidesN: "{n} Folien", mp_heroNone: "kein Matchplan",
+
+  // Aufstellung
+  mp_fmt: "Spielform", mp_formation: "Grundordnung", mp_suggest: "Vorschlag", mp_clear: "Leeren",
+  mp_unavail: "In der Startelf steht jemand, der am Spieltag verletzt oder krank gemeldet ist.",
+  mp_bench: "Ersatzbank ({n})", mp_out: "Nicht im Kader ({n})", mp_benchEmpty: "Spieler hierher ziehen", mp_benchShort: "Bank",
+  mp_dragHint: "Ziehen: Spieler auf eine Position (tauscht), frei aufs Feld, auf die Bank oder aus dem Kader. Leere Positionen lassen sich verschieben. Alternativ: Spieler antippen und dann das Ziel antippen.",
+  mp_tapHint: "Erst einen Spieler antippen, dann die Position.", mp_full: "Alle Positionen sind besetzt – auf einen Spieler ziehen, um zu tauschen.",
+  mp_selHint: "Ziel antippen oder:", mp_toBench: "Auf die Bank", mp_toOut: "Aus dem Kader", mp_captain: "Kapitän", mp_captainOff: "Binde abgeben",
+  mp_mode: "Icons", mp_mode_num: "Nummer", mp_mode_name: "Nummer + Name", mp_mode_photo: "Foto + Name", mp_size: "Größe",
+
+  // Folien
+  mp_tac: "Taktik", mp_sp: "Standard", mp_tacL: "Taktik", mp_spL: "Standardsituationen",
+  msc_grund: "Grundordnung", msc_ball: "Mit Ball", msc_gegen: "Gegen den Ball", msc_umschalt: "Umschalten", msc_ecke_off: "Ecke offensiv", msc_ecke_def: "Ecke defensiv",
+  msc_frei_off: "Freistoß offensiv", msc_frei_def: "Freistoß defensiv", msc_einwurf: "Einwurf", msc_anstoss: "Anstoß", msc_sonst: "Sonstiges",
+  mpv_full: "Ganzes Feld", mpv_att: "Angriffshälfte", mpv_def: "Abwehrhälfte", mpv_box_att: "Strafraum vorne", mpv_box_def: "Strafraum hinten",
+  mp_slideAdd: "Folie", mp_slideNew: "Neue Folie", mp_slidesNone: "Noch keine Folien. Lege z. B. „Gegen den Ball“ oder „Ecke defensiv“ an – die Spieler aus der Aufstellung sind schon drauf.",
+  mp_slideN: "Folie {i} von {n}", mp_slideTitle: "Titel der Folie", mp_slideCat: "Art", mp_slideNote: "Coachingpunkte", mp_slideNotePh: "z. B. Auslöser, Abstände, wer wohin läuft",
+  mp_slideVis: "Für Spieler sichtbar", mp_slideVisD: "Ausgeschaltet bleibt die Folie im Trainerteam (z. B. Plan B).",
+  mp_slideLeft: "Nach vorne", mp_slideRight: "Nach hinten", mp_slideDup: "Kopieren", mp_slideFromLineup: "Spieler aus Aufstellung", mp_slideDel: "Folie löschen", mp_slideDelQ: "Wirklich löschen?",
+  mp_withOpp: "Gegner aus der Gegneranalyse einblenden", mp_withOppNone: "Tipp: Unter „Gegner“ die Grundordnung des Gegners wählen – dann kannst du ihn auf Folien einblenden.",
+  mp_slideCreate: "Folie anlegen", mp_textPh: "z. B. Pressing!", mp_player: "Spieler", mp_noPlayer: "– ohne Spieler –", mp_posShort: "Kürzel", mp_itemDel: "Entfernen",
+  mpt_move: "Bewegen", mpt_pass: "Pass", mpt_run: "Laufweg", mpt_drib: "Dribbling", mpt_line: "Linie", mpt_zone: "Zone", mpt_own: "Eigener Spieler", mpt_opp: "Gegenspieler",
+  mpt_ball: "Ball", mpt_cone: "Hütchen", mpt_text: "Text", mpt_del: "Löschen",
+  mpt_move_h: "Ziehen verschiebt, Antippen bearbeitet", mpt_pass_h: "Vom Start zum Ziel ziehen", mpt_run_h: "Vom Start zum Ziel ziehen", mpt_drib_h: "Vom Start zum Ziel ziehen",
+  mpt_line_h: "z. B. Abwehrlinie – ziehen", mpt_zone_h: "Fläche aufziehen", mpt_own_h: "Antippen setzt einen Spieler", mpt_opp_h: "Antippen setzt einen Gegner",
+  mpt_ball_h: "Antippen setzt den Ball", mpt_cone_h: "Antippen setzt ein Hütchen", mpt_text_h: "Antippen und Text eingeben", mpt_del_h: "Element antippen zum Löschen",
+  mpc_w: "Weiß", mpc_y: "Gelb", mpc_r: "Rot", mpc_b: "Blau",
+
+  // Spielidee
+  mp_idea: "Spielidee", mp_ideaInfo: "Die Spielidee ist der rote Faden für alle: ein Leitsatz, höchstens drei Schwerpunkte und kurze Prinzipien mit Ball, gegen den Ball und im Umschalten.",
+  mp_keysInfo: "Sportpsychologie: Unter Druck behält niemand zehn Punkte. Drei klare, positiv formulierte Schwerpunkte wirken besser als viele Verbote.",
+  mp_motto: "Leitsatz", mp_mottoPh: "z. B. Mutig. Kompakt. Schnell nach vorne.", mp_keys: "Schwerpunkte (höchstens {n})", mp_keyPh: "z. B. Gegenpressing 5 Sekunden nach Ballverlust",
+  mp_keysHint: "Positiv und beobachtbar formulieren („Abstände eng halten“ statt „Keine Lücken“).",
+  mp_ball: "Mit Ball", mp_ballPh: "Spielaufbau, Positionen, wohin wir spielen wollen", mp_gegen: "Gegen den Ball", mp_gegenPh: "Höhe, Auslöser, wohin wir den Gegner lenken",
+  mp_umschalt: "Umschalten", mp_umschaltPh: "nach Ballgewinn / nach Ballverlust",
+
+  // Gegner
+  mp_opp: "Gegneranalyse", mp_oppInfo: "Grundordnung, Spielweise, Stärken, Schwächen und Schlüsselspieler – daraus der Plan, wie wir sie knacken.",
+  mp_oppFormation: "Grundordnung des Gegners", mp_oppNone: "– unbekannt –", mp_oppBoardHint: "Gegenspieler verschieben; antippen für Rückennummer.",
+  mp_oppStyle: "Spielweise", mp_oppStylePh: "z. B. tiefes 4-4-2, lange Bälle, Pressing ab Mittellinie", mp_oppStrong: "Stärken", mp_oppWeak: "Schwächen",
+  mp_oppPlan: "So knacken wir sie", mp_oppPlanPh: "z. B. Bälle zwischen die Ketten, Seitenwechsel auf die schwache Seite",
+  mp_oppKeys: "Schlüsselspieler", mp_oppKeysNone: "Noch keine.", mp_oppNr: "Nr.", mp_oppKeyName: "Name / Position", mp_oppKeyNote: "Worauf achten?",
+
+  // Aufgaben
+  mp_tasks: "Spieleraufgaben", mp_tasksAll: "Aufgaben der Mannschaft", mp_tasksN: "{n} von {m}",
+  mp_tasksInfo: "Eine konkrete Aufgabe je Spieler aus Startelf und Bank. Bei der Freigabe sieht standardmäßig jeder nur seine eigene.",
+  mp_tasksPsy: "Sportpsychologie: Eine Aufgabe, positiv und beobachtbar („Kette auf einer Linie halten“ statt „Keine Fehler“), stärkt Fokus und Selbstvertrauen – Kritik gehört ins Gespräch, nicht auf den Matchplan.",
+  mp_tasksNoSquad: "Erst die Aufstellung (Startelf und Bank) festlegen.", mp_taskPh: "Aufgabe für dieses Spiel",
+
+  // Wechsel
+  mp_subs: "Wechselplan", mp_subsInfo: "Geplante Wechsel mit Minute – daraus berechnet die App die geplanten Spielminuten. Im Jugendfußball ist Wiedereinwechseln möglich.",
+  mp_subsIntern: "Der Wechselplan ist standardmäßig nur fürs Trainerteam – Spieler sehen ihn nur, wenn du ihn ausdrücklich freigibst.",
+  mp_subsNone: "Noch keine geplanten Wechsel.", mp_subMin: "Min.", mp_subOut: "Raus", mp_subIn: "Rein", mp_subNotePh: "Bedingung, z. B. nur bei Führung",
+  mp_subsNote: "Plan B", mp_subsNotePh: "z. B. bei Rückstand ab 60. mit zwei Spitzen",
+  mp_iss_out_not_on: "Der Spieler steht zu dieser Minute nicht auf dem Platz.", mp_iss_in_on: "Der Spieler steht zu dieser Minute schon auf dem Platz.",
+  mp_iss_in_not_squad: "Der Spieler ist nicht im Kader.", mp_iss_late: "Nach Spielende.", mp_iss_same: "Raus und rein ist derselbe Spieler.",
+  mp_minutes: "Geplante Minuten ({n}′)", mp_minutesT: "Geplante Minuten", mp_minutesInfo: "Aus Startelf und Wechselplan. Gut für Belastungssteuerung (z. B. nach Verletzung) und faire Einsatzzeiten.",
+  mp_fairInfo: "Im Kinder- und Jugendfußball sind möglichst gleich verteilte Einsatzzeiten wichtig für Motivation und Entwicklung.", mp_fair: "Spielzeit im Kader: {lo}′ bis {hi}′",
+
+  // Freigabe
+  mp_share: "Freigabe für Spieler", mp_st_draft: "Entwurf", mp_st_scheduled: "geplant", mp_st_ended: "beendet", mp_st_liveShort: "freigegeben",
+  mp_st_liveAt: "freigegeben bis {d}", mp_st_scheduledAt: "ab {d}", mp_sharedAt: "Stand vom {d}",
+  mp_changed: "Seit der Freigabe geändert – Spieler sehen noch den alten Stand.", mp_update: "Freigabe aktualisieren", mp_unshare: "Freigabe beenden",
+  mp_shared: "Matchplan freigegeben", mp_unshared: "Freigabe beendet",
+  mp_shareWhat: "Was sehen die Spieler?", mp_sec_lineup: "Aufstellung", mp_sec_slides: "Taktik & Standards", mp_sec_idea: "Spielidee", mp_sec_opp: "Gegneranalyse", mp_sec_tasks: "Spieleraufgaben", mp_sec_subs: "Wechselplan",
+  mp_secSubsD: "Empfehlung: im Trainerteam lassen.", mp_secSlidesD: "Nur Folien mit „für Spieler sichtbar“.",
+  mp_ownTasks: "Jeder sieht nur seine eigene Aufgabe", mp_ownTasksD: "Aufgaben bleiben persönlich. Ausgeschaltet sehen alle alle Aufgaben.",
+  mp_squadOnly: "Nur Spieler im Kader", mp_squadOnlyD: "Startelf und Bank zum Zeitpunkt der Freigabe. Sonst sieht das ganze Team den Plan.",
+  mp_psyHint: "Tipp: Spieler, die nicht im Kader oder nicht in der Startelf stehen, vorher persönlich informieren – nicht über die App erfahren lassen.",
+  mp_shareWhen: "Zeitraum", mp_until: "Sichtbar bis", mp_untilD: "Standard: Spielende (Anstoß + Spielzeit + Pause) plus 30 Minuten.", mp_untilFree: "Ohne Spiel: drei Tage.",
+  mp_later: "Erst später freigeben", mp_laterD: "z. B. am Abend vor dem Spiel – vorher sieht niemand etwas.", mp_from: "Sichtbar ab",
+  mp_announce: "Im Teamchat ankündigen", mp_chatMsg: "📋 Der Matchplan „{t}“ ist freigegeben – in der App unter Heute (sichtbar bis {d}).",
+  mp_protectT: "Schutz", mp_protect: "Wasserzeichen mit Name und Uhrzeit. Android: Screenshots und Bildschirmaufnahmen gesperrt. iOS: Bildschirmaufnahmen geschwärzt, Screenshots werden erkannt und protokolliert. Im Browser ist kein technischer Schutz möglich – dort nur das Wasserzeichen.",
+  mp_shareNoSec: "Mindestens einen Bereich auswählen.", mp_shareUntilPast: "Das Ende muss in der Zukunft liegen.", mp_shareFromAfter: "Der Beginn muss vor dem Ende liegen.",
+  mp_shareGo: "Für Spieler freigeben", mp_shareSave: "Freigabe speichern",
+  mp_log: "Zugriffe", mp_logInfo: "Wer den Matchplan seit der letzten Freigabe geöffnet hat (höchstens ein Eintrag je 10 Minuten) und erkannte Screenshots. Das Protokoll wird nach 6 Monaten gelöscht.",
+  mp_refresh: "Aktualisieren", mp_seen: "{n}/{m} gesehen", mp_shots: "{n} Screenshot(s)", mp_shot: "Screenshot erkannt", mp_notSeen: "Noch nicht gesehen",
+  mp_notSeenHint: "Kurz persönlich ansprechen hilft mehr als eine Erinnerung im Chat.", mp_seenList: "Gesehen",
+
+  // Spieleransicht
+  pv_role: "Deine Rolle", pv_start: "Startelf", pv_bench: "Ersatzbank – sei bereit, wenn du gebraucht wirst", pv_captain: "Du bist Kapitän", pv_myTask: "Deine Aufgabe",
+  pv_info: "Der Matchplan deines Trainerteams – nur für unsere Mannschaft und nur bis Spielende sichtbar.",
+  pv_privacy: "Jeder Aufruf wird protokolliert (Zeitpunkt, Gerät). Auf Android sind Screenshots gesperrt, auf iOS werden sie erkannt. Bitte nichts weitergeben.",
+  pv_gone: "Dieser Matchplan ist nicht mehr freigegeben.", pv_offline: "Ohne Verbindung kann der Matchplan nicht geöffnet werden.",
+  pv_conf: "Vertraulich – nur für unsere Mannschaft", pv_confD: "Sichtbar bis {d}. Bitte keine Screenshots und nichts weitergeben.", pv_web: "Im Browser wird der Plan nur mit Wasserzeichen geschützt.",
+  pv_shot: "Screenshot erkannt – das Trainerteam sieht das. Bitte den Matchplan nicht weitergeben.",
+  pp_new: "neu", pp_until: "sichtbar bis {d}",
+};

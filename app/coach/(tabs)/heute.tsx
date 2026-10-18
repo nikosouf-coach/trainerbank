@@ -17,6 +17,7 @@ import { MyTasksCard } from "../../../src/ui/day/MyTasks";
 import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
 import { InboxCard } from "../../../src/ui/inbox";
+import { heroPlanLabel } from "../../../src/ui/matchplan/cards";
 import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
 function HeroPill({ label }: { label: string }) {
@@ -61,6 +62,7 @@ export default function Heute() {
       <Row wrap gap={6}>
         {nx.match ? <>
           <HeroPill label={nx.match.zeit} /><HeroPill label={nx.match.heim ? t("home") : t("away")} /><HeroPill label={t("comp_" + nx.match.comp)} />
+          {heroPlanLabel(E, nx.match) ? <HeroPill label={heroPlanLabel(E, nx.match)!} /> : null}
         </> : <>
           {nx.train!.md ? <HeroPill label={nx.train!.md} /> : null}
           <HeroPill label={`${E.zeitOf(nx.date)} · ${nx.train!.dauer} ${t("min")}`} />

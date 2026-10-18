@@ -24,7 +24,7 @@ export function modsFor(depth: Depth, k: ClassKey): Modules {
   const grp = groupOf(k);
   const m: Modules = {
     beteiligung: true, planung: depth !== "org", belastung: depth !== "org", regeneration: depth !== "org",
-    wachstum: depth !== "org" && isGrowthAge(k), ki: true, matchplan: false, kaderplanung: false,
+    wachstum: depth !== "org" && isGrowthAge(k), ki: true, matchplan: true, kaderplanung: false,
     leistung: depth !== "org", befunde: depth !== "org", spielanalyse: true, videos: true,
     archiv: true, vorbereitung: depth !== "org", kontakte: true,
     entwicklung: depth !== "org", challenge: true, chat: true,
@@ -92,7 +92,7 @@ export const PACKAGES: { key: string; mods: (keyof Modules)[] }[] = [
   { key: "belastung", mods: ["belastung", "regeneration", "wachstum"] },
   { key: "planung", mods: ["planung", "archiv", "vorbereitung"] },
   { key: "leistung", mods: ["leistung", "befunde"] },
-  { key: "analyse", mods: ["spielanalyse", "videos"] },
+  { key: "analyse", mods: ["spielanalyse", "videos", "matchplan"] },
   { key: "entwicklung", mods: ["entwicklung", "challenge"] },
   { key: "ki", mods: ["ki"] },
 ];

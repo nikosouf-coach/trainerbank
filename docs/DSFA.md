@@ -265,6 +265,7 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R36 | **Kompetenzprofil, Ziele und Gesprächsprotokolle** werden als Urteil missverstanden, setzen unter Druck oder gelangen unvermittelt zum Spieler (z. B. schlechte Einschätzung, interne Notiz) | Spieler, v. a. Jugendliche | Demotivation, Stigmatisierung, Offenlegung interner Einschätzungen | 2 | 3 | Risiko |
 | R37 | **Wochenchallenge:** sozialer Vergleich (Bestenliste), Überlastung oder Verletzung durch Zusatzaufgaben (Kinder, Spieltag) | Spieler, v. a. Kinder | Druck, Überlastung | 2 | 2 | gering |
 | R38 | **Individualtraining:** Einzeltermin zwischen Erwachsenem und Kind ohne Transparenz | Kinder, Jugendliche | Kinderschutz | 1 | 4 | Risiko |
+| R39 | **Matchplan:** Spieler erfahren über die App (statt persönlich), dass sie nicht im Kader oder nicht in der Startelf stehen; Aufgaben/Kritik an einzelnen werden für alle sichtbar; das **Zugriffsprotokoll** wird als Überwachung empfunden oder gegen Spieler verwendet („hat den Plan nicht gelesen“) | Spieler, v. a. Jugendliche | psychischer Druck, Bloßstellung, Gefühl der Kontrolle | 2 | 2 | gering |
 
 ---
 
@@ -311,6 +312,7 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | Transparenz | Schmerzangaben: Hinweise als Orientierung („abklären lassen“), keine Diagnose; Angaben freiwillig; Prüfung der Schlüssel und Größe in der Datenbank (RLS-Test T42) | R29 |
 | Datenminimierung | Trainingseindruck nur für Ausreißer (`good`/`poor`, Durchschnitt wird nicht gespeichert), keine Rangliste; Kritik standardmäßig nicht für Spieler sichtbar (erst persönlich besprechen), Lob sichtbar; nur für Training (Check), höchstens 8 Gründe; Schreiben nur mit Recht „Notizen & Bewertungen“ (RLS-Test T43) | R31 |
 | Vertraulichkeit | Weitere Einheiten (`day_units`): Spieler lesen nur Einheiten für alle und für eigene freigegebene Gruppen, nie Teilnehmerlisten; gelöschte Gruppe ⇒ niemand statt alle; RPE je Einheit mit denselben Regeln und derselben Einwilligung wie die übrige Belastung; Anwesenheit nur über das Mannschaftstraining; Sprünge der Torhüter freiwillig, Plausibilitätsgrenze 0–300 (RLS-Test T43) | R32 |
+| Vertraulichkeit / Transparenz | **Matchplan:** nur Trainerteam liest die Tabelle; Spieler ausschließlich über `match_plan_open` (Modul an, freigegeben, im Zeitraum, ggf. nur Kader) und nur den freigegebenen Auszug; Aufgaben standardmäßig nur die eigene, Wechselplan standardmäßig nicht freigegeben, Hinweis in der App, Nicht-Nominierte vorher persönlich zu informieren; Zugriffsprotokoll nur Zeitpunkt/Plattform/erkannter Screenshot, höchstens ein Eintrag je 10 Minuten, nur fürs Trainerteam, für Spieler in der App erklärt und im Export, Löschung nach 6 Monaten; Wasserzeichen mit Name, Bildschirmschutz (Android gesperrt, iOS Aufnahmen geschwärzt) (RLS-Test T46, T24) | R39 |
 
 ### 6.2 Zusätzliche Maßnahmen (geplant)
 
@@ -386,6 +388,7 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | R36 | 1 | 3 | gering | Freigabe durch das Trainerteam, interne Notiz getrennt, Recht „Notizen“ |
 | R37 | 1 | 2 | gering | ohne Bestenliste als Standard, freiwillig, Sicherheitshinweis |
 | R38 | 1 | 3 | gering | Transparenz im Trainerteam, Leitfaden (Vereinsgelände, Sechs-Augen-Prinzip) |
+| R39 | 1 | 2 | gering | Freigabe nur ausgewählter Bereiche, Aufgaben nur die eigene, Hinweis zur persönlichen Information, Protokoll gedrosselt und befristet |
 
 **Bewertung:** Nach Umsetzung aller P1-Maßnahmen verbleibt **kein hohes Restrisiko**. Eine vorherige Konsultation der
 Aufsichtsbehörde nach Art. 36 DSGVO ist dann voraussichtlich nicht erforderlich.
@@ -469,3 +472,4 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 | 0.4 | [TT.MM.JJJJ] | Ergänzt: Offline-Einträge und lokale Kopie (R26, R30), Rechte je Mitglied (R27), Mannschaftskasse mit Kassenwart (R28), Körperkarte mit Schmerzangaben (R29). Umgesetzte Maßnahmen: `staff_can()` in allen Regeln, `entered_at` mit Plausibilitätsprüfung, `cash_entries`/`cash_waivers` mit eigenen Regeln, `complaint_details` geprüft, Export v4 | [ ] |
 | 0.5 | [TT.MM.JJJJ] | Ergänzt: mehrere Einheiten am Tag mit RPE je Einheit und Sprüngen der Torhüter (R32), Trainingseindruck nur für Ausreißer (R31), Torwart-Spieldaten und -Tests. Umgesetzte Maßnahmen: `day_units` mit Gruppen-Sichtbarkeit, Anwesenheit nur über Einheit 0, Checks für Eindruck/Sprünge, `merge_players` v5 | [ ] |
 | 0.6 | [TT.MM.JJJJ] | Ergänzt: Chat (R12 neu bewertet, R33–R35), Spielerentwicklung (R36), Wochenchallenge (R37), Individualtraining (R38). Umgesetzte Maßnahmen: Chat-Regeln je Altersklasse mit Mitlesen in Jugendteams, Melden mit Kopie, Push ohne Inhalt, Spam-Grenze, Löschfristen; interne Gesprächsnotiz getrennt, Freigabe von Einschätzungen/Protokollen, `challenge_totals` ohne Einzelwerte, Einheit nur für einzelne Spieler (`day_units.player_ids`), Export v5, `merge_players` v6 | [ ] |
+| 0.7 | [TT.MM.JJJJ] | Ergänzt: Matchplan mit Freigabe für Spieler und Zugriffsprotokoll (R39). Umgesetzte Maßnahmen: kein direkter Spielerzugriff (nur `match_plan_open`), Freigabe nur ausgewählter Bereiche mit Zeitraum und „nur Kader“, Aufgaben nur die eigene, Protokoll gedrosselt und nach 6 Monaten gelöscht, Wasserzeichen und Bildschirmschutz, Export v6, `merge_players` v7 | [ ] |

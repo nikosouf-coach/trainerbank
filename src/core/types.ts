@@ -382,6 +382,54 @@ export interface Video { id: string; title: string; url: string; date: string | 
   groupIds?: string[] }
 
 /** Alles, was die Fachlogik über ein Team wissen muss. */
+// ---------- Matchplan (Paket B) ----------
+/** Elemente der Taktiktafel: eigene Spieler, Gegner, Ball, Hütchen, Text, Pass, Laufweg, Dribbling, Linie, Zone */
+export type MpTool = "own" | "opp" | "ball" | "cone" | "text" | "pass" | "run" | "drib" | "line" | "zone";
+export type MpColor = "w" | "y" | "r" | "b";
+/** Element auf dem Spielfeld (Meter, Hochkant 68 × 105, eigenes Tor unten) */
+export interface MpItem {
+  id: string; t: MpTool; x: number; y: number; x2?: number; y2?: number;
+  /** eigener Spieler (leer = freie Position) */
+  pid?: string | null;
+  /** Rückennummer (Gegner) */
+  n?: number | null;
+  /** Positionskürzel (z. B. IV) bzw. Text */
+  label?: string;
+  col?: MpColor;
+}
+/** Ausschnitt: ganzes Feld, Angriffs-/Abwehrhälfte, Strafraum vorne/hinten */
+export type MpView = "full" | "att" | "def" | "box_att" | "box_def";
+export type MpSlideCat = "grund" | "ball" | "gegen" | "umschalt" | "ecke_off" | "ecke_def" | "frei_off" | "frei_def" | "einwurf" | "anstoss" | "sonst";
+export interface MpSlide { id: string; cat: MpSlideCat; title: string; view: MpView; items: MpItem[]; note: string; vis: boolean }
+export type MpSection = "lineup" | "slides" | "idea" | "opp" | "tasks" | "subs";
+export type MpFmt = 11 | 9 | 7 | 5;
+export interface MpSub { id: string; min: number; out: string | null; in: string | null; note: string }
+export interface MpIdea { motto: string; keys: string[]; ball: string; gegen: string; umschalt: string }
+export interface MpOppKey { n: number | null; name: string; note: string }
+export interface MpOpp { formation: string | null; items: MpItem[]; style: string; strong: string; weak: string; keys: MpOppKey[]; plan: string }
+/** Ansicht der Spieler-Icons: Nummer, Nummer + Name, Foto + Name */
+export type MpMode = "num" | "name" | "photo";
+/** Inhalt eines Matchplans */
+export interface MpContent {
+  fmt: MpFmt; formation: string; lineup: MpItem[]; bench: string[]; captain: string | null;
+  slides: MpSlide[]; idea: MpIdea; opp: MpOpp; tasks: Record<string, string>; subs: MpSub[]; subsNote: string;
+  mode: MpMode; size: number;
+}
+/** Freigabe für Spieler: Bereiche, Zeitraum (bis Spielende), nur Kader, Aufgaben nur die eigene */
+export interface MpShare { sections: MpSection[]; from: string | null; until: string; squadOnly: boolean; ownTasks: boolean }
+/** Veröffentlichter Stand – nur die freigegebenen Bereiche */
+export type MpPublished = Partial<MpContent> & { sections: MpSection[] };
+export interface MatchPlan {
+  id: string; matchId: string | null; title: string; c: MpContent;
+  share: MpShare | null; published: MpPublished | null; publishedAt: string | null; updatedAt: string | null;
+}
+/** Zugriffsprotokoll (Trainerteam): Aufruf bzw. erkannter Screenshot */
+export interface MpLog { pid: string; at: string; kind: "open" | "shot"; platform: string | null }
+/** Spieler: verfügbarer Matchplan */
+export interface MpAvail { id: string; matchId: string | null; title: string; until: string; at: string; seen: boolean }
+/** Spieler: geöffneter Matchplan */
+export interface MpOpened { id: string; matchId: string | null; title: string; content: MpPublished; pid: string; name: string; until: string; at: string; ownTasks: boolean }
+
 export interface TeamData {
   team: Team;
   players: Player[];
@@ -443,6 +491,8 @@ export interface TeamData {
   chatReports: ChatReport[];
   /** Chats mit älteren, noch nicht geladenen Nachrichten */
   chatMore: Record<string, boolean>;
+  /** Matchpläne (nur Trainerteam), Zugriffsprotokoll je Plan; Spieler: freigegebene Pläne */
+  plans: MatchPlan[]; planLogs: Record<string, MpLog[]>; myPlans: MpAvail[];
 }
 
 export function emptyTeamData(team: Team): TeamData {
@@ -452,5 +502,6 @@ export function emptyTeamData(team: Team): TeamData {
     stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], duties: [], fines: [], tasks: [], cash: [], waivers: [], inactive: [],
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
+    plans: [], planLogs: {}, myPlans: [],
   };
 }

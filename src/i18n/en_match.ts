@@ -1,0 +1,112 @@
+// Texts: match plan (package B) – en
+import type { Dict } from "./types";
+
+export const en_match: Dict = {
+  // Module builder
+  md_matchplan: "Line-up by drag and drop, tactics and set-piece slides, game idea, opponent analysis, player tasks, substitution plan and sharing with players until the end of the match.",
+  pkd_analyse: "Match data, ratings with feedback, videos and match plan.",
+  // Positions (short)
+  mps_TW: "GK", mps_LV: "LB", mps_IV: "CB", mps_RV: "RB", mps_DM: "DM", mps_ZM: "CM", mps_OM: "AM", mps_LM: "LM", mps_RM: "RM", mps_LA: "LW", mps_RA: "RW", mps_ST: "ST",
+
+  // General
+  mp_title: "Match plan", mp_list: "Match plans", mp_menuSub: "Line-up, tactics, set pieces, opponent and sharing",
+  mp_info: "Plan the match in one place: line-up by drag and drop, slides for tactics and set pieces (with a crop, e.g. only the penalty box), game idea, opponent analysis, a task per player and a substitution plan.",
+  mp_infoShare: "Players only see the parts you share – by default until the end of the match. The plan is shown with a watermark; on Android screenshots are blocked, iOS blacks out screen recordings. Every view is logged.",
+  mp_titleVs: "vs {g}", mp_titleFree: "Match plan without a match", mp_noMatch: "no match", mp_notFound: "This match plan no longer exists.",
+  mp_tab_lineup: "Line-up", mp_tab_slides: "Tactics & set pieces", mp_tab_idea: "Game idea", mp_tab_opp: "Opponent", mp_tab_tasks: "Tasks", mp_tab_subs: "Subs", mp_tab_share: "Sharing",
+  mp_rename: "Rename", mp_titleF: "Title", mp_preview: "Player view", mp_previewD: "This is how a player sees the plan with the current sharing settings (including changes not yet shared).",
+  mp_previewAs: "View as", mp_notInSquad: "not in squad", mp_previewNoAccess: "With “Squad only” this player does not see the plan.",
+  mp_delete: "Delete plan", mp_deleteQ: "Delete the plan with all slides and the access log?", mp_deleteLive: "The plan is currently shared with players. Deleting ends the sharing immediately and also removes the access log.",
+  mp_deleted: "Match plan deleted", mp_saving: "Saving …", mp_unsaved: "Saving changes …", mp_savedAt: "Saved {d}",
+  mp_ro: "View only – editing needs the “Planning” permission.",
+  mp_add: "Add", mp_del: "Remove", mp_open: "Open match plan", mp_create: "Create match plan", mp_copyLast: "Copy from last plan", mp_none: "No match plan yet.",
+  mp_nextMatches: "Next matches", mp_noUpcoming: "No matches scheduled.", mp_freePlans: "Plans without a match", mp_freeInfo: "For tournaments, friendlies without a date or as a template for set pieces. “Copy from last plan” copies line-up, slides, game idea and tasks.",
+  mp_freeNone: "None.", mp_pastPlans: "Earlier match plans", mp_slidesN: "{n} slides", mp_heroNone: "no match plan",
+
+  // Line-up
+  mp_fmt: "Format", mp_formation: "Formation", mp_suggest: "Suggestion", mp_clear: "Clear",
+  mp_unavail: "Someone in the starting line-up is reported injured or sick on match day.",
+  mp_bench: "Bench ({n})", mp_out: "Not in squad ({n})", mp_benchEmpty: "Drag players here", mp_benchShort: "Bench",
+  mp_dragHint: "Drag: a player onto a position (swaps), anywhere on the pitch, to the bench or out of the squad. Empty positions can be moved. Or tap a player and then the target.",
+  mp_tapHint: "Tap a player first, then the position.", mp_full: "All positions are taken – drop onto a player to swap.",
+  mp_selHint: "tap the target or:", mp_toBench: "To the bench", mp_toOut: "Out of squad", mp_captain: "Captain", mp_captainOff: "Remove armband",
+  mp_mode: "Icons", mp_mode_num: "Number", mp_mode_name: "Number + name", mp_mode_photo: "Photo + name", mp_size: "Size",
+
+  // Slides
+  mp_tac: "Tactics", mp_sp: "Set piece", mp_tacL: "Tactics", mp_spL: "Set pieces",
+  msc_grund: "Formation", msc_ball: "In possession", msc_gegen: "Out of possession", msc_umschalt: "Transition", msc_ecke_off: "Attacking corner", msc_ecke_def: "Defending corners",
+  msc_frei_off: "Attacking free kick", msc_frei_def: "Defending free kicks", msc_einwurf: "Throw-in", msc_anstoss: "Kick-off", msc_sonst: "Other",
+  mpv_full: "Whole pitch", mpv_att: "Attacking half", mpv_def: "Defensive half", mpv_box_att: "Box (attack)", mpv_box_def: "Box (defence)",
+  mp_slideAdd: "Slide", mp_slideNew: "New slide", mp_slidesNone: "No slides yet. Add e.g. “Out of possession” or “Defending corners” – the players from the line-up are already on it.",
+  mp_slideN: "Slide {i} of {n}", mp_slideTitle: "Slide title", mp_slideCat: "Type", mp_slideNote: "Coaching points", mp_slideNotePh: "e.g. triggers, distances, who runs where",
+  mp_slideVis: "Visible to players", mp_slideVisD: "Switched off, the slide stays with the coaching staff (e.g. plan B).",
+  mp_slideLeft: "Move forward", mp_slideRight: "Move back", mp_slideDup: "Copy", mp_slideFromLineup: "Players from line-up", mp_slideDel: "Delete slide", mp_slideDelQ: "Really delete?",
+  mp_withOpp: "Show the opponent from the opponent analysis", mp_withOppNone: "Tip: choose the opponent's formation under “Opponent” – then you can show it on slides.",
+  mp_slideCreate: "Add slide", mp_textPh: "e.g. Press!", mp_player: "Player", mp_noPlayer: "– no player –", mp_posShort: "Label", mp_itemDel: "Remove",
+  mpt_move: "Move", mpt_pass: "Pass", mpt_run: "Run", mpt_drib: "Dribble", mpt_line: "Line", mpt_zone: "Zone", mpt_own: "Own player", mpt_opp: "Opponent",
+  mpt_ball: "Ball", mpt_cone: "Cone", mpt_text: "Text", mpt_del: "Delete",
+  mpt_move_h: "Drag to move, tap to edit", mpt_pass_h: "Drag from start to target", mpt_run_h: "Drag from start to target", mpt_drib_h: "Drag from start to target",
+  mpt_line_h: "e.g. back line – drag", mpt_zone_h: "Drag out an area", mpt_own_h: "Tap to place a player", mpt_opp_h: "Tap to place an opponent",
+  mpt_ball_h: "Tap to place the ball", mpt_cone_h: "Tap to place a cone", mpt_text_h: "Tap and enter text", mpt_del_h: "Tap an element to delete it",
+  mpc_w: "White", mpc_y: "Yellow", mpc_r: "Red", mpc_b: "Blue",
+
+  // Game idea
+  mp_idea: "Game idea", mp_ideaInfo: "The game idea is the common thread: one motto, at most three key points and short principles in possession, out of possession and in transition.",
+  mp_keysInfo: "Sport psychology: under pressure nobody remembers ten points. Three clear, positively phrased key points work better than many prohibitions.",
+  mp_motto: "Motto", mp_mottoPh: "e.g. Brave. Compact. Fast forward.", mp_keys: "Key points (at most {n})", mp_keyPh: "e.g. win it back within 5 seconds after losing the ball",
+  mp_keysHint: "Phrase them positively and observably (“keep the distances short” instead of “no gaps”).",
+  mp_ball: "In possession", mp_ballPh: "Build-up, positions, where we want to play", mp_gegen: "Out of possession", mp_gegenPh: "Height, triggers, where we show the opponent",
+  mp_umschalt: "Transition", mp_umschaltPh: "after winning / losing the ball",
+
+  // Opponent
+  mp_opp: "Opponent analysis", mp_oppInfo: "Formation, style, strengths, weaknesses and key players – and from that the plan to beat them.",
+  mp_oppFormation: "Opponent formation", mp_oppNone: "– unknown –", mp_oppBoardHint: "Move opponents; tap for the shirt number.",
+  mp_oppStyle: "Style of play", mp_oppStylePh: "e.g. deep 4-4-2, long balls, pressing from the halfway line", mp_oppStrong: "Strengths", mp_oppWeak: "Weaknesses",
+  mp_oppPlan: "How we beat them", mp_oppPlanPh: "e.g. passes between the lines, switch play to the weak side",
+  mp_oppKeys: "Key players", mp_oppKeysNone: "None yet.", mp_oppNr: "No.", mp_oppKeyName: "Name / position", mp_oppKeyNote: "What to watch?",
+
+  // Tasks
+  mp_tasks: "Player tasks", mp_tasksAll: "Team tasks", mp_tasksN: "{n} of {m}",
+  mp_tasksInfo: "One concrete task per player in the starting line-up and on the bench. When sharing, by default everyone only sees their own.",
+  mp_tasksPsy: "Sport psychology: one task, positive and observable (“keep the line together” instead of “no mistakes”), strengthens focus and confidence – criticism belongs in a conversation, not on the match plan.",
+  mp_tasksNoSquad: "Set the line-up (starters and bench) first.", mp_taskPh: "Task for this match",
+
+  // Substitutions
+  mp_subs: "Substitution plan", mp_subsInfo: "Planned substitutions with the minute – the app calculates the planned playing time from it. In youth football players can come back on.",
+  mp_subsIntern: "By default the substitution plan is for the coaching staff only – players only see it if you share it explicitly.",
+  mp_subsNone: "No planned substitutions yet.", mp_subMin: "Min.", mp_subOut: "Off", mp_subIn: "On", mp_subNotePh: "Condition, e.g. only when leading",
+  mp_subsNote: "Plan B", mp_subsNotePh: "e.g. when behind from minute 60 with two strikers",
+  mp_iss_out_not_on: "The player is not on the pitch at this minute.", mp_iss_in_on: "The player is already on the pitch at this minute.",
+  mp_iss_in_not_squad: "The player is not in the squad.", mp_iss_late: "After the end of the match.", mp_iss_same: "Off and on is the same player.",
+  mp_minutes: "Planned minutes ({n}′)", mp_minutesT: "Planned minutes", mp_minutesInfo: "From the starting line-up and the substitution plan. Useful for load management (e.g. after an injury) and fair playing time.",
+  mp_fairInfo: "In children's and youth football, playing time shared as evenly as possible matters for motivation and development.", mp_fair: "Playing time in the squad: {lo}′ to {hi}′",
+
+  // Sharing
+  mp_share: "Sharing with players", mp_st_draft: "Draft", mp_st_scheduled: "scheduled", mp_st_ended: "ended", mp_st_liveShort: "shared",
+  mp_st_liveAt: "shared until {d}", mp_st_scheduledAt: "from {d}", mp_sharedAt: "Version of {d}",
+  mp_changed: "Changed since sharing – players still see the old version.", mp_update: "Update sharing", mp_unshare: "End sharing",
+  mp_shared: "Match plan shared", mp_unshared: "Sharing ended",
+  mp_shareWhat: "What do players see?", mp_sec_lineup: "Line-up", mp_sec_slides: "Tactics & set pieces", mp_sec_idea: "Game idea", mp_sec_opp: "Opponent analysis", mp_sec_tasks: "Player tasks", mp_sec_subs: "Substitution plan",
+  mp_secSubsD: "Recommended: keep it with the coaching staff.", mp_secSlidesD: "Only slides marked “visible to players”.",
+  mp_ownTasks: "Everyone only sees their own task", mp_ownTasksD: "Tasks stay personal. Switched off, everyone sees all tasks.",
+  mp_squadOnly: "Squad only", mp_squadOnlyD: "Starters and bench at the time of sharing. Otherwise the whole team sees the plan.",
+  mp_psyHint: "Tip: tell players who are not in the squad or not starting in person beforehand – don't let them find out via the app.",
+  mp_shareWhen: "Period", mp_until: "Visible until", mp_untilD: "Default: end of the match (kick-off + playing time + half-time) plus 30 minutes.", mp_untilFree: "Without a match: three days.",
+  mp_later: "Share later", mp_laterD: "e.g. the evening before the match – nobody sees anything before.", mp_from: "Visible from",
+  mp_announce: "Announce in the team chat", mp_chatMsg: "📋 The match plan “{t}” is shared – in the app under Today (visible until {d}).",
+  mp_protectT: "Protection", mp_protect: "Watermark with name and time. Android: screenshots and screen recordings blocked. iOS: screen recordings blacked out, screenshots are detected and logged. In the browser no technical protection is possible – only the watermark.",
+  mp_shareNoSec: "Select at least one part.", mp_shareUntilPast: "The end must be in the future.", mp_shareFromAfter: "The start must be before the end.",
+  mp_shareGo: "Share with players", mp_shareSave: "Save sharing",
+  mp_log: "Views", mp_logInfo: "Who opened the match plan since it was last shared (at most one entry per 10 minutes) and detected screenshots. The log is deleted after 6 months.",
+  mp_refresh: "Refresh", mp_seen: "{n}/{m} seen", mp_shots: "{n} screenshot(s)", mp_shot: "Screenshot detected", mp_notSeen: "Not seen yet",
+  mp_notSeenHint: "A quick word in person helps more than a reminder in the chat.", mp_seenList: "Seen",
+
+  // Player view
+  pv_role: "Your role", pv_start: "Starting line-up", pv_bench: "Bench – be ready when you are needed", pv_captain: "You are captain", pv_myTask: "Your task",
+  pv_info: "Your coaching staff's match plan – only for our team and only visible until the end of the match.",
+  pv_privacy: "Every view is logged (time, device). On Android screenshots are blocked, on iOS they are detected. Please don't pass anything on.",
+  pv_gone: "This match plan is no longer shared.", pv_offline: "The match plan cannot be opened without a connection.",
+  pv_conf: "Confidential – only for our team", pv_confD: "Visible until {d}. Please no screenshots and don't pass anything on.", pv_web: "In the browser the plan is only protected by the watermark.",
+  pv_shot: "Screenshot detected – the coaching staff can see that. Please don't pass the match plan on.",
+  pp_new: "new", pp_until: "visible until {d}",
+};

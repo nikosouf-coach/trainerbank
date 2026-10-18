@@ -1,5 +1,5 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
-import type { CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -197,6 +197,20 @@ export interface Api {
   challengeTotals(teamId: string, ws: string): Promise<ChallengeTotals[]>;
   // Individualtraining
   saveIndiv(teamId: string, r: IndivRequest): Promise<IndivRequest>;
+
+  // Matchplan (Trainerteam: Recht „plan“; Spieler lesen nur freigegebene Pläne über planOpen – mit Zugriffsprotokoll)
+  savePlan(teamId: string, p: MatchPlan): Promise<MatchPlan>;
+  deletePlan(id: string): Promise<void>;
+  /** Freigeben bzw. aktualisieren (veröffentlichter Stand, Zeitraum, Kader) oder beenden (share = null) */
+  sharePlan(id: string, share: MpShare | null, published: MpPublished | null, squad: string[]): Promise<MatchPlan>;
+  /** Zugriffsprotokoll eines Plans (Trainerteam) */
+  planLogs(planId: string): Promise<MpLog[]>;
+  /** Spieler: jetzt freigegebene Pläne */
+  myPlans(teamId: string): Promise<MpAvail[]>;
+  /** Spieler: Plan öffnen (wird protokolliert) */
+  planOpen(id: string, platform: "ios" | "android" | "web"): Promise<MpOpened>;
+  /** Spieler: erkannter Screenshot */
+  planShot(id: string, platform: "ios" | "android" | "web"): Promise<void>;
 
   // Chat
   /** Team-, Trainerteam-, Gruppen- oder Einzelchat öffnen (wird bei Bedarf angelegt) */

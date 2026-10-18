@@ -6,8 +6,9 @@ import { cleanAreas } from "../core/body";
 import { isClientId, isNetworkMessage } from "../core/outbox";
 import { cleanPainMap } from "../core/pain";
 import { cleanUnit } from "../core/units";
+import { cleanContent } from "../core/matchplan";
 import { addDays, iso, monday } from "../core/dates";
-import type { Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -132,6 +133,13 @@ const mapChat = (r: Row, members: string[], muted: boolean): Chat => ({ id: r.id
 const mapChatMsg = (r: Row): Omit<ChatMsg, "reactions"> => ({ id: r.id, chatId: r.chat_id, uid: r.user_id || null, name: r.sender_name || "", body: r.body || "", at: r.created_at, replyTo: r.reply_to || null, deleted: !!r.deleted_at });
 const mapReport = (r: Row): ChatReport => ({ id: r.id, msgId: r.message_id || null, chatId: r.chat_id || null, reason: r.reason, note: r.note || "", snapshot: r.snapshot || "", sender: r.sender_name || "",
   sentAt: r.sent_at || null, status: r.status, reporter: r.reporter, at: r.created_at });
+/** Plan aus der Datenbank (Inhalt bereinigt; die Altersklasse bestimmt nur die Spielform, falls sie fehlt) */
+const mapPlan = (r: Row, cls: ClassKey = "sen"): MatchPlan => ({
+  id: r.id, matchId: r.match_id || null, title: r.title || "", c: cleanContent(r.content || {}, cls),
+  share: r.published ? { sections: r.share_sections || [], from: r.share_from || null, until: r.share_until, squadOnly: !!r.share_squad, ownTasks: r.share_own_tasks !== false } : null,
+  published: r.published || null, publishedAt: r.published_at || null, updatedAt: r.updated_at || null,
+});
+const mapPlanLog = (r: Row): MpLog => ({ pid: r.player_id, at: r.at, kind: r.kind === "shot" ? "shot" : "open", platform: r.platform || null });
 const mapPerson = (r: Row): ChatPerson => ({ uid: r.user_id, name: r.name || "–", kind: r.kind === "staff" ? "staff" : "player", pid: r.player_id || null, role: r.role || null });
 /** Reaktionen den Nachrichten zuordnen */
 function withReactions(msgs: Row[], reacts: Row[]): ChatMsg[] {
@@ -348,6 +356,19 @@ export class SupabaseApi implements Api {
           for (const c of D.chats) D.chatMore[c.id] = msgs.length >= CHAT_MAX || (L.old[c.id] || "") < from;
         } catch { /* Chat optional: Rest der App lädt trotzdem */ }
       }
+    }
+    if (D.team.modules.matchplan !== false) {
+      // Matchpläne: Trainerteam liest Pläne und Zugriffsprotokoll; Spieler nur die Liste freigegebener Pläne
+      try {
+        if (staff) {
+          const [plans, logs] = await Promise.all([
+            q(sb.from("match_plans").select("*").eq("team_id", tid).gte("updated_at", addDays(today, -400)).order("updated_at")),
+            all((a, b) => sb.from("match_plan_views").select("plan_id, player_id, kind, platform, at").eq("team_id", tid).gte("at", addDays(today, -60)).order("at").range(a, b)),
+          ]);
+          D.plans = plans.map(r => mapPlan(r, team.cls));
+          for (const r of logs) (D.planLogs[r.plan_id] ||= []).push(mapPlanLog(r));
+        } else D.myPlans = await this.myPlans(tid);
+      } catch { /* Matchplan optional: Rest der App lädt trotzdem */ }
     }
     if (!staff && m.playerId) {
       // Eigene Platzierungen in Tests (Server rechnet, ohne Werte anderer)
@@ -738,6 +759,35 @@ export class SupabaseApi implements Api {
     const rows = await q<Row[]>(this.sb.rpc("challenge_totals", { p_team: teamId, p_week: ws }));
     return rows.map(r => ({ cid: r.challenge_id, players: r.players ?? 0, done: r.done ?? 0, sum: Number(r.total ?? 0), top: Array.isArray(r.top) ? r.top.map((x: Row) => ({ name: String(x.name), value: Number(x.value) })) : [] }));
   }
+
+  // ---------- Matchplan ----------
+  async savePlan(teamId: string, p: MatchPlan) {
+    const row: Row = { team_id: teamId, match_id: p.matchId && !isTmp(p.matchId) ? p.matchId : null, title: p.title.slice(0, 80), content: p.c };
+    const r = isTmp(p.id) ? await q<Row>(this.sb.from("match_plans").insert(row).select().single())
+      : await q<Row>(this.sb.from("match_plans").update({ match_id: row.match_id, title: row.title, content: row.content }).eq("id", p.id).select().single());
+    return mapPlan(r);
+  }
+  async deletePlan(id: string) { await q(this.sb.from("match_plans").delete().eq("id", id)); }
+  async sharePlan(id: string, share: MpShare | null, published: MpPublished | null, squad: string[]) {
+    const row: Row = share && published
+      ? { published, share_sections: share.sections, share_from: share.from, share_until: share.until, share_squad: share.squadOnly, share_own_tasks: share.ownTasks, squad: squad.filter(x => !isTmp(x)).slice(0, 40) }
+      : { published: null };
+    const r = await q<Row>(this.sb.from("match_plans").update(row).eq("id", id).select().single());
+    return mapPlan(r);
+  }
+  async planLogs(planId: string) {
+    const rows = await q<Row[]>(this.sb.from("match_plan_views").select("player_id, kind, platform, at").eq("plan_id", planId).order("at"));
+    return rows.map(mapPlanLog);
+  }
+  async myPlans(teamId: string): Promise<MpAvail[]> {
+    const rows = await q<Row[]>(this.sb.rpc("my_match_plans", { p_team: teamId }));
+    return rows.map(r => ({ id: r.id, matchId: r.match_id || null, title: r.title || "", until: r.share_until, at: r.published_at, seen: !!r.seen }));
+  }
+  async planOpen(id: string, platform: "ios" | "android" | "web"): Promise<MpOpened> {
+    const r = await q<Row>(this.sb.rpc("match_plan_open", { p_plan: id, p_platform: platform }));
+    return { id: r.id, matchId: r.matchId || null, title: r.title || "", content: r.content || { sections: [] }, pid: r.pid, name: r.name || "", until: r.until, at: r.at, ownTasks: r.ownTasks !== false };
+  }
+  async planShot(id: string, platform: "ios" | "android" | "web") { await q(this.sb.rpc("match_plan_event", { p_plan: id, p_kind: "shot", p_platform: platform })); }
 
   // ---------- Individualtraining ----------
   async saveIndiv(teamId: string, x: IndivRequest) {

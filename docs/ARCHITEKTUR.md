@@ -108,6 +108,8 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `chat_reactions`, `chat_state` (…0023) | Reaktionen (6 Emojis) bzw. Lesestand und „stumm“ je Konto | Teilnehmer bzw. eigene Zeilen |
 | `chat_reports` (…0023) | Meldung mit Kopie (`snapshot`, `sender_name`, `sent_at`), `reason`, `note`, `status` | Meldende(r) eigene; Staff mit `messages` alle des Teams |
 | `chat_push_log` (…0023) | Drosselung der Chat-Push-Nachrichten (je Konto und Chat) | nur Server |
+| `match_plans` (…0024) | Matchplan: `match_id` (ein Plan je Spiel, ohne Spiel beliebig), `title`, `content` jsonb (Spielform, Grundordnung, Aufstellung, Bank, Kapitän, Folien, Spielidee, Gegner, Aufgaben, Wechsel, Ansicht; ≤ 300 kB), Freigabe: `published` (Auszug nur der freigegebenen Bereiche), `share_sections`, `share_from`, `share_until`, `share_squad`, `share_own_tasks`, `squad`, `published_at`/`published_by` (setzt der Server) | nur Staff (lesen alle, schreiben `plan`); Spieler **kein** direkter Zugriff – nur über `match_plan_open` |
+| `match_plan_views` (…0024) | Zugriffsprotokoll: `player_id`, `kind` (open/shot), `platform`, `at`; höchstens ein Aufruf je Spieler und Plan in 10 Minuten, ≤ 20 Screenshot-Meldungen | lesen Staff; schreiben nur `match_plan_open`/`match_plan_event`; Löschfrist 6 Monate |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -133,6 +135,18 @@ Nach jeder Nachricht ruft ein Trigger (pg_net, wie die Erinnerungen) die Edge Fu
 eine Push-Nachricht je Chat und Minute, keine an Mitlesende). Push-Nachrichten enthalten nie den Text. Die App bekommt
 neue Nachrichten über Supabase Realtime (`chat_messages`, `chat_reactions` in der Publikation `supabase_realtime`, RLS
 gilt) und gleicht zusätzlich alle 20 s ab, solange der Chat offen ist.
+
+### Matchplan
+
+Der Inhalt eines Plans liegt als JSON in `match_plans.content` (Koordinaten in Metern auf einem Hochkant-Feld 68 × 105,
+eigenes Tor unten; ein Ausschnitt wie „Strafraum vorne“ ist nur ein anderer Bildausschnitt). Die App bereinigt den Inhalt
+(`core/matchplan.cleanContent`). Beim Freigeben schreibt die App den Auszug für Spieler (`publishedOf`: nur gewählte
+Bereiche, nur Folien mit „für Spieler sichtbar“, Wechselplan standardmäßig nicht) nach `published`; spätere Änderungen
+sehen Spieler erst nach „Freigabe aktualisieren“. Spieler lesen nie die Tabelle, sondern nur über
+`match_plan_open(plan, platform)`: Modul an, freigegeben, im Zeitraum (`share_from` … `share_until`, Standard bis
+Spielende + 30 Minuten), bei „nur Kader“ im `squad`; Aufgaben standardmäßig nur die eigene. Jeder Aufruf wird
+protokolliert. In der App: Wasserzeichen (Name, Uhrzeit), Bildschirmschutz über `expo-screen-capture` (Android
+FLAG_SECURE, iOS schwärzt Aufnahmen; erkannte Screenshots → `match_plan_event`), im Browser nur Wasserzeichen.
 
 ### Rechte im Trainerteam
 
@@ -179,8 +193,8 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `regenerate_codes(team)` (nur Owner).
 - `team_by_join_code(code)` → Vereins-/Teamname zur Anzeige vor dem Beitritt (keine weiteren Daten).
 - `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen,
-  Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v5`: Profil, Gesundheitsdaten
+  Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining; v7: Matchplan).
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v6` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -191,7 +205,11 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   `chat_leave(chat)`, `chat_directory(team)` (Trainerteam mit Namen und Funktion, aktive Spieler mit Konto als „Vorname N.“;
   Spieler-IDs nur für Staff), `chat_push_targets(message)` (nur Server).
 - `purge_stale_health_data()` – zusätzlich: Chat-Nachrichten nach 24 Monaten, erledigte Meldungen und abgeschlossene
-  Anfragen für Individualtraining nach 12 Monaten, Push-Drosselung nach 30 Tagen.
+  Anfragen für Individualtraining nach 12 Monaten, Zugriffsprotokoll der Matchpläne nach 6 Monaten, Push-Drosselung
+  nach 30 Tagen.
+- `my_match_plans(team)` – Spieler: jetzt freigegebene Pläne (Titel, Spiel, bis wann, schon gesehen).
+- `match_plan_open(plan, platform)` – Spieler: freigegebener Stand mit Name für das Wasserzeichen; protokolliert den Aufruf.
+- `match_plan_event(plan, 'shot', platform)` – Spieler: erkannter Screenshot ins Protokoll.
 - `staff_can(team, perm)`, `team_staff_perms(team)`, `set_staff_perms(team, user, perms)` – Rechte im Trainerteam.
 - `is_treasurer(team)`, `can_manage_cash(team)`, `team_cash_balance(team)` – Kasse; der Kassenstand geht an Spieler
   nur, wenn er freigegeben ist.
@@ -238,6 +256,10 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Fortschritt, Teamsumme, Serie.
 - `chat.ts` – Chat-Regeln wie in der Datenbank (Teilnehmer, Mitlesen, Schreiben, Einzelchats nach Einstellung),
   Titel, Ungelesen, Sortierung, Vorschau.
+- `matchplan.ts` – Matchplan: Grundordnungen (11er, 9er, 7er, 5er), Aufstellung per Ziehen (`placePlayer`: tauschen,
+  einwechseln, Bank, aus dem Kader, frei verschieben), Vorschlag nach Position, Wechselplan mit geplanten Minuten
+  und Hinweisen, Folien mit Ausschnitt (`fitToView`), Freigabe (Auszug, Zeitraum, nur Kader, Aufgaben nur eigene),
+  Zugriffsstatistik, Bereinigung.
 - `demo.ts` – Demo-Mannschaft (für Demo-Modus, Tests und „Beispieldaten laden“).
 - Tests: `src/core/__tests__` (`node --test`).
 

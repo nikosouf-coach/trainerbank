@@ -35,7 +35,7 @@ export const en_squad: Dict = {
   pm_denied: "You don't have the \u201c{p}\u201d permission. The head coach can grant it.", pm_medicalOnly: "Findings without health data is unusual – they usually go together.",
   pm_health: "Health data", pm_healthD: "RPE, morning check, complaints, extra sport, growth – view and enter; traffic light and load",
   pm_medical: "Medical findings", pm_medicalD: "Doctor's letters and findings (photo/PDF) incl. AI summary",
-  pm_plan: "Planning", pm_planD: "Calendar, matches, events, weekly plan, pre-season, videos, weekly challenge, individual sessions",
+  pm_plan: "Planning", pm_planD: "Calendar, matches, events, weekly plan, pre-season, videos, weekly challenge, individual sessions, match plan",
   pm_squad: "Squad", pm_squadD: "Players, groups, attendance, absences, contacts",
   pm_perf: "Performance & stats", pm_perfD: "Enter performance tests and match data (minutes, goals …)",
   pm_notes: "Notes & ratings", pm_notesD: "Coach notes, potentials, ratings with feedback, training impressions, player development (profile, goals, talks)",

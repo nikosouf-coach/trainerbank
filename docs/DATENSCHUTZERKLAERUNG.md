@@ -40,6 +40,9 @@
   zeigen nie den Text. Unpassende Nachrichten kannst du melden.
 - **Entwicklung:** Deine Selbsteinschätzung und deine eigenen Ziele sieht dein Trainerteam. Einschätzungen und
   Gesprächsprotokolle des Trainerteams siehst du, wenn es sie freigibt.
+- **Matchplan:** Gibt dein Trainerteam einen Matchplan frei, kannst du ihn bis Spielende ansehen. Er ist vertraulich:
+  Er wird mit deinem Namen als Wasserzeichen angezeigt, und es wird festgehalten, wann du ihn geöffnet hast (und ob
+  ein Screenshot erkannt wurde). Das Protokoll wird nach 6 Monaten gelöscht.
 - Die Daten liegen auf Servern in der EU (Frankfurt). Es gibt **keine Werbung, kein Tracking und keinen Verkauf** von Daten.
 - Der KI-Coach ist freiwillig. Wenn du ihn nutzt, geht deine Frage an einen KI-Anbieter in den USA.
 - Du kannst deine Daten jederzeit in der App herunterladen und dein Konto mit allen Gesundheitsdaten löschen.
@@ -136,6 +139,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.32 | Wochenchallenge | Challenges des Teams (Aufgabe, Woche, Ziel) und deine Einträge (Bestwert, Menge, erledigte Tage oder „geschafft“) | Trainerteam, du | freiwillig |
 | 4.33 | Individualtraining | deine Anfrage (Thema, Beschreibung, Wunschzeit), Status, Antwort, zugesagter Termin, zuständiger Trainer; die zugehörige Einheit (wie 4.23, nur für dich) | du, Trainerteam | freiwillig |
 | 4.34 | Chat | Chats, in denen du Mitglied bist (Teamchat, Trainerteam, Gruppen, Einzelchats, eigene Gruppen), deine Nachrichten (Text, Zeitpunkt, Antwort auf, gelöscht am/von), Reaktionen, dein Lesestand und ob du einen Chat stumm geschaltet hast; Meldungen (Grund, Anmerkung, **Kopie der gemeldeten Nachricht** mit Absender und Zeitpunkt); Zeitpunkt der letzten Chat-Push-Mitteilung je Chat (zur Drosselung) | du, andere Mitglieder des Teams | freiwillig |
+| 4.35 | Matchplan | Aufstellung (Startelf, Bank, Kapitän, Position), Aufgabe für dich, Folien, Spielidee, Gegneranalyse, Wechselplan (geplante Minuten) – vom Trainerteam erstellt; **Zugriffsprotokoll**: wann du einen freigegebenen Matchplan geöffnet hast, Plattform (iOS/Android/Web) und erkannte Screenshots | Trainerteam; du (freigegebene Bereiche) | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -210,6 +214,14 @@ jederzeit löschen (der Text wird entfernt, es bleibt „Nachricht gelöscht“)
 an das Trainerteam, damit es auch dann handeln kann, wenn die Nachricht gelöscht wird. Push-Mitteilungen zum Chat
 nennen nur, von wem die Nachricht ist und in welchem Chat – nie den Text.
 
+**Matchplan (4.35):** Den Matchplan erstellt das Trainerteam. Spieler sehen ihn nur, wenn er freigegeben ist, nur die
+freigegebenen Bereiche und nur im eingestellten Zeitraum (Standard: bis kurz nach Spielende); Aufgaben sieht standardmäßig
+jeder nur für sich, der Wechselplan bleibt standardmäßig im Trainerteam. Um die Taktik des Teams vertraulich zu halten,
+wird der Plan mit deinem Namen und der Uhrzeit als Wasserzeichen angezeigt, auf Android sind Screenshots und
+Bildschirmaufnahmen gesperrt, auf iOS werden Bildschirmaufnahmen geschwärzt und Screenshots erkannt. Jeder Aufruf
+(höchstens einer je 10 Minuten) und erkannte Screenshots werden protokolliert; das Trainerteam sieht, wer den Plan schon
+gesehen hat. Andere Spieler sehen das Protokoll nicht. Das Protokoll wird nach **6 Monaten** gelöscht.
+
 **Platzierung (4.26):** Du siehst nur deinen eigenen Platz (z. B. „Platz 3 von 18“), erst wenn mindestens fünf Spieler
 einen Wert haben. Werte oder Namen anderer Spieler werden nie angezeigt. Das Trainerteam kann die Platzierung abschalten.
 
@@ -232,12 +244,13 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung, Wochenchallenge, Individualtraining, Chat | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.34 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung, Wochenchallenge, Individualtraining, Chat, Matchplan | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.35 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
 | Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests, Angaben zum Schmerz (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26, 4.27 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
 | Push-Erinnerungen und Team-Mitteilungen | 4.14 | Art. 6 Abs. 1 lit. b DSGVO; Zugriff auf das Endgerät nach § 25 Abs. 2 Nr. 2 TDDDG (vom Nutzer ausdrücklich gewünschter Dienst) nach Freigabe in den Systemeinstellungen |
 | Nachweis von Einwilligungen | 4.13 | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 DSGVO |
 | Kinderschutz und Schutz vor Missbrauch im Chat (Mitlesen in Jugendteams, Meldungen mit Kopie, Begrenzung auf 30 Nachrichten pro Minute) | 4.34 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Spieler am Schutz von Kindern und Jugendlichen; § 72a SGB VIII, Kinderschutzkonzepte der Verbände) |
+| Vertraulichkeit des Matchplans: Wasserzeichen, Bildschirmschutz und Zugriffsprotokoll | 4.35 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Mannschaft, die Spielvorbereitung vertraulich zu halten; das Protokoll enthält nur Zeitpunkt, Plattform und erkannte Screenshots und wird nach 6 Monaten gelöscht) |
 | Sicherheit, Missbrauchsabwehr, Fehleranalyse, Tageslimit für den KI-Coach | 4.15 (Zähler), 4.16 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und bezahlbaren Betrieb) |
 | Speicherung auf deinem Gerät (Anmeldesitzung, Sprache, Einstellungen) | – | § 25 Abs. 2 Nr. 2 TDDDG (unbedingt erforderlich); Art. 6 Abs. 1 lit. b DSGVO |
 | Beantwortung von Anfragen | 4.17 | Art. 6 Abs. 1 lit. b DSGVO, sonst Art. 6 Abs. 1 lit. f DSGVO |
@@ -368,6 +381,8 @@ bleibt unberührt.
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
 | deine Chat-Nachrichten | ja | in Chats, in denen das Trainerteam Mitglied ist; in Jugendteams auch Einzelchats Trainer–Spieler (Recht „Nachrichten“) | Mitglieder des jeweiligen Chats | nein |
 | deine Meldungen im Chat | ja | mit Recht „Nachrichten“ (mit Kopie der Nachricht) | nein | nein |
+| Matchplan (Aufstellung, Aufgaben, Taktik …) | die freigegebenen Bereiche im Freigabezeitraum (Aufgaben standardmäßig nur deine) | ja | wie du (freigegebene Bereiche) | nein |
+| Zugriffsprotokoll des Matchplans (wann geöffnet, Screenshot erkannt) | in deinem Datenexport | ja | nein | nein |
 
 Diese Regeln setzt die Datenbank selbst durch (zeilenbasierte Zugriffsregeln), nicht nur die Oberfläche der App.
 
@@ -549,6 +564,8 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Chat-Nachrichten und Reaktionen | automatisch **24 Monate** nach dem Senden; sofort bei Löschung deines Kontos; gelöschte Nachrichten verlieren ihren Text sofort; Einzel- und eigene Chats auch, wenn alle Mitglieder sie verlassen |
 | Meldungen im Chat | automatisch 12 Monate, nachdem das Trainerteam sie erledigt hat; deine eigenen Meldungen mit deinem Konto |
 | Lesestand, „stumm“, Push-Drosselung | mit dem Konto bzw. Chat; Push-Drosselung nach 30 Tagen |
+| Matchplan | bei Löschung durch das Trainerteam oder Löschung des Teams |
+| Zugriffsprotokoll des Matchplans | automatisch **6 Monate** nach dem Aufruf; mit dem Plan oder deinem Spielerprofil |
 | Angaben zum Schmerz | wie Gesundheitsdaten (mit dem Morgen-Check-Eintrag) |
 | Mannschaftskasse | Buchungen und Befreiungen bei Löschung durch Kasse/Trainerteam oder des Teams; beim Löschen eines Spielers werden Befreiungen gelöscht und Buchungen anonymisiert |
 | Offline-Einträge und Stand auf dem Gerät | nach dem Senden bzw. spätestens nach 14 Tagen; der Stand beim Abmelden und Löschen des Kontos |
@@ -687,7 +704,8 @@ e-mail address for players under 16); player development (competency profile 1�
 self-assessment, measurable goals with progress, development talks with agreements and an internal staff note never
 shown to the player); weekly challenges and your entries (team-mates only see participation and the team total; a
 top-3 list only if the staff enables it); requests for individual sessions; chat (messages, reactions, read state,
-muted chats, reports with a copy of the reported message); push tokens; AI usage counters; technical server logs. Load, wellness,
+muted chats, reports with a copy of the reported message); match plans created by the staff and an access log of when
+you opened a shared match plan (platform, detected screenshots; deleted after 6 months); push tokens; AI usage counters; technical server logs. Load, wellness,
 complaints and body regions, injury, illness, height and weight, rehab/load-build/growth group membership and test
 results are treated as **health data** (Art. 9 GDPR).
 
@@ -701,7 +719,9 @@ of their team's players; team-mates never see each other's data. In the chat, me
 with the sender's first name and last initial. In youth teams, direct messages are only possible with the coaching
 staff and staff members with the "Messages" permission can read direct messages between a coach and a player
 (safeguarding, shown in the chat). Push notifications never contain the message text. Chat messages are deleted after
-24 months. Enforced by database row-level security.
+24 months. Shared match plans are visible to players only for the shared parts and period, shown with a name
+watermark (screenshots blocked on Android, detected on iOS); the staff sees who has opened them. Enforced by database
+row-level security.
 
 **Minors:** own accounts from [minimum age]; under 16, a parent or guardian must consent (we store their e-mail
 address). Younger players can be managed by the coaching staff without an account.

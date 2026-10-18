@@ -29,6 +29,7 @@ export default function Mehr() {
         {E.mods.entwicklung ? <ListItem testID="mehr-entwicklung" title={t("dv_overview")} sub={t("dv_menuSub")} right={chev} onPress={() => go("/coach/entwicklung")} /> : null}
         {E.mods.entwicklung ? <ListItem testID="mehr-individual" title={t("iq_title")} sub={openRequests(E.D).length ? `${t("iq_open")}: ${openRequests(E.D).length}` : t("iq_menuSub")} right={chev} onPress={() => go("/coach/individual")} /> : null}
         {E.mods.challenge ? <ListItem testID="mehr-challenge" title={t("cg_title")} sub={t("cg_menuSub")} right={chev} onPress={() => go("/coach/challenge")} /> : null}
+        {E.mods.matchplan ? <ListItem testID="mehr-matchplan" title={t("mp_list")} sub={t("mp_menuSub")} right={chev} onPress={() => go("/coach/matchplaene")} /> : null}
         {E.mods.spielanalyse ? <ListItem testID="mehr-spiele" title={t("sp_list")} sub={t("sp_listSub")} right={chev} onPress={() => go("/coach/spiele")} /> : null}
         {E.mods.videos ? <ListItem testID="mehr-videos" title={t("sp_lib")} sub={t("sp_libSub")} right={chev} onPress={() => go("/coach/videos")} /> : null}
         <ListItem testID="mehr-wiki" title={t("wk_menu")} sub={t("wk_menuSub")} right={chev} onPress={() => go("/wiki")} />

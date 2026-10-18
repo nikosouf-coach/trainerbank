@@ -2,7 +2,7 @@
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoChat, demoExtras, demoTeam } from "../core/demo";
 import { chatSettings, pairKey } from "../core/chat";
-import type { Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -205,6 +205,19 @@ export class DemoApi implements Api {
   async saveChallengeEntry(_e: ChallengeEntry) { this.net(); }
   async challengeTotals() { return []; }
   async saveIndiv(_t: string, r: IndivRequest) { this.net(); return { ...r, id: newId(r.id) }; }
+
+  // Matchplan (lokal – der Store ändert die Demo-Daten direkt; Spieleransicht rechnet der Store aus den Plänen)
+  async savePlan(_t: string, p: MatchPlan) { this.net(); return { ...p, id: newId(p.id), updatedAt: new Date().toISOString() }; }
+  async deletePlan() { this.net(); }
+  async sharePlan(id: string, share: MpShare | null, published: MpPublished | null): Promise<MatchPlan> {
+    this.net(); const p = this.data?.plans.find(x => x.id === id); if (!p) throw new ApiError("not_found");
+    const same = !!p.published && JSON.stringify(p.published) === JSON.stringify(published);
+    return { ...p, share: share && published ? share : null, published: share ? published : null, publishedAt: share && published ? (same && p.publishedAt ? p.publishedAt : new Date().toISOString()) : null };
+  }
+  async planLogs(planId: string): Promise<MpLog[]> { return this.data?.planLogs[planId] || []; }
+  async myPlans(): Promise<MpAvail[]> { return []; }
+  async planOpen(): Promise<MpOpened> { throw new ApiError("not_found"); }
+  async planShot() { /* lokal */ }
 
   // Chat (Demo: im Speicher). „Ich“ setzt der Store je nach Ansicht (Trainer, Co-Trainer, Spieler).
   chatMe = "demo-user";

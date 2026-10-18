@@ -8,6 +8,7 @@ import { RatingBadge, RatingInput, VideoList, VideoSheet } from "../../../src/ui
 import { Btn, Card, CardTitle, Check, Col, Field, Header, Muted, NumField, Row, Screen, Sheet, T, ToggleRow } from "../../../src/ui/kit";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { useTheme } from "../../../src/ui/theme";
+import { CoachPlanCard } from "../../../src/ui/matchplan/cards";
 
 function Stepper({ value, onChange, testID }: { value: number; onChange: (n: number) => void; testID?: string }) {
   const { c } = useTheme();
@@ -40,6 +41,7 @@ export default function Spiel() {
   return (
     <Screen testID="coach-spiel">
       <Header onBack={back} backLabel={t("nav_kalender")} eyebrow={`${t("sp_title")} · ${E.wt(m.date)} ${E.de(m.date)} · ${m.heim ? t("home") : t("away")} · ${t("comp_" + m.comp)}`} title={`${t("vs")} ${m.gegner}`} />
+      <CoachPlanCard match={m} />
       <Card testID="sp-result">
         <CardTitle title={t("sp_result")} />
         <Row gap={10} align="flex-end" wrap>

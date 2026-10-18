@@ -3,7 +3,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Localization from "expo-localization";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AppState } from "react-native";
+import { AppState, Platform } from "react-native";
 import { addDays, iso, monday } from "../core/dates";
 import { fineViolations, lateFinesToWaive, nextDutyDate, planRotation } from "../core/duties";
 import { applyOp, applyOutbox, enqueue, prune, withClientId, type OutboxItem, type OutboxOp } from "../core/outbox";
@@ -14,8 +14,9 @@ import { freeDateSlot, recurringOn } from "../core/units";
 import { applyChallenge, entryOf } from "../core/challenge";
 import { cleanBody, demoMe, putMsg, toggleReaction, visibleChats } from "../core/chat";
 import { indivUnit } from "../core/dev";
+import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
-import type { Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+import type { MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -793,6 +794,70 @@ function useStoreValue() {
       return true;
     },
 
+    // ---------- Matchplan ----------
+    /** Neuen Plan anlegen (optional auf Basis eines früheren) – liefert die gespeicherte ID */
+    createPlan: async (matchId: string | null, fromId?: string | null): Promise<string | null> => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) return null;
+      if (denied(["plan"])) return null;
+      const m = matchId ? D.matches.find(x => x.id === matchId) || null : null, tr0 = translator(lang);
+      const title = m ? tr0.tf("mp_titleVs", { g: m.gegner }) : tr0.t("mp_titleFree");
+      const prev = fromId ? D.plans.find(x => x.id === fromId) : null;
+      const p = prev ? copyPlan(tmpId(), prev, m, title) : newPlan(tmpId(), m, D.team.cls, title);
+      try { const saved = await api.savePlan(active.teamId, p); D.plans.push(saved); bump(); return saved.id; }
+      catch (e) { toast(isOffline(e) ? translator(lang).t("off_notSaved") : errText(e)); return null; }
+    },
+    /** Plan speichern (Inhalt, Titel) – der Editor speichert verzögert nach Änderungen */
+    savePlan: (p: MatchPlan) => change(D => { const i = D.plans.findIndex(x => x.id === p.id); if (i >= 0) D.plans[i] = { ...D.plans[i], ...p }; else D.plans.push(p); },
+      async (api, t) => { const saved = await api.savePlan(t, p); const L = ref.current.D!.plans, i = L.findIndex(x => x.id === p.id); if (i >= 0) L[i] = { ...L[i], updatedAt: saved.updatedAt }; }),
+    deletePlan: (id: string) => change(D => { D.plans = D.plans.filter(x => x.id !== id); delete D.planLogs[id]; }, api => api.deletePlan(id), { ok: translator(ref.current.lang).t("mp_deleted") }),
+    /** Für Spieler freigeben bzw. aktualisieren (aktueller Stand) oder beenden (null) */
+    sharePlan: async (p: MatchPlan, share: MpShare | null): Promise<boolean> => {
+      const { api, active, D, lang } = ref.current; if (!D || !active) return false;
+      if (denied(["plan"])) return false;
+      const sh = share ? cleanShare(share) : null, tr0 = translator(lang);
+      try {
+        await api.savePlan(active.teamId, p);
+        const saved = await api.sharePlan(p.id, sh, sh ? publishedOf(p.c, sh.sections) : null, squadOf(p.c));
+        const i = D.plans.findIndex(x => x.id === p.id); if (i >= 0) D.plans[i] = { ...saved, c: p.c }; bump();
+        toast(tr0.t(sh ? "mp_shared" : "mp_unshared")); return true;
+      } catch (e) { toast(isOffline(e) ? tr0.t("off_notSaved") : errText(e)); return false; }
+    },
+    /** Zugriffsprotokoll neu laden (Trainerteam) */
+    refreshPlanLogs: async (id: string) => {
+      const { api, D } = ref.current; if (!D || api.kind === "demo") return;
+      try { D.planLogs[id] = await api.planLogs(id); bump(); } catch { /* nächster Versuch beim Öffnen */ }
+    },
+    /** Spieler: freigegebene Pläne neu laden */
+    refreshMyPlans: async () => {
+      const { api, D, active } = ref.current; if (!D || !active || api.kind === "demo" || asStaff()) return;
+      try { D.myPlans = await api.myPlans(active.teamId); bump(); } catch { /* offline: bisherige Liste */ }
+    },
+    /** Spieler: Plan öffnen (wird protokolliert). Demo: aus den Demo-Daten wie die Zugriffsregeln. */
+    openPlan: async (id: string): Promise<MpOpened | null> => {
+      const { api, D, demoPlayer } = ref.current; if (!D) return null;
+      const platform = Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web";
+      if (api.kind === "demo") {
+        const p = D.plans.find(x => x.id === id), pid = demoPlayer, now = new Date();
+        if (!p || !pid || !p.published || !p.share || !visibleTo(p, pid, now)) return null;
+        const L = (D.planLogs[id] ||= []);
+        if (!L.some(l => l.pid === pid && l.kind === "open" && now.getTime() - new Date(l.at).getTime() < 600e3)) L.push({ pid, at: now.toISOString(), kind: "open", platform });
+        bump();
+        const pl = D.players.find(x => x.id === pid);
+        return { id, matchId: p.matchId, title: p.title, content: forPlayer(p.published, pid, p.share.ownTasks), pid, name: pl ? `${pl.vn} ${pl.nn || ""}`.trim() : "",
+          until: p.share.until, at: p.publishedAt || now.toISOString(), ownTasks: p.share.ownTasks };
+      }
+      const o = await api.planOpen(id, platform);
+      const a = D.myPlans.find(x => x.id === id); if (a && !a.seen) { a.seen = true; bump(); }
+      return o;
+    },
+    /** Spieler: erkannter Screenshot (iOS, Android 14+) – steht im Protokoll des Trainerteams */
+    planShot: async (id: string) => {
+      const { api, D, demoPlayer } = ref.current; if (!D) return;
+      const platform = Platform.OS === "ios" ? "ios" : Platform.OS === "android" ? "android" : "web";
+      if (api.kind === "demo") { if (demoPlayer) { (D.planLogs[id] ||= []).push({ pid: demoPlayer, at: new Date().toISOString(), kind: "shot", platform }); bump(); } return; }
+      try { await api.planShot(id, platform); } catch { /* Protokoll ist nachrangig */ }
+    },
+
     // ---------- Chat ----------
     chatMe: () => meNow(),
     /** Chat öffnen (wird bei Bedarf angelegt); liefert die ID oder null */
@@ -899,6 +964,7 @@ function useStoreValue() {
     saveDutyDefs: "tasks", saveFineRules: "tasks", saveDuty: "tasks", saveFine: "tasks", deleteFine: "tasks", saveTask: "tasks", deleteTask: "tasks",
     saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
     saveAssessment: "notes", deleteAssessment: "notes", saveGoal: "notes", deleteGoal: "notes", saveGoalEntry: "notes", deleteGoalEntry: "notes", saveTalk: "notes", deleteTalk: "notes",
+    savePlan: "plan", deletePlan: "plan",
     saveChallenge: "plan", deleteChallenge: "plan", saveChallengeEntry: "plan", answerIndiv: "plan", requestIndiv: "plan", cancelIndiv: "plan",
     chatSetReport: "messages", chatSetReadOnly: "messages",
   };
@@ -948,7 +1014,11 @@ function useStoreValue() {
   const chatMod = staffView && perms.has("messages");
   const chats = useMemo(() => !s.D ? [] : isDemo ? visibleChats(s.D, chatMeId, chatMod) : s.D.chats, [s.D, s.version, chatMeId, chatMod, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, perms, can, chats, chatMeId, chatMod };
+  // Matchplan (Spieler): freigegebene Pläne – Demo: wie die Zugriffsregeln aus den Plänen des Trainerteams
+  const myPlans: MpAvail[] = useMemo(() => !s.D || staffView ? [] : isDemo ? (mePid ? availFor(s.D.plans, s.D.planLogs, mePid, new Date()) : []) : s.D.myPlans,
+    [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, perms, can, chats, chatMeId, chatMod, myPlans };
 }
 
 export type Store = ReturnType<typeof useStoreValue>;

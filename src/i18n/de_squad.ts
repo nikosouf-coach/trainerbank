@@ -38,7 +38,7 @@ export const de_squad: Dict = {
   pm_denied: "Dafür fehlt dir das Recht „{p}“. Der Cheftrainer kann es freigeben.", pm_medicalOnly: "Befunde ohne Gesundheitsdaten ist ungewöhnlich – meist gehören beide zusammen.",
   pm_health: "Gesundheitsdaten", pm_healthD: "RPE, Morgen-Check, Beschwerden, Zusatzsport, Wachstum – sehen und eintragen; Ampel und Belastung",
   pm_medical: "Befunde", pm_medicalD: "Arztbriefe und Befunde (Foto/PDF) inkl. KI-Auswertung",
-  pm_plan: "Planung", pm_planD: "Kalender, Spiele, Termine, Wochenplan, Vorbereitung, Videos, Wochenchallenge, Individualtraining",
+  pm_plan: "Planung", pm_planD: "Kalender, Spiele, Termine, Wochenplan, Vorbereitung, Videos, Wochenchallenge, Individualtraining, Matchplan",
   pm_squad: "Kader", pm_squadD: "Spieler, Gruppen, Anwesenheit, Abwesenheiten, Kontakte",
   pm_perf: "Leistung & Statistik", pm_perfD: "Leistungstests und Spieldaten (Minuten, Tore …) eintragen",
   pm_notes: "Notizen & Bewertungen", pm_notesD: "Trainernotizen, Potenziale, Noten mit Feedback, Trainingseindruck, Spielerentwicklung (Profil, Ziele, Gespräche)",
