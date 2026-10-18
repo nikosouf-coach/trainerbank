@@ -148,6 +148,8 @@ export interface Team {
   timezone?: string;
   /** Vereinslogo (Speicherpfad bzw. lokale Adresse in der Demo) */
   logo?: string | null;
+  /** Verbunden mit einem Verein (Vereinsabo, core/club) */
+  clubId?: string | null;
 }
 export interface Player {
   id: string;
@@ -163,6 +165,10 @@ export interface Player {
   active?: boolean;
   /** IDs eigener Gruppen (TeamData.groups); Spieler sehen nur freigegebene. */
   groups?: string[];
+  /** Aus einem anderen Team des Vereins übernommen (Hochziehen/Wechsel): Name dieses Teams */
+  origin?: string | null;
+  /** Spielerzeile im Herkunftsteam */
+  linkedFrom?: string | null;
 }
 export interface Match { id: string; date: string; zeit: string; gegner: string; heim: boolean; comp: "liga" | "pokal" | "test"; /** Ergebnis aus eigener Sicht */ result?: { own: number; opp: number } | null }
 export interface TeamEvent { id: string; date: string; zeit: string; titel: string; typ: string; ersetzt: boolean }

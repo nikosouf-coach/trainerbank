@@ -22,6 +22,8 @@ import { DevSummaryCard } from "../../../src/ui/dev";
 import { canDirect, chatSettings } from "../../../src/core/chat";
 import { radius, statusColor, useTheme } from "../../../src/ui/theme";
 import type { Player } from "../../../src/core/types";
+import { moveTargets } from "../../../src/core/club";
+import { MoveSheet } from "../../../src/ui/club";
 
 function Kpi({ label, value, sub, color, term }: { label: string; value: string; sub?: string; color?: string; term?: string }) {
   const { c } = useTheme();
@@ -41,6 +43,7 @@ export default function Spieler() {
   const [edit, setEdit] = useState<Player | null | undefined>(undefined);
   const [merge, setMerge] = useState<Player | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  const [move, setMove] = useState<Player | null>(null);
   const sheets = usePlanSheets();
   const p = E.P(id);
   const back = () => router.canGoBack() ? router.back() : router.replace("/coach/kader");
@@ -57,6 +60,8 @@ export default function Spieler() {
   // Chat: Einzelchat mit dem Spieler (wenn er ein App-Konto hat und Einzelchats erlaubt sind)
   const chatSt = chatSettings(E.team), chatP = mods.chat && chatSt.on ? E.D.chatPeople.find(x => x.pid === p.id) : undefined;
   const meKind = E.D.chatPeople.find(x => x.uid === s.chatMeId)?.kind;
+  // Teamwechsel (Hochziehen/Wechsel): Recht „Kader“ hier und ein Zielteam (gleicher Verein oder beide eigene Teams)
+  const canMove = s.can("squad") && !p.neu && !!s.active && !(s.isDemo && s.demoStaff) && moveTargets(s.memberships, { teamId: s.active.teamId, role: s.active.role, clubId: E.team.clubId }).length > 0;
   const openChat = async () => { if (!chatP) return; const cid = await s.chatOpen("direct", null, chatP.uid); if (cid) router.push("/coach/chat/" + cid); };
 
   const pickPhoto = async () => {
@@ -82,12 +87,14 @@ export default function Spieler() {
             {pr.reasons.filter(r => !r[1].startsWith("ACWR") && ![t("st_low"), t("st_crit"), t("st_warn")].includes(r[1])).map(([k, r], i) => <Chip key={i} label={r} color={statusColor(c, k.replace(/^k-/, ""))} />)}
             {(p.groups || []).map(g => { const gg = E.D.groups.find(x => x.id === g); return gg ? <GroupChip key={g} group={gg} /> : null; })}
             {p.neu ? <Chip label={t("newP")} color={c.low} /> : null}
+            {p.origin ? <Chip testID="profile-origin" label={E.tf("cl_from", { t: p.origin })} color={c.accentTx} /> : null}
           </Row>
           {nx?.train ? <MyTarget pid={p.id} date={nx.date} detail label={`${E.wt(nx.date)} ${E.de(nx.date)}`} testID="profile-target" /> : null}
           <Row gap={8} wrap>
             <Btn small testID="profile-edit" label={t("pr_edit")} onPress={() => setEdit(p)} />
             {chatP && meKind && canDirect(chatSt, meKind, "player") ? <Btn small testID="profile-chat" icon="chat" label={t("ch_direct")} onPress={openChat} /> : null}
             {p.neu ? <Btn small testID="profile-merge" label={t("kd_merge")} onPress={() => setMerge(p)} /> : null}
+            {canMove ? <Btn small testID="profile-move" label={"⇄ " + t("cl_move")} onPress={() => setMove(p)} /> : null}
           </Row>
         </Col>
       </Row>
@@ -190,6 +197,7 @@ export default function Spieler() {
       {wide ? <Row align="flex-start" gap={18}>{absCard}{notes}</Row> : <>{absCard}{notes}</>}
       <PlayerSheet player={edit} onClose={() => { setEdit(undefined); if (!E.P(id)) back(); }} />
       <MergeSheet newPlayer={merge} onClose={() => { setMerge(null); if (!E.P(id)) router.replace("/coach/kader"); }} />
+      <MoveSheet player={move} onClose={moved => { setMove(null); if (moved) router.replace("/coach/kader"); }} />
       {sheets.el}
     </Screen>
   );

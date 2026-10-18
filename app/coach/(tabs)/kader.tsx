@@ -70,7 +70,7 @@ export default function Kader() {
               <Text style={{ position: "absolute", left: 10, top: 8, fontWeight: "800", fontSize: 13, color: c.muted }}>{x.p.nr ?? ""}</Text>
               <PlayerAvatar p={x.p} size={56} status={mods.belastung || x.st === "inj" ? x.st : null} />
               <Text numberOfLines={2} style={{ fontWeight: "800", fontSize: 14.5, color: c.ink, textAlign: "center" }}>{E.name(x.p)}</Text>
-              <Row gap={4} wrap style={{ justifyContent: "center" }}><Tag label={x.p.pos} /><Tag label={`${E.age(x.p)} ${t("years")}`} />{x.p.neu ? <Chip label={t("newP")} color={c.low} /> : null}{x.p.active === false ? <Tag label={t("kd_inactive")} /> : null}</Row>
+              <Row gap={4} wrap style={{ justifyContent: "center" }}><Tag label={x.p.pos} /><Tag label={`${E.age(x.p)} ${t("years")}`} />{x.p.neu ? <Chip label={t("newP")} color={c.low} /> : null}{x.p.origin ? <Chip label={E.tf("cl_from", { t: x.p.origin })} color={c.accentTx} /> : null}{x.p.active === false ? <Tag label={t("kd_inactive")} /> : null}</Row>
               {(mods.belastung || x.st === "inj") && x.st !== "none" ? <StatusChip status={x.st} label={t("st_" + x.st)} /> : x.ab ? <Chip label={t("ab_" + x.ab.typ)} color={c.build} /> : null}
               <Row gap={10} style={{ justifyContent: "center" }}>
                 {mods.belastung && E.lvl(2) ? <Row gap={4}><Muted small>ACWR <Text style={{ fontWeight: "800", color: c.ink }}>{x.m && x.m.acwr != null && x.st !== "inj" ? E.num(x.m.acwr, 2) : "–"}</Text></Muted><TermInfo k="acwr" testID={"term-acwr-" + x.p.id} /></Row> : null}

@@ -21,6 +21,7 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 | Leistungsdiagnostik | Testbatterie (Sprint, CMJ, 30-15 IFT, Yo-Yo, 505 …), Normwerte, persönliche Laufstrecken; CMJ-Abfall und Fitness verfeinern die Erholung; Platzierung für Spieler an/aus | eigene Tests, Bestwerte und eigener Platz (ohne Werte anderer) |
 | Verletzungen | Rückkehr in 4 Stufen, Reha-Plan nach Körperregion und Stufe, Befunde scannen (Foto/PDF), KI-Zusammenfassung mit Einwilligung | eigener Reha-Plan, eigene Befunde |
 | Matchplan | Aufstellung per Ziehen (11er/9er/7er/5er, Grundordnungen, Vorschlag nach Position und Verfügbarkeit, Bank, Kapitän), Icons mit Nummer, Name oder Foto in wählbarer Größe; Folien für Taktik und Standards mit Ausschnitt (ganzes Feld, Hälften, Strafraum), Gegner, Pässe, Laufwege, Dribblings, Linien, Zonen; Spielidee (Leitsatz, 3 Schwerpunkte), Gegneranalyse, Aufgabe je Spieler, Wechselplan mit geplanten Minuten; Freigabe bis Spielende (Bereiche, nur Kader, Aufgaben nur eigene) mit Zugriffsprotokoll | freigegebener Plan mit eigener Rolle und Aufgabe, Wasserzeichen, Bildschirmschutz (Android gesperrt, iOS Aufnahmen geschwärzt) |
+| Verein | mehrere Teams verbinden (Code), Vereinsübersicht mit Kennzahlen je Team (nächstes/letztes Spiel, Bilanz, Ausfälle, Beteiligung, Trainings, Matchplan-Status), Funktionäre (Vereinsadmin, sportliche Leitung, NLZ-/Jugendleitung, Koordination) mit Rechten und Teams, Ankündigungen in die Teamchats, Spieler hochziehen oder wechseln (optional mit Belastung, Morgen-Checks und Ausfällen) | bei Hochziehen beide Teams in der App |
 | Trainingstag | verfügbare Spieler, Ablauf in Blöcken mit Zuständigkeit je Trainer, Coachingpunkten und Skizzen (auch als Foto), Dienste, Todos | – |
 | Trainingsplanung | Taktiktafel, Übungsarchiv mit Coachingpunkten, Einheiten-Vorlagen mit Intensitätscheck, Trainerprofile | – |
 | Vorbereitung & Pausen | Wochenaufbau mit Ziel-Last, Testtagen, Taper; Pausen ohne Mannschaftstraining; Umsetzung je Spieler | persönliches Programm für die freie Zeit (angepasst bei Verletzung/Aufbau) mit Anleitungen |
@@ -40,7 +41,7 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 | Pfad | Inhalt |
 |---|---|
 | `app/` | Bildschirme (Expo Router): `coach/…`, `player/…`, Anmeldung, Konto |
-| `src/core/` | Fachlogik ohne React und Datenbank (Wochenplan, Erholung, Leistung, Pausen, Gruppen, Reha, Dienste, Gamification, Entwicklung, Challenge, Chat-Regeln) mit Tests |
+| `src/core/` | Fachlogik ohne React und Datenbank (Wochenplan, Erholung, Leistung, Pausen, Gruppen, Reha, Dienste, Gamification, Entwicklung, Challenge, Chat-Regeln, Matchplan, Verein) mit Tests |
 | `src/data/` | Datenzugriff: Supabase oder Demo-Modus im Speicher |
 | `src/ui/` | Bausteine der Oberfläche |
 | `src/i18n/` | Texte Deutsch/Englisch |

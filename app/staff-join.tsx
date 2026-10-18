@@ -9,7 +9,13 @@ export default function StaffJoin() {
   const go = async () => {
     if (!conf) { setMsg(t("cs_need")); return; }
     setBusy(true); setMsg("");
-    try { await s.giveConsent("staff_confidentiality"); await s.joinStaff(code); router.replace("/"); } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
+    try {
+      await s.giveConsent("staff_confidentiality");
+      const kind = await s.joinStaff(code);
+      // Vereins-Code: Anfrage beim Vereinsadmin (Start bzw. Verein zeigt den Stand)
+      if (kind === "club") s.toast(t("sj_clubSent"));
+      router.replace("/");
+    } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
   return (
     <Screen testID="staff-join">

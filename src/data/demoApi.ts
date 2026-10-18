@@ -1,8 +1,12 @@
 // Demo-Modus: alles im Speicher, nichts verlässt das Gerät. Dient zum Ausprobieren, für Messen/Vereinsgespräche
 // und als Fallback, solange kein Server eingerichtet ist.
 import { buildDemo, demoChat, demoExtras, demoTeam } from "../core/demo";
-import { chatSettings, pairKey } from "../core/chat";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import { chatSettings, pairKey, putMsg } from "../core/chat";
+import { classDef } from "../core/classes";
+import { CLUB_PERMS, cleanClubPerms, teamSummary, type ClubInfo, type ClubRole, type ClubStaffEntry, type ClubTeam, type TeamSummary } from "../core/club";
+import { addDays, iso } from "../core/dates";
+import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -44,7 +48,14 @@ export class DemoApi implements Api {
   async memberships(): Promise<Membership[]> {
     this.net();
     const t = demoTeam(this.cls, this.depth, this.lang, this.over);
-    return [{ teamId: "demo", club: t.club, name: t.name, role: "owner" }];
+    const linked = this.clubTeamIds();
+    const own = this.sets.demo?.team || t;
+    const out: Membership[] = [{ teamId: "demo", club: own.club, name: own.name, role: "owner", clubId: linked.includes("demo") ? DEMO_CLUB : null }];
+    // Weitere Teams des Demo-Vereins: Zugriff über den Verein (Rechte wie beim Funktionär eingestellt)
+    const me = this.clubMe();
+    if (me) for (const x of this.others()) if (linked.includes(x.id) && (me.teams == null || me.teams.includes(x.id)))
+      out.push({ teamId: x.id, club: own.club, name: x.name, role: "coach", perms: [...me.perms], clubId: DEMO_CLUB, viaClub: true });
+    return out;
   }
   async teamByCode(code: string) { return code.replace(/[^A-Z0-9]/gi, "").toUpperCase() === "DEMOU19K" ? { club: this.over.club || "", name: this.over.team || "U19" } : null; }
   async createTeam() { return "demo"; }
@@ -52,8 +63,15 @@ export class DemoApi implements Api {
   async joinStaff() { return "demo"; }
   /** Demo-Daten bleiben für die Sitzung im Speicher (Änderungen gehen beim Neuladen nicht verloren). */
   private data: TeamData | null = null;
-  async loadTeam(): Promise<TeamData> {
-    if (this.data) return this.data;
+  /** Alle bisher geladenen Teams (eigenes Team = „demo“, weitere Teams des Demo-Vereins) */
+  private sets: Record<string, TeamData> = {};
+  async loadTeam(m?: Membership): Promise<TeamData> {
+    const id = m?.teamId || "demo";
+    this.data = id === "demo" ? this.mainTeam() : this.clubSet(id);
+    return this.data;
+  }
+  private mainTeam(): TeamData {
+    if (this.sets.demo) return this.sets.demo;
     const D = buildDemo(demoTeam(this.cls, this.depth, this.lang, this.over), this.lang, new Date());
     demoExtras(D, this.lang, new Date());
     // Trainerprofil aus der Einrichtung = s1 (verknüpft mit dem Demo-Konto); weitere Trainer ersetzen die Beispiele
@@ -78,16 +96,199 @@ export class DemoApi implements Api {
       ? [["tech", "Weak foot: 2 extra passing sets per week"], ["ath", "Push-off power: clean single-leg jumps"], ["takt", "Organise the defensive line louder and earlier"], ["ment", "After mistakes: reset within the next action"], ["verf", "Morning check every day – keep your streak"]]
       : [["tech", "Schwacher Fuß: 2 zusätzliche Passserien pro Woche"], ["ath", "Absprungkraft: saubere einbeinige Sprünge"], ["takt", "Abwehrkette früher und lauter organisieren"], ["ment", "Nach Fehlern: in der nächsten Aktion abhaken"], ["verf", "Jeden Tag Morgen-Check – Serie halten"]];
     D.pot.p1 = [...(D.pot.p1 || []), ...goals.map(([cat, text], i) => ({ id: "demo-goal-" + i, cat, text, vis: true, src: "trainer" as const }))];
-    this.data = D; return D;
+    D.team.clubId = this.clubTeamIds().includes("demo") ? DEMO_CLUB : null;
+    this.sets.demo = D; return D;
+  }
+
+  // ---------- Demo-Verein: eigenes Team + drei weitere Teams, das Demo-Konto ist Vereinsadmin ----------
+  private club: { name: string; accent: string; linkCode: string; staffCode: string } | null = null;
+  private clubLinked: string[] = [];
+  private officials: ClubStaffEntry[] = [];
+  private clubInit = false;
+  private ensureClub(): void {
+    if (this.clubInit) return; this.clubInit = true;
+    const en = this.lang === "en", base = demoTeam(this.cls, this.depth, this.lang, this.over);
+    this.club = { name: base.club || (en ? "Demo club" : "Demo-Verein"), accent: base.accent, linkCode: DEMO_CLUB_LINK, staffCode: DEMO_CLUB_STAFF };
+    this.clubLinked = ["demo", ...this.others().map(x => x.id)];
+    const youth = [...(classDef(this.cls).grp !== "akt" ? ["demo"] : []), ...this.others().filter(x => classDef(x.cls).grp !== "akt").map(x => x.id)];
+    this.officials = demoClubStaff({ id: this.user.id, name: this.user.displayName }, this.lang, youth);
+  }
+  private others(): { id: string; cls: ClassKey; name: string }[] {
+    return demoClubClasses(this.cls).map((cls, k) => ({ id: demoClubTeamId(k), cls, name: demoClubTeamName(cls, this.lang) }));
+  }
+  private clubTeamIds(): string[] { this.ensureClub(); return this.club ? this.clubLinked : []; }
+  private clubMe(): ClubStaffEntry | null { this.ensureClub(); const me = this.club ? this.officials.find(x => x.userId === this.user.id) : null; return me && me.role !== "pending" ? me : null; }
+  private clubSet(id: string): TeamData {
+    if (this.sets[id]) return this.sets[id];
+    const k = this.others().findIndex(x => x.id === id); if (k < 0) throw new ApiError("not_found");
+    const main = this.mainTeam();
+    const D = demoClubTeam(main.team, this.others()[k].cls, k, this.lang, new Date(), { id: this.user.id, name: this.user.displayName });
+    D.team.clubId = this.clubTeamIds().includes(id) ? DEMO_CLUB : null;
+    this.sets[id] = D; return D;
+  }
+  /** Eigene Rechte in einem Team des Demo-Vereins (eigenes Team: Owner = alle) */
+  private clubPermsIn(id: string): Set<string> {
+    if (id === "demo") return new Set(PERMS);
+    const me = this.clubMe(); return me && (me.teams == null || me.teams.includes(id)) && this.clubTeamIds().includes(id) ? new Set(me.perms) : new Set();
+  }
+  private teamName(id: string): string { return id === "demo" ? this.mainTeam().team.name : this.others().find(x => x.id === id)?.name || "–"; }
+  private needAdmin(): void { if (this.clubMe()?.role !== "admin") throw new ApiError("forbidden"); }
+  async myClubs(): Promise<ClubInfo[]> {
+    this.net(); this.ensureClub(); if (!this.club) return [];
+    const me = this.officials.find(x => x.userId === this.user.id), role = me ? me.role : "team", admin = role === "admin";
+    return [{ id: DEMO_CLUB, name: this.club.name, accent: this.club.accent, role, title: me?.title || "", linkCode: admin ? this.club.linkCode : null, staffCode: admin ? this.club.staffCode : null, teams: this.clubLinked.length }];
+  }
+  async clubCreate(name: string, teamId: string | null): Promise<string> {
+    this.net(); this.ensureClub();
+    if (this.club) throw new ApiError("already_in_club");
+    this.club = { name: name.trim().slice(0, 100) || "–", accent: this.mainTeam().team.accent, linkCode: DEMO_CLUB_LINK, staffCode: DEMO_CLUB_STAFF };
+    this.clubLinked = teamId ? [teamId] : [];
+    this.officials = [{ userId: this.user.id, role: "admin", title: "", perms: [...CLUB_PERMS.admin], teams: null, displayName: this.user.displayName }];
+    if (teamId === "demo") this.mainTeam().team.clubId = DEMO_CLUB;
+    return DEMO_CLUB;
+  }
+  async clubLinkTeam(code: string, teamId: string): Promise<string> {
+    this.net(); this.ensureClub();
+    if (!this.club || code.replace(/[^A-Z0-9]/gi, "").toUpperCase() !== this.club.linkCode.replace("-", "")) throw new ApiError("invalid_code");
+    if (this.clubLinked.includes(teamId)) throw new ApiError("already_in_club");
+    this.clubLinked.push(teamId); if (this.sets[teamId]) this.sets[teamId].team.clubId = DEMO_CLUB;
+    return DEMO_CLUB;
+  }
+  async clubUnlinkTeam(teamId: string) {
+    this.net(); this.ensureClub();
+    if (!this.clubLinked.includes(teamId)) throw new ApiError("not_found");
+    if (teamId !== "demo") this.needAdmin();
+    this.clubLinked = this.clubLinked.filter(x => x !== teamId);
+    for (const o of this.officials) if (o.teams) o.teams = o.teams.filter(x => x !== teamId);
+    if (this.sets[teamId]) this.sets[teamId].team.clubId = null;
+  }
+  async clubJoin(code: string): Promise<string> {
+    this.ensureClub();
+    if (!this.club || code.replace(/[^A-Z0-9]/gi, "").toUpperCase() !== this.club.staffCode.replace("-", "")) throw new ApiError("invalid_code");
+    return DEMO_CLUB;
+  }
+  async clubUpdate(_c: string, patch: { name?: string; accent?: string }) {
+    this.net(); this.needAdmin(); if (!this.club) return;
+    if (patch.name != null && patch.name.trim()) this.club.name = patch.name.trim().slice(0, 100);
+    if (patch.accent) this.club.accent = patch.accent;
+  }
+  async clubStaffList(): Promise<ClubStaffEntry[]> {
+    this.net(); if (!this.clubMe()) throw new ApiError("forbidden");
+    const order = ["admin", "leiter", "nlz", "koord", "pending"];
+    return [...this.officials].sort((a, b) => order.indexOf(a.role) - order.indexOf(b.role)).map(x => ({ ...x, perms: [...x.perms], teams: x.teams ? [...x.teams] : null }));
+  }
+  async clubSetStaff(_c: string, userId: string, role: ClubRole, title: string, perms: string[], teams: string[] | null) {
+    this.net(); this.needAdmin();
+    const x = this.officials.find(o => o.userId === userId); if (!x) throw new ApiError("not_found");
+    if (x.role === "admin" && role !== "admin" && this.officials.filter(o => o.role === "admin").length <= 1) throw new ApiError("last_admin");
+    if (teams && teams.some(t => !this.clubLinked.includes(t))) throw new ApiError("different_teams");
+    Object.assign(x, { role, title: title.trim().slice(0, 60), perms: cleanClubPerms(perms), teams: teams ? [...new Set(teams)] : null });
+  }
+  async clubRemoveStaff(_c: string, userId: string) {
+    this.net(); const x = this.officials.find(o => o.userId === userId); if (!x) throw new ApiError("not_found");
+    if (userId !== this.user.id) this.needAdmin();
+    if (x.role === "admin" && this.officials.filter(o => o.role === "admin").length <= 1) throw new ApiError("last_admin");
+    this.officials = this.officials.filter(o => o.userId !== userId);
+  }
+  async clubRegenerateCodes() {
+    this.net(); this.needAdmin(); if (!this.club) throw new ApiError("not_found");
+    const n = () => Math.random().toString(36).slice(2, 6).toUpperCase().padEnd(4, "X");
+    this.club.linkCode = n() + "-" + n(); this.club.staffCode = n() + "-" + n();
+    return { linkCode: this.club.linkCode, staffCode: this.club.staffCode };
+  }
+  async clubDelete() {
+    this.net(); this.needAdmin();
+    this.club = null; this.clubLinked = []; this.officials = [];
+    for (const D of Object.values(this.sets)) D.team.clubId = null;
+  }
+  async clubTeams(): Promise<ClubTeam[]> {
+    this.net(); this.ensureClub(); if (!this.club) throw new ApiError("forbidden");
+    const all = [{ id: "demo", cls: this.cls, name: this.teamName("demo") }, ...this.others()];
+    return all.filter(x => this.clubLinked.includes(x.id)).map(x => ({ teamId: x.id, club: this.mainTeam().team.club, name: x.name, cls: x.cls, access: this.clubPermsIn(x.id).size > 0 || x.id === "demo" }));
+  }
+  async clubOverview(): Promise<TeamSummary[]> {
+    this.net(); if (!this.clubMe()) throw new ApiError("forbidden");
+    const now = new Date(), out: TeamSummary[] = [];
+    const ids = ["demo", ...this.others().map(x => x.id)].filter(id => this.clubLinked.includes(id));
+    for (const id of ids) {
+      const pm = this.clubPermsIn(id); if (!pm.size) continue;
+      out.push(teamSummary(id === "demo" ? this.mainTeam() : this.clubSet(id), now, { squad: pm.has("squad"), plan: pm.has("plan") }));
+    }
+    return out;
+  }
+  async clubMovePlayer(playerId: string, target: string, mode: "add" | "move", copy: boolean): Promise<string> {
+    this.net();
+    // Spieler aus dem gerade geöffneten Team
+    const src = this.data, p = src?.players.find(x => x.id === playerId); if (!src || !p) throw new ApiError("not_found");
+    if (mode !== "add" && mode !== "move") throw new ApiError("invalid_mode");
+    if (target === src.team.id) throw new ApiError("invalid_target");
+    const linked = this.clubTeamIds();
+    if (!(linked.includes(src.team.id) && linked.includes(target))) throw new ApiError("different_clubs");
+    const ps = this.clubPermsIn(src.team.id), pt = this.clubPermsIn(target);
+    if (!ps.has("squad") || !pt.has("squad")) throw new ApiError("forbidden");
+    if (copy && !(ps.has("health") && pt.has("health"))) throw new ApiError("forbidden");
+    const T = target === "demo" ? this.mainTeam() : this.clubSet(target);
+    const norm = (x: string | null | undefined) => (x || "").trim().toLowerCase();
+    if (T.players.some(x => (p.userId && x.userId === p.userId) || (norm(x.vn) === norm(p.vn) && norm(x.nn) === norm(p.nn) && x.geb === p.geb))) throw new ApiError("already_in_team");
+    const nr = p.nr != null && !T.players.some(x => x.nr === p.nr) ? p.nr : null;
+    const np: Player = { id: newId(""), vn: p.vn, nn: p.nn, pos: p.pos, nr, geb: p.geb, kg: p.kg ?? null, photo: null, userId: p.userId || null, active: true, groups: [],
+      origin: src.team.name.slice(0, 80), linkedFrom: p.id };
+    const at = T.players.findIndex(y => (y.nr ?? 99) > (np.nr ?? 99)); if (at < 0) T.players.push(np); else T.players.splice(at, 0, np);
+    if (copy) {
+      const today = iso(new Date()), from = addDays(today, -42), label = ("Training " + src.team.name).slice(0, 60);
+      const days = new Set([...Object.keys(src.rpe[p.id] || {}), ...Object.keys(src.rpeU[p.id] || {})]);
+      const ex = (T.extra[np.id] ||= []);
+      for (const d of [...days].sort()) {
+        if (d <= from || d > today) continue;
+        const L = [src.rpe[p.id]?.[d], ...Object.values(src.rpeU[p.id]?.[d] || {})].filter((e): e is RpeEntry => !!e && e.min > 0);
+        const min = L.reduce((a, e) => a + e.min, 0); if (!min) continue;
+        ex.push({ id: newId(""), date: d, art: "verein", min: Math.min(600, min), rpe: Math.round(L.reduce((a, e) => a + e.rpe * e.min, 0) / min * 10) / 10, label });
+      }
+      for (const e of src.extra[p.id] || []) if (e.date > from && e.date <= today) ex.push({ ...e, id: newId("") });
+      const w = src.well[p.id] || {};
+      for (const [d, v] of Object.entries(w)) if (d > addDays(today, -28)) (T.well[np.id] ||= {})[d] = JSON.parse(JSON.stringify(v));
+      for (const a of src.absences) if (a.pid === p.id && a.von <= addDays(today, 60) && (!a.bis || a.bis >= today)) T.absences.push({ ...a, id: newId(""), pid: np.id });
+    }
+    if (mode === "move") {
+      src.players = src.players.filter(x => x.id !== p.id);
+      src.inactive = [...src.inactive, { ...p, active: false, userId: null }];
+    }
+    return np.id;
+  }
+  async clubAnnounce(_c: string, body: string, teams: string[] | null): Promise<number> {
+    this.net(); if (!this.clubMe()) throw new ApiError("forbidden");
+    const text = body.trim(); if (!text || text.length > 4000) throw new ApiError("invalid_body");
+    let n = 0; const at = new Date().toISOString();
+    for (const id of ["demo", ...this.others().map(x => x.id)]) {
+      if (!this.clubLinked.includes(id) || (teams && !teams.includes(id)) || !this.clubPermsIn(id).size) continue;
+      const D = id === "demo" ? this.mainTeam() : this.clubSet(id);
+      if (D.team.modules.chat === false || !chatSettings(D.team).on) continue;
+      let c = D.chats.find(x => x.kind === "team");
+      if (!c) { c = { id: newId(""), kind: "team", title: "", groupId: null, members: [], readOnly: false, transparent: false, createdBy: null, lastAt: null, muted: false }; D.chats.push(c); }
+      putMsg(D, { id: newId(""), chatId: c.id, uid: this.user.id, name: this.user.displayName, body: text, at, replyTo: null, deleted: false, reactions: {} });
+      c.lastAt = at; if (D.chatRead) D.chatRead[c.id] = at;
+      n++;
+    }
+    return n;
   }
   async updateTeam() { /* lokal */ }
   async regenerateCodes() { return { joinCode: "DEMO-U19K", staffCode: "DEMO-STAF" }; }
   /** Demo: Trainerteam = Trainerprofile (außer dem eigenen); Rechte je Profil (Vorlage der Funktion, änderbar) */
   private perms: Record<string, string[] | null> = {};
-  async staffList(): Promise<StaffEntry[]> {
+  async staffList(teamId?: string): Promise<StaffEntry[]> {
+    const id = teamId || "demo";
+    // Funktionäre des Vereins mit Zugriff auf dieses Team (Rechte vergibt der Verein)
+    const club = this.clubTeamIds().includes(id) ? this.officials.filter(o => o.role !== "pending" && (o.teams == null || o.teams.includes(id)))
+      .map(o => ({ userId: o.userId, role: "coach" as const, displayName: o.displayName, perms: [...o.perms], viaClub: true })) : [];
+    if (id !== "demo") {
+      const D = this.clubSet(id), [chef, ...rest] = D.staff;
+      return [...(chef ? [{ userId: "demo-" + chef.id, role: "owner" as const, displayName: chef.name, perms: [...PERMS] }] : []),
+        ...rest.map(x => ({ userId: "demo-" + x.id, role: accessRoleFor(x.role), displayName: x.name, perms: PERM_PRESETS[x.role] ?? [] })), ...club];
+    }
     const others = (this.data?.staff || []).filter(x => x.id !== "s1");
     return [{ userId: this.user.id, role: "owner" as const, displayName: this.user.displayName, perms: [...PERMS] },
-      ...others.map(x => ({ userId: "demo-" + x.id, role: accessRoleFor(x.role), displayName: x.name, perms: this.demoPerms(x.id) }))];
+      ...others.map(x => ({ userId: "demo-" + x.id, role: accessRoleFor(x.role), displayName: x.name, perms: this.demoPerms(x.id) })),
+      ...club.filter(x => x.userId !== this.user.id)];
   }
   /** Wirksame Rechte eines Demo-Trainerprofils */
   demoPerms(staffId: string): string[] {

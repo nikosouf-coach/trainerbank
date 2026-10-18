@@ -18,6 +18,7 @@ import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
 import { InboxCard } from "../../../src/ui/inbox";
 import { heroPlanLabel } from "../../../src/ui/matchplan/cards";
+import { ViaClubBanner } from "../../../src/ui/club";
 import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
 function HeroPill({ label }: { label: string }) {
@@ -159,6 +160,7 @@ export default function Heute() {
     <Screen testID="coach-heute">
       <Header eyebrow={`${E.wt(E.TODAY)} ${E.de(E.TODAY)} · ${teamLabel(E.team)}`} title={myName ? `${gruss}, ${myName}` : gruss}
         right={<TeamLogo size={46} />} />
+      <ViaClubBanner />
       {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
       <Btn small kind="ghost" testID="dash-edit" label={"⚙ " + t("db_edit")} onPress={() => setEditDash(true)} style={{ alignSelf: "center" }} />
       <DashEditor visible={editDash} onClose={() => setEditDash(false)} available={available} />

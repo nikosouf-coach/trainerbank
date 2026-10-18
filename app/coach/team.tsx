@@ -1,4 +1,4 @@
-// Trainer – Verein & Mannschaft: Name, Vereinsfarbe, Altersklasse, Infotiefe, Sprache.
+// Trainer – Verein & Mannschaft: Name, Vereinsfarbe, Verein (Vereinsabo), Altersklasse, Infotiefe, Sprache.
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { View } from "react-native";
@@ -11,6 +11,7 @@ import { useTheme } from "../../src/ui/theme";
 import { usePhotoUrl } from "../../src/ui/playerAvatar";
 import { ColorPicker, ImageSlot } from "../../src/ui/setupParts";
 import { TeamLogo } from "../../src/ui/teamLogo";
+import { ClubLinkCard } from "../../src/ui/club";
 
 
 export default function TeamSettingsScreen() {
@@ -42,6 +43,7 @@ export default function TeamSettingsScreen() {
         <T v="small" bold color={c.muted}>{t("color")}</T>
         <ColorPicker value={team.accent} onChange={col => s.updateTeam({ accent: col })} />
       </Card>
+      <ClubLinkCard />
       <Card>
         <CardTitle title={t("ageClass")} />
         <ClassPicker value={team.cls} onChange={setCls} tr={E.tr} />

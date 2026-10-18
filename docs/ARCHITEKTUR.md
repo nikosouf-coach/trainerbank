@@ -24,6 +24,8 @@ weder React noch Supabase. Sie arbeitet auf einem `TeamData`-Objekt (siehe `src/
 
 - **Staff** (`team_staff.role` = `owner` | `coach` | `physio`): sieht Kalender, Kader und Abwesenheiten; alles Weitere
   nach Rechten (`team_staff.perms`, Abschnitt „Rechte im Trainerteam“). Der Owner hat immer alle Rechte.
+- **Funktionär** im Verein (`club_staff.role` = `admin` | `leiter` | `nlz` | `koord`): sieht die Vereinsübersicht
+  (Kennzahlen je Team) und öffnet die zugewiesenen Teams mit den Rechten, die der Vereinsadmin vergibt (Abschnitt „Verein“).
 - **Kassenwart** (Spieler, `teams.settings.kasse.treasurer`): sieht die Kasse des Teams und bucht Zahlungen – keine Gesundheitsdaten.
 - **Spieler** (`players.user_id` = eigenes Konto): sieht Teamkalender und veröffentlichten Wochenplan, nur die
   **eigenen** Gesundheitsdaten, eigene Abwesenheiten, für ihn freigegebene Potenziale und Nachrichten des Trainers.
@@ -109,6 +111,9 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `chat_reports` (…0023) | Meldung mit Kopie (`snapshot`, `sender_name`, `sent_at`), `reason`, `note`, `status` | Meldende(r) eigene; Staff mit `messages` alle des Teams |
 | `chat_push_log` (…0023) | Drosselung der Chat-Push-Nachrichten (je Konto und Chat) | nur Server |
 | `match_plans` (…0024) | Matchplan: `match_id` (ein Plan je Spiel, ohne Spiel beliebig), `title`, `content` jsonb (Spielform, Grundordnung, Aufstellung, Bank, Kapitän, Folien, Spielidee, Gegner, Aufgaben, Wechsel, Ansicht; ≤ 300 kB), Freigabe: `published` (Auszug nur der freigegebenen Bereiche), `share_sections`, `share_from`, `share_until`, `share_squad`, `share_own_tasks`, `squad`, `published_at`/`published_by` (setzt der Server) | nur Staff (lesen alle, schreiben `plan`); Spieler **kein** direkter Zugriff – nur über `match_plan_open` |
+| `clubs` (…0025) | Verein: `name`, `accent`, `link_code` (Teams verbinden), `staff_code` (Funktionäre), `created_by`; Codes eindeutig über Teams und Vereine | lesen Funktionäre und Trainerteams verbundener Teams; ändern (Name, Farbe) Vereinsadmin; Codes nur über `club_regenerate_codes` |
+| `club_staff` (…0025) | Funktionär: `role` (admin/leiter/nlz/koord/pending), `title`, `perms` (wie `team_staff`), `teams` (null = alle Teams) | lesen Funktionäre des Vereins und die Person selbst; schreiben nur über RPCs (Vereinsadmin) |
+| `teams.club_id`, `team_staff.club_id`, `players.linked_from`/`origin` (…0025) | Team gehört zu höchstens einem Verein; `team_staff.club_id` = Zugriff über den Verein (gespiegelt von `club_sync`); übernommener Spieler mit Herkunftsteam | `teams.club_id` nur über `club_link_team`/`club_unlink_team`; Vereinszeilen in `team_staff` nur durch den Verein (Trigger `team_staff_club_guard`) |
 | `match_plan_views` (…0024) | Zugriffsprotokoll: `player_id`, `kind` (open/shot), `platform`, `at`; höchstens ein Aufruf je Spieler und Plan in 10 Minuten, ≤ 20 Screenshot-Meldungen | lesen Staff; schreiben nur `match_plan_open`/`match_plan_event`; Löschfrist 6 Monate |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
@@ -147,6 +152,23 @@ sehen Spieler erst nach „Freigabe aktualisieren“. Spieler lesen nie die Tabe
 Spielende + 30 Minuten), bei „nur Kader“ im `squad`; Aufgaben standardmäßig nur die eigene. Jeder Aufruf wird
 protokolliert. In der App: Wasserzeichen (Name, Uhrzeit), Bildschirmschutz über `expo-screen-capture` (Android
 FLAG_SECURE, iOS schwärzt Aufnahmen; erkannte Screenshots → `match_plan_event`), im Browser nur Wasserzeichen.
+
+### Verein
+
+Ein Verein bündelt Teams (`teams.club_id`, verbinden per `link_code` durch den Team-Owner). Funktionäre stehen in
+`club_staff` mit Funktion, Rechten und Teams. Ihr Zugriff auf ein Team wird als **Zeile im Trainerteam** gespiegelt
+(`team_staff` mit `club_id`, Rolle `coach`, Rechte aus `club_staff.perms`): `club_sync(club)` legt die Zeilen an,
+gleicht Rechte an und entfernt sie (Trigger nach Änderungen an `club_staff` und `teams.club_id`). Dadurch gelten alle
+bestehenden Zugriffsregeln (`is_team_staff`, `staff_can`) unverändert – ohne zweite Rechteprüfung. Echte
+Mitgliedschaften (Owner, Trainer) haben Vorrang und werden nie überschrieben; Vereinszeilen kann das Team weder ändern
+noch entfernen (`team_staff_club_guard`, `set_staff_perms` → `managed_by_club`). Standardrechte je Funktion
+(`club_default_perms`, App: `core/club.CLUB_PERMS`): Planung und Kader, Leitung/NLZ zusätzlich Leistung, Notizen und
+Aufgaben – **keine Gesundheitsdaten**, die vergibt der Vereinsadmin nur bewusst. Die Vereinsübersicht
+(`club_overview`) liefert nur Kennzahlen je Team (Spieler, Spiele, Bilanz, Trainings; Ausfälle und Beteiligung nur mit
+`squad`, Matchplan-Status nur mit `plan`), keine Daten einzelner Spieler. `club_move_player` übernimmt einen Spieler
+zusätzlich ins Zielteam (Hochziehen; Konto in beiden Teams) oder wechselt ihn dauerhaft (alte Zeile bleibt inaktiv mit
+Historie); optional mit Belastung (6 Wochen als Vereinstraining je Tag), Morgen-Checks (4 Wochen) und laufenden
+Ausfällen – nur mit `health` in beiden Teams. `club_announce` schreibt eine Ankündigung in die Teamchats.
 
 ### Rechte im Trainerteam
 
@@ -194,7 +216,7 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `team_by_join_code(code)` → Vereins-/Teamname zur Anzeige vor dem Beitritt (keine weiteren Daten).
 - `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen,
   Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining; v7: Matchplan).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v6` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne): Profil, Gesundheitsdaten
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v7` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -210,7 +232,13 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `my_match_plans(team)` – Spieler: jetzt freigegebene Pläne (Titel, Spiel, bis wann, schon gesehen).
 - `match_plan_open(plan, platform)` – Spieler: freigegebener Stand mit Name für das Wasserzeichen; protokolliert den Aufruf.
 - `match_plan_event(plan, 'shot', platform)` – Spieler: erkannter Screenshot ins Protokoll.
-- `staff_can(team, perm)`, `team_staff_perms(team)`, `set_staff_perms(team, user, perms)` – Rechte im Trainerteam.
+- `staff_can(team, perm)`, `team_staff_perms(team)`, `set_staff_perms(team, user, perms)` – Rechte im Trainerteam;
+  `team_staff_rights(team)` wie `team_staff_perms` plus `via_club` (Zugriff über den Verein, in der App nur ansehen).
+- Verein: `club_create(name, team)`, `club_link_team(code, team)`, `club_unlink_team(team)`, `club_join(code)`
+  (Anfrage), `club_set_staff(club, user, role, title, perms, teams)` (bestätigt auch Anfragen; letzter Admin bleibt),
+  `club_remove_staff(club, user)`, `club_regenerate_codes(club)`, `club_delete(club)` (Teams bleiben), `my_clubs()`,
+  `club_staff_list(club)`, `club_teams(club)`, `club_overview(club)`, `club_move_player(player, target, add|move, copy)`,
+  `club_announce(club, body, teams)`.
 - `is_treasurer(team)`, `can_manage_cash(team)`, `team_cash_balance(team)` – Kasse; der Kassenstand geht an Spieler
   nur, wenn er freigegeben ist.
 - `my_test_ranks(player)` – nur für den eigenen Spieler: Platz je Test unter den aktiven Spielern (jeweils letzter
@@ -260,7 +288,10 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   einwechseln, Bank, aus dem Kader, frei verschieben), Vorschlag nach Position, Wechselplan mit geplanten Minuten
   und Hinweisen, Folien mit Ausschnitt (`fitToView`), Freigabe (Auszug, Zeitraum, nur Kader, Aufgaben nur eigene),
   Zugriffsstatistik, Bereinigung.
-- `demo.ts` – Demo-Mannschaft (für Demo-Modus, Tests und „Beispieldaten laden“).
+- `club.ts` – Verein: Funktionen und Standardrechte (wie `club_default_perms`), Kennzahlen je Team (wie
+  `club_overview`), Summen der Übersicht, Ziele für Hochziehen/Wechsel, Belastung mitnehmen (Recht in beiden Teams).
+- `demo.ts` – Demo-Mannschaft (für Demo-Modus, Tests und „Beispieldaten laden“); `demoClub.ts` – Demo-Verein mit drei
+  weiteren Teams (eigene Namen, Trainer, Spielpläne) und Funktionären.
 - Tests: `src/core/__tests__` (`node --test`).
 
 Wissenschaftliche Grundlagen (in den Info-Texten der App zitiert): Foster et al. 2001 (Session-RPE),

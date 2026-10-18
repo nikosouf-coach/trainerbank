@@ -55,6 +55,8 @@ Mitarbeiterzahl).
 3. Begleitung der Rückkehr nach Krankheit oder Verletzung (Stufen 1–4, organisatorisch).
 4. Spielerentwicklung: Potenziale und Ziele, Trainernotizen.
 5. Optionaler KI-Coach: Beantwortung von Fragen zu Training, Belastung und Erholung.
+5a. Verein: mehrere Teams eines Vereins verbinden – Funktionäre mit Rechten je Team, Vereinsübersicht mit Kennzahlen,
+   Hochziehen und Wechsel von Spielern (optional mit Belastung), Ankündigungen an die Teams.
 6. Erinnerungen per Push-Mitteilung.
 7. Betrieb, Sicherheit, Missbrauchsbegrenzung, Nachweis von Einwilligungen.
 
@@ -63,6 +65,7 @@ Mitarbeiterzahl).
 | Gruppe | Alter | geschätzte Anzahl |
 |---|---|---|
 | Trainerteam (Owner, Coach, Physio) | Erwachsene | [Anzahl] |
+| Funktionäre im Verein (Vereinsadmin, sportliche Leitung, NLZ-/Jugendleitung, Koordination) | Erwachsene | [Anzahl] |
 | Spieler mit Konto | ab [Mindestalter] bis Erwachsene, Schwerpunkt 14–18 | [Anzahl] |
 | Spieler ohne Konto | ab ca. 7 Jahren (U7 ggf. jünger) | [Anzahl] |
 | Erziehungsberechtigte | Erwachsene | [Anzahl] (nur E-Mail-Adresse) |
@@ -266,6 +269,7 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R37 | **Wochenchallenge:** sozialer Vergleich (Bestenliste), Überlastung oder Verletzung durch Zusatzaufgaben (Kinder, Spieltag) | Spieler, v. a. Kinder | Druck, Überlastung | 2 | 2 | gering |
 | R38 | **Individualtraining:** Einzeltermin zwischen Erwachsenem und Kind ohne Transparenz | Kinder, Jugendliche | Kinderschutz | 1 | 4 | Risiko |
 | R39 | **Matchplan:** Spieler erfahren über die App (statt persönlich), dass sie nicht im Kader oder nicht in der Startelf stehen; Aufgaben/Kritik an einzelnen werden für alle sichtbar; das **Zugriffsprotokoll** wird als Überwachung empfunden oder gegen Spieler verwendet („hat den Plan nicht gelesen“) | Spieler, v. a. Jugendliche | psychischer Druck, Bloßstellung, Gefühl der Kontrolle | 2 | 2 | gering |
+| R40 | **Verein:** Funktionäre sehen mehr Teams und Daten als nötig (z. B. Gesundheitsdaten ganzer Jahrgänge); Daten wandern beim **Hochziehen/Wechsel** unbemerkt in ein anderes Team; Zugriffe bleiben nach dem Ausscheiden eines Funktionärs oder dem Lösen eines Teams bestehen; Vereinsübersicht wird zum Leistungsvergleich einzelner Spieler genutzt | Spieler, v. a. Jugendliche | Offenlegung über das Erforderliche hinaus, Kontrollverlust | 2 | 3 | Risiko |
 
 ---
 
@@ -312,6 +316,7 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | Transparenz | Schmerzangaben: Hinweise als Orientierung („abklären lassen“), keine Diagnose; Angaben freiwillig; Prüfung der Schlüssel und Größe in der Datenbank (RLS-Test T42) | R29 |
 | Datenminimierung | Trainingseindruck nur für Ausreißer (`good`/`poor`, Durchschnitt wird nicht gespeichert), keine Rangliste; Kritik standardmäßig nicht für Spieler sichtbar (erst persönlich besprechen), Lob sichtbar; nur für Training (Check), höchstens 8 Gründe; Schreiben nur mit Recht „Notizen & Bewertungen“ (RLS-Test T43) | R31 |
 | Vertraulichkeit | Weitere Einheiten (`day_units`): Spieler lesen nur Einheiten für alle und für eigene freigegebene Gruppen, nie Teilnehmerlisten; gelöschte Gruppe ⇒ niemand statt alle; RPE je Einheit mit denselben Regeln und derselben Einwilligung wie die übrige Belastung; Anwesenheit nur über das Mannschaftstraining; Sprünge der Torhüter freiwillig, Plausibilitätsgrenze 0–300 (RLS-Test T43) | R32 |
+| Datenminimierung / Zugriffssteuerung | **Verein:** Zugriff eines Funktionärs nur auf zugewiesene Teams und nur über eine Zeile im Trainerteam (`club_sync`), damit dieselben Regeln wie für das Trainerteam gelten; Standardrechte ohne Gesundheitsdaten (`club_default_perms`), Hinweis in der App beim Vergeben; Vereinszeilen kann das Team nicht verändern, echte Mitgliedschaften haben Vorrang; Vereinsübersicht nur Kennzahlen je Team (keine Namen), Ausfälle/Beteiligung nur mit „Kader“; Hochziehen/Wechsel nur mit „Kader“ in beiden Teams, Belastung nur auf ausdrückliche Auswahl und mit „Gesundheitsdaten“ in beiden Teams, begrenzt auf 6 Wochen (je Tag zusammengefasst) bzw. 4 Wochen Morgen-Checks; Zugriffe enden sofort beim Entfernen, Niederlegen, Lösen des Teams oder Auflösen des Vereins (Trigger); Anfragen nur über Code und Bestätigung durch den Vereinsadmin; letzter Admin bleibt, Nachfolge bei Kontolöschung; Funktionen im Datenexport (v7) (RLS-Test T47) | R40 |
 | Vertraulichkeit / Transparenz | **Matchplan:** nur Trainerteam liest die Tabelle; Spieler ausschließlich über `match_plan_open` (Modul an, freigegeben, im Zeitraum, ggf. nur Kader) und nur den freigegebenen Auszug; Aufgaben standardmäßig nur die eigene, Wechselplan standardmäßig nicht freigegeben, Hinweis in der App, Nicht-Nominierte vorher persönlich zu informieren; Zugriffsprotokoll nur Zeitpunkt/Plattform/erkannter Screenshot, höchstens ein Eintrag je 10 Minuten, nur fürs Trainerteam, für Spieler in der App erklärt und im Export, Löschung nach 6 Monaten; Wasserzeichen mit Name, Bildschirmschutz (Android gesperrt, iOS Aufnahmen geschwärzt) (RLS-Test T46, T24) | R39 |
 
 ### 6.2 Zusätzliche Maßnahmen (geplant)
@@ -389,6 +394,7 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | R37 | 1 | 2 | gering | ohne Bestenliste als Standard, freiwillig, Sicherheitshinweis |
 | R38 | 1 | 3 | gering | Transparenz im Trainerteam, Leitfaden (Vereinsgelände, Sechs-Augen-Prinzip) |
 | R39 | 1 | 2 | gering | Freigabe nur ausgewählter Bereiche, Aufgaben nur die eigene, Hinweis zur persönlichen Information, Protokoll gedrosselt und befristet |
+| R40 | 1 | 3 | gering | Zugriff nur zugewiesener Teams mit sparsamen Standardrechten (ohne Gesundheitsdaten), Kennzahlen ohne Namen, Übernahme der Belastung nur ausdrücklich und mit Recht in beiden Teams, sofortiges Ende der Zugriffe |
 
 **Bewertung:** Nach Umsetzung aller P1-Maßnahmen verbleibt **kein hohes Restrisiko**. Eine vorherige Konsultation der
 Aufsichtsbehörde nach Art. 36 DSGVO ist dann voraussichtlich nicht erforderlich.
@@ -473,3 +479,4 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 | 0.5 | [TT.MM.JJJJ] | Ergänzt: mehrere Einheiten am Tag mit RPE je Einheit und Sprüngen der Torhüter (R32), Trainingseindruck nur für Ausreißer (R31), Torwart-Spieldaten und -Tests. Umgesetzte Maßnahmen: `day_units` mit Gruppen-Sichtbarkeit, Anwesenheit nur über Einheit 0, Checks für Eindruck/Sprünge, `merge_players` v5 | [ ] |
 | 0.6 | [TT.MM.JJJJ] | Ergänzt: Chat (R12 neu bewertet, R33–R35), Spielerentwicklung (R36), Wochenchallenge (R37), Individualtraining (R38). Umgesetzte Maßnahmen: Chat-Regeln je Altersklasse mit Mitlesen in Jugendteams, Melden mit Kopie, Push ohne Inhalt, Spam-Grenze, Löschfristen; interne Gesprächsnotiz getrennt, Freigabe von Einschätzungen/Protokollen, `challenge_totals` ohne Einzelwerte, Einheit nur für einzelne Spieler (`day_units.player_ids`), Export v5, `merge_players` v6 | [ ] |
 | 0.7 | [TT.MM.JJJJ] | Ergänzt: Matchplan mit Freigabe für Spieler und Zugriffsprotokoll (R39). Umgesetzte Maßnahmen: kein direkter Spielerzugriff (nur `match_plan_open`), Freigabe nur ausgewählter Bereiche mit Zeitraum und „nur Kader“, Aufgaben nur die eigene, Protokoll gedrosselt und nach 6 Monaten gelöscht, Wasserzeichen und Bildschirmschutz, Export v6, `merge_players` v7 | [ ] |
+| 0.8 | [TT.MM.JJJJ] | Ergänzt: Verein mit Funktionären, Vereinsübersicht, Hochziehen/Wechsel und Ankündigungen (R40). Umgesetzte Maßnahmen: Zugriff als gespiegelte Trainerteam-Zeile (`club_sync`, `team_staff_club_guard`), Standardrechte ohne Gesundheitsdaten, `club_overview` nur Kennzahlen, `club_move_player` mit Rechteprüfung in beiden Teams, Nachfolge des Vereinsadmins bei Kontolöschung, Export v7 | [ ] |

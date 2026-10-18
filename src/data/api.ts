@@ -1,4 +1,5 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
+import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "../core/club";
 import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -9,7 +10,11 @@ export const isStaffRole = (r: Role | undefined | null): boolean => r === "owner
 
 export interface Membership { teamId: string; club: string; name: string; role: Role; playerId?: string | null;
   /** Trainerteam: einzelne Rechte (null/fehlend = Standard der Rolle, core/perms) */
-  perms?: string[] | null }
+  perms?: string[] | null;
+  /** Verein des Teams (core/club) */
+  clubId?: string | null;
+  /** Zugriff über den Verein (Funktionär) – Rechte vergibt der Verein */
+  viaClub?: boolean }
 /** Persönliche Einstellungen eines Kontos (gelten auf allen Geräten). */
 export interface UserPrefs {
   /** Info-Buttons (i) anzeigen – Standard: an */
@@ -26,7 +31,8 @@ export interface CreateTeamInput {
 export interface JoinProfile { vn: string; nn: string; geb: string; pos: string; nr: number | null; kg: number | null }
 export type AiMode = "coach" | "player" | "session" | "potentials" | "kind";
 export interface AiRequest { mode: AiMode; prompt: string; context: string; lang: Lang; teamId: string }
-export interface StaffEntry { userId: string; role: Role; displayName: string; /** wirksame Rechte (core/perms) */ perms?: string[] }
+export interface StaffEntry { userId: string; role: Role; displayName: string; /** wirksame Rechte (core/perms) */ perms?: string[];
+  /** Zugriff über den Verein (nicht im Team änderbar) */ viaClub?: boolean }
 /** Vom Trainer veröffentlichter Wochenplan (für die Spieler-App). */
 export interface PublishedDay { date: string; kind: string; rpe: number; dauer: number; inhalt: string }
 export type TeamPatch = Partial<Pick<Team, "club" | "name" | "accent" | "cls" | "depth" | "settings" | "principles" | "modules" | "logo">>;
@@ -69,6 +75,31 @@ export interface Api {
   rejectStaff(teamId: string, userId: string): Promise<void>;
   /** Nur Owner: Rechte eines Mitglieds setzen (null = Standard der Rolle) */
   setStaffPerms(teamId: string, userId: string, perms: string[] | null): Promise<void>;
+
+  // Verein (Vereinsabo): Funktionäre, Teams, Übersicht, Hochziehen/Wechsel, Ankündigungen
+  myClubs(): Promise<ClubInfo[]>;
+  /** Verein anlegen (optional gleich mit dem eigenen Team) – liefert die ID */
+  clubCreate(name: string, teamId: string | null): Promise<string>;
+  /** Team-Owner: Team per Vereinscode verbinden */
+  clubLinkTeam(code: string, teamId: string): Promise<string>;
+  /** Team-Owner oder Vereinsadmin: Team aus dem Verein lösen */
+  clubUnlinkTeam(teamId: string): Promise<void>;
+  /** Als Funktionär beitreten (Anfrage) */
+  clubJoin(code: string): Promise<string>;
+  clubUpdate(clubId: string, patch: { name?: string; accent?: string }): Promise<void>;
+  clubStaffList(clubId: string): Promise<ClubStaffEntry[]>;
+  /** Vereinsadmin: Funktion, Titel, Rechte und Teams (null = alle) setzen – bestätigt auch Anfragen */
+  clubSetStaff(clubId: string, userId: string, role: ClubRole, title: string, perms: string[], teams: string[] | null): Promise<void>;
+  /** Vereinsadmin entfernt bzw. Funktionär tritt selbst aus */
+  clubRemoveStaff(clubId: string, userId: string): Promise<void>;
+  clubRegenerateCodes(clubId: string): Promise<{ linkCode: string; staffCode: string }>;
+  clubDelete(clubId: string): Promise<void>;
+  clubTeams(clubId: string): Promise<ClubTeam[]>;
+  clubOverview(clubId: string): Promise<TeamSummary[]>;
+  /** Spieler zusätzlich ins Zielteam (add, z. B. Hochziehen) oder dauerhaft wechseln (move); copy = Belastung, Morgen-Checks, Ausfälle mitnehmen */
+  clubMovePlayer(playerId: string, targetTeamId: string, mode: "add" | "move", copy: boolean): Promise<string>;
+  /** Ankündigung in die Teamchats (null = alle Teams mit Zugriff); liefert die Anzahl der Teams */
+  clubAnnounce(clubId: string, body: string, teams: string[] | null): Promise<number>;
 
   // Kalender & Plan
   saveMatch(teamId: string, m: Match): Promise<Match>;

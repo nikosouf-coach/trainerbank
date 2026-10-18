@@ -16,6 +16,7 @@ import { cleanBody, demoMe, putMsg, toggleReaction, visibleChats } from "../core
 import { indivUnit } from "../core/dev";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
+import type { ClubInfo } from "../core/club";
 import type { MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
@@ -63,6 +64,8 @@ interface State {
   syncing: boolean;
   /** Daten stammen aus dem Gerätespeicher (Stand von …), weil beim Start kein Netz da war */
   cachedAt: string | null;
+  /** Eigene Vereine (Funktionär, Trainerteam eines verbundenen Teams oder Anfrage) */
+  clubs: ClubInfo[];
 }
 
 function systemLang(): Lang {
@@ -82,13 +85,13 @@ function useStoreValue() {
   const [s, setS] = useState<State>(() => ({
     phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(),
     consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
-    outbox: [], offline: false, syncing: false, cachedAt: null,
+    outbox: [], offline: false, syncing: false, cachedAt: null, clubs: [],
   }));
   const ref = useRef(s); ref.current = s;
   /** Rechte im aktiven Team (Trainerteam). Demo: Cheftrainer alle, Co-Trainer-Ansicht die Rechte des Profils. */
   const permsNow = (st: State = ref.current): Set<Perm> => {
     if (!st.active) return new Set();
-    if (st.api instanceof DemoApi) return st.demoStaff ? new Set(st.api.demoPerms(st.demoStaff) as Perm[]) : new Set(PERMS);
+    if (st.api instanceof DemoApi) return st.demoStaff ? new Set(st.api.demoPerms(st.demoStaff) as Perm[]) : st.active.viaClub ? effectivePerms(st.active.role, st.active.perms) : new Set(PERMS);
     return effectivePerms(st.active.role, st.active.perms);
   };
   /** Wird gerade als Trainerteam gearbeitet (nicht Spieleransicht)? */
@@ -116,9 +119,12 @@ function useStoreValue() {
 
   // ---------- Laden ----------
   const loadActive = useCallback(async (api: Api, m: Membership | null, extra: Partial<State> = {}) => {
-    if (!m) { set({ phase: "noTeam", active: null, D: null, ...extra }); return; }
-    if (m.role === "pending") { set({ phase: "pending", active: m, D: null, ...extra }); return; }
-    const D = await api.loadTeam(m);
+    // Vereine (Übersicht, Anfragen) – ohne Netz bleibt der letzte Stand
+    const clubsP = api.myClubs().catch(() => ref.current.clubs);
+    if (!m) { set({ phase: "noTeam", active: null, D: null, ...extra, clubs: await clubsP }); return; }
+    if (m.role === "pending") { set({ phase: "pending", active: m, D: null, ...extra, clubs: await clubsP }); return; }
+    const [D, clubs] = await Promise.all([api.loadTeam(m), clubsP]);
+    extra = { clubs, ...extra };
     const staff = isStaffRole(m.role);
     const [consents, aiPlayers, healthPlayers] = await Promise.all([api.consents(), staff ? api.aiConsentPlayers(m.teamId).catch(() => []) : Promise.resolve([]),
       staff ? api.healthConsentPlayers(m.teamId).catch(() => [] as string[]) : Promise.resolve([] as string[])]);
@@ -529,7 +535,61 @@ function useStoreValue() {
       set({ version: ref.current.version + 1 }); return saved;
     },
     joinTeam: async (code: string, p: JoinProfile) => { const pid = await ref.current.api.joinTeam(code, p); const ms = await ref.current.api.memberships(); await loadActive(ref.current.api, ms.find(m => m.playerId === pid) || ms[0] || null, { memberships: ms }); return pid; },
-    joinStaff: async (code: string) => { await ref.current.api.joinStaff(code); const ms = await ref.current.api.memberships(); await loadActive(ref.current.api, ms.find(m => m.role === "pending") || ms[0] || null, { memberships: ms }); },
+    /** Trainerteam-Code eines Teams oder Funktionärs-Code eines Vereins: liefert, wohin die Anfrage ging */
+    joinStaff: async (code: string): Promise<"team" | "club"> => {
+      const api = ref.current.api;
+      let kind: "team" | "club" = "team";
+      try { await api.joinStaff(code); }
+      catch (e) { if (!(e instanceof ApiError && e.code === "invalid_code")) throw e; await api.clubJoin(code); kind = "club"; }
+      const ms = await api.memberships(), cur = ref.current.active;
+      const pick = kind === "team" ? ms.find(m => m.role === "pending") || ms[0] || null : ms.find(m => m.teamId === cur?.teamId && m.role === cur?.role) || ms.find(m => m.role !== "pending") || null;
+      await loadActive(api, pick, { memberships: ms });
+      return kind;
+    },
+    /** Vereine neu laden */
+    refreshClubs: async () => { try { set({ clubs: await ref.current.api.myClubs() }); } catch (e) { if (!isOffline(e)) toast(errText(e)); } },
+    /** Zu einem Team wechseln (z. B. aus der Vereinsübersicht); false = kein Zugriff */
+    openTeam: async (teamId: string): Promise<boolean> => {
+      const { api, memberships } = ref.current;
+      let m = memberships.find(x => x.teamId === teamId && x.role !== "pending" && x.role !== "player");
+      if (!m) { try { const ms = await api.memberships(); set({ memberships: ms }); m = ms.find(x => x.teamId === teamId && x.role !== "pending" && x.role !== "player"); } catch { /* unten */ } }
+      if (!m) return false;
+      set({ phase: "loading", demoView: "coach", demoPlayer: null, demoStaff: null });
+      try { await loadActive(api, m); return true; } catch (e) { toast(errText(e)); await loadActive(api, ref.current.active).catch(() => undefined); return false; }
+    },
+    /** Verein anlegen bzw. das aktive Team per Code verbinden oder aus dem Verein lösen (Team-Owner) */
+    clubCreate: async (name: string): Promise<boolean> => {
+      const { api, active } = ref.current; if (!active) return false;
+      try { await api.clubCreate(name, active.teamId); await reload(); toast(translator(ref.current.lang).t("cl_created")); return true; } catch (e) { toast(errText(e)); return false; }
+    },
+    clubLink: async (code: string): Promise<boolean> => {
+      const { api, active } = ref.current; if (!active) return false;
+      try { await api.clubLinkTeam(code, active.teamId); await reload(); toast(translator(ref.current.lang).t("cl_linked")); return true; } catch (e) { toast(errText(e)); return false; }
+    },
+    clubUnlink: async (teamId: string): Promise<boolean> => {
+      const { api } = ref.current;
+      try { await api.clubUnlinkTeam(teamId); await reload(); toast(translator(ref.current.lang).t("cl_unlinked")); return true; } catch (e) { toast(errText(e)); return false; }
+    },
+    /** Nach Änderungen an Funktionären, Rechten oder dem Verein: Teams und Vereine neu laden */
+    clubChanged: async () => { await reload(); },
+    /** Spieler ins Zielteam (add = zusätzlich, z. B. Hochziehen; move = dauerhafter Wechsel) */
+    movePlayer: async (pid: string, target: string, mode: "add" | "move", copy: boolean): Promise<boolean> => {
+      const { api, lang } = ref.current;
+      try {
+        await api.clubMovePlayer(pid, target, mode, copy);
+        await reload(); toast(translator(lang).t(mode === "move" ? "cl_moved" : "cl_added")); return true;
+      } catch (e) { toast(isOffline(e) ? translator(lang).t("off_notSaved") : errText(e)); return false; }
+    },
+    /** Ankündigung in die Teamchats; liefert die Anzahl der Teams (null = Fehler) */
+    clubAnnounce: async (clubId: string, body: string, teams: string[] | null): Promise<number | null> => {
+      const { api, lang, active } = ref.current;
+      try {
+        const n = await api.clubAnnounce(clubId, body, teams);
+        toast(translator(lang).tf("cl_announced", { n }));
+        if (active && (!teams || teams.includes(active.teamId))) { bump(); if (api.kind === "supabase") actions.chatSync().catch(() => undefined); }
+        return n;
+      } catch (e) { toast(isOffline(e) ? translator(lang).t("off_notSaved") : errText(e)); return null; }
+    },
     giveConsent: async (kind: ConsentKind, o?: { parentEmail?: string; playerId?: string }) => { await ref.current.api.giveConsent(kind, o); set({ consents: await ref.current.api.consents() }); },
     withdrawConsent: async (kind: ConsentKind) => { await ref.current.api.withdrawConsent(kind); set({ consents: await ref.current.api.consents() }); },
     deleteAccount: async () => { const uid = ref.current.user?.id; await ref.current.api.deleteAccount(); clearDevice(uid); obRef.current = []; set({ phase: "signedOut", user: null, D: null, active: null, memberships: [], outbox: [], cachedAt: null }); },

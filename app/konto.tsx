@@ -93,7 +93,7 @@ export default function Konto() {
       {!s.isDemo ? <Card>
         <CardTitle title={t("ko_teams")} />
         {s.memberships.map(m => (
-          <ListItem key={m.teamId + m.role} title={teamLabel(m)} sub={m.role === "pending" ? t("pe_title") : m.role === "player" ? t("demo_player") : t("demo_coach")}
+          <ListItem key={m.teamId + m.role} title={teamLabel(m)} sub={m.role === "pending" ? t("pe_title") : m.role === "player" ? t("demo_player") : m.viaClub ? t("demo_coach") + " · " + t("cl_via") : t("demo_coach")}
             right={m.teamId === s.active?.teamId ? <StatusChip status="ok" label="✓" /> : <Btn small label={t("st_switch")} onPress={async () => { await s.selectTeam(m); router.replace("/"); }} />} />
         ))}
         <Btn small kind="ghost" icon="plus" label={t("st_title")} onPress={() => router.push("/start")} style={{ alignSelf: "flex-start" }} />

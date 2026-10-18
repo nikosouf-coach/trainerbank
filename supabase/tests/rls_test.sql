@@ -2619,6 +2619,198 @@ end $$;
 commit;
 
 -- =====================================================================
+-- T47 Verein: anlegen, Teams verbinden, Funktionäre mit Rechten (gespiegelt ins Trainerteam), Übersicht,
+-- Spieler hochziehen/wechseln (mit Belastung), Ankündigung, lösen, auflösen
+-- =====================================================================
+\set p5 'e5000000-0000-4000-8000-0000000000e5'
+insert into tst.users (name, id) values ('p5', :'p5');
+insert into auth.users (id, email, raw_user_meta_data) values (:'p5', 'p5@test.local', '{"display_name": "Ole"}');
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p5';
+select tst.put('p5_player', public.join_team(tst.get('join_a'), 'Ole', 'Wechsel', '2008-05-05', 'ST', 9, 70)::text);
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$select public.club_create('SG Test', %L)$q$, tst.get('team_b')), 'T47 Verein nur mit eigenem Team anlegen', 'forbidden');
+select tst.put('club', public.club_create('  SG Test  ', tst.get('team_a')::uuid)::text);
+select tst.throws(format($q$select public.club_create('Noch einer', %L)$q$, tst.get('team_a')), 'T47 Team nur in einem Verein', 'already_in_club');
+do $$ begin
+  perform tst.eq((select name || '/' || role from public.my_clubs()), 'SG Test/admin', 'T47 Ersteller ist Vereinsadmin');
+  perform tst.ok((select link_code is not null and staff_code is not null from public.my_clubs()), 'T47 Admin sieht die Codes');
+  perform tst.eq((select club_id::text from public.teams where id = tst.get('team_a')::uuid), tst.get('club'), 'T47 eigenes Team verbunden');
+end $$;
+select tst.put('club_link', (select link_code from public.my_clubs()));
+select tst.put('club_staff', (select staff_code from public.my_clubs()));
+select tst.throws(format($q$update public.teams set club_id = null where id = %L$q$, tst.get('team_a')), 'T47 Verein nicht direkt änderbar', 'forbidden');
+select tst.throws(format($q$update public.clubs set link_code = 'AAAA-BBBB' where id = %L$q$, tst.get('club')), 'T47 Codes nicht direkt änderbar', 'forbidden');
+select tst.affects(format($q$update public.clubs set name = 'SG Test 1919', accent = '#aa0000' where id = %L$q$, tst.get('club')), 1, 'T47 Admin ändert Name und Farbe');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+select tst.throws(format($q$select public.club_link_team('XXXX-YYYY', %L)$q$, tst.get('team_b')), 'T47 falscher Code', 'invalid_code');
+select tst.throws(format($q$select public.club_link_team(%L, %L)$q$, tst.get('club_link'), tst.get('team_a')), 'T47 nur eigenes Team verbinden', 'forbidden');
+select tst.eq(public.club_link_team(lower(tst.get('club_link')), tst.get('team_b')::uuid)::text, tst.get('club'), 'T47 Team B mit dem Verein verbunden');
+do $$ begin
+  perform tst.eq((select role || '/' || coalesce(link_code, '-') from public.my_clubs()), 'team/-', 'T47 Owner eines verbundenen Teams sieht den Verein ohne Codes');
+  perform tst.eq((select count(*) from public.club_teams(tst.get('club')::uuid))::text, '2', 'T47 Teams des Vereins');
+  perform tst.eq((select count(*) from public.team_staff where team_id = tst.get('team_b')::uuid and club_id is not null)::text, '1', 'T47 Vereinsadmin erhält Zugriff auf Team B');
+end $$;
+select tst.throws($q$select * from public.club_overview((select club_id from public.teams limit 1))$q$, 'T47 Übersicht nur für Funktionäre', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.eq(public.club_join(tst.get('club_staff'))::text, tst.get('club'), 'T47 Funktionärs-Anfrage');
+select tst.throws(format($q$select * from public.club_overview(%L)$q$, tst.get('club')), 'T47 Anfrage sieht keine Übersicht', 'forbidden');
+do $$ begin
+  perform tst.eq((select count(*) from public.club_staff)::text, '1', 'T47 Anfrage sieht nur die eigene Zeile');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$select public.club_set_staff(%L, %L, 'chef', '', null, null)$q$, tst.get('club'), tst.uid('coachC')), 'T47 nur bekannte Funktionen', 'invalid_role');
+select tst.throws(format($q$select public.club_set_staff(%L, %L, 'leiter', '', null, array[gen_random_uuid()])$q$, tst.get('club'), tst.uid('coachC')), 'T47 nur Teams des Vereins', 'different_teams');
+select public.club_set_staff(tst.get('club')::uuid, tst.uid('coachC'), 'leiter', 'Sportlicher Leiter', null, null);
+select tst.throws(format($q$select public.club_set_staff(%L, %L, 'leiter', '', null, null)$q$, tst.get('club'), tst.uid('coachA')), 'T47 letzter Admin bleibt Admin', 'last_admin');
+select tst.throws(format($q$select public.club_remove_staff(%L, %L)$q$, tst.get('club'), tst.uid('coachA')), 'T47 letzter Admin bleibt', 'last_admin');
+do $$ begin
+  perform tst.eq((select array_to_string(perms, ',') from public.team_staff where team_id = tst.get('team_b')::uuid and user_id = tst.uid('coachC') and club_id is not null),
+                 'notes,perf,plan,squad,tasks', 'T47 Funktionär erhält Standardrechte im Team B (ohne Gesundheitsdaten)');
+  perform tst.eq((select (club_id is null)::text from public.team_staff where team_id = tst.get('team_a')::uuid and user_id = tst.uid('coachC')), 'true',
+                 'T47 bestehende Mitgliedschaft (Trainer in Team A) hat Vorrang');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+with ins as (insert into public.rpe_entries (player_id, date, slot, rpe, minutes) values (tst.get('p46b')::uuid, current_date - 1, 0, 6, 80) returning 1) select count(*) from ins;
+select tst.throws(format($q$delete from public.team_staff where team_id = %L and user_id = %L$q$, tst.get('team_b'), tst.uid('coachC')), 'T47 Team-Owner entfernt keine Vereinszugriffe', 'managed_by_club');
+select tst.throws(format($q$select public.set_staff_perms(%L, %L, array['health'])$q$, tst.get('team_b'), tst.uid('coachC')), 'T47 Team-Owner ändert keine Vereinsrechte', 'managed_by_club');
+select tst.throws(format($q$insert into public.team_staff (team_id, user_id, role, club_id) values (%L, %L, 'coach', %L)$q$, tst.get('team_b'), tst.uid('p1'), tst.get('club')), 'T47 keine Vereinszeilen von Hand', 'managed_by_club');
+do $$ begin
+  perform tst.eq((select string_agg(coalesce(display_name, '?') || ':' || via_club::text, ',' order by via_club, display_name) from public.team_staff_rights(tst.get('team_b')::uuid)),
+                 'Coach B:false,Coach A:true,?:true', 'T47 Trainerteam zeigt Zugriffe über den Verein');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.players where team_id = tst.get('team_b')::uuid)::text, '1', 'T47 Funktionär sieht den Kader von Team B');
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('p46b')::uuid)::text, '0', 'T47 ohne Recht „health“ keine Belastungsdaten');
+  perform tst.eq((select count(*) from public.club_overview(tst.get('club')::uuid))::text, '2', 'T47 Übersicht über beide Teams');
+  perform tst.eq((select players::text || '/' || coalesce(injured, -1)::text from public.club_overview(tst.get('club')::uuid) where team_id = tst.get('team_b')::uuid), '1/0', 'T47 Kennzahlen Team B');
+  perform tst.eq((select count(*) from public.club_staff)::text, '2', 'T47 Funktionäre sehen sich gegenseitig');
+end $$;
+commit;
+
+-- Spieler hochziehen und wechseln
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+insert into public.rpe_entries (player_id, date, slot, rpe, minutes) values (tst.get('p5_player')::uuid, current_date - 2, 0, 6, 90), (tst.get('p5_player')::uuid, current_date - 2, 1, 5, 30);
+insert into public.wellness_entries (player_id, date, sleep_hours, sleep_quality, fatigue, soreness, stress) values (tst.get('p5_player')::uuid, current_date - 1, 8, 5, 5, 5, 5);
+insert into public.absences (team_id, player_id, type, from_date) values (tst.get('team_a')::uuid, tst.get('p5_player')::uuid, 'verletzung', current_date - 1);
+select tst.throws(format($q$select public.club_move_player(%L, %L, 'swap')$q$, tst.get('tom'), tst.get('team_b')), 'T47 nur hochziehen oder wechseln', 'invalid_mode');
+select tst.throws(format($q$select public.club_move_player(%L, %L, 'add')$q$, tst.get('tom'), tst.get('team_a')), 'T47 Zielteam ≠ eigenes Team', 'invalid_target');
+select tst.put('tom_b', public.club_move_player(tst.get('tom')::uuid, tst.get('team_b')::uuid, 'add')::text);
+select tst.throws(format($q$select public.club_move_player(%L, %L, 'add')$q$, tst.get('tom'), tst.get('team_b')), 'T47 schon im Zielteam', 'already_in_team');
+select tst.throws(format($q$select public.club_move_player(%L, %L, 'move', true)$q$, tst.get('p5_player'), tst.get('team_b')), 'T47 Belastung mitnehmen nur mit Recht „health“ in beiden Teams', 'forbidden');
+select public.club_set_staff(tst.get('club')::uuid, tst.uid('coachA'), 'admin', 'Vorsitz', array['plan', 'squad', 'health'], null);
+select tst.put('p5_b', public.club_move_player(tst.get('p5_player')::uuid, tst.get('team_b')::uuid, 'move', true)::text);
+do $$ begin
+  perform tst.eq((select team_id::text || '/' || active::text || '/' || coalesce(origin, '-') || '/' || (linked_from::text = tst.get('tom'))::text from public.players where id = tst.get('tom_b')::uuid),
+                 tst.get('team_b') || '/true/U19 Junioren/true', 'T47 hochgezogen: Zeile im Zielteam mit Herkunft');
+  perform tst.eq((select active::text from public.players where id = tst.get('tom')::uuid), 'true', 'T47 hochgezogen: bleibt im eigenen Team');
+  perform tst.eq((select active::text || '/' || coalesce(user_id::text, '-') from public.players where id = tst.get('p5_player')::uuid), 'false/-', 'T47 gewechselt: alte Zeile inaktiv ohne Konto');
+  perform tst.eq((select user_id::text || '/' || shirt_number::text from public.players where id = tst.get('p5_b')::uuid), tst.uid('p5')::text || '/9', 'T47 gewechselt: Konto und Rückennummer im Zielteam');
+  perform tst.eq((select type || '/' || minutes::text || '/' || rpe::text || '/' || label from public.extra_activities where player_id = tst.get('p5_b')::uuid), 'verein/120/5.8/Training U19 Junioren',
+                 'T47 Belastung als Vereinstraining (eine Zeile je Tag, gewichtete RPE)');
+  perform tst.eq((select count(*) from public.wellness_entries where player_id = tst.get('p5_b')::uuid)::text, '1', 'T47 Morgen-Checks übernommen');
+  perform tst.eq((select type || '/' || team_id::text from public.absences where player_id = tst.get('p5_b')::uuid), 'verletzung/' || tst.get('team_b'), 'T47 laufende Verletzung übernommen');
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('p5_player')::uuid)::text, '2', 'T47 Historie bleibt im alten Team');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p5';
+do $$ begin
+  perform tst.eq((select string_agg(team_id::text, ',') from public.players where user_id = auth.uid()), tst.get('team_b'), 'T47 Spieler ist jetzt im neuen Team');
+end $$;
+commit;
+
+-- Ankündigung
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$select public.club_announce(%L, '   ')$q$, tst.get('club')), 'T47 leere Ankündigung', 'invalid_body');
+select tst.eq(public.club_announce(tst.get('club')::uuid, 'Vereinsfest am Samstag ab 14 Uhr!')::text, '2', 'T47 Ankündigung in beide Teamchats');
+select tst.eq(public.club_announce(tst.get('club')::uuid, 'Nur Team B', array[tst.get('team_b')::uuid])::text, '1', 'T47 Ankündigung an ausgewählte Teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p5';
+do $$ begin
+  perform tst.eq((select string_agg(body, ' | ' order by created_at) from public.chat_messages), 'Vereinsfest am Samstag ab 14 Uhr! | Nur Team B', 'T47 Spieler in Team B liest die Ankündigungen');
+end $$;
+commit;
+
+-- Team lösen, Verein auflösen
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+select public.club_unlink_team(tst.get('team_b')::uuid);
+do $$ begin
+  perform tst.eq((select count(*) from public.team_staff where team_id = tst.get('team_b')::uuid)::text, '1', 'T47 nach dem Lösen nur noch das eigene Trainerteam');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.players where team_id = tst.get('team_b')::uuid)::text, '0', 'T47 Funktionär hat nach dem Lösen keinen Zugriff mehr');
+end $$;
+select public.club_remove_staff(tst.get('club')::uuid, tst.uid('coachC'));
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.ok((public.my_data_export() -> 'club_staff') @> '[{"club": "SG Test 1919", "role": "admin", "title": "Vorsitz"}]', 'T47 Datenexport enthält eigene Funktionen im Verein');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+select tst.throws(format($q$select public.club_delete(%L)$q$, tst.get('club')), 'T47 nur der Vereinsadmin löst den Verein auf', 'forbidden');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select public.club_delete(tst.get('club')::uuid);
+do $$ begin
+  perform tst.eq((select coalesce(club_id::text, '-') from public.teams where id = tst.get('team_a')::uuid), '-', 'T47 aufgelöst: Team bleibt ohne Verein');
+  perform tst.eq((select count(*) from public.team_staff where club_id is not null)::text, '0', 'T47 aufgelöst: keine Vereinszugriffe mehr');
+  perform tst.eq((select count(*) from public.team_staff where team_id = tst.get('team_a')::uuid and user_id = tst.uid('coachC'))::text, '1', 'T47 aufgelöst: Trainerrolle in Team A bleibt');
+end $$;
+commit;
+-- Aufräumen: Spieler aus T47 (Zählungen in späteren Tests)
+delete from public.players where id in (tst.get('p5_player')::uuid, tst.get('tom_b')::uuid, tst.get('p5_b')::uuid);
+
+-- =====================================================================
 -- T17 Einwilligungen
 -- =====================================================================
 begin;
@@ -2872,7 +3064,7 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v6', 'T21b Exportformat v6');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v7', 'T21b Exportformat v7');
   perform tst.ok(x ? 'match_plan_views', 'T21b Export enthält das Zugriffsprotokoll der Matchpläne');
   perform tst.ok(x ?& array['groups', 'tasks', 'duties', 'fines', 'cash', 'cash_waivers'], 'T21b Export enthält Gruppen, Aufgaben, Dienste, Strafen, Kasse');
   perform tst.ok(x ?& array['assessments', 'goals', 'goal_entries', 'dev_talks', 'challenge_entries', 'indiv_requests', 'chat_messages', 'chat_reactions', 'chat_reports', 'chats'],

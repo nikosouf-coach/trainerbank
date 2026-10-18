@@ -11,7 +11,10 @@
 //      (inkl. aller Fotos und Befund-Dateien des Teams; offene Anfragen 'pending' zählen nicht und
 //      verfallen mit dem Team). Bleiben andere Staff-Mitglieder übrig und war das
 //      Konto der einzige Owner, wird ein verbleibendes Mitglied Owner.
-//      Eigene offene Anfragen ('pending') lösen nichts aus.
+//      Eigene offene Anfragen ('pending') lösen nichts aus. Zugriffe über einen Verein (club_id) zählen nicht
+//      als Trainerteam; gehört das Team zu einem Verein, übernimmt ein Vereinsadmin das Team, statt es zu löschen.
+//   2b. Vereine, in denen das Konto der einzige Vereinsadmin ist: ein anderer Funktionär wird Admin; gibt es keinen,
+//      wird der Verein aufgelöst (Teams bleiben bestehen).
 //   3. auth.admin.deleteUser(uid) – die Datenbank löscht per Cascade Profil,
 //      Spielerzeilen samt Gesundheitsdaten, Staff-Einträge, Tokens. Einwilligungen
 //      bleiben als Nachweis erhalten (user_id → null, E-Mail-Hash bleibt).
@@ -100,23 +103,41 @@ Deno.serve(async (req: Request): Promise<Response> => {
     // 2. Teams, in denen das Konto Staff ist
     const { data: memberships, error: staffError } = await admin
       .from('team_staff')
-      .select('team_id, role')
+      .select('team_id, role, club_id')
       .eq('user_id', uid);
     if (staffError) throw staffError;
 
-    for (const m of (memberships ?? []) as { team_id: string; role: string }[]) {
+    for (const m of (memberships ?? []) as { team_id: string; role: string; club_id: string | null }[]) {
       if (m.role === 'pending') continue; // nur eine Anfrage – das Team bleibt unberührt
+      if (m.club_id) continue; // Zugriff über den Verein – endet mit dem Konto (Cascade)
       const teamId = m.team_id;
       const { data: otherRows, error: othersError } = await admin
         .from('team_staff')
         .select('user_id, role')
         .eq('team_id', teamId)
         .neq('user_id', uid)
-        .neq('role', 'pending');
+        .neq('role', 'pending')
+        .is('club_id', null);
       if (othersError) throw othersError;
       const others = (otherRows ?? []) as StaffRow[];
 
       if (others.length === 0) {
+        // Team im Verein: ein Vereinsadmin übernimmt das Team (statt es mit allen Daten zu löschen)
+        const { data: teamRow, error: teamError } = await admin.from('teams').select('club_id').eq('id', teamId).single();
+        if (teamError) throw teamError;
+        const clubId = (teamRow as { club_id: string | null } | null)?.club_id ?? null;
+        if (clubId) {
+          const { data: admins, error: adminsError } = await admin
+            .from('club_staff').select('user_id').eq('club_id', clubId).eq('role', 'admin').neq('user_id', uid).limit(1);
+          if (adminsError) throw adminsError;
+          const heir = ((admins ?? []) as { user_id: string }[])[0]?.user_id;
+          if (heir) {
+            const { error } = await admin.from('team_staff')
+              .upsert({ team_id: teamId, user_id: heir, role: 'owner', perms: null, club_id: null }, { onConflict: 'team_id,user_id' });
+            if (error) throw error;
+            continue;
+          }
+        }
         // Einziges Staff-Mitglied: Team mit allen Daten löschen (Cascade) – vorher die Fotos
         await removeObjects(admin, AVATARS, await listObjects(admin, AVATARS, teamId));
         await removeObjects(admin, FINDINGS, await listObjects(admin, FINDINGS, teamId, 2));
@@ -134,6 +155,25 @@ Deno.serve(async (req: Request): Promise<Response> => {
           .update({ role: 'owner' })
           .eq('team_id', teamId)
           .eq('user_id', successor.user_id);
+        if (error) throw error;
+      }
+    }
+
+    // 2b. Vereine, in denen das Konto einziger Admin ist: Nachfolge regeln oder Verein auflösen
+    const { data: clubRows, error: clubError } = await admin.from('club_staff').select('club_id').eq('user_id', uid).eq('role', 'admin');
+    if (clubError) throw clubError;
+    for (const r of (clubRows ?? []) as { club_id: string }[]) {
+      const { data: rest, error: restError } = await admin
+        .from('club_staff').select('user_id, role').eq('club_id', r.club_id).neq('user_id', uid).neq('role', 'pending');
+      if (restError) throw restError;
+      const list = (rest ?? []) as { user_id: string; role: string }[];
+      if (list.some((x) => x.role === 'admin')) continue;
+      const next = list.find((x) => x.role === 'leiter') ?? list.find((x) => x.role === 'nlz') ?? list[0];
+      if (next) {
+        const { error } = await admin.from('club_staff').update({ role: 'admin' }).eq('club_id', r.club_id).eq('user_id', next.user_id);
+        if (error) throw error;
+      } else {
+        const { error } = await admin.from('clubs').delete().eq('id', r.club_id);
         if (error) throw error;
       }
     }

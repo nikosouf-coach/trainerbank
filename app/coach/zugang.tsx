@@ -1,4 +1,4 @@
-// Trainer – Spieler-App & Trainerteam: Team-Codes teilen/erneuern, Co-Trainer-Anfragen annehmen.
+// Trainer – Spieler-App & Trainerteam: Team-Codes teilen/erneuern, Co-Trainer-Anfragen annehmen, Rechte (Zugriffe über den Verein nur ansehen).
 import { useRouter } from "expo-router";
 import { teamLabel } from "../../src/core/classes";
 import React, { useEffect, useState } from "react";
@@ -61,10 +61,10 @@ export default function Zugang() {
           ))}
         </Col> : null}
         {staff == null ? <Muted>{t("loading")}</Muted> : team.map(x => (
-          <ListItem key={x.userId} testID={"staff-" + x.userId} title={x.displayName || "–"} right={<Tag label={t("role_" + x.role)} />}
-            sub={(s.isDemo && s.demoStaff ? x.userId === "demo-" + s.demoStaff : x.userId === s.user?.id && !owner) ? t("pm_mine") : undefined}>
+          <ListItem key={x.userId} testID={"staff-" + x.userId} title={x.displayName || "–"} right={<Tag label={x.viaClub ? t("cl_via") : t("role_" + x.role)} />}
+            sub={[(s.isDemo && s.demoStaff ? x.userId === "demo-" + s.demoStaff : x.userId === s.user?.id && !owner) ? t("pm_mine") : "", x.viaClub ? t("cl_viaHint") : ""].filter(Boolean).join(" · ") || undefined}>
             {x.role === "owner" ? <Muted small>{t("pm_owner")}</Muted> : <PermChips perms={x.perms || []} testID={"perms-" + x.userId} />}
-            {owner && x.role !== "owner" ? <Btn small testID={"perm-edit-" + x.userId} label={"🔑 " + t("pm_edit")} onPress={() => setEdit(x)} style={{ alignSelf: "flex-start" }} /> : null}
+            {owner && x.role !== "owner" && !x.viaClub ? <Btn small testID={"perm-edit-" + x.userId} label={"🔑 " + t("pm_edit")} onPress={() => setEdit(x)} style={{ alignSelf: "flex-start" }} /> : null}
           </ListItem>
         ))}
         {staff && team.length <= 1 && !pending.length ? <Muted small>{t("st_none")}</Muted> : null}

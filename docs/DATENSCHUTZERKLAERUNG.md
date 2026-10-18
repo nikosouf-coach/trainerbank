@@ -43,6 +43,11 @@
 - **Matchplan:** Gibt dein Trainerteam einen Matchplan frei, kannst du ihn bis Spielende ansehen. Er ist vertraulich:
   Er wird mit deinem Namen als Wasserzeichen angezeigt, und es wird festgehalten, wann du ihn geöffnet hast (und ob
   ein Screenshot erkannt wurde). Das Protokoll wird nach 6 Monaten gelöscht.
+- **Verein:** Ist dein Team mit deinem Verein verbunden, können Funktionäre des Vereins (z. B. Jugendleitung) dein Team
+  mit den Rechten sehen, die der Vereinsadmin ihnen gibt – deine Gesundheitsdaten nur, wenn ihnen das ausdrücklich
+  erlaubt wurde. In der Vereinsübersicht stehen nur Zahlen je Team, keine Namen. Wirst du in ein anderes Team des
+  Vereins hochgezogen oder wechselst du, kann das Trainerteam deine Belastung der letzten Wochen mitnehmen, damit du im
+  neuen Team nicht überlastet wirst.
 - Die Daten liegen auf Servern in der EU (Frankfurt). Es gibt **keine Werbung, kein Tracking und keinen Verkauf** von Daten.
 - Der KI-Coach ist freiwillig. Wenn du ihn nutzt, geht deine Frage an einen KI-Anbieter in den USA.
 - Du kannst deine Daten jederzeit in der App herunterladen und dein Konto mit allen Gesundheitsdaten löschen.
@@ -92,6 +97,7 @@ E-Mail: [E-Mail des Datenschutzbeauftragten]
 | Rolle | Wer | Was die Rolle in der App tut |
 |---|---|---|
 | **Trainerteam (Staff)** – Owner, Coach, Physio | Erwachsene Trainer, Co-Trainer, Physiotherapeuten, Betreuer eines Teams | legen das Team an, planen Training und Spiele, erfassen Anwesenheit; was ein Mitglied darüber hinaus sieht und bearbeitet (z. B. Gesundheitsdaten, Befunde, Mannschaftskasse), legt der Owner mit **Rechten je Person** fest – der Server setzt das durch |
+| **Funktionär im Verein** – Vereinsadmin, sportliche Leitung, NLZ-/Jugendleitung, Koordination | Erwachsene, die im Verein Verantwortung für mehrere Teams tragen | sehen die Vereinsübersicht (nur Kennzahlen je Team) und öffnen die Teams, die ihnen der Vereinsadmin zuweist, mit den Rechten, die er vergibt (Standard: Planung und Kader, **keine Gesundheitsdaten**); schreiben Ankündigungen in die Teamchats; der Vereinsadmin verbindet Teams und verwaltet Funktionäre |
 | **Kassenwart** | ein Spieler, den das Trainerteam bestimmt (vor allem bei Senioren) | sieht die Mannschaftskasse aller Spieler und bucht Zahlungen; keine Gesundheitsdaten |
 | **Spieler mit eigenem Konto** | Spielerinnen und Spieler ab [Mindestalter für ein eigenes Konto] bis Erwachsene | treten einem Team mit dem Team-Code bei, sehen Teamkalender und veröffentlichten Wochenplan, tragen eigene Daten ein, sehen nur ihre eigenen Daten |
 | **Spieler ohne Konto** | Spieler, die das Trainerteam selbst anlegt (z. B. jüngere Kinder) | nutzen die App nicht selbst; das Trainerteam erfasst Daten für sie |
@@ -139,6 +145,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.32 | Wochenchallenge | Challenges des Teams (Aufgabe, Woche, Ziel) und deine Einträge (Bestwert, Menge, erledigte Tage oder „geschafft“) | Trainerteam, du | freiwillig |
 | 4.33 | Individualtraining | deine Anfrage (Thema, Beschreibung, Wunschzeit), Status, Antwort, zugesagter Termin, zuständiger Trainer; die zugehörige Einheit (wie 4.23, nur für dich) | du, Trainerteam | freiwillig |
 | 4.34 | Chat | Chats, in denen du Mitglied bist (Teamchat, Trainerteam, Gruppen, Einzelchats, eigene Gruppen), deine Nachrichten (Text, Zeitpunkt, Antwort auf, gelöscht am/von), Reaktionen, dein Lesestand und ob du einen Chat stumm geschaltet hast; Meldungen (Grund, Anmerkung, **Kopie der gemeldeten Nachricht** mit Absender und Zeitpunkt); Zeitpunkt der letzten Chat-Push-Mitteilung je Chat (zur Drosselung) | du, andere Mitglieder des Teams | freiwillig |
+| 4.36 | Verein | Verein (Name, Farbe, Codes) und verbundene Teams; Funktionäre (Konto, Funktion, Bezeichnung, Rechte, zugewiesene Teams; Anfragen); Kennzahlen je Team in der Vereinsübersicht (Zahl der Spieler, nächstes und letztes Spiel, Bilanz, Zahl der Verletzten, Kranken und Abwesenden, Trainingsbeteiligung, Zahl der Trainings, Status des Matchplans – **ohne Namen**); beim Hochziehen oder Wechsel: Spielerprofil im Zielteam (Name, Geburtsdatum, Position, Rückennummer, Gewicht, Herkunftsteam) und – nur auf Wunsch des Trainerteams – Belastung der letzten 6 Wochen (je Tag zusammengefasst als „Training <Team>“), Zusatzsport, Morgen-Checks der letzten 4 Wochen und laufende Abwesenheiten; Ankündigungen des Vereins im Teamchat (wie 4.34) | Funktionäre des Vereins (nach Rechten), Trainerteams der beteiligten Teams | – |
 | 4.35 | Matchplan | Aufstellung (Startelf, Bank, Kapitän, Position), Aufgabe für dich, Folien, Spielidee, Gegneranalyse, Wechselplan (geplante Minuten) – vom Trainerteam erstellt; **Zugriffsprotokoll**: wann du einen freigegebenen Matchplan geöffnet hast, Plattform (iOS/Android/Web) und erkannte Screenshots | Trainerteam; du (freigegebene Bereiche) | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
@@ -222,6 +229,20 @@ Bildschirmaufnahmen gesperrt, auf iOS werden Bildschirmaufnahmen geschwärzt und
 (höchstens einer je 10 Minuten) und erkannte Screenshots werden protokolliert; das Trainerteam sieht, wer den Plan schon
 gesehen hat. Andere Spieler sehen das Protokoll nicht. Das Protokoll wird nach **6 Monaten** gelöscht.
 
+**Verein (4.36):** Ein Verein verbindet mehrere Teams. Jedes Team bleibt eigenständig; Daten werden nicht
+zusammengelegt. Funktionäre sehen nur die Teams, die ihnen der Vereinsadmin zuweist, und nur mit den Rechten, die er
+vergibt – genauso wie Mitglieder eines Trainerteams (Abschnitt 8). Gesundheitsdaten gehören nicht zu den Standardrechten
+einer Funktion; der Vereinsadmin soll sie nur Personen geben, die Spieler selbst betreuen (z. B. Athletik- oder
+Reha-Koordination), und die App weist darauf hin. Die Vereinsübersicht zeigt je Team nur Zahlen, keine Daten einzelner
+Spieler; Ausfälle und Beteiligung nur Funktionären mit dem Recht „Kader“. Beim **Hochziehen** (du spielst zusätzlich in
+einem höheren Team) oder **Wechsel** (dauerhaft) legt das Trainerteam ein Spielerprofil im Zielteam an; hast du ein
+Konto, siehst du dann beide Teams bzw. das neue Team. Beim Wechsel bleibt dein bisheriges Profil mit seiner Historie im
+alten Team inaktiv (das alte Trainerteam kann es löschen). Deine **Belastung** (Trainings und Spiele der letzten 6 Wochen,
+je Tag zusammengefasst), Zusatzsport, Morgen-Checks der letzten 4 Wochen und laufende Ausfälle werden nur mitgenommen,
+wenn das Trainerteam das auswählt und in **beiden** Teams das Recht „Gesundheitsdaten“ hat – damit Belastungssteuerung
+und Verletzungsschutz im neuen Team von Anfang an stimmen. Das ist derselbe Zweck, in den du für die Belastungssteuerung
+eingewilligt hast; widerrufst du die Einwilligung, gilt das für alle Teams.
+
 **Platzierung (4.26):** Du siehst nur deinen eigenen Platz (z. B. „Platz 3 von 18“), erst wenn mindestens fünf Spieler
 einen Wert haben. Werte oder Namen anderer Spieler werden nie angezeigt. Das Trainerteam kann die Platzierung abschalten.
 
@@ -244,8 +265,9 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung, Wochenchallenge, Individualtraining, Chat, Matchplan | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.35 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung, Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen) | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
 | Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests, Angaben zum Schmerz (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26, 4.27 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
+| Übernahme der Belastung beim Hochziehen oder Wechsel innerhalb des Vereins (Gesundheitsdaten) | 4.36 | wie die Belastungssteuerung: ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO (gleicher Zweck; nur mit Recht „Gesundheitsdaten“ in beiden Teams) |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
 | Push-Erinnerungen und Team-Mitteilungen | 4.14 | Art. 6 Abs. 1 lit. b DSGVO; Zugriff auf das Endgerät nach § 25 Abs. 2 Nr. 2 TDDDG (vom Nutzer ausdrücklich gewünschter Dienst) nach Freigabe in den Systemeinstellungen |
 | Nachweis von Einwilligungen | 4.13 | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 DSGVO |
@@ -383,6 +405,9 @@ bleibt unberührt.
 | deine Meldungen im Chat | ja | mit Recht „Nachrichten“ (mit Kopie der Nachricht) | nein | nein |
 | Matchplan (Aufstellung, Aufgaben, Taktik …) | die freigegebenen Bereiche im Freigabezeitraum (Aufgaben standardmäßig nur deine) | ja | wie du (freigegebene Bereiche) | nein |
 | Zugriffsprotokoll des Matchplans (wann geöffnet, Screenshot erkannt) | in deinem Datenexport | ja | nein | nein |
+| Daten deines Teams für Funktionäre des Vereins | – | – | – | Funktionäre, denen der Vereinsadmin dein Team zuweist – mit denselben Rechten wie ein Mitglied des Trainerteams (Gesundheitsdaten nur mit Recht „Gesundheitsdaten“) |
+| Kennzahlen deines Teams in der Vereinsübersicht (nur Zahlen, keine Namen) | nein | wenn Funktionär | nein | Funktionäre des Vereins mit Zugriff auf dein Team |
+| deine Funktion im Verein (als Funktionär) | ja | Trainerteams der zugewiesenen Teams sehen dich als Mitglied „über Verein“ | nein | andere Funktionäre des Vereins |
 
 Diese Regeln setzt die Datenbank selbst durch (zeilenbasierte Zugriffsregeln), nicht nur die Oberfläche der App.
 
@@ -564,6 +589,8 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Chat-Nachrichten und Reaktionen | automatisch **24 Monate** nach dem Senden; sofort bei Löschung deines Kontos; gelöschte Nachrichten verlieren ihren Text sofort; Einzel- und eigene Chats auch, wenn alle Mitglieder sie verlassen |
 | Meldungen im Chat | automatisch 12 Monate, nachdem das Trainerteam sie erledigt hat; deine eigenen Meldungen mit deinem Konto |
 | Lesestand, „stumm“, Push-Drosselung | mit dem Konto bzw. Chat; Push-Drosselung nach 30 Tagen |
+| Verein und Funktionen | Funktion beim Entfernen durch den Vereinsadmin, beim Niederlegen oder mit deinem Konto; der Verein beim Auflösen durch den Vereinsadmin (die Teams bleiben mit ihren Daten bestehen) oder wenn sein letzter Funktionär das Konto löscht; offene Anfragen mit dem Konto |
+| Übernommene Daten beim Hochziehen oder Wechsel | wie die übrigen Daten des Zielteams (Spielerprofil, Gesundheitsdaten); das inaktive Profil im bisherigen Team wie inaktive Spieler |
 | Matchplan | bei Löschung durch das Trainerteam oder Löschung des Teams |
 | Zugriffsprotokoll des Matchplans | automatisch **6 Monate** nach dem Aufruf; mit dem Plan oder deinem Spielerprofil |
 | Angaben zum Schmerz | wie Gesundheitsdaten (mit dem Morgen-Check-Eintrag) |
@@ -705,7 +732,10 @@ self-assessment, measurable goals with progress, development talks with agreemen
 shown to the player); weekly challenges and your entries (team-mates only see participation and the team total; a
 top-3 list only if the staff enables it); requests for individual sessions; chat (messages, reactions, read state,
 muted chats, reports with a copy of the reported message); match plans created by the staff and an access log of when
-you opened a shared match plan (platform, detected screenshots; deleted after 6 months); push tokens; AI usage counters; technical server logs. Load, wellness,
+you opened a shared match plan (platform, detected screenshots; deleted after 6 months); clubs (connected teams,
+officials with role, rights and assigned teams, key figures per team without names, call-ups and transfers with an
+optional copy of the last 6 weeks of load, 4 weeks of morning checks and ongoing absences – only with the health-data
+right in both teams); push tokens; AI usage counters; technical server logs. Load, wellness,
 complaints and body regions, injury, illness, height and weight, rehab/load-build/growth group membership and test
 results are treated as **health data** (Art. 9 GDPR).
 
@@ -720,7 +750,9 @@ with the sender's first name and last initial. In youth teams, direct messages a
 staff and staff members with the "Messages" permission can read direct messages between a coach and a player
 (safeguarding, shown in the chat). Push notifications never contain the message text. Chat messages are deleted after
 24 months. Shared match plans are visible to players only for the shared parts and period, shown with a name
-watermark (screenshots blocked on Android, detected on iOS); the staff sees who has opened them. Enforced by database
+watermark (screenshots blocked on Android, detected on iOS); the staff sees who has opened them. If your team is
+connected to a club, club officials see the teams assigned to them with the rights granted by the club administrator
+(by default planning and squad, no health data); the club overview shows only figures per team. Enforced by database
 row-level security.
 
 **Minors:** own accounts from [minimum age]; under 16, a parent or guardian must consent (we store their e-mail

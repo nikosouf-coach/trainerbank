@@ -1,4 +1,4 @@
-// Trainer – Mehr: Übersicht über Einstellungen (Verein, Training, Baukasten, Zugang) und Konto.
+// Trainer – Mehr: Übersicht über Einstellungen (Mannschaft, Verein, Training, Baukasten, Zugang) und Konto.
 import { useRouter } from "expo-router";
 import React from "react";
 import { openRequests } from "../../../src/core/dev";
@@ -13,11 +13,14 @@ export default function Mehr() {
   const team = E.team, nDays = Object.keys(team.settings.days).length;
   const go = (h: string) => router.push(h);
   const chev = <Icon name="chevron" size={18} color={c.muted} />;
+  const club = s.clubs.find(x => x.id === team.clubId) || null;
   return (
     <Screen testID="coach-mehr">
       <Header eyebrow={t("mo_sub")} title={t("mo_title")} />
       <Card style={{ paddingVertical: 4, gap: 0 }}>
         <ListItem testID="mehr-team" title={t("mh_team")} sub={`${teamLabel(team)} · ${classLabel(classDef(team.cls), E.tr.lang)} · ${t("dp_" + team.depth)}`} right={chev} onPress={() => go("/coach/team")} />
+        <ListItem testID="mehr-verein" title={t("cl_title")} right={chev} onPress={() => go("/verein")}
+          sub={club ? tf("cl_menuSubLinked", { c: club.name, n: club.teams }) : team.clubId ? t("cl_open") : t("cl_menuSub")} />
         <ListItem testID="mehr-training" title={t("mh_training")} sub={tf("mh_trainingSub", { n: nDays })} right={chev} onPress={() => go("/coach/training")} />
         <ListItem testID="mehr-aufgaben" title={t("tk_title2")} sub={t("tk_menuSub")} right={chev} onPress={() => go("/coach/aufgaben")} />
         {s.can("cash") ? <ListItem testID="mehr-kasse" title={t("ks_title")} sub={t("ks_menuSub")} right={chev} onPress={() => go("/coach/kasse")} /> : null}

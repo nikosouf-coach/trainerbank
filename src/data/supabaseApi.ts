@@ -19,12 +19,13 @@ import {
   type JoinProfile, type Membership, type PublishedDay, type Role, type StaffEntry, type TeamPatch, type UserInfo, type UserPrefs,
 } from "./api";
 import { supabase } from "./supabase";
+import { cleanClubPerms, type ClubInfo, type ClubRole, type ClubStaffEntry, type ClubTeam, type TeamSummary } from "../core/club";
 
 type Row = Record<string, any>;
-const KNOWN_CODES = ["invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
+const KNOWN_CODES = ["managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
   "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day"];
 /** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
-const LIMIT_CODES = ["open_requests", "chat_rate", "members"];
+const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams"];
 
 function fail(error: { message?: string; details?: string; code?: string } | null | undefined): never {
   const msg = error?.message || "unknown";
@@ -68,12 +69,13 @@ function mapTeam(r: Row): Team {
     settings: { ...base, ...(r.settings || {}), days: (r.settings && r.settings.days) || base.days },
     principles: { ...defaultPrinciples(groupOf(cls)), ...(r.principles || {}) },
     modules: { ...modsFor(depth, cls), ...(r.modules || {}) },
-    joinCode: r.join_code, staffCode: r.staff_code, timezone: r.timezone, logo: r.logo_path || null,
+    joinCode: r.join_code, staffCode: r.staff_code, timezone: r.timezone, logo: r.logo_path || null, clubId: r.club_id || null,
   };
 }
 const mapPlayer = (r: Row): Player => ({
   id: r.id, vn: r.first_name, nn: r.last_name || "", pos: r.position || "", nr: r.shirt_number ?? null, geb: r.birthdate || "",
   kg: r.weight_kg != null ? Number(r.weight_kg) : null, photo: r.photo_path || null, userId: r.user_id || null, neu: !!r.is_new, active: r.active !== false, groups: [],
+  origin: r.origin || null, linkedFrom: r.linked_from || null,
 });
 const mapMatch = (r: Row): Match => ({ id: r.id, date: r.date, zeit: r.time || "15:00", gegner: r.opponent || "", heim: !!r.home, comp: r.competition || "liga",
   result: r.goals_for != null && r.goals_against != null ? { own: r.goals_for, opp: r.goals_against } : null });
@@ -192,12 +194,16 @@ export class SupabaseApi implements Api {
   // ---------- Mitgliedschaften ----------
   async memberships(): Promise<Membership[]> {
     const { data } = await this.sb.auth.getSession(); const uid = data.session?.user.id; if (!uid) return [];
-    const staff = await q(this.sb.from("team_staff").select("team_id, role, perms, teams(club, name)").eq("user_id", uid));
-    const players = await q(this.sb.from("players").select("id, team_id, teams(club, name)").eq("user_id", uid));
-    const pending = await q(this.sb.rpc("my_pending_teams"));
+    const [staff, players, pending] = await Promise.all([
+      q(this.sb.from("team_staff").select("team_id, role, perms, club_id, teams(club, name, club_id)").eq("user_id", uid)),
+      q(this.sb.from("players").select("id, team_id, teams(club, name, club_id)").eq("user_id", uid)),
+      q(this.sb.rpc("my_pending_teams")),
+    ]);
     const out: Membership[] = [];
-    for (const s of staff) if (s.role !== "pending" && s.teams) out.push({ teamId: s.team_id, club: s.teams.club, name: s.teams.name, role: s.role as Role, perms: s.perms ?? null });
-    for (const p of players) if (p.teams) out.push({ teamId: p.team_id, club: p.teams.club, name: p.teams.name, role: "player", playerId: p.id });
+    // Eigene Teams zuerst, Zugriffe über den Verein danach
+    for (const s of [...staff].sort((a, b) => (a.club_id ? 1 : 0) - (b.club_id ? 1 : 0))) if (s.role !== "pending" && s.teams)
+      out.push({ teamId: s.team_id, club: s.teams.club, name: s.teams.name, role: s.role as Role, perms: s.perms ?? null, clubId: s.teams.club_id || null, viaClub: !!s.club_id });
+    for (const p of players) if (p.teams) out.push({ teamId: p.team_id, club: p.teams.club, name: p.teams.name, role: "player", playerId: p.id, clubId: p.teams.club_id || null });
     for (const r of pending as Row[]) out.push({ teamId: r.team_id, club: r.club, name: r.name, role: "pending" });
     return out;
   }
@@ -402,12 +408,59 @@ export class SupabaseApi implements Api {
     return { joinCode: rows[0].join_code, staffCode: rows[0].staff_code };
   }
   async staffList(teamId: string): Promise<StaffEntry[]> {
-    const rows = await q<Row[]>(this.sb.rpc("team_staff_perms", { p_team: teamId }));
-    return rows.map(r => ({ userId: r.user_id, role: r.role, displayName: r.display_name || "", perms: r.perms || [] }));
+    const rows = await q<Row[]>(this.sb.rpc("team_staff_rights", { p_team: teamId }));
+    return rows.map(r => ({ userId: r.user_id, role: r.role, displayName: r.display_name || "", perms: r.perms || [], viaClub: !!r.via_club }));
   }
   async approveStaff(teamId: string, userId: string, role: "coach" | "physio") { await q(this.sb.rpc("approve_staff", { p_team: teamId, p_user: userId, p_role: role })); }
   async rejectStaff(teamId: string, userId: string) { await q(this.sb.rpc("reject_staff", { p_team: teamId, p_user: userId })); }
   async setStaffPerms(teamId: string, userId: string, perms: string[] | null) { await q(this.sb.rpc("set_staff_perms", { p_team: teamId, p_user: userId, p_perms: perms })); }
+
+  // ---------- Verein ----------
+  async myClubs(): Promise<ClubInfo[]> {
+    const rows = await q<Row[]>(this.sb.rpc("my_clubs"));
+    return rows.map(r => ({ id: r.club_id, name: r.name, accent: r.accent || "#0b3d91", role: r.role, title: r.title || "", linkCode: r.link_code || null, staffCode: r.staff_code || null, teams: r.teams ?? 0 }));
+  }
+  async clubCreate(name: string, teamId: string | null) { return q<string>(this.sb.rpc("club_create", { p_name: name.trim().slice(0, 100), p_team: teamId })); }
+  async clubLinkTeam(code: string, teamId: string) { return q<string>(this.sb.rpc("club_link_team", { p_code: code, p_team: teamId })); }
+  async clubUnlinkTeam(teamId: string) { await q(this.sb.rpc("club_unlink_team", { p_team: teamId })); }
+  async clubJoin(code: string) { return q<string>(this.sb.rpc("club_join", { p_code: code })); }
+  async clubUpdate(clubId: string, patch: { name?: string; accent?: string }) {
+    const row: Row = {}; if (patch.name != null) row.name = patch.name.trim().slice(0, 100); if (patch.accent) row.accent = patch.accent;
+    if (Object.keys(row).length) await q(this.sb.from("clubs").update(row).eq("id", clubId));
+  }
+  async clubStaffList(clubId: string): Promise<ClubStaffEntry[]> {
+    const rows = await q<Row[]>(this.sb.rpc("club_staff_list", { p_club: clubId }));
+    return rows.map(r => ({ userId: r.user_id, role: r.role, title: r.title || "", perms: cleanClubPerms(r.perms), teams: r.teams ?? null, displayName: r.display_name || "" }));
+  }
+  async clubSetStaff(clubId: string, userId: string, role: ClubRole, title: string, perms: string[], teams: string[] | null) {
+    await q(this.sb.rpc("club_set_staff", { p_club: clubId, p_user: userId, p_role: role, p_title: title, p_perms: perms, p_teams: teams }));
+  }
+  async clubRemoveStaff(clubId: string, userId: string) { await q(this.sb.rpc("club_remove_staff", { p_club: clubId, p_user: userId })); }
+  async clubRegenerateCodes(clubId: string) {
+    const rows = await q<Row[]>(this.sb.rpc("club_regenerate_codes", { p_club: clubId }));
+    return { linkCode: rows[0].link_code, staffCode: rows[0].staff_code };
+  }
+  async clubDelete(clubId: string) { await q(this.sb.rpc("club_delete", { p_club: clubId })); }
+  async clubTeams(clubId: string): Promise<ClubTeam[]> {
+    const rows = await q<Row[]>(this.sb.rpc("club_teams", { p_club: clubId }));
+    return rows.map(r => ({ teamId: r.team_id, club: r.club || "", name: r.name || "", cls: (r.age_class || "u19") as ClassKey, access: !!r.access }));
+  }
+  async clubOverview(clubId: string): Promise<TeamSummary[]> {
+    const rows = await q<Row[]>(this.sb.rpc("club_overview", { p_club: clubId }));
+    const n = (v: unknown): number | null => v == null ? null : Number(v);
+    return rows.map(r => ({
+      teamId: r.team_id, name: r.name || "", cls: (r.age_class || "u19") as ClassKey, players: r.players ?? 0, coach: r.coach || null,
+      next: r.next_date ? { date: r.next_date, time: r.next_time || "", opp: r.next_opp || "", home: !!r.next_home } : null,
+      last: r.last_date && r.last_for != null && r.last_against != null ? { date: r.last_date, opp: r.last_opp || "", own: r.last_for, against: r.last_against } : null,
+      won: r.won ?? 0, drawn: r.drawn ?? 0, lost: r.lost ?? 0, goalsFor: r.goals_for ?? 0, goalsAgainst: r.goals_against ?? 0,
+      injured: n(r.injured), sick: n(r.sick), absent: n(r.absent), attRate: n(r.att_rate), sessions28: r.sessions28 ?? 0,
+      planState: (r.plan_state || null) as TeamSummary["planState"],
+    }));
+  }
+  async clubMovePlayer(playerId: string, targetTeamId: string, mode: "add" | "move", copy: boolean) {
+    return q<string>(this.sb.rpc("club_move_player", { p_player: playerId, p_target: targetTeamId, p_mode: mode, p_copy: copy }));
+  }
+  async clubAnnounce(clubId: string, body: string, teams: string[] | null) { return q<number>(this.sb.rpc("club_announce", { p_club: clubId, p_body: body, p_teams: teams })); }
 
   // ---------- Kalender & Plan ----------
   async saveMatch(teamId: string, m: Match) {
