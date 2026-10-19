@@ -106,11 +106,11 @@ export default function Trainingstag() {
                   <Text style={{ fontSize: 13, fontWeight: "800", color: c.ink, fontVariant: ["tabular-nums"] }}>{from}</Text>
                   <Text style={{ fontSize: 11, color: c.muted, fontVariant: ["tabular-nums"] }}>{to}</Text>
                 </Col>
-                <Col gap={2} style={{ flex: 1 }}>
+                <Col gap={3} style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={2} style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{b.title}</Text>
                   <Text style={{ fontSize: 12, color: c.muted }}>{b.min} {t("min")}{st ? " · " + st.name : ""}{parallel ? " · " + t("td_parallel") : ""}{b.points.length ? " · " + tf("td_points", { n: b.points.length }) : ""}{b.drawing || b.photo ? " · ✎" : ""}</Text>
+                  {g ? <View style={{ alignSelf: "flex-start" }}><GroupChip group={g} /></View> : null}
                 </Col>
-                {g ? <GroupChip group={g} /> : null}
                 <StaffDot staffId={b.staffId} />
                 <Text style={{ color: c.muted }}>{o ? "▴" : "▾"}</Text>
               </Pressable>

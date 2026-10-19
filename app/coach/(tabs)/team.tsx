@@ -1,21 +1,22 @@
 // Trainer – Verein & Mannschaft: Name, Vereinsfarbe, Verein (Vereinsabo), Altersklasse, Infotiefe, Sprache.
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { View } from "react-native";
-import { defaultPrinciples, groupOf } from "../../src/core/classes";
-import type { ClassKey, Depth } from "../../src/core/types";
-import { useEngine, useStore } from "../../src/data/store";
-import { ClassPicker, DepthPicker } from "../../src/ui/editors";
-import { Btn, Card, CardTitle, Field, Header, Row, Screen, Seg, T } from "../../src/ui/kit";
-import { useTheme } from "../../src/ui/theme";
-import { usePhotoUrl } from "../../src/ui/playerAvatar";
-import { ColorPicker, ImageSlot } from "../../src/ui/setupParts";
-import { TeamLogo } from "../../src/ui/teamLogo";
-import { ClubLinkCard } from "../../src/ui/club";
+import { defaultPrinciples, groupOf } from "../../../src/core/classes";
+import type { ClassKey, Depth } from "../../../src/core/types";
+import { useEngine, useStore } from "../../../src/data/store";
+import { ClassPicker, DepthPicker } from "../../../src/ui/editors";
+import { Btn, Card, CardTitle, Field, Header, Row, Screen, Seg, T } from "../../../src/ui/kit";
+import { useTheme } from "../../../src/ui/theme";
+import { usePhotoUrl } from "../../../src/ui/playerAvatar";
+import { ColorPicker, ImageSlot } from "../../../src/ui/setupParts";
+import { TeamLogo } from "../../../src/ui/teamLogo";
+import { ClubLinkCard } from "../../../src/ui/club";
+import { useNavBack } from "../../../src/ui/nav";
 
 
 export default function TeamSettingsScreen() {
-  const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
+  const nb = useNavBack("team");
+  const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme();
   const team = E.team, logoUrl = usePhotoUrl(team.logo || null);
   const [club, setClub] = useState(team.club); const [name, setName] = useState(team.name);
   const dirty = club.trim() !== team.club || name.trim() !== team.name;
@@ -25,7 +26,7 @@ export default function TeamSettingsScreen() {
   };
   return (
     <Screen testID="coach-team">
-      <Header title={t("mh_team")} onBack={() => router.back()} backLabel={t("mo_title")} />
+      <Header title={t("mh_team")} onBack={nb.onBack} backLabel={nb.backLabel} />
       <Card testID="set-logo-card">
         <CardTitle title={t("su_logo")} />
         <Row gap={14} wrap>

@@ -24,7 +24,7 @@ export const de_squad: Dict = {
   pv_ratings: "Noten & Feedback", pv_stats: "Spielstatistik (Minuten, Tore, Assists)", pv_tests: "Leistungstests", pv_videos: "Videos", pv_contacts: "Kontaktliste",
   pabs_t: "Absagen durch Spieler", pabs_d: "Spieler dürfen Trainings in der App absagen und Abwesenheiten eintragen. Aus: Nur das Trainerteam trägt ein.",
   // Mehr (Übersicht)
-  mh_team: "Verein & Mannschaft", mh_training: "Training & Prinzipien", mh_access: "Spieler-App & Trainerteam", mh_account: "Konto & Datenschutz",
+  mh_team: "Mannschaft", mh_training: "Training & Prinzipien", mh_access: "Spieler-App & Trainerteam", mh_account: "Konto & Datenschutz",
   mh_trainingSub: "{n} Trainingstage · Athletik & Torwarttraining · Prinzipien · eigene Trainingsarten",
   // Team-Codes & Trainerteam
   cd_title: "Spieler einladen", cd_sub: "Spieler laden die App, geben den Team-Code ein und legen ihr Profil an.",
@@ -67,7 +67,7 @@ export const de_squad: Dict = {
   gk_custom: "Eigene", gk_custom_d: "Freie Gruppe zur Organisation (z. B. Offensive, Fahrgemeinschaft).",
   my_groups: "Meine Gruppen", my_groupsD: "Dein Trainerteam hat dich diesen Gruppen zugeordnet.",
   vd_toGroups: "an {g}",
-  kd_newApp: "{n} neue Spieler aus der App", kd_newAppD: "Haben sich Spieler selbst angemeldet, die du schon angelegt hattest? Führe die Einträge zusammen, damit keine Daten doppelt sind.",
+  kd_newApp: "{n} neue Spieler aus der App", kd_newApp1: "1 neuer Spieler aus der App", kd_newAppD: "Haben sich Spieler selbst angemeldet, die du schon angelegt hattest? Führe die Einträge zusammen, damit keine Daten doppelt sind.",
   kd_merge: "Zusammenführen", kd_mergeT: "Mit vorhandenem Spieler zusammenführen", kd_mergeD: "Die Daten aus der App werden dem gewählten Spieler zugeordnet. Der doppelte Eintrag wird entfernt.",
   kd_mergeGo: "Zusammenführen", kd_merged: "Zusammengeführt", kd_inactive: "inaktiv",
   // Spielerformular

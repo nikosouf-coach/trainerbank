@@ -32,11 +32,15 @@ import { de_club } from "../i18n/de_club";
 import { en_club } from "../i18n/en_club";
 import { de_scout } from "../i18n/de_scout";
 import { en_scout } from "../i18n/en_scout";
+import { de_nav } from "../i18n/de_nav";
+import { en_nav } from "../i18n/en_nav";
+import { de_home } from "../i18n/de_home";
+import { en_home } from "../i18n/en_home";
 import type { Dict } from "../i18n/types";
 import type { Lang } from "./types";
 
-const de: Dict = { ...deBase, ...de_app, ...de_coach, ...de_squad, ...de_player, ...de_prep, ...de_more, ...de_steer, ...de_reha, ...de_kasse, ...de_body, ...de_units, ...de_dev, ...de_chat, ...de_match, ...de_club, ...de_scout };
-const en: Dict = { ...enBase, ...en_app, ...en_coach, ...en_squad, ...en_player, ...en_prep, ...en_more, ...en_steer, ...en_reha, ...en_kasse, ...en_body, ...en_units, ...en_dev, ...en_chat, ...en_match, ...en_club, ...en_scout };
+const de: Dict = { ...deBase, ...de_app, ...de_coach, ...de_squad, ...de_player, ...de_prep, ...de_more, ...de_steer, ...de_reha, ...de_kasse, ...de_body, ...de_units, ...de_dev, ...de_chat, ...de_match, ...de_club, ...de_scout, ...de_nav, ...de_home };
+const en: Dict = { ...enBase, ...en_app, ...en_coach, ...en_squad, ...en_player, ...en_prep, ...en_more, ...en_steer, ...en_reha, ...en_kasse, ...en_body, ...en_units, ...en_dev, ...en_chat, ...en_match, ...en_club, ...en_scout, ...en_nav, ...en_home };
 const DICTS: Record<Lang, Dict> = { de, en };
 
 export interface Translator {

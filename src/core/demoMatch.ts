@@ -15,6 +15,11 @@ function arrows(sl: MpSlide, add: (byLabel: (pos: string, i?: number) => MpItem 
   return { ...sl, items: [...sl.items, ...add(by)] };
 }
 const line = (t: MpItem["t"], a: { x: number; y: number }, b: { x: number; y: number }, col?: MpItem["col"]): MpItem => ({ id: mpId("i"), t, x: a.x, y: a.y, x2: b.x, y2: b.y, ...(col ? { col } : {}) });
+/** Pfeil zu einem Mitspieler: Spitze am Rand des Icons (wie beim Einrasten in der App) */
+const toTok = (t: MpItem["t"], a: { x: number; y: number }, b: { x: number; y: number }): MpItem => {
+  const dx = b.x - a.x, dy = b.y - a.y, L = Math.hypot(dx, dy) || 1, r = Math.min(2.6, L / 3);
+  return line(t, a, { x: Math.round((b.x - dx / L * r) * 10) / 10, y: Math.round((b.y - dy / L * r) * 10) / 10 });
+};
 /** Marker auf eine Position setzen (Ecken, Freistöße) */
 function place(sl: MpSlide, spots: [string, number, number][]): MpSlide {
   const used = new Set<string>(), items = sl.items.map(x => ({ ...x }));
@@ -97,16 +102,17 @@ export function demoMatchPlans(D: TeamData, lang: Lang, now: Date): void {
     s2 = arrows(s2, by => {
       const out: MpItem[] = [];
       const iv = by("IV"), dm = by("DM"), om = by("OM"), lv = by("LV"), rv = by("RV");
-      if (iv && dm) out.push(line("pass", iv, dm));
-      if (dm && om) out.push(line("pass", dm, om));
-      if (lv) out.push(line("run", lv, { x: lv.x, y: lv.y - 26 }));
-      if (rv) out.push(line("run", rv, { x: rv.x, y: rv.y - 26 }));
+      // Ablauf: 1 Außenverteidiger schieben hoch, 2 IV auf den Sechser, 3 Sechser auf den Zehner
+      if (iv && dm) out.push({ ...toTok("pass", iv, dm), n: 2 });
+      if (dm && om) out.push({ ...toTok("pass", dm, om), n: 3 });
+      if (lv) out.push({ ...line("run", lv, { x: lv.x, y: lv.y - 26 }), n: 1 });
+      if (rv) out.push({ ...line("run", rv, { x: rv.x, y: rv.y - 26 }), n: 1 });
       return out;
     });
     s2.note = t("Außenverteidiger hoch und breit, der Zehner bietet sich zwischen den Linien an.", "Full-backs high and wide, the no. 10 shows between the lines.");
     let s3 = newSlide(c, "ecke_off", t("Ecke offensiv: kurzer Pfosten", "Attacking corner: near post"), false);
     s3 = place(s3, [["RA", 67, 1], ["IV", 30, 9], ["IV", 40, 13], ["ST", 25, 7], ["OM", 36, 21], ["DM", 46, 6], ["ZM", 44, 18], ["LA", 20, 16], ["LV", 34, 27.5], ["RV", 56, 26]]);
-    s3 = arrows(s3, by => [{ ...line("pass", { x: 66, y: 1 }, { x: 27, y: 6 }, "y"), bend: -1 }, ...(by("IV") ? [line("run", by("IV")!, { x: 28, y: 5 })] : [])]);
+    s3 = arrows(s3, by => [{ ...line("pass", { x: 66, y: 1 }, { x: 27, y: 6 }, "y"), bend: -1, n: 2 }, ...(by("IV") ? [{ ...line("run", by("IV")!, { x: 28, y: 5 }), n: 1 }] : [])]);
     s3.note = t("Ball scharf auf den kurzen Pfosten, der erste IV verlängert, zweiter IV und ST gehen auf den langen Pfosten.", "Driven ball to the near post, first centre-back flicks it on, second centre-back and striker attack the far post.");
     let s4 = newSlide(c, "ecke_def", t("Ecke defensiv: Raumdeckung", "Defending corners: zonal"), true);
     s4 = place(s4, [["TW", 34, 103.3], ["LV", 28.8, 103.6], ["IV", 27, 99.6], ["IV", 31.6, 99.6], ["DM", 36.2, 99.6], ["DM", 40.8, 99.6], ["RV", 39.8, 103.8], ["OM", 30.5, 94.2], ["ST", 37.6, 93.4], ["LA", 16, 84], ["RA", 52, 84]]);

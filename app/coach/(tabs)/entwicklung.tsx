@@ -4,15 +4,16 @@ import React, { useMemo, useState } from "react";
 import { addDays } from "../../../src/core/dates";
 import { assessmentsOf, goalProgress, goalsOf, openRequests } from "../../../src/core/dev";
 import { useEngine } from "../../../src/data/store";
-import { Banner, Card, Chip, Header, Info, ListItem, Muted, Row, Screen, Seg } from "../../../src/ui/kit";
+import { Banner, Bar, Card, Chip, Header, Info, ListItem, Muted, Row, Screen, Seg } from "../../../src/ui/kit";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { useTheme } from "../../../src/ui/theme";
-import { Pressable } from "react-native";
+import { Pressable, Text, View } from "react-native";
+import { useNavBack } from "../../../src/ui/nav";
 
 export default function EntwicklungTeam() {
+  const nb = useNavBack("entwicklung");
   const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
   const [filter, setFilter] = useState<"all" | "todo">("all");
-  const back = () => router.canGoBack() ? router.back() : router.replace("/coach/mehr");
   const rows = useMemo(() => E.D.players.map(p => {
     const coach = assessmentsOf(E.D, p.id, "coach")[0], self = assessmentsOf(E.D, p.id, "self")[0];
     const goals = goalsOf(E.D, p.id).filter(g => g.status === "active"), behind = goals.filter(g => goalProgress(E.D, g, E.TODAY).behind).length;
@@ -24,12 +25,26 @@ export default function EntwicklungTeam() {
     return { p, coach, self, goals, behind, talk, selfNew, stale, due, todo: selfNew || due || behind > 0 || (stale && goals.length > 0) };
   }), [E]);
   const list = filter === "todo" ? rows.filter(r => r.todo) : rows;
+  // Überblick: wie viele aktuell eingeschätzt (90 Tage), mit laufenden Zielen, Gespräche fällig
+  const n = rows.length, assessed = rows.filter(r => !r.stale).length, withGoals = rows.filter(r => r.goals.length).length, talksDue = rows.filter(r => r.due).length;
+  const kpi = (k: string, label: string, v: number, of: number | null, col: string) => (
+    <View key={k} testID={"dev-sum-" + k} style={{ flex: 1, minWidth: 0, gap: 4 }}>
+      <Text numberOfLines={2} style={{ fontSize: 11, fontWeight: "700", color: c.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
+      <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink, fontVariant: ["tabular-nums"] }}>{v}{of != null ? <Text style={{ fontSize: 14, color: c.muted }}> / {of}</Text> : null}</Text>
+      {of != null ? <Bar value={of ? v / of : 0} color={col} /> : null}
+    </View>
+  );
   const iq = openRequests(E.D).length;
   return (
     <Screen testID="coach-dev-team">
-      <Header title={t("dv_overview")} onBack={back} backLabel={t("mo_title")} info={<Info title={t("dv_overview")} text={[t("dv_ovInfo"), t("dv_info")]} />} />
+      <Header title={t("dv_overview")} onBack={nb.onBack} backLabel={nb.backLabel} info={<Info title={t("dv_overview")} text={[t("dv_ovInfo"), t("dv_info")]} />} />
       {!E.mods.entwicklung ? <Muted>{tf("bk_needs", { m: t("m_entwicklung") })}</Muted> : <>
         {iq ? <Pressable testID="dev-team-iq" accessibilityRole="button" onPress={() => router.push("/coach/individual")}><Banner>{t("iq_open")}: {iq} ›</Banner></Pressable> : null}
+        {n ? <Card testID="dev-team-sum"><Row gap={14} align="flex-start">
+          {kpi("assessed", t("dv_sumAssessed"), assessed, n, c.ok)}
+          {kpi("goals", t("dv_sumGoals"), withGoals, n, c.accent)}
+          {kpi("talks", t("dv_sumTalks"), talksDue, null, c.warn)}
+        </Row></Card> : null}
         <Seg testID="dev-filter" value={filter} onChange={setFilter} options={[{ key: "all", label: t("dv_ovFilter_all") }, { key: "todo", label: `${t("dv_ovFilter_todo")} · ${rows.filter(r => r.todo).length}` }]} />
         <Card style={{ paddingVertical: 4, gap: 0 }}>
           {list.length ? list.map(r => (
@@ -37,7 +52,7 @@ export default function EntwicklungTeam() {
               onPress={() => router.push("/coach/entwicklung/" + r.p.id)}>
               <Row wrap gap={4}>
                 {r.selfNew ? <Chip label={t("dv_ovSelfNew")} color={c.warn} /> : null}
-                <Chip label={`${t("dv_ovGoals")}: ${r.goals.length}`} color={r.goals.length ? c.ok : c.build} />
+                {r.goals.length ? <Chip label={`${t("dv_ovGoals")}: ${r.goals.length}`} color={c.ok} /> : null}
                 {r.behind ? <Chip label={tf("dv_ovBehind", { n: r.behind })} color={c.warn} /> : null}
                 {r.talk?.next ? <Chip label={`${t("dv_ovTalk")}: ${E.de(r.talk.next)}${r.due ? " · " + t("dv_ovDue") : ""}`} color={r.due ? c.warn : c.event} /> : null}
               </Row>

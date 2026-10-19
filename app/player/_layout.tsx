@@ -6,5 +6,5 @@ import { WithTopBars } from "../../src/ui/topBars";
 
 export default function PlayerLayout() {
   const { c } = useTheme();
-  return <Guard area="player"><WithTopBars><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }} /></WithTopBars></Guard>;
+  return <Guard area="player"><WithTopBars><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, freezeOnBlur: true }} /></WithTopBars></Guard>;
 }

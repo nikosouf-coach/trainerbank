@@ -32,7 +32,7 @@ export function TasksTab() {
         )) : null}
       </Card>
       <Card testID="tk-players">
-        <CardTitle title={t("tk_players")} info={<Info title={t("tk_players")} text={t("tk_playersInfo")} />} right={<Btn small kind="primary" icon="plus" testID="tk-send" label={t("tk_send")} onPress={() => setSend(true)} />} />
+        <CardTitle title={t("tk_players")} info={<Info title={t("tk_players")} text={t("tk_playersInfo")} />} right={<Btn small kind="primary" icon="plus" testID="tk-send" label={t("tk_sendShort")} a11y={t("tk_send")} onPress={() => setSend(true)} />} />
         {groups.length ? groups.map(g => {
           const o = openKey === g.key, grp = g.groupId ? E.D.groups.find(x => x.id === g.groupId) : null;
           return (

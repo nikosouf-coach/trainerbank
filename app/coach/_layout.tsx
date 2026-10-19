@@ -6,5 +6,5 @@ import { WithTopBars } from "../../src/ui/topBars";
 
 export default function CoachLayout() {
   const { c } = useTheme();
-  return <Guard area="coach"><WithTopBars><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }} /></WithTopBars></Guard>;
+  return <Guard area="coach"><WithTopBars><Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg }, freezeOnBlur: true }} /></WithTopBars></Guard>;
 }

@@ -1,12 +1,14 @@
 // Trainer – Vorbereitung & Pausen: laufende, geplante und vergangene Phasen; neue Phase anlegen.
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import type { PhaseKind } from "../../src/core/types";
-import { useEngine } from "../../src/data/store";
-import { Btn, Card, Divider, Header, Info, Muted, Row, Screen, T } from "../../src/ui/kit";
-import { PhaseSheet, PhaseSummary } from "../../src/ui/prep";
+import type { PhaseKind } from "../../../src/core/types";
+import { useEngine } from "../../../src/data/store";
+import { Btn, Card, Divider, Header, Info, Muted, Row, Screen, T } from "../../../src/ui/kit";
+import { PhaseSheet, PhaseSummary } from "../../../src/ui/prep";
+import { useNavBack } from "../../../src/ui/nav";
 
 export default function Vorbereitung() {
+  const nb = useNavBack("vorbereitung");
   const E = useEngine(); const { t } = E; const router = useRouter();
   const [add, setAdd] = useState<PhaseKind | null>(null);
   const L = [...E.D.phases].sort((a, b) => a.from < b.from ? -1 : 1);
@@ -17,7 +19,7 @@ export default function Vorbereitung() {
   ];
   return (
     <Screen testID="coach-vorbereitung">
-      <Header title={t("vb_title")} onBack={() => router.back()} backLabel={t("mo_title")} info={<Info title={t("vb_title")} text={[t("vb_periodInfo"), t("vb_breakInfo")]} />} />
+      <Header title={t("vb_title")} onBack={nb.onBack} backLabel={nb.backLabel} info={<Info title={t("vb_title")} text={[t("vb_periodInfo"), t("vb_breakInfo")]} />} />
       <Row gap={8} wrap>
         <Btn testID="vb-add-prep" kind="primary" icon="plus" label={t("vb_newPrep")} onPress={() => setAdd("prep")} />
         <Btn testID="vb-add-break" icon="plus" label={t("vb_newBreak")} onPress={() => setAdd("break")} />

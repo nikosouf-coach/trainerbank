@@ -390,20 +390,24 @@ export interface Video { id: string; title: string; url: string; date: string | 
 /** Alles, was die Fachlogik über ein Team wissen muss. */
 // ---------- Matchplan (Paket B) ----------
 /** Elemente der Taktiktafel: eigene Spieler, Gegner, Ball, Hütchen, Text, Pass, Laufweg, Dribbling, Linie, Zone */
-export type MpTool = "own" | "opp" | "ball" | "cone" | "text" | "pass" | "run" | "drib" | "line" | "zone";
+export type MpTool = "own" | "opp" | "ball" | "cone" | "text" | "pass" | "run" | "drib" | "line" | "zone" | "circle" | "free";
 export type MpColor = "w" | "y" | "r" | "b";
 /** Element auf dem Spielfeld (Meter, Hochkant 68 × 105, eigenes Tor unten) */
 export interface MpItem {
   id: string; t: MpTool; x: number; y: number; x2?: number; y2?: number;
   /** eigener Spieler (leer = freie Position) */
   pid?: string | null;
-  /** Rückennummer (Gegner) */
+  /** Rückennummer (Spieler, Gegner) bzw. Schritt eines Ablaufs (Pfeile, Freihand: 1 …) */
   n?: number | null;
   /** Positionskürzel (z. B. IV) bzw. Text */
   label?: string;
   col?: MpColor;
-  /** Linien: Bogen (−2 … 2, positiv = nach links in Laufrichtung; fehlt = gerade) */
+  /** Pfeile: Bogen (−3 … 3, positiv = nach links in Laufrichtung; fehlt = gerade) */
   bend?: number;
+  /** Freihand: Punkte [x0, y0, x1, y1, …] in Metern */
+  pts?: number[];
+  /** Freihand: durchgezogen statt gestrichelt */
+  solid?: boolean;
 }
 /**
  * Voreingestellter Ausschnitt: ganzes Feld, Hälften, Angriffsdrittel, 16er vorne/hinten (gezoomt), Ecken je Seite und

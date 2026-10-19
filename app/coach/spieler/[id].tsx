@@ -74,31 +74,34 @@ export default function Spieler() {
 
   const head = (
     <Card testID="profile-head">
-      <Row gap={16} align="flex-start" wrap>
+      <Row gap={14} align="center">
         <Pressable testID="profile-photo" accessibilityRole="button" accessibilityLabel={t("pr_photo")} onPress={pickPhoto} style={{ alignItems: "center", gap: 4 }}>
-          <PlayerAvatar p={p} size={84} status={mods.belastung || pr.st === "inj" ? pr.st : null} />
+          <PlayerAvatar p={p} size={wide ? 84 : 72} status={mods.belastung || pr.st === "inj" ? pr.st : null} />
           <Text style={{ fontSize: 11, fontWeight: "700", color: c.accentTx }}>{t("pr_photo")}</Text>
         </Pressable>
-        <Col gap={6} style={{ flex: 1, minWidth: 200 }}>
+        <Col gap={4} style={{ flex: 1, minWidth: 0 }}>
           <T v="eyebrow">{p.nr != null ? "#" + p.nr + " · " : ""}{p.pos} · {t("pos_" + p.pos) !== "pos_" + p.pos ? t("pos_" + p.pos) + " · " : ""}{E.age(p)} {t("years")}</T>
-          <T v="h1" style={{ fontSize: 26 }}>{E.name(p)}</T>
-          <Row wrap gap={6}>
-            {(mods.belastung || pr.st === "inj") && pr.st !== "none" ? <StatusChip status={pr.st} label={t("st_" + pr.st)} /> : null}
-            {pr.reasons.filter(r => !r[1].startsWith("ACWR") && ![t("st_low"), t("st_crit"), t("st_warn")].includes(r[1])).map(([k, r], i) => <Chip key={i} label={r} color={statusColor(c, k.replace(/^k-/, ""))} />)}
-            {(p.groups || []).map(g => { const gg = E.D.groups.find(x => x.id === g); return gg ? <GroupChip key={g} group={gg} /> : null; })}
-            {p.neu ? <Chip label={t("newP")} color={c.low} /> : null}
-            {p.origin ? <Chip testID="profile-origin" label={E.tf("cl_from", { t: p.origin })} color={c.accentTx} /> : null}
-          </Row>
-          {nx?.train ? <MyTarget pid={p.id} date={nx.date} detail label={`${E.wt(nx.date)} ${E.de(nx.date)}`} testID="profile-target" /> : null}
-          <Row gap={8} wrap>
-            <Btn small testID="profile-edit" label={t("pr_edit")} onPress={() => setEdit(p)} />
-            {chatP && meKind && canDirect(chatSt, meKind, "player") ? <Btn small testID="profile-chat" icon="chat" label={t("ch_direct")} onPress={openChat} /> : null}
-            {p.neu ? <Btn small testID="profile-merge" label={t("kd_merge")} onPress={() => setMerge(p)} /> : null}
-            {canMove ? <Btn small testID="profile-move" label={"⇄ " + t("cl_move")} onPress={() => setMove(p)} /> : null}
-          </Row>
+          <T v="h1" style={{ fontSize: E.name(p).length > 16 ? 22 : 26 }}>{E.name(p)}</T>
         </Col>
       </Row>
-      {adv && E.lvl(1) ? <T style={{ fontWeight: "600" }}>{adv}</T> : null}
+      <Row wrap gap={6}>
+        {(mods.belastung || pr.st === "inj") && pr.st !== "none" ? <StatusChip status={pr.st} label={t("st_" + pr.st)} /> : null}
+        {pr.reasons.filter(r => !r[1].startsWith("ACWR") && ![t("st_low"), t("st_crit"), t("st_warn")].includes(r[1])).map(([k, r], i) => <Chip key={i} label={r} color={statusColor(c, k.replace(/^k-/, ""))} />)}
+        {(p.groups || []).map(g => { const gg = E.D.groups.find(x => x.id === g); return gg ? <GroupChip key={g} group={gg} /> : null; })}
+        {p.neu ? <Chip label={t("newP")} color={c.low} /> : null}
+        {p.origin ? <Chip testID="profile-origin" label={E.tf("cl_from", { t: p.origin })} color={c.accentTx} /> : null}
+      </Row>
+      {nx?.train ? <MyTarget pid={p.id} date={nx.date} detail label={`${E.wt(nx.date)} ${E.de(nx.date)}`} testID="profile-target" /> : null}
+      {adv && E.lvl(1) ? <View testID="profile-advice" style={{ borderLeftWidth: 4, borderLeftColor: statusColor(c, pr.st === "none" ? "build" : pr.st), backgroundColor: c.sunk, borderRadius: radius.m, paddingVertical: 8, paddingHorizontal: 12, gap: 2 }}>
+        <T v="eyebrow">{t("pr_adviceT")}</T>
+        <T style={{ fontWeight: "600", fontSize: 14.5, lineHeight: 20 }}>{adv}</T>
+      </View> : null}
+      <Row gap={8} wrap>
+        <Btn small testID="profile-edit" icon="pen" label={t("pr_edit")} onPress={() => setEdit(p)} />
+        {chatP && meKind && canDirect(chatSt, meKind, "player") ? <Btn small testID="profile-chat" icon="chat" label={t("ch_direct")} onPress={openChat} /> : null}
+        {p.neu ? <Btn small testID="profile-merge" label={t("kd_merge")} onPress={() => setMerge(p)} /> : null}
+        {canMove ? <Btn small testID="profile-move" label={"⇄ " + t("cl_move")} onPress={() => setMove(p)} /> : null}
+      </Row>
       {sore ? <Banner color={pr.w0!.beschw === "clear" ? c.crit : c.warn} testID="profile-sore">
         <Col gap={4}>
           <T bold>{E.soreWhy(pr.w0!)} · {t(pr.w0!.beschw === "clear" ? "pw_clear" : "pw_light")}</T>

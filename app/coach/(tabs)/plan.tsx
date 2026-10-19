@@ -8,7 +8,7 @@ import { CONTENT } from "../../../src/core/content";
 import type { Kind, WeekMode } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { TemplatePicker, templateMin, templateRpe, templateText } from "../../../src/ui/archive";
-import { Dist } from "../../../src/ui/charts";
+import { Dist, WeekStrip } from "../../../src/ui/charts";
 import { KindEditor, type KindEditorTarget } from "../../../src/ui/kindEditor";
 import { IndivSummary } from "../../../src/ui/indiv";
 import { Banner, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T, Tag } from "../../../src/ui/kit";
@@ -85,10 +85,14 @@ export default function Plan() {
   const why = (p: PlanTrain): string[] => [E.whyOf(p), ...(p.notes.length ? [[...new Set(p.notes)].map(k => t(k)).join(" ")] : [])];
 
   const dayCard = (x: PlanItem) => {
-    const head = (extra?: React.ReactNode) => <Row wrap gap={8}>
-      <T bold>{E.wt(x.date)} {E.de(x.date)}</T>{x.md ? <Tag label={x.md} /> : null}{extra}
-      <Btn small kind="ghost" testID={"plan-tag-" + x.date} label={t("td_dayLink")} onPress={() => router.push("/coach/tag/" + x.date)} style={{ marginLeft: "auto", paddingHorizontal: 4 }} />
-    </Row>;
+    // Kopf: Datum, Spieltag-Abstand und Link zum Trainingstag in einer Zeile, darunter Art und Intensität
+    const head = (extra?: React.ReactNode) => <Col gap={4}>
+      <Row gap={8}>
+        <T bold>{E.wt(x.date)} {E.de(x.date)}</T>{x.md ? <Tag label={x.md} /> : null}
+        <Btn small kind="ghost" testID={"plan-tag-" + x.date} label={t("td_dayLink")} onPress={() => router.push("/coach/tag/" + x.date)} style={{ marginLeft: "auto", paddingHorizontal: 4, minHeight: 28, paddingVertical: 2 }} />
+      </Row>
+      {extra ? <Row wrap gap={8}>{extra}</Row> : null}
+    </Col>;
     if (x.match) return (
       <Sec key={x.date} color={c.accentTx} testID={"plan-day-" + x.date}>
         {head(<Chip label={t("it_match")} color={c.accentTx} />)}
@@ -120,7 +124,7 @@ export default function Plan() {
     return (
       <Sec key={x.date} color={rpeColor(c, show ? p.rpe : 5)} testID={"plan-day-" + x.date}>
         {head(<>
-          <T bold>{E.kn(p.kind)}</T>
+          <T bold style={{ fontSize: 16 }}>{E.kn(p.kind)}</T>
           {show ? <View style={{ backgroundColor: withAlpha(rpeColor(c, p.rpe), 0.15), borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 }}><Text style={{ color: rpeColor(c, p.rpe), fontWeight: "800", fontSize: 12 }}>{E.intWord(p.rpe)} · RPE {p.rpe}</Text></View> : null}
           {p.adjusted || p.coach ? <Tag label={t("adjusted")} /> : null}
           {show && p.changes.length && wp.mode !== "normal" ? <Muted small>{p.changes.map(ch => ch.short || chgTxt(ch, "→")).join(" · ")}</Muted> : null}
@@ -179,18 +183,16 @@ export default function Plan() {
         {changes.length ? changes.map(p => <Col key={p.date} gap={2}><T v="small" bold>{E.wt(p.date)} {E.de(p.date)} · {p.md} {E.kn(p.kind)}</T><Muted small>{p.changes.map(ch => chgTxt(ch, " → ")).join(" · ")}</Muted></Col>) : <Muted>{t("chNone")}</Muted>}
         {modeShort ? <Muted small>{modeShort}</Muted> : null}
       </Card> : null}
-      <Col gap={10}>{wp.items.map(dayCard)}</Col>
       {show ? <Card testID="plan-summary">
-        {pro ? <Col gap={6}>
-          <Row between><T v="h3" style={{ flexShrink: 1 }}>{t("weekTotal")}</T><T bold style={{ fontSize: 22, fontVariant: ["tabular-nums"] }}>{E.int(total)} AU</T></Row>
+        <CardTitle title={t("pl_weekProfile")} info={<Info title={t("ib_week")} text={t("ib_week_t")} />} />
+        <WeekStrip days={wp.items.map(x => ({ label: E.wt(x.date), md: x.md, rpe: x.match ? 8 : x.train && x.train.kind !== "frei" ? x.train.rpe : 0, match: !!x.match, today: x.date === E.TODAY }))} />
+        <View style={{ backgroundColor: withAlpha(vcol, 0.12), borderLeftWidth: 4, borderLeftColor: vcol, borderRadius: 8, padding: 10 }}><Text testID="plan-verdict" style={{ fontWeight: "800", color: c.ink }}>{t("v_" + vk)}</Text></View>
+        {pro ? <Col gap={4}>
+          <Row between><T style={{ flexShrink: 1 }}>{t("weekTotal")}</T><T bold style={{ fontSize: 18, fontVariant: ["tabular-nums"] }}>{E.int(total)} AU</T></Row>
           {wp.unitAU ? <Row between><Muted>{t("un_load")}</Muted><T bold>{E.int(wp.unitAU)} AU</T></Row> : null}
           <Row between><Muted>{t("usual")}</Muted><T bold>{chronic ? E.int(chronic) + " AU" : "–"}</T></Row>
           <Row between><Muted>{t("ratio")}</Muted><T bold>{ratio ? E.num(ratio, 2) : "–"}</T></Row>
         </Col> : null}
-        <Row gap={8}>
-          <View style={{ flex: 1, backgroundColor: withAlpha(vcol, 0.12), borderLeftWidth: 4, borderLeftColor: vcol, borderRadius: 8, padding: 10 }}><Text style={{ fontWeight: "800", color: c.ink }}>{t("v_" + vk)}</Text></View>
-          <Info title={t("ib_week")} text={t("ib_week_t")} />
-        </Row>
         {!hard && act.length >= 3 && wp.mode !== "entlastung" && wp.items.filter(x => x.match).length < 2 ? <Banner color={c.warn}>{t("no_hard")}</Banner> : null}
         <Col gap={6}>
           <T v="eyebrow">{t("dist")}</T>
@@ -202,6 +204,7 @@ export default function Plan() {
           </Row>
         </Col>
       </Card> : null}
+      <Col gap={10}>{wp.items.map(dayCard)}</Col>
       <TemplatePicker visible={!!pickFor} onClose={() => setPickFor(null)} onPick={tp => {
         const d = pickFor!; const dr = drafts[d]; if (!dr) return;
         setDrafts(o => ({ ...o, [d]: { ...dr, inhalt: tp.title + "\n" + templateText(E, tp), dauer: templateMin(tp), touched: true } }));

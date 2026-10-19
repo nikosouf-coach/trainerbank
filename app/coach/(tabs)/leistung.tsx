@@ -2,15 +2,17 @@
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { bandOfValue, bestOf, resultsOf, testDef, testsFor, trendOf } from "../../src/core/perf";
-import type { TestKey } from "../../src/core/types";
-import { useEngine } from "../../src/data/store";
-import { Btn, Card, CardTitle, ChoiceChips, Header, Info, Muted, Row, Screen } from "../../src/ui/kit";
-import { BandChip, fmtTest, TestDaySheet, TestInfo } from "../../src/ui/perf";
-import { PlayerAvatar } from "../../src/ui/playerAvatar";
-import { useTheme } from "../../src/ui/theme";
+import { bandOfValue, bestOf, resultsOf, testDef, testsFor, trendOf } from "../../../src/core/perf";
+import type { TestKey } from "../../../src/core/types";
+import { useEngine } from "../../../src/data/store";
+import { Btn, Card, CardTitle, ChoiceChips, Header, Info, Muted, Row, Screen } from "../../../src/ui/kit";
+import { BandChip, fmtTest, TestDaySheet, TestInfo } from "../../../src/ui/perf";
+import { PlayerAvatar } from "../../../src/ui/playerAvatar";
+import { useTheme } from "../../../src/ui/theme";
+import { useNavBack } from "../../../src/ui/nav";
 
 export default function Leistung() {
+  const nb = useNavBack("leistung");
   const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
   const all = testsFor(E.grp), sel = E.team.settings.tests;
   const tests = sel && sel.length ? all.filter(x => sel.includes(x.key)) : all;
@@ -24,7 +26,7 @@ export default function Leistung() {
   const avg = withVal.length ? withVal.reduce((x, r) => x + r.last!.value, 0) / withVal.length : null;
   return (
     <Screen testID="coach-leistung">
-      <Header title={t("lt_title")} onBack={() => router.back()} backLabel={t("mo_title")} info={<Info title={t("lt_use")} text={t("lt_useT")} />}
+      <Header title={t("lt_title")} onBack={nb.onBack} backLabel={nb.backLabel} info={<Info title={t("lt_use")} text={t("lt_useT")} />}
         right={<Btn testID="lt-day" kind="primary" icon="plus" label={t("lt_day")} onPress={() => setDay(true)} />} />
       <ChoiceChips testID="lt-test" value={k} onChange={setK} options={tests.map(x => ({ key: x.key, label: t("ts_" + x.key) }))} />
       <Card testID="lt-table">

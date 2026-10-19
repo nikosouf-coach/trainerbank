@@ -1,4 +1,5 @@
 // Aufgaben, Dienste, Strafen – kleine Bausteine für Startseite, Trainingstag und Spieler-App.
+import { addDays } from "../../core/dates";
 import { kasseOf, money } from "../../core/kasse";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -35,13 +36,13 @@ export function CheckDot({ done, onPress, testID, label }: { done: boolean; onPr
 /** Eine Aufgabe als Zeile */
 export function TaskRow({ x, onToggle, sub, testID }: { x: TeamTask; onToggle?: () => void; sub?: string; testID?: string }) {
   const E = useEngine(); const { c } = useTheme();
-  const over = !x.done && !!x.due && x.due < E.TODAY;
+  const over = !x.done && !!x.due && x.due < E.TODAY, soon = !x.done && !!x.due && !over && x.due <= addDays(E.TODAY, 1);
   return (
     <Row gap={10} testID={testID}>
       <CheckDot done={x.done} onPress={onToggle} label={x.title} testID={testID ? testID + "-check" : undefined} />
       <Col gap={1} style={{ flex: 1 }}>
         <Text style={{ fontSize: 14.5, fontWeight: "700", color: c.ink, textDecorationLine: x.done ? "line-through" : "none", opacity: x.done ? 0.6 : 1 }}>{x.title}</Text>
-        {sub || x.due || x.note ? <Text style={{ fontSize: 12, color: over ? c.crit : c.muted }}>{[x.due ? E.tf("tk_dueOn", { d: whenLabel(E, x.due) }) : "", x.note, sub].filter(Boolean).join(" · ")}</Text> : null}
+        {sub || x.due || x.note ? <Text style={{ fontSize: 12, color: over ? c.crit : soon ? c.warn : c.muted, fontWeight: over || soon ? "700" : "400" }}>{[x.due ? E.tf("tk_dueOn", { d: whenLabel(E, x.due) }) : "", x.note, sub].filter(Boolean).join(" · ")}</Text> : null}
       </Col>
     </Row>
   );

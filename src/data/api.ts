@@ -21,6 +21,8 @@ export interface UserPrefs {
   info?: boolean;
   /** Startseite: Reihenfolge und Sichtbarkeit der Karten */
   dash?: { k: string; on: boolean }[];
+  /** Navigation (Trainer): Bereiche in der unteren Leiste (Reihenfolge) und im Menü ausgeblendete Bereiche */
+  nav?: { bar?: string[]; hide?: string[] };
 }
 export interface UserInfo { id: string; email: string; displayName: string; lang: Lang; prefs?: UserPrefs }
 export type ConsentKind = "privacy" | "health_data" | "parental" | "ai" | "staff_confidentiality" | "findings";

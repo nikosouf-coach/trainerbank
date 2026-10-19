@@ -7,16 +7,20 @@ import { Btn, Col, Muted, Row, Sheet, ToggleRow } from "./kit";
 import { radius, useTheme } from "./theme";
 
 /** Karten der Trainer-Startseite (Standard-Reihenfolge). */
-export const DASH_COACH = ["next", "tasks", "inbox", "phase", "status", "attn", "absent", "week", "events", "last", "load", "ai"] as const;
+export const DASH_COACH = ["next", "matchday", "tasks", "inbox", "phase", "status", "attn", "absent", "week", "events", "last", "load", "ai"] as const;
 export type DashKey = typeof DASH_COACH[number];
 /** Standardmäßig aus (wirken eher als Detail) */
 const DEF_OFF: string[] = [];
 
 export interface DashItem { k: string; on: boolean }
-/** Gespeicherte Auswahl mit neuen Karten zusammenführen. */
+/** Gespeicherte Auswahl mit neuen Karten zusammenführen – neue Karten an ihrer Standardstelle (hinter dem Vorgänger). */
 export function dashItems(saved: DashItem[] | undefined, keys: readonly string[] = DASH_COACH): DashItem[] {
-  const out: DashItem[] = (saved || []).filter(x => keys.includes(x.k));
-  for (const k of keys) if (!out.some(x => x.k === k)) out.push({ k, on: !DEF_OFF.includes(k) });
+  const out: DashItem[] = (saved || []).filter((x, i, a) => keys.includes(x.k) && a.findIndex(y => y.k === x.k) === i);
+  keys.forEach((k, i) => {
+    if (out.some(x => x.k === k)) return;
+    const prev = keys.slice(0, i).reverse().find(p => out.some(x => x.k === p)), at = prev ? out.findIndex(x => x.k === prev) + 1 : 0;
+    out.splice(at, 0, { k, on: !DEF_OFF.includes(k) });
+  });
   return out;
 }
 

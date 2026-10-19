@@ -1,11 +1,12 @@
 // Matchplan: Spielfeld hochkant (eigenes Tor unten) mit beliebigem Ausschnitt – der Ausschnitt füllt immer die Breite,
 // ein kleiner Ausschnitt (z. B. der 16er) wird also größer dargestellt. Auf Wunsch quer (Präsentation, eigenes Tor
-// links), drei Designs (Rasen, Taktiktafel, weiß). Linien, Pfeile (auch gebogen), Zonen, Ball, Hütchen, Text und
-// Spieler-Icons (Nummer, Nummer + Name, Foto + Name; Größe einstellbar). Editor, Spieleransicht, Vorschaubilder.
+// links), drei Designs (Rasen, Taktiktafel, weiß). Linien und Pfeile (auch gebogen, mit Schrittnummer), Freihand,
+// Zonen, Kreise, Ball, Hütchen, Text und Spieler-Icons (Nummer, Nummer + Name, Foto + Name; Größe einstellbar).
+// Editor, Spieleransicht, Vorschaubilder. Alle Teile sind memoisiert: Beim Ziehen wird nur Geändertes neu gezeichnet.
 import React from "react";
 import { Image, Text, View, useWindowDimensions } from "react-native";
 import Svg, { Circle, G, Line, Path, Polyline, Rect, Text as SvgText } from "react-native-svg";
-import { FRAME_MAX, MP_VIEWS, PL, PW, bendCtrl, isLine, linePoint } from "../../core/matchplan";
+import { FRAME_MAX, MP_VIEWS, PL, PW, bendCtrl, isArea, isLine, linePoint } from "../../core/matchplan";
 import type { MpColor, MpFrame, MpItem, MpLook, MpMode, Player } from "../../core/types";
 import { usePhotoUrl } from "../playerAvatar";
 
@@ -56,7 +57,7 @@ export function geom(f: MpFrame, w: number, rot = false) {
 export const decoScale = (k: number): number => Math.max(0.3, Math.min(1.6, Math.pow(4.95 / k, 0.65)));
 
 /** Feldmarkierungen hochkant (68 × 105) */
-function Markings({ s, col }: { s: number; col: string }) {
+const Markings = React.memo(function Markings({ s, col }: { s: number; col: string }) {
   const st = { stroke: col, strokeWidth: 0.35 * s, fill: "none" };
   const dx = Math.sqrt(9.15 * 9.15 - 5.5 * 5.5);
   return (
@@ -82,9 +83,9 @@ function Markings({ s, col }: { s: number; col: string }) {
       <Path d={`M 0 ${PL - 1} A 1 1 0 0 1 1 ${PL}`} {...st} /><Path d={`M ${PW} ${PL - 1} A 1 1 0 0 0 ${PW - 1} ${PL}`} {...st} />
     </G>
   );
-}
+});
 /** Rasen bzw. Untergrund mit Streifen (Meter) */
-function Ground({ f, look }: { f: MpFrame; look: Look }) {
+const Ground = React.memo(function Ground({ f, look }: { f: MpFrame; look: Look }) {
   const stripes = 10, sh = PL / stripes;
   return (
     <G>
@@ -92,7 +93,7 @@ function Ground({ f, look }: { f: MpFrame; look: Look }) {
       {Array.from({ length: stripes }).map((_, i) => i % 2 ? <Rect key={i} x={-8} y={i * sh} width={PW + 16} height={sh} fill={look.stripe} /> : null)}
     </G>
   );
-}
+});
 
 /** Nur das Spielfeld (Rasen und Linien), ganzes Feld hochkant – z. B. als Hintergrund für den Schattenkader */
 export function PitchSurface({ width, height, testID }: { width: number; height: number; testID?: string }) {
@@ -126,60 +127,112 @@ export function FrameThumb({ frame, width, look, accent, testID }: { frame: MpFr
   );
 }
 
+type Pt = { x: number; y: number };
+const r2 = (v: number): number => Math.round(v * 100) / 100;
+/** Pfeilspitze als Dreieck (Spitze bei x2/y2, Richtung von x1/y1) */
 function arrowHead(x1: number, y1: number, x2: number, y2: number, size: number): string {
   const a = Math.atan2(y2 - y1, x2 - x1);
-  const p1 = [x2 - size * Math.cos(a - 0.45), y2 - size * Math.sin(a - 0.45)], p2 = [x2 - size * Math.cos(a + 0.45), y2 - size * Math.sin(a + 0.45)];
-  return `${x2},${y2} ${p1[0]},${p1[1]} ${p2[0]},${p2[1]}`;
+  const p1 = [x2 - size * Math.cos(a - 0.42), y2 - size * Math.sin(a - 0.42)], p2 = [x2 - size * Math.cos(a + 0.42), y2 - size * Math.sin(a + 0.42)];
+  return `${r2(x2)},${r2(y2)} ${r2(p1[0])},${r2(p1[1])} ${r2(p2[0])},${r2(p2[1])}`;
 }
-/** Wellenlinie (Dribbling) entlang einer geraden oder gebogenen Linie */
-function wave(it: MpItem, amp: number): string {
+/** Punkt einer quadratischen Kurve */
+const qPt = (a: Pt, c: Pt, b: Pt, t: number): Pt => { const u = 1 - t; return { x: u * u * a.x + 2 * u * t * c.x + t * t * b.x, y: u * u * a.y + 2 * u * t * c.y + t * t * b.y }; };
+/** Wellenlinie (Dribbling) entlang einer geraden oder gebogenen Linie bis t1 */
+function wave(it: MpItem, amp: number, t1: number): string {
   const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, c = bendCtrl(it);
-  const len = c ? Math.hypot(c.x - it.x, c.y - it.y) + Math.hypot(x2 - c.x, y2 - c.y) : Math.hypot(x2 - it.x, y2 - it.y);
+  const len = (c ? Math.hypot(c.x - it.x, c.y - it.y) + Math.hypot(x2 - c.x, y2 - c.y) : Math.hypot(x2 - it.x, y2 - it.y)) * t1;
   const n = Math.max(6, Math.round(len / (amp * 1.6))), pts: string[] = [];
   for (let i = 0; i <= n; i++) {
-    const t = i / n, p = linePoint(it, t), off = i === 0 || i === n ? 0 : amp * (i % 2 ? 1 : -1);
+    const t = (i / n) * t1, p = linePoint(it, t), off = i === 0 || i === n ? 0 : amp * (i % 2 ? 1 : -1);
     // Richtung der Linie an dieser Stelle (Ableitung der Kurve)
     const tx = c ? 2 * (1 - t) * (c.x - it.x) + 2 * t * (x2 - c.x) : x2 - it.x, ty = c ? 2 * (1 - t) * (c.y - it.y) + 2 * t * (y2 - c.y) : y2 - it.y;
     const tl = Math.hypot(tx, ty) || 1;
-    pts.push(`${p.x - (ty / tl) * off},${p.y + (tx / tl) * off}`);
+    pts.push(`${i ? "L" : "M"} ${r2(p.x - (ty / tl) * off)} ${r2(p.y + (tx / tl) * off)}`);
   }
   return pts.join(" ");
 }
+/** Freihandlinie: weich durch die Punkte (Mitten als Stützpunkte), Ende auf `end` */
+function freePath(P: number[], end: Pt): string {
+  const n = P.length / 2;
+  let d = `M ${r2(P[0])} ${r2(P[1])}`;
+  for (let i = 1; i < n - 1; i++) {
+    const x = P[i * 2], y = P[i * 2 + 1], nx = i + 1 < n - 1 ? (x + P[i * 2 + 2]) / 2 : end.x, ny = i + 1 < n - 1 ? (y + P[i * 2 + 3]) / 2 : end.y;
+    d += ` Q ${r2(x)} ${r2(y)} ${r2(nx)} ${r2(ny)}`;
+  }
+  return n <= 2 ? d + ` L ${r2(end.x)} ${r2(end.y)}` : d;
+}
+/**
+ * Form eines Pfeils bzw. einer Linie: Strich (endet vor der Spitze, damit sie sauber bleibt) und Spitze.
+ * Für Freihand: Punkte, Spitze in Richtung der letzten Strecke.
+ */
+function arrowGeo(it: MpItem, s: number): { d: string; head: string | null; mid: Pt } {
+  const hs = 2.15 * s, x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, b = { x: x2, y: y2 }, a = { x: it.x, y: it.y };
+  const withHead = it.t !== "line";
+  if (it.t === "free" && it.pts && it.pts.length >= 4) {
+    const P = it.pts, n = P.length / 2, e = { x: P[(n - 1) * 2], y: P[(n - 1) * 2 + 1] };
+    // Richtung: Punkt etwa eine Spitzenlänge vor dem Ende
+    let back = { x: P[0], y: P[1] }, i = n - 2;
+    for (; i >= 0; i--) { const q = { x: P[i * 2], y: P[i * 2 + 1] }; if (Math.hypot(e.x - q.x, e.y - q.y) >= hs * 1.2) { back = q; break; } }
+    const L = Math.hypot(e.x - back.x, e.y - back.y) || 1, base = { x: e.x - (e.x - back.x) / L * hs * 0.7, y: e.y - (e.y - back.y) / L * hs * 0.7 };
+    // Punkte nach dem Rückpunkt fallen weg (sonst knickt der Strich unter der Spitze)
+    const keep = i >= 0 ? P.slice(0, (i + 1) * 2) : P.slice(0, 2);
+    const mi = Math.floor((n - 1) / 2);
+    return { d: freePath([...keep, base.x, base.y], base), head: arrowHead(back.x, back.y, e.x, e.y, hs), mid: { x: P[mi * 2], y: P[mi * 2 + 1] } };
+  }
+  const c = bendCtrl(it), len = c ? Math.hypot(c.x - a.x, c.y - a.y) + Math.hypot(b.x - c.x, b.y - c.y) : Math.hypot(b.x - a.x, b.y - a.y);
+  const trim = withHead && len > hs * 1.6 ? 1 - (hs * 0.7) / len : 1;
+  const mid = linePoint(it, 0.5), head = withHead ? arrowHead((c || a).x, (c || a).y, b.x, b.y, hs) : null;
+  if (it.t === "drib") return { d: wave(it, 0.8 * s, trim), head, mid };
+  if (!c) { const e = { x: a.x + (b.x - a.x) * trim, y: a.y + (b.y - a.y) * trim }; return { d: `M ${r2(a.x)} ${r2(a.y)} L ${r2(e.x)} ${r2(e.y)}`, head, mid }; }
+  const c1 = { x: a.x + trim * (c.x - a.x), y: a.y + trim * (c.y - a.y) }, e = qPt(a, c, b, trim);
+  return { d: `M ${r2(a.x)} ${r2(a.y)} Q ${r2(c1.x)} ${r2(c1.y)} ${r2(e.x)} ${r2(e.y)}`, head, mid };
+}
 
-/** Linien, Pfeile, Zonen, Ball, Hütchen und Texte (in Metern; s = Größe der Striche und Symbole) */
-function Drawn({ it, sel, s, look, rot }: { it: MpItem; sel: boolean; s: number; look: Look; rot: boolean }) {
-  const col = look.lines[it.col || (it.t === "run" ? "y" : "w")], sw = (sel ? 0.75 : 0.5) * s;
-  if (isLine(it.t)) {
-    const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y;
-    if (it.t === "zone") {
-      const x = Math.min(it.x, x2), y = Math.min(it.y, y2), zc = look.lines[it.col || "y"];
-      return <Rect x={x} y={y} width={Math.abs(x2 - it.x)} height={Math.abs(y2 - it.y)} fill={zc} fillOpacity={0.22} stroke={zc} strokeWidth={sw} strokeDasharray={`${1.4 * s} ${0.9 * s}`} />;
-    }
-    const c = bendCtrl(it);
-    const from = c || { x: it.x, y: it.y };
-    const dash = it.t === "run" ? `${1.6 * s} ${1.1 * s}` : undefined, w = it.t === "line" ? sw * 1.4 : sw;
+/** Linien, Pfeile, Freihand, Zonen, Kreise, Ball, Hütchen und Texte (in Metern; s = Größe der Striche und Symbole) */
+const Drawn = React.memo(function Drawn({ it, sel, s, look, rot }: { it: MpItem; sel: boolean; s: number; look: Look; rot: boolean }) {
+  const col = look.lines[it.col || (it.t === "run" ? "y" : "w")], sw = (sel ? 0.62 : 0.5) * s, halo = "#ffe066";
+  if (it.t === "zone" || it.t === "circle") {
+    const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, zc = look.lines[it.col || "y"], dash = `${1.4 * s} ${0.9 * s}`;
+    const shape = (p: Record<string, unknown>) => it.t === "zone"
+      ? <Rect x={Math.min(it.x, x2)} y={Math.min(it.y, y2)} width={Math.abs(x2 - it.x)} height={Math.abs(y2 - it.y)} {...p} />
+      : <Circle cx={it.x} cy={it.y} r={Math.max(0.5, Math.hypot(x2 - it.x, y2 - it.y))} {...p} />;
     return (
       <G>
-        {it.t === "drib" ? <Polyline points={wave(it, 0.8 * s)} fill="none" stroke={col} strokeWidth={sw} strokeLinejoin="round" />
-          : c ? <Path d={`M ${it.x} ${it.y} Q ${c.x} ${c.y} ${x2} ${y2}`} fill="none" stroke={col} strokeWidth={w} strokeDasharray={dash} strokeLinecap="round" />
-            : <Line x1={it.x} y1={it.y} x2={x2} y2={y2} stroke={col} strokeWidth={w} strokeDasharray={dash} strokeLinecap="round" />}
-        {it.t !== "line" ? <Polyline points={arrowHead(from.x, from.y, x2, y2, 2.2 * s)} fill={col} stroke={col} strokeWidth={0.2 * s} /> : null}
+        {sel ? shape({ fill: "none", stroke: halo, strokeOpacity: 0.55, strokeWidth: sw * 3.4 }) : null}
+        {shape({ fill: zc, fillOpacity: 0.22, stroke: zc, strokeWidth: sw, strokeDasharray: dash })}
       </G>
     );
   }
-  if (it.t === "ball") return <G><Circle cx={it.x} cy={it.y} r={0.95 * s} fill="#ffffff" stroke="#111" strokeWidth={0.3 * s} /><Circle cx={it.x} cy={it.y} r={0.35 * s} fill="#111" /></G>;
-  if (it.t === "cone") return <Path d={`M ${it.x} ${it.y - 1.3 * s} L ${it.x + 1.1 * s} ${it.y + 0.9 * s} L ${it.x - 1.1 * s} ${it.y + 0.9 * s} Z`} fill="#ff922b" stroke="#fff" strokeWidth={0.2 * s} />;
+  if (isLine(it.t) || it.t === "free") {
+    const g = arrowGeo(it, s), w = it.t === "line" ? sw * 1.4 : sw;
+    const dash = it.t === "run" || (it.t === "free" && !it.solid) ? `${1.6 * s} ${1.1 * s}` : undefined;
+    const br = 1.55 * s, light = look.bg === LOOKS.white.bg;
+    return (
+      <G>
+        {sel ? <Path d={g.d} fill="none" stroke={halo} strokeOpacity={0.55} strokeWidth={w * 3.6} strokeLinecap="round" strokeLinejoin="round" /> : null}
+        <Path d={g.d} fill="none" stroke={col} strokeWidth={w} strokeDasharray={dash} strokeLinecap={dash ? "butt" : "round"} strokeLinejoin="round" />
+        {g.head ? <Polyline points={g.head} fill={col} stroke={col} strokeWidth={0.22 * s} strokeLinejoin="round" /> : null}
+        {it.n ? <G>
+          <Circle cx={g.mid.x} cy={g.mid.y} r={br} fill={col} stroke={look.halo} strokeWidth={0.25 * s} />
+          <SvgText x={g.mid.x} y={g.mid.y + br * 0.42} fontSize={br * 1.25} fontWeight="bold" fill={light ? "#ffffff" : "#111111"} textAnchor="middle"
+            transform={rot ? `rotate(-90 ${g.mid.x} ${g.mid.y})` : undefined}>{String(it.n)}</SvgText>
+        </G> : null}
+      </G>
+    );
+  }
+  if (it.t === "ball") return <G>{sel ? <Circle cx={it.x} cy={it.y} r={1.7 * s} fill={halo} fillOpacity={0.5} /> : null}<Circle cx={it.x} cy={it.y} r={0.95 * s} fill="#ffffff" stroke="#111" strokeWidth={0.3 * s} /><Circle cx={it.x} cy={it.y} r={0.35 * s} fill="#111" /></G>;
+  if (it.t === "cone") return <G>{sel ? <Circle cx={it.x} cy={it.y} r={1.9 * s} fill={halo} fillOpacity={0.5} /> : null}<Path d={`M ${it.x} ${it.y - 1.3 * s} L ${it.x + 1.1 * s} ${it.y + 0.9 * s} L ${it.x - 1.1 * s} ${it.y + 0.9 * s} Z`} fill="#ff922b" stroke="#fff" strokeWidth={0.2 * s} /></G>;
   if (it.t === "text") return (
-    <SvgText x={it.x} y={it.y + 1 * s} fontSize={3.2 * s} fontWeight="bold" fill={look.lines[it.col || "w"]} stroke={look.halo} strokeWidth={0.25 * s} textAnchor="middle"
+    <SvgText x={it.x} y={it.y + 1 * s} fontSize={3.2 * s} fontWeight="bold" fill={look.lines[it.col || "w"]} stroke={sel ? halo : look.halo} strokeWidth={(sel ? 0.5 : 0.25) * s} textAnchor="middle"
       transform={rot ? `rotate(-90 ${it.x} ${it.y})` : undefined}>{it.label || ""}</SvgText>
   );
   return null;
-}
+});
 
 export interface TokenInfo { p: Player | null; label: string; nr: number | null }
 
 /** Spieler-Icon (eigene Mannschaft): Nummer bzw. Foto im Kreis, Name darunter */
-function OwnToken({ info, d, mode, accent, ink, captain, ring, dot, empty, pos, look }: {
+const OwnToken = React.memo(function OwnToken({ info, d, mode, accent, ink, captain, ring, dot, empty, pos, look }: {
   info: TokenInfo | null; d: number; mode: MpMode; accent: string; ink: string; captain: boolean; ring: string | null; dot: string | null; empty: boolean; pos: string; look: Look;
 }) {
   const url = usePhotoUrl(mode === "photo" ? info?.p?.photo : null);
@@ -201,7 +254,7 @@ function OwnToken({ info, d, mode, accent, ink, captain, ring, dot, empty, pos, 
       </View> : null}
     </View>
   );
-}
+});
 
 export interface PitchProps {
   /** Ausschnitt in Metern (z. B. MP_VIEWS.full oder frameOf(Folie)) */
@@ -224,8 +277,8 @@ export interface PitchProps {
   testID?: string;
 }
 
-/** Spielfeld mit allen Elementen eines Ausschnitts (ohne Bedienung) */
-export function Pitch({ frame, items, width, mode, size, accent, accentInk, info, captain, highlight, selected, hidden, dot, look, rot = false, mini = false, testID }: PitchProps) {
+/** Spielfeld mit allen Elementen eines Ausschnitts (ohne Bedienung); neu gezeichnet nur bei geänderten Angaben */
+export const Pitch = React.memo(function Pitch({ frame, items, width, mode, size, accent, accentInk, info, captain, highlight, selected, hidden, dot, look, rot = false, mini = false, testID }: PitchProps) {
   const L = lookOf(look), g = geom(frame, width, rot), f = frame, s = decoScale(g.k);
   const d = mini ? miniPx(g.w, g.h, f) : tokenPx(rot ? Math.min(g.w, g.h * 1.5) : g.w, size, f);
   const tokens = items.filter(it => (it.t === "own" || it.t === "opp") && it.id !== hidden);
@@ -233,7 +286,7 @@ export function Pitch({ frame, items, width, mode, size, accent, accentInk, info
     <G>
       <Ground f={f} look={L} />
       <Markings s={s} col={L.mark} />
-      {items.filter(it => it.t !== "own" && it.t !== "opp" && it.id !== hidden).sort((a, b) => (a.t === "zone" ? -1 : 0) - (b.t === "zone" ? -1 : 0))
+      {items.filter(it => it.t !== "own" && it.t !== "opp" && it.id !== hidden).sort((a, b) => (isArea(a.t) ? -1 : 0) - (isArea(b.t) ? -1 : 0))
         .map(it => <Drawn key={it.id} it={it} sel={it.id === selected} s={s} look={L} rot={rot} />)}
     </G>
   );
@@ -247,7 +300,7 @@ export function Pitch({ frame, items, width, mode, size, accent, accentInk, info
         if (it.t === "opp") {
           const od = mini ? d : Math.round(d * 0.82), sel = it.id === selected;
           return (
-            <View key={it.id} testID={"opp-" + it.id} pointerEvents="none" style={{ position: "absolute", left: pt.left - od / 2, top: pt.top - od / 2, width: od, height: od, borderRadius: od / 2,
+            <View key={it.id} testID={mini ? undefined : "opp-" + it.id} pointerEvents="none" style={{ position: "absolute", left: pt.left - od / 2, top: pt.top - od / 2, width: od, height: od, borderRadius: od / 2,
               backgroundColor: OPP_COL, borderWidth: mini ? 1 : sel ? 3 : 1.5, borderColor: sel ? "#ffe066" : "#ffffff", alignItems: "center", justifyContent: "center" }}>
               {!mini || od >= 12 ? <Text style={{ color: "#fff", fontWeight: "800", fontSize: Math.max(mini ? 6 : 9, od * (it.n != null ? 0.44 : 0.32)) }}>{it.n != null ? String(it.n) : mini ? "" : it.label || ""}</Text> : null}
             </View>
@@ -273,7 +326,7 @@ export function Pitch({ frame, items, width, mode, size, accent, accentInk, info
       })}
     </View>
   );
-}
+});
 
 /** Ein einzelnes Icon (z. B. am Finger beim Ziehen oder in der Liste) */
 export function TokenGhost({ info, d, mode, accent, accentInk, opp }: { info: TokenInfo | null; d: number; mode: MpMode; accent: string; accentInk: string; opp?: boolean }) {

@@ -56,7 +56,7 @@ export const en_more: Dict = {
 
   // Home
   db_title: "Customise home", db_hint: "Choose which cards you see on the home screen and their order. Applies to your account on all devices.",
-  db_next: "Next session", db_tasks: "My tasks", db_phase: "Pre-season & breaks", db_status: "Traffic light overview", db_attn: "Needs attention",
+  db_next: "Next session", db_tasks: "My tasks", db_phase: "Pre-season & breaks", db_status: "Squad load status", db_attn: "Needs attention",
   db_absent: "Absent next session", db_week: "This week", db_events: "Events", db_last: "Last session", db_load: "Team load", db_ai: "AI coach",
   db_na: "Not available with your modules", db_up: "Move up", db_down: "Move down", db_reset: "Restore default", db_edit: "Customise home",
   db_attnNone: "Everyone in the green zone.", db_absNone: "Everyone available.", db_more: "+{n} more",

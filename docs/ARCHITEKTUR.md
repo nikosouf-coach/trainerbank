@@ -153,8 +153,12 @@ Breite der Anzeige, ein kleiner Ausschnitt wird also vergrößert: Folien haben 
 Feld, Hälften, Angriffsdrittel, 16er vorne/hinten, Ecken je Seite, Strafraum breit) oder einen eigenen Ausschnitt
 (`frame` {x, y, w, h} in Metern; Zoom bis ca. 4-fach, Format hoch/quadratisch/breit, höchstens 5–6 m neben dem Feld;
 `clampFrame`, `zoomFrame`, `panFrame`, `formatFrame`). Entspricht ein Rahmen einer Voreinstellung, wird nur sie
-gespeichert. Je Folie optional Icongröße (`size`) und Icon-Ansicht (`mode`), je Linie ein Bogen (`bend` −2 … 2,
-quadratische Kurve), je Plan das Spielfeld-Design (`look`: Rasen = Standard, nicht gespeichert; Taktiktafel; weiß).
+gespeichert. Je Folie optional Icongröße (`size`) und Icon-Ansicht (`mode`). Elemente (`MpItem`): Spieler, Gegner,
+Ball, Hütchen, Text; Pfeile (Pass, Laufweg, Dribbling, Linie) mit Bogen (`bend` −3 … 3 in Zehnteln, quadratische
+Kurve; `bendThrough` setzt ihn so, dass der Scheitel am Griff liegt) und Schrittnummer (`n` 1 … 20 – die
+Präsentation zeigt den Ablauf Schritt für Schritt); Freihand (`pts` [x, y, …], höchstens 40 Punkte, ausgedünnt mit
+`thinPoints`, gestrichelt oder `solid`, höchstens 8 je Folie – damit der Plan klein bleibt); Zone (zwei Ecken) und
+Kreis (Mitte, Rand), je Plan das Spielfeld-Design (`look`: Rasen = Standard, nicht gespeichert; Taktiktafel; weiß).
 Die Präsentation zeigt das Feld auf breiten Bildschirmen quer (eigenes Tor links); am Handy dreht ⟲ die ganze Ansicht
 ins Querformat. Die App bereinigt den Inhalt (`core/matchplan.cleanContent`); ältere Pläne bleiben dabei unverändert,
 damit Freigaben nicht als „geändert“ gelten. Beim Freigeben schreibt die App den Auszug für Spieler (`publishedOf`: nur gewählte
@@ -164,6 +168,26 @@ sehen Spieler erst nach „Freigabe aktualisieren“. Spieler lesen nie die Tabe
 Spielende + 30 Minuten), bei „nur Kader“ im `squad`; Aufgaben standardmäßig nur die eigene. Jeder Aufruf wird
 protokolliert. In der App: Wasserzeichen (Name, Uhrzeit), Bildschirmschutz über `expo-screen-capture` (Android
 FLAG_SECURE, iOS schwärzt Aufnahmen; erkannte Screenshots → `match_plan_event`), im Browser nur Wasserzeichen.
+
+Bedienung der Tafel (`src/ui/matchplan/board.tsx`): Antippen wählt aus (Griffe für Start/Ziel/Bogen, vier Ecken,
+Radius; Leiste mit Schnellaktionen), erneut antippen öffnet das Formular. Pfeile rasten an Spielern ein (Start in der
+Mitte, Spitze am Rand des Empfängers). Gezogen wird lokal in der Tafel; übernommen wird erst beim Loslassen – ein
+Schritt im Verlauf, und die Seite wird nicht bei jeder Bewegung neu gezeichnet (Spielfeld, Linien und Icons sind
+memoisiert). Der Folien-Editor scrollt nicht (Tafel oben, Werkzeuge unten, Notizen und Einstellungen als Blätter),
+damit Zeichnen und Scrollen nie konkurrieren. Liegt eine Tafel oder die Aufstellung auf einer scrollbaren Seite,
+startet Ziehen am Handy erst nach kurzem Halten (oder waagerecht); senkrechtes Wischen scrollt. Während des Ziehens
+sperrt `useScrollLock` (aus `Screen`) die Seite.
+
+### Navigation
+
+Die Trainer-App hat eine anpassbare untere Leiste (`src/ui/nav.tsx`): Register aller Bereiche (`NAV`: Schlüssel,
+Ziel, Symbol, Gruppe, Voraussetzung – Modul oder Recht), bis zu fünf Bereiche in der Leiste plus „Mehr“ rechts.
+Seiten, die in die Leiste dürfen, liegen in `app/coach/(tabs)/` (Adressen bleiben gleich); `href: null` blendet die
+übrigen aus. „Mehr“ zeigt alle Bereiche nach Themen (Spieler & Entwicklung, Training & Belastung, Spiel & Analyse,
+Organisation, Verein & Einstellungen) mit Suche; ausgeblendete Menüpunkte stehen unten. Auswahl und Reihenfolge
+speichert jedes Konto in `profiles.prefs.nav` (`bar`, `hide`). Bereichsseiten zeigen „Zurück zu Mehr“ nur, wenn sie
+nicht in der Leiste liegen (`useNavBack`). Bildschirme im Hintergrund werden eingefroren (`enableFreeze`,
+`freezeOnBlur`), damit Speichern im Hintergrund die sichtbare Seite nicht verlangsamt.
 
 ### Verein
 
@@ -328,7 +352,8 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `matchplan.ts` – Matchplan: Grundordnungen (11er, 9er, 7er, 5er), Aufstellung per Ziehen (`placePlayer`: tauschen,
   einwechseln, Bank, aus dem Kader, frei verschieben), Vorschlag nach Position, Wechselplan mit geplanten Minuten
   und Hinweisen, Folien mit Ausschnitt (Voreinstellungen, eigener Ausschnitt mit Zoom/Verschieben/Format, Spieler
-  außerhalb erkennen und am Rand aufreihen: `fitToView`), gebogene Linien (`bendCtrl`, `linePoint`), Folien aus anderen
+  außerhalb erkennen und am Rand aufreihen: `fitToView`), gebogene Linien (`bendCtrl`, `linePoint`, `bendThrough`),
+  Freihand (`thinPoints`), Verschieben als Ganzes (`shiftItem`), Grenzen je Folie, Folien aus anderen
   Plänen übernehmen (`copySlide`), Freigabe (Auszug, Zeitraum, nur Kader, Aufgaben nur eigene), Zugriffsstatistik,
   Bereinigung.
 - `club.ts` – Verein: Funktionen und Standardrechte (wie `club_default_perms`), Kennzahlen je Team (wie

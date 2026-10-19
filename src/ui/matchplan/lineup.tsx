@@ -1,20 +1,35 @@
 // Matchplan: Aufstellung per Ziehen (oder Antippen): Spielfeld mit Grundordnung, Ersatzbank und „nicht im Kader“.
 // Ziehen: Spieler auf eine Position (tauschen), frei aufs Feld, auf die Bank oder aus dem Kader. Leere Positionen
 // lassen sich verschieben. Antippen: Spieler wählen, dann Ziel antippen – oder die Knöpfe der Auswahlleiste nutzen.
-import React, { useMemo, useRef, useState } from "react";
-import { Pressable, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
+// Am Handy liegt die Aufstellung auf einer scrollbaren Seite: Ziehen startet nach kurzem Halten (oder waagerecht),
+// senkrechtes Wischen scrollt die Seite. Während des Ziehens bewegt sich nur das Icon am Finger (flüssig).
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Platform, Pressable, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import { BENCH_DEF, FMTS, MP_LOOKS, formationsOf, lineupFor, moveItem, placePlayer, squadOf, suggestLineup, type MpDrop } from "../../core/matchplan";
 import type { MpContent, MpFmt, MpItem, MpLook, MpMode } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
-import { Banner, Btn, Col, Muted, Picker, Row, Seg, T } from "../kit";
+import { Banner, Btn, Col, Muted, Picker, Row, Seg, T, useScrollLock } from "../kit";
 import { PlayerAvatar } from "../playerAvatar";
 import { radius, useTheme, withAlpha } from "../theme";
 import { useAvail, useTokenInfo } from "./common";
-import { FULL, LOOKS, Pitch, TokenGhost, geom, tokenPx, usePitchWidth } from "./pitch";
+import { FULL, LOOKS, Pitch, TokenGhost, geom, tokenPx, usePitchWidth, type TokenInfo } from "./pitch";
 
 const CHIP_H = 42, GAP = 6, HEAD = 28;
 type Hit = { k: "token"; it: MpItem } | { k: "chip"; pid: string; zone: "bench" | "out" } | { k: "pitch"; x: number; y: number } | { k: "zone"; zone: "bench" | "out" };
-type Drag = { what: { k: "pid"; pid: string } | { k: "slot"; id: string }; x0: number; y0: number; moved: boolean };
+type Drag = { what: { k: "pid"; pid: string } | { k: "slot"; id: string }; x0: number; y0: number; moved: boolean; armed: boolean; timer: ReturnType<typeof setTimeout> | null };
+type Pos = { x: number; y: number };
+
+/** Icon am Finger: eigener Zustand, damit beim Ziehen nicht die ganze Aufstellung neu gezeichnet wird */
+function Ghost({ bind, d, info, mode, accent, accentInk }: { bind: { current: ((p: Pos | null) => void) | null }; d: number; info: TokenInfo | null; mode: MpMode; accent: string; accentInk: string }) {
+  const [p, setP] = useState<Pos | null>(null);
+  useEffect(() => { bind.current = setP; return () => { bind.current = null; }; }, [bind]);
+  if (!p) return null;
+  return (
+    <View pointerEvents="none" style={{ position: "absolute", left: p.x - d / 2, top: p.y - d / 2, opacity: 0.94, transform: [{ scale: 1.12 }] }}>
+      <TokenGhost info={info} d={d} mode={mode} accent={accent} accentInk={accentInk} />
+    </View>
+  );
+}
 
 export const SIZES: { key: string; v: number }[] = [{ key: "S", v: 0.8 }, { key: "M", v: 1 }, { key: "L", v: 1.2 }, { key: "XL", v: 1.4 }];
 /** Nächstliegende Größenstufe */
@@ -55,8 +70,11 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
   const info = useTokenInfo(), av = useAvail(date);
   const [W, setW] = useState(0);
   const [sel, setSel] = useState<string | null>(null);
-  const [ghost, setGhost] = useState<{ x: number; y: number; pid: string | null; id?: string } | null>(null);
-  const drag = useRef<Drag | null>(null);
+  /** gerade gezogen (Spieler bzw. leere Position) – die Position am Finger kennt nur das Icon (Ghost) */
+  const [ghost, setGhost] = useState<{ pid: string | null; id?: string } | null>(null);
+  const drag = useRef<Drag | null>(null), ghostAt = useRef<((p: Pos | null) => void) | null>(null);
+  const lock = useScrollLock(), hold = Platform.OS !== "web";
+  useEffect(() => () => { if (drag.current?.timer) clearTimeout(drag.current.timer); }, []);
 
   const pw = usePitchWidth(FULL, W), g = geom(FULL, pw), ox = Math.max(0, (W - pw) / 2), d = tokenPx(pw, c.size);
   const squad = squadOf(c);
@@ -107,20 +125,32 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
     if (h.k === "token" || h.k === "chip") return true;
     return !!sel; // freie Fläche nur mit Auswahl (sonst darf die Seite scrollen)
   };
+  /** Ziehen beginnt: Icon anheben (Original ausblenden), Seite nicht mehr scrollen */
+  const lift = (dr: Drag, p: Pos) => {
+    if (!dr.armed) { dr.armed = true; if (hold) lock(true); }
+    setGhost({ pid: dr.what.k === "pid" ? dr.what.pid : null, id: dr.what.k === "slot" ? dr.what.id : c.lineup.find(z => dr.what.k === "pid" && z.pid === dr.what.pid)?.id });
+    ghostAt.current?.(p);
+  };
+  const stop = () => { const dr = drag.current; if (dr?.timer) clearTimeout(dr.timer); if (dr?.armed && hold) lock(false); drag.current = null; setGhost(null); ghostAt.current?.(null); };
   const grant = (e: GestureResponderEvent) => {
     const { x, y } = pt(e), h = hit(x, y);
-    if (h?.k === "token") drag.current = { what: h.it.pid ? { k: "pid", pid: h.it.pid } : { k: "slot", id: h.it.id }, x0: x, y0: y, moved: false };
-    else if (h?.k === "chip") drag.current = { what: { k: "pid", pid: h.pid }, x0: x, y0: y, moved: false };
-    else drag.current = null;
+    const what: Drag["what"] | null = h?.k === "token" ? (h.it.pid ? { k: "pid", pid: h.it.pid } : { k: "slot", id: h.it.id }) : h?.k === "chip" ? { k: "pid", pid: h.pid } : null;
+    drag.current = what ? { what, x0: x, y0: y, moved: false, armed: !hold, timer: null } : null;
+    // Handy: kurz halten hebt das Icon an
+    if (drag.current && hold) { const dr = drag.current; dr.timer = setTimeout(() => { if (drag.current === dr && !dr.moved) lift(dr, { x: dr.x0, y: dr.y0 }); }, 170); }
   };
   const move = (e: GestureResponderEvent) => {
     const dr = drag.current; if (!dr) return; const { x, y } = pt(e);
-    if (!dr.moved && Math.hypot(x - dr.x0, y - dr.y0) < 7) return;
-    dr.moved = true;
-    setGhost({ x, y, pid: dr.what.k === "pid" ? dr.what.pid : null, id: dr.what.k === "slot" ? dr.what.id : c.lineup.find(z => dr.what.k === "pid" && z.pid === dr.what.pid)?.id });
+    if (!dr.moved) {
+      if (Math.hypot(x - dr.x0, y - dr.y0) < 7) return;
+      // ohne Halten: senkrecht = Seite scrollen, waagerecht = ziehen
+      if (!dr.armed && Math.abs(x - dr.x0) <= Math.abs(y - dr.y0) * 1.2) { stop(); return; }
+      dr.moved = true; lift(dr, { x, y });
+    }
+    ghostAt.current?.({ x, y });
   };
   const release = (e: GestureResponderEvent) => {
-    const dr = drag.current; drag.current = null; setGhost(null);
+    const dr = drag.current; stop();
     const { x, y } = pt(e), h = hit(x, y);
     if (dr?.moved) {
       if (dr.what.k === "pid") drop(dr.what.pid, h);
@@ -187,11 +217,9 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
             {!c.bench.length ? <Text style={{ position: "absolute", left: 4, top: benchTop + HEAD + 10, fontSize: 12.5, color: col.muted }}>{t("mp_benchEmpty")}</Text> : null}
           </View>
           <View testID="mp-lineup-surface" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
-            onStartShouldSetResponder={start} onMoveShouldSetResponder={() => !!drag.current} onResponderTerminationRequest={() => false}
-            onResponderGrant={grant} onResponderMove={move} onResponderRelease={release} onResponderTerminate={() => { drag.current = null; setGhost(null); }} />
-          {ghost ? <View pointerEvents="none" style={{ position: "absolute", left: ghost.x - d / 2, top: ghost.y - d / 2, opacity: 0.92 }}>
-            <TokenGhost info={ghostInfo} d={d} mode={c.mode} accent={col.accent} accentInk={col.accentInk} />
-          </View> : null}
+            onStartShouldSetResponder={start} onMoveShouldSetResponder={() => !!drag.current} onResponderTerminationRequest={() => !drag.current?.armed}
+            onResponderGrant={grant} onResponderMove={move} onResponderRelease={release} onResponderTerminate={stop} />
+          <Ghost bind={ghostAt} d={d} info={ghostInfo} mode={c.mode} accent={col.accent} accentInk={col.accentInk} />
         </> : null}
       </View>
       {selP?.p && !ro ? <View testID="mp-selbar" style={{ padding: 10, borderRadius: radius.l, backgroundColor: withAlpha("#ffe066", 0.2), borderWidth: 1, borderColor: "#e0a800", gap: 8 }}>

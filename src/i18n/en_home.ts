@@ -1,0 +1,31 @@
+// Coach home: team load, matchday check.
+import type { Dict } from "./types";
+
+export const en_home: Dict = {
+  db_matchday: "Matchday check",
+  hidden: "staff only", date: "Date",
+  pl_weekProfile: "Week profile", dv_sumAssessed: "Assessed (90 days)", dv_sumGoals: "With active goals", dv_sumTalks: "Talks due", tk_sendShort: "New", kd_shown: "{n} of {m} players", pr_adviceT: "What does this mean for training?",
+  mp_newShort: "New plan", mp_copyLastShort: "Copy last",
+  ts_title: "Squad load status",
+  ts_info1: "Based on the load of the last 7 days relative to the weekly average of the last 4 weeks (ACWR, load = minutes × RPE).",
+  ts_info2: "Sweet spot (0.8–1.3): ready, an increase of 5–10 % per week is possible. At the limit (1.3–1.5): hold. Overload (above 1.5): clearly higher injury risk – reduce volume and intensity. Underloaded (below 0.8): too little stimulus, fitness drops – add extra work.",
+  ts_info3: "Building data: an assessment needs at least 3 weeks of entries. Tap a zone to see the players.",
+  ts_crit: "{n} players overloaded: max. RPE 5 in the next 2–3 sessions, dose sprints and duels.",
+  ts_crit1: "1 player overloaded: max. RPE 5 in the next 2–3 sessions, dose sprints and duels.",
+  ts_warn: "{n} players at the limit: hold the load, don't increase further.",
+  ts_warn1: "1 player at the limit: hold the load, don't increase further.",
+  ts_low: "{n} players underloaded: add stimulus (small-sided games, compensation, athletics).",
+  ts_low1: "1 player underloaded: add stimulus (small-sided games, compensation, athletics).",
+  ts_allOk: "The team is in the target zone – an increase of 5–10 % per week is possible.",
+  ts_build: "Still building data: log RPE for every session, then the assessment follows.",
+  md_title: "Matchday check", md_inDays: "in {n} days",
+  md_planNone: "No match plan yet", md_planNoneSub: "Prepare line-up, tactics and set pieces",
+  md_planDraft: "Match plan not shared yet", md_planDraftSub: "Players only see it once it is shared", md_planScheduled: "Sharing scheduled – starts automatically",
+  md_planLive: "Match plan shared", md_planChanged: "Match plan changed since sharing", md_planChangedSub: "Update the share so players see the latest version",
+  md_lineupOpen: "Line-up: {n} of {m} positions filled", md_lineupOpenSub: "Fill the open positions",
+  md_lineupOut: "Starting XI: {n} unavailable", md_lineupOk: "Line-up set ({f})", md_bench: "{n} on the bench",
+  md_absent: "{n} missing · {a} available", md_allAvail: "All {n} players available",
+  md_load: "{n} players overloaded", md_load1: "1 player overloaded", md_loadSub: "dose playing time", md_loadOk: "No overload in the squad",
+  md_duties: "{n} duties assigned", md_dutiesNone: "No duties assigned yet", md_dutiesNoneSub: "e.g. kits, drinks, transport",
+  md_tasks: "{n} open tasks before the match", md_tasks1: "1 open task before the match",
+};

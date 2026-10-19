@@ -3,9 +3,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildDemo, demoExtras, demoTeam } from "../demo";
 import {
-  DEFAULT_SECTIONS, FORMATIONS, FRAME_MAX, FRAME_MIN_W, MP_VIEWS, MP_VIEW_KEYS, availFor, bendCtrl, changedSincePublish, clampFrame, cleanContent, copyPlan, copySlide,
-  defaultUntil, emptyContent, fitToView, fmtOf, formatFrame, formatOf, forPlayer, frameOf, inFrame, linePoint, lineupFor, newPlan, newSlide, oppLineup, outsideFrame,
-  panFrame, placePlayer, plannedMinutes, presetOf, publishedOf, seenStats, shareState, slotsOf, squadOf, stableJson, suggestLineup, visibleTo, withFrame, zoomFrame, zoomOf,
+  DEFAULT_SECTIONS, FORMATIONS, FRAME_MAX, FRAME_MIN_W, FREE_MAX, MP_LIMITS, MP_VIEWS, MP_VIEW_KEYS, availFor, bendCtrl, bendThrough, changedSincePublish, clampFrame, cleanContent, copyPlan, copySlide,
+  defaultUntil, emptyContent, fitToView, fmtOf, formatFrame, formatOf, forPlayer, frameOf, inFrame, isArea, isArrow, itemMid, linePoint, moveItem, lineupFor, newPlan, newSlide, oppLineup, outsideFrame,
+  panFrame, placePlayer, plannedMinutes, presetOf, publishedOf, seenStats, separate, shareState, shiftItem, slotsOf, squadOf, stableJson, suggestLineup, thinPoints, visibleTo, withFrame, zoomFrame, zoomOf,
 } from "../matchplan";
 import type { MatchPlan, MpContent, Player } from "../types";
 
@@ -192,8 +192,57 @@ test("Linien: Bogen links/rechts, Punkt auf der Kurve, Bereinigung", () => {
   assert.deepEqual(linePoint(up, 0.25), { x: 34, y: 45 });
   const c = cleanContent({ ...emptyContent("u19"), slides: [{ id: "s1", cat: "ecke_off", title: "E", view: "full", note: "", vis: true,
     items: [{ id: "a", t: "pass", x: 1, y: 1, x2: 5, y2: 5, bend: 7 }, { id: "b", t: "zone", x: 1, y: 1, x2: 5, y2: 5, bend: 1 }, { id: "c", t: "run", x: 1, y: 1, bend: 0 }] }] }, "u19");
-  assert.equal(c.slides[0].items[0].bend, 2); assert.equal(c.slides[0].items[1].bend, undefined, "Zonen nicht gebogen");
+  assert.equal(c.slides[0].items[0].bend, 3, "Bogen höchstens ±3"); assert.equal(c.slides[0].items[1].bend, undefined, "Zonen nicht gebogen");
   assert.ok(!("bend" in c.slides[0].items[2]), "gerade wird nicht gespeichert");
+});
+
+test("Zeichnen: Bogen durch einen Punkt, Freihand, Kreis, Schritte, Verschieben, Bereinigung", () => {
+  // Bogen: Scheitel der Kurve liegt auf dem gezogenen Punkt
+  const up = { x: 34, y: 50, x2: 34, y2: 30 };
+  const b = bendThrough(up, { x: 30, y: 40 });
+  assert.ok(b > 0, "nach links gezogen = positiver Bogen");
+  const apex = linePoint({ ...up, bend: b }, 0.5);
+  assert.ok(Math.abs(apex.x - 30) < 0.15 && Math.abs(apex.y - 40) < 0.01, "Scheitel am Finger");
+  assert.equal(bendThrough(up, { x: 34.2, y: 41 }), 0, "nahe der Geraden = gerade");
+  assert.equal(bendThrough(up, { x: -50, y: 40 }), 3, "höchstens 3");
+  assert.equal(bendThrough({ x: 10, y: 10, x2: 10.2, y2: 10 }, { x: 0, y: 0 }), 0, "zu kurz");
+  // Arten
+  assert.ok(isArrow("pass") && isArrow("line") && !isArrow("zone") && !isArrow("free"));
+  assert.ok(isArea("zone") && isArea("circle") && !isArea("pass"));
+  // Freihand ausdünnen: Anfang/Ende bleiben, höchstens FREE_MAX Punkte
+  const P = Array.from({ length: 300 }, (_, i) => ({ x: 10 + i * 0.2, y: 50 + Math.sin(i / 10) * 5 }));
+  const T = thinPoints(P, 1.2);
+  assert.ok(T.length / 2 <= FREE_MAX && T.length >= 8, "ausgedünnt: " + T.length / 2);
+  assert.deepEqual([T[0], T[1]], [10, 50]); assert.equal(T[T.length - 2], 69.8);
+  // Verschieben: Freihand als Ganzes, Linie mit Ziel, Rand begrenzt
+  const fr = { id: "f", t: "free" as const, x: 10, y: 10, x2: 20, y2: 20, pts: [10, 10, 15, 12, 20, 20] };
+  const fm = shiftItem(fr, 5, -2);
+  assert.deepEqual(fm.pts, [15, 8, 20, 10, 25, 18]); assert.equal(fm.x, 15); assert.equal(fm.y2, 18);
+  assert.deepEqual(moveItem([fr], "f", 12, 11)[0].pts, [12, 11, 17, 13, 22, 21], "moveItem nutzt dasselbe");
+  const ln = shiftItem({ id: "l", t: "pass", x: 66, y: 10, x2: 60, y2: 20 }, 10, 0);
+  assert.equal(ln.x, 70); assert.equal(ln.x2, 64, "Linie bleibt gleich lang, wenn der Start an den Rand stößt");
+  assert.deepEqual(itemMid(fr), { x: 15, y: 12 }); assert.deepEqual(itemMid({ id: "p", t: "pass", x: 0, y: 0, x2: 10, y2: 0 }), { x: 5, y: 0 });
+  // Bereinigung: Freihand braucht 2 Punkte, Schritt 1 … 20 nur an Pfeilen/Freihand, Kreis mit Rand, Bogen auf 0,1
+  const c = cleanContent({ ...emptyContent("u19"), slides: [{ id: "s1", cat: "grund", title: "", view: "full", note: "", vis: true, items: [
+    { id: "a", t: "free", x: 0, y: 0, pts: [1, 2, Infinity, 9, 3, 4, 5, 6], n: 2, solid: true, col: "r" },
+    { id: "b", t: "free", x: 0, y: 0, pts: [1, 2] },
+    { id: "c", t: "pass", x: 1, y: 1, x2: 9, y2: 9, n: 25, bend: 1.234 },
+    { id: "d", t: "circle", x: 30, y: 50, x2: 35, y2: 50, n: 3 },
+    { id: "e", t: "run", x: 1, y: 1, x2: 9, y2: 9, n: 0 },
+  ] }] }, "u19");
+  const L = c.slides[0].items;
+  assert.deepEqual(L.map(x => x.id), ["a", "c", "d", "e"], "Freihand mit einem Punkt fällt weg");
+  assert.deepEqual(L[0].pts, [1, 2, 3, 4, 5, 6]); assert.equal(L[0].x2, 5); assert.equal(L[0].y2, 6); assert.equal(L[0].n, 2); assert.equal(L[0].solid, true);
+  assert.equal(L[1].n, undefined, "Schritt höchstens 20"); assert.equal(L[1].bend, 1.2);
+  assert.equal(L[2].x2, 35); assert.equal(L[2].n, undefined, "Kreis ohne Schritt");
+  assert.equal(L[3].n, undefined);
+  // Gegner auf einem eigenen Spieler: etwas Richtung gegnerisches Tor
+  const sep = separate([{ id: "o", t: "own", x: 30, y: 50 }], [{ id: "a", t: "opp", x: 31, y: 51 }, { id: "b", t: "opp", x: 10, y: 50 }]);
+  assert.equal(sep[0].y, 46.6); assert.equal(sep[0].x, 31); assert.deepEqual(sep[1], { id: "b", t: "opp", x: 10, y: 50 });
+  // höchstens MP_LIMITS.free Freihandlinien je Folie
+  const many = cleanContent({ ...emptyContent("u19"), slides: [{ id: "s1", cat: "grund", title: "", view: "full", note: "", vis: true,
+    items: Array.from({ length: 12 }, (_, i) => ({ id: "f" + i, t: "free" as const, x: 0, y: 0, pts: [1, 1, 2, 2] })) }] }, "u19");
+  assert.equal(many.slides[0].items.length, MP_LIMITS.free);
 });
 
 test("Folien individuell: eigener Ausschnitt, Icongröße, Design; ältere Freigaben gelten nicht als geändert", () => {

@@ -7,7 +7,9 @@ export type IconName =
   | "heute" | "kalender" | "plan" | "kader" | "mehr" | "eintragen" | "daten" | "tipps" | "ich"
   | "spark" | "plus" | "back" | "close" | "check" | "chevron" | "camera" | "person" | "info" | "trash"
   | "flame" | "star" | "trophy" | "moon" | "bolt" | "calendar" | "target"
-  | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people" | "scout" | "search" | "filter" | "up" | "down";
+  | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people" | "scout" | "search" | "filter" | "up" | "down"
+  | "board" | "ball" | "video" | "stopwatch" | "trend" | "whistle" | "sun" | "book" | "checklist" | "wallet" | "phone" | "shield" | "club"
+  | "grid" | "key" | "sliders" | "help" | "pen" | "undo" | "redo" | "copy" | "layers" | "minus" | "curve" | "frame" | "note";
 
 const P: Record<IconName, React.ReactNode> = {
   heute: <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -47,6 +49,32 @@ const P: Record<IconName, React.ReactNode> = {
   filter: <Path d="M3 5h18l-7 8.2V19l-4 2v-7.8z" />,
   up: <Path d="M6 15l6-6 6 6" />,
   down: <Path d="M6 9l6 6 6-6" />,
+  board: <><Rect x={4} y={3.5} width={16} height={17.5} rx={2} /><Path d="M9 3.5V2h6v1.5" /><Circle cx={9} cy={10} r={1.7} /><Path d="M13.5 8.5l3 3M16.5 8.5l-3 3M8.5 16.5c2.2-1.6 4.8-1.6 7 .2" /><Path d="M14 15.6l1.6 1.1-1.2 1.6" /></>,
+  ball: <><Circle cx={12} cy={12} r={9} /><Path d="M12 7.6l3.6 2.6-1.4 4.2H9.8l-1.4-4.2z" /><Path d="M12 3v4.6M15.6 10.2l4.8-1.5M14.2 14.4l2.9 4.1M9.8 14.4l-2.9 4.1M8.4 10.2L3.6 8.7" /></>,
+  video: <><Rect x={3} y={6} width={13} height={12} rx={2} /><Path d="M16 10.2l5-3v9.6l-5-3z" /></>,
+  stopwatch: <><Circle cx={12} cy={13.5} r={7.5} /><Path d="M12 9.5v4l2.6 2.2M10 2.5h4M12 2.5V6M18.2 6.3l1.6-1.6" /></>,
+  trend: <><Path d="M3 17l6-6 4 4 8-8" /><Path d="M14.5 7H21v6.5" /></>,
+  whistle: <><Circle cx={9} cy={14.5} r={5.5} /><Path d="M12.4 10.2L21 7v4.2l-5.8 1.9" /><Circle cx={9} cy={14.5} r={1.4} /><Path d="M5 5l1.6 2.2M9.5 3.5l.3 2.6" /></>,
+  sun: <><Circle cx={12} cy={12} r={4} /><Path d="M12 2.5v2M12 19.5v2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M2.5 12h2M19.5 12h2M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" /></>,
+  book: <><Path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v17H6.5A2.5 2.5 0 0 0 4 21.5z" /><Path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M9 7h7" /></>,
+  checklist: <><Path d="M11 6h9M11 12h9M11 18h9" /><Path d="M3.5 6l1.6 1.6L8 4.8M3.5 12l1.6 1.6L8 10.8M3.5 18l1.6 1.6L8 16.8" /></>,
+  wallet: <><Rect x={3} y={6.5} width={18} height={13.5} rx={2} /><Path d="M16 13.2h2.5M6 6.5L15.5 3l1.2 3.5" /></>,
+  phone: <Path d="M5 3.5h3.5l2 5-2.4 1.6a11.5 11.5 0 0 0 5.8 5.8l1.6-2.4 5 2V19a2 2 0 0 1-2 2A16.5 16.5 0 0 1 3 5.5a2 2 0 0 1 2-2z" />,
+  shield: <Path d="M12 3l8 3v6c0 4.8-3.4 8.1-8 9-4.6-.9-8-4.2-8-9V6z" />,
+  club: <><Path d="M3 21h18M5 21V10.5L12 5l7 5.5V21" /><Path d="M10 21v-5h4v5M12 5V2.5l3 1.2-3 1.2" /></>,
+  grid: <><Rect x={3.5} y={3.5} width={7} height={7} rx={1.5} /><Rect x={13.5} y={3.5} width={7} height={7} rx={1.5} /><Rect x={3.5} y={13.5} width={7} height={7} rx={1.5} /><Rect x={13.5} y={13.5} width={7} height={7} rx={1.5} /></>,
+  key: <><Circle cx={8} cy={15} r={4.2} /><Path d="M11 12l9-9M16.5 6.5l3 3M14 9l2 2" /></>,
+  sliders: <><Path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1" /><Circle cx={15} cy={6} r={2} /><Circle cx={9} cy={12} r={2} /><Circle cx={17} cy={18} r={2} /></>,
+  help: <><Circle cx={12} cy={12} r={9} /><Path d="M9.6 9.4a2.5 2.5 0 1 1 3.4 2.4c-.6.3-1 .9-1 1.6v.5M12 17v.4" /></>,
+  pen: <><Path d="M15.5 4.5l4 4L8 20H4v-4z" /><Path d="M13 7l4 4" /></>,
+  undo: <><Path d="M9 14L4 9l5-5" /><Path d="M4 9h11a5 5 0 0 1 0 10h-3" /></>,
+  redo: <><Path d="M15 14l5-5-5-5" /><Path d="M20 9H9a5 5 0 0 0 0 10h3" /></>,
+  copy: <><Rect x={8} y={8} width={12} height={12} rx={2} /><Path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8" /></>,
+  layers: <><Path d="M12 3l9 5-9 5-9-5z" /><Path d="M3 13l9 5 9-5" /></>,
+  minus: <Path d="M5 12h14" />,
+  curve: <Path d="M4 18C6 7 18 7 20 18" />,
+  frame: <Path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" />,
+  note: <><Path d="M5 4h10l4 4v12H5z" /><Path d="M15 4v4h4M8.5 12h7M8.5 16h5" /></>,
   people: <><Circle cx={9} cy={8} r={3.2} /><Path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><Circle cx={17} cy={9} r={2.6} /><Path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8" /></>,
 };
 

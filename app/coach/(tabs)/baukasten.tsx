@@ -1,22 +1,23 @@
 // Trainer – Baukasten: Funktionen (Pakete) fürs Trainerteam und was Spieler sehen.
-import { useRouter } from "expo-router";
 import React from "react";
-import { PLAYER_VIEW } from "../../src/core/classes";
-import { ChatSettingsCard } from "../../src/ui/chat";
-import type { PlayerViewKey } from "../../src/core/types";
-import { useEngine, useStore } from "../../src/data/store";
-import { ModuleList } from "../../src/ui/editors";
-import { Card, CardTitle, Col, Header, Info, Muted, Screen, Seg, T, ToggleRow } from "../../src/ui/kit";
-import { ReminderFields, TestPicker } from "../../src/ui/setupParts";
+import { PLAYER_VIEW } from "../../../src/core/classes";
+import { ChatSettingsCard } from "../../../src/ui/chat";
+import type { PlayerViewKey } from "../../../src/core/types";
+import { useEngine, useStore } from "../../../src/data/store";
+import { ModuleList } from "../../../src/ui/editors";
+import { Card, CardTitle, Col, Header, Info, Muted, Screen, Seg, T, ToggleRow } from "../../../src/ui/kit";
+import { ReminderFields, TestPicker } from "../../../src/ui/setupParts";
+import { useNavBack } from "../../../src/ui/nav";
 
 export default function Baukasten() {
-  const s = useStore(); const E = useEngine(); const { t, tf } = E; const router = useRouter();
+  const nb = useNavBack("baukasten");
+  const s = useStore(); const E = useEngine(); const { t, tf } = E;
   const team = E.team, pv = team.settings.playerView || {};
   const setPv = (k: PlayerViewKey, v: boolean) => s.updateTeam({ settings: { ...team.settings, playerView: { ...pv, [k]: v } } });
   const rm = team.settings.reminders || {}, load = !!team.modules.belastung;
   return (
     <Screen testID="coach-baukasten">
-      <Header title={t("bk_title")} onBack={() => router.back()} backLabel={t("mo_title")} info={<Info title={t("bk_title")} text={t("bk_info")} />} />
+      <Header title={t("bk_title")} onBack={nb.onBack} backLabel={nb.backLabel} info={<Info title={t("bk_title")} text={t("bk_info")} />} />
       <Card testID="bk-mods">
         <CardTitle title={t("bk_mods")} />
         <ModuleList value={team.modules} onChange={m => s.updateTeam({ modules: m })} tr={E.tr} cls={team.cls} />

@@ -56,8 +56,8 @@ export const de_more: Dict = {
 
   // Startseite
   db_title: "Startseite anpassen", db_hint: "Wähle, welche Karten du auf der Startseite siehst, und ihre Reihenfolge. Gilt für dein Konto auf allen Geräten.",
-  db_next: "Nächster Termin", db_tasks: "Meine Aufgaben", db_phase: "Vorbereitung & Pausen", db_status: "Ampel-Übersicht", db_attn: "Braucht Aufmerksamkeit",
-  db_absent: "Abwesend nächste Einheit", db_week: "Diese Woche", db_events: "Events", db_last: "Letzte Einheit", db_load: "Teamlast", db_ai: "KI-Coach",
+  db_next: "Nächster Termin", db_tasks: "Meine Aufgaben", db_phase: "Vorbereitung & Pausen", db_status: "Belastung im Team", db_attn: "Braucht Aufmerksamkeit",
+  db_absent: "Abwesend nächste Einheit", db_week: "Diese Woche", db_events: "Events", db_last: "Letzte Einheit", db_load: "Team-Wochenlast", db_ai: "KI-Coach",
   db_na: "Mit deinen Modulen nicht verfügbar", db_up: "Nach oben", db_down: "Nach unten", db_reset: "Standard wiederherstellen", db_edit: "Startseite anpassen",
   db_attnNone: "Alle im grünen Bereich.", db_absNone: "Alle verfügbar.", db_more: "+{n} weitere",
 

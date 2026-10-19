@@ -1,13 +1,13 @@
 // Trainer – Kader: Spieler mit Filtern (Position, Gruppe, Status), Abwesenheiten, Gruppen (src/ui/squad/Groups).
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { Pressable, Text, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { posGroup } from "../../../src/core/classes";
 import type { Player } from "../../../src/core/types";
 import { useEngine, useStore } from "../../../src/data/store";
 import { TeamHotspots } from "../../../src/ui/bodyMap";
 import { TeamMarksCard } from "../../../src/ui/marks";
-import { Banner, Bar, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, ListItem, Muted, Row, Screen, Seg, StatusChip, T, Tag } from "../../../src/ui/kit";
+import { Banner, Bar, Btn, Card, CardTitle, Chip, Col, Header, Info, ListItem, Muted, Row, Screen, SearchField, Seg, StatusChip, T, Tag } from "../../../src/ui/kit";
 import { TermInfo } from "../../../src/ui/termInfo";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
@@ -16,6 +16,9 @@ import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
 import { radius, statusColor, useTheme } from "../../../src/ui/theme";
 
 type Tab = "spieler" | "abw" | "gruppen";
+
+/** Filter nach Belastung bzw. Ausfall */
+const STATUS_F = ["crit", "warn", "low", "inj"];
 
 export default function Kader() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
@@ -45,23 +48,31 @@ export default function Kader() {
     <>
       {neu.length ? <Banner color={c.low} testID="kader-new">
         <Col gap={6}>
-          <T bold>{tf("kd_newApp", { n: neu.length })}</T>
+          <T bold>{tf(neu.length === 1 ? "kd_newApp1" : "kd_newApp", { n: neu.length })}</T>
           <T v="small">{t("kd_newAppD")}</T>
           {neu.map(p => <Row key={p.id} gap={8} wrap><T v="small" bold>{E.name(p)}</T><Btn small testID={"kader-merge-" + p.id} label={t("kd_merge")} onPress={() => setMerge(p)} /></Row>)}
         </Col>
       </Banner> : null}
-      <Field testID="kader-search" label={t("search")} value={q} onChangeText={setQ} placeholder={t("search")} />
-      <Row wrap gap={6}>
-        {keys.map(k => {
-          const on = filter === k, col = ["crit", "warn", "low", "inj"].includes(k) ? statusColor(c, k) : c.accent;
-          return (
-            <Pressable key={k} testID={"kader-f-" + k} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => setFilter(k)}
-              style={{ borderWidth: 1.5, borderColor: on ? col : c.line, backgroundColor: on ? col : c.surface, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 11 }}>
-              <Text style={{ fontWeight: "700", fontSize: 13, color: on ? "#fff" : c.ink }}>{keyLabel(k)}</Text>
-            </Pressable>
-          );
-        })}
-      </Row>
+      <SearchField testID="kader-search" value={q} onChange={setQ} placeholder={t("search")} clearLabel={t("cancel")} />
+      {/* Filter: Positionen und Gruppen, darunter Belastung (mit Anzahl) – je eine waagerecht scrollbare Zeile */}
+      <Col gap={6} testID="kader-filters">
+        {[keys.filter(k => !STATUS_F.includes(k)), keys.filter(k => STATUS_F.includes(k))].map((L, r) => L.length ? (
+          <ScrollView key={r} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+            {L.map(k => {
+              const on = filter === k, st = STATUS_F.includes(k), col = st ? statusColor(c, k) : c.accent, n = st ? prs.filter(x => x.st === k).length : null;
+              return (
+                <Pressable key={k} testID={"kader-f-" + k} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => setFilter(on && k !== "alle" ? "alle" : k)}
+                  style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1.5, borderColor: on ? col : c.line, backgroundColor: on ? col : c.surface, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 11 }}>
+                  {st && !on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: col }} /> : null}
+                  <Text style={{ fontWeight: "700", fontSize: 13, color: on ? "#fff" : c.ink }}>{keyLabel(k)}</Text>
+                  {n != null ? <Text style={{ fontWeight: "800", fontSize: 12, color: on ? "#fff" : c.muted, fontVariant: ["tabular-nums"] }}>{n}</Text> : null}
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        ) : null)}
+        {filter !== "alle" || q ? <Muted small testID="kader-count">{tf("kd_shown", { n: list.length, m: prs.length })}</Muted> : null}
+      </Col>
       {list.length ? <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -5 }}>
         {list.map(x => (
           <View key={x.p.id} style={{ width: `${100 / cols}%`, padding: 5 }}>

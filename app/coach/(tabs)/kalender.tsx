@@ -37,16 +37,18 @@ export default function Kalender() {
   const openDay = (d: string) => router.push("/coach/tag/" + d);
 
   const dayRow = (x: PlanItem) => {
-    const its: React.ReactNode[] = [];
-    if (x.match) its.push(<Item key="m" testID={"cal-match-" + x.date} kind={t("it_match")} color={c.accentTx} text={`${x.match.zeit} · ${t("vs")} ${x.match.gegner} (${x.match.heim ? t("home") : t("away")}${x.match.comp !== "liga" ? ", " + t("comp_" + x.match.comp) : ""})`} onPress={() => x.date <= E.TODAY && mods.spielanalyse ? router.push("/coach/spiel/" + x.match!.id) : sheets.open({ k: "add", date: x.date, type: "match", obj: x.match! })} />);
+    // Einträge nach Uhrzeit (Spiel, Training, weitere Einheiten, Events); Ruhetag, Ausfall und Pause vorne
+    const its: React.ReactNode[] = [], timed: [string, React.ReactNode][] = [];
+    if (x.match) timed.push([x.match.zeit, <Item key="m" testID={"cal-match-" + x.date} kind={t("it_match")} color={c.accentTx} text={`${x.match.zeit} · ${t("vs")} ${x.match.gegner} (${x.match.heim ? t("home") : t("away")}${x.match.comp !== "liga" ? ", " + t("comp_" + x.match.comp) : ""})`} onPress={() => x.date <= E.TODAY && mods.spielanalyse ? router.push("/coach/spiel/" + x.match!.id) : sheets.open({ k: "add", date: x.date, type: "match", obj: x.match! })} />]);
     if (x.train && x.train.kind === "frei") its.push(<Item key="r" kind={t("k_frei")} color={c.ok} text={tf("restDay", { md: x.md })} onPress={() => sheets.open({ k: "day", date: x.date })} />);
-    else if (x.train) its.push(<Item key="t" testID={"cal-train-" + x.date} kind={t("it_training")} color={rpeColor(c, showI ? x.train.rpe : 5)} text={`${E.zeitOf(x.date)} · ${E.kn(x.train.kind)}${showI ? " · " + E.intWord(x.train.rpe) : ""}`} onPress={() => openDay(x.date)} />);
+    else if (x.train) timed.push([E.zeitOf(x.date), <Item key="t" testID={"cal-train-" + x.date} kind={t("it_training")} color={rpeColor(c, showI ? x.train.rpe : 5)} text={`${E.zeitOf(x.date)} · ${E.kn(x.train.kind)}${showI ? " · " + E.intWord(x.train.rpe) : ""}`} onPress={() => openDay(x.date)} />]);
     // weitere Einheiten (Athletik, Torwarttraining …)
-    x.units.forEach(u => its.push(<Item key={"u" + u.slot} testID={`cal-unit-${x.date}-${u.slot}`} kind={E.unitTitle(u)} color={u.art === "tw" ? c.event : showI ? rpeColor(c, E.unitRpe(u)) : c.low}
-      text={`${u.zeit} · ${u.dauer} ${t("min")}${showI && E.mods.belastung ? " · RPE " + E.unitRpe(u) : ""}`} onPress={() => openDay(x.date)} />));
+    x.units.forEach(u => timed.push([u.zeit, <Item key={"u" + u.slot} testID={`cal-unit-${x.date}-${u.slot}`} kind={E.unitTitle(u)} color={u.art === "tw" ? c.event : showI ? rpeColor(c, E.unitRpe(u)) : c.low}
+      text={`${u.zeit} · ${u.dauer} ${t("min")}${showI && E.mods.belastung ? " · RPE " + E.unitRpe(u) : ""}`} onPress={() => openDay(x.date)} />]));
     if (x.cancelled) its.push(<Item key="c" off kind={t("it_training")} color={c.muted} text={t("cancelled")} onPress={() => sheets.open({ k: "day", date: x.date })} />);
     if (x.brk && E.regularDay(x.date)) { const ph = phaseOn(E.D, x.date); its.push(<Item key="b" kind={t("vb_breakDay")} color="#16a3a3" text={ph?.title || ""} onPress={() => ph ? router.push("/coach/phase/" + ph.id) : sheets.open({ k: "day", date: x.date })} />); }
-    x.events.forEach(e => its.push(<Item key={e.id} kind={t("it_event")} color={c.event} text={(e.zeit ? e.zeit + " · " : "") + e.titel} onPress={() => sheets.open({ k: "add", date: x.date, type: "event", obj: e })} />));
+    x.events.forEach(e => timed.push([e.zeit || "99:99", <Item key={e.id} kind={t("it_event")} color={c.event} text={(e.zeit ? e.zeit + " · " : "") + e.titel} onPress={() => sheets.open({ k: "add", date: x.date, type: "event", obj: e })} />]));
+    timed.sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0).forEach(([, el]) => its.push(el));
     const ab = E.absentOn(x.date);
     if ((x.train || x.match) && ab.length) its.push(<Muted key="a" small>{ab.length} {t("absent")}: {ab.slice(0, 4).map(p => p.vn).join(", ")}{ab.length > 4 ? " …" : ""}</Muted>);
     const today = x.date === E.TODAY, flash = cal.flash === x.date;

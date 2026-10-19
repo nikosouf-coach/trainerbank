@@ -111,6 +111,41 @@ export function linePoint(it: Pick<MpItem, "x" | "y" | "x2" | "y2" | "bend">, t:
   return { x: u * u * it.x + 2 * u * t * c.x + t * t * x2, y: u * u * it.y + 2 * u * t * c.y + t * t * y2 };
 }
 
+/** Bogen so setzen, dass der Scheitel der Kurve durch den Punkt p geht (Ziehen am Mittelgriff); nahe 0 = gerade */
+export function bendThrough(it: Pick<MpItem, "x" | "y" | "x2" | "y2">, p: { x: number; y: number }): number {
+  const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, dx = x2 - it.x, dy = y2 - it.y, L2 = dx * dx + dy * dy;
+  if (L2 < 0.25) return 0;
+  const mx = (it.x + x2) / 2, my = (it.y + y2) / 2;
+  // Scheitel = Mitte + ½·(Kontrollpunkt − Mitte); Kontrollpunkt − Mitte = k·(dy, −dx), bend = k / 0,25
+  const k = 2 * ((p.x - mx) * dy - (p.y - my) * dx) / L2, b = Math.round((k / 0.25) * 10) / 10;
+  return Math.abs(b) < 0.15 ? 0 : Math.max(-3, Math.min(3, b));
+}
+/** Freihand: Punkte ausdünnen (Mindestabstand in Metern), Anfang und Ende bleiben; höchstens FREE_MAX Punkte */
+export function thinPoints(P: { x: number; y: number }[], tol = 1.2): number[] {
+  if (!P.length) return [];
+  const out = [P[0]];
+  for (let i = 1; i < P.length - 1; i++) { const a = out[out.length - 1]; if (Math.hypot(P[i].x - a.x, P[i].y - a.y) >= tol) out.push(P[i]); }
+  if (P.length > 1) out.push(P[P.length - 1]);
+  // zu viele Punkte: gleichmäßig auswählen
+  const keep = out.length > FREE_MAX ? Array.from({ length: FREE_MAX }, (_, i) => out[Math.round(i * (out.length - 1) / (FREE_MAX - 1))]) : out;
+  return keep.flatMap(p => [clampX(p.x), clampY(p.y)]);
+}
+/** Element verschieben (Meter); Linien, Flächen und Freihand als Ganzes */
+export function shiftItem(it: MpItem, dx: number, dy: number): MpItem {
+  const nx = clampX(it.x + dx), ny = clampY(it.y + dy), ddx = nx - it.x, ddy = ny - it.y;
+  if (it.t === "free" && it.pts) {
+    const pts = it.pts.map((v, i) => i % 2 ? clampY(v + ddy) : clampX(v + ddx));
+    return { ...it, pts, x: pts[0], y: pts[1], x2: pts[pts.length - 2], y2: pts[pts.length - 1] };
+  }
+  if (isLine(it.t)) return { ...it, x: nx, y: ny, x2: clampX((it.x2 ?? it.x) + ddx), y2: clampY((it.y2 ?? it.y) + ddy) };
+  return { ...it, x: nx, y: ny };
+}
+/** Mittelpunkt einer Linie/Freihandlinie (für Schrittnummer und Griff) */
+export function itemMid(it: MpItem): { x: number; y: number } {
+  if (it.t === "free" && it.pts && it.pts.length >= 4) { const n = it.pts.length / 2, i = Math.floor((n - 1) / 2); return { x: it.pts[i * 2], y: it.pts[i * 2 + 1] }; }
+  return linePoint(it, 0.5);
+}
+
 // ---------- Spielfeld-Design ----------
 export const MP_LOOKS: MpLook[] = ["grass", "dark", "white"];
 /** Standardsituationen (eigener Bereich in der Folienliste) */
@@ -119,12 +154,21 @@ export const isSetPiece = (c: MpSlideCat): boolean => ["ecke_off", "ecke_def", "
 export const MP_SECTIONS: MpSection[] = ["lineup", "slides", "idea", "opp", "tasks", "subs"];
 /** Standard der Freigabe: alles außer dem Wechselplan (der bleibt im Trainerteam) */
 export const DEFAULT_SECTIONS: MpSection[] = ["lineup", "slides", "idea", "opp", "tasks"];
-export const MP_TOOLS: MpTool[] = ["own", "opp", "ball", "cone", "text", "pass", "run", "drib", "line", "zone"];
-export const LINE_TOOLS: MpTool[] = ["pass", "run", "drib", "line", "zone"];
+export const MP_TOOLS: MpTool[] = ["own", "opp", "ball", "cone", "text", "pass", "run", "drib", "line", "zone", "circle", "free"];
+/** Elemente aus zwei Punkten (Start/Ziel bzw. Ecken, Mitte/Rand) */
+export const LINE_TOOLS: MpTool[] = ["pass", "run", "drib", "line", "zone", "circle"];
 export const isLine = (t: MpTool): boolean => LINE_TOOLS.includes(t);
+/** Pfeile und Linien (mit Bogen und Schrittnummer) */
+export const ARROW_TOOLS: MpTool[] = ["pass", "run", "drib", "line"];
+export const isArrow = (t: MpTool): boolean => ARROW_TOOLS.includes(t);
+/** Flächen (Zone, Kreis) */
+export const isArea = (t: MpTool): boolean => t === "zone" || t === "circle";
+/** Größte Zahl an Punkten einer Freihandlinie */
+export const FREE_MAX = 40;
 export const MP_COLORS: MpColor[] = ["w", "y", "r", "b"];
 export const MP_MODES: MpMode[] = ["num", "name", "photo"];
-export const MP_LIMITS = { slides: 20, items: 80, keys: 3, task: 300, subs: 12, oppKeys: 8, text: 1500, title: 80, slideTitle: 60, bench: 20, tasks: 40 };
+/** Grenzen (u. a. damit ein Plan klein bleibt: Freihandlinien je Folie, je höchstens FREE_MAX Punkte) */
+export const MP_LIMITS = { slides: 20, items: 80, free: 8, keys: 3, task: 300, subs: 12, oppKeys: 8, text: 1500, title: 80, slideTitle: 60, bench: 20, tasks: 40 };
 export const FMTS: MpFmt[] = [11, 9, 7, 5];
 
 // ---------- Grundordnungen ----------
@@ -301,8 +345,7 @@ export function moveItem<T extends MpItem>(items: T[], id: string, x: number, y:
   return items.map(it => {
     if (it.id !== id) return it;
     const nx = clampX(x), ny = clampY(y);
-    if (isLine(it.t)) { const dx = nx - it.x, dy = ny - it.y; return { ...it, x: nx, y: ny, x2: clampX((it.x2 ?? it.x) + dx), y2: clampY((it.y2 ?? it.y) + dy) }; }
-    return { ...it, x: nx, y: ny };
+    return shiftItem(it, nx - it.x, ny - it.y) as T;
   });
 }
 
@@ -363,10 +406,20 @@ export const newSub = (min: number): MpSub => ({ id: mpId("w"), min, out: null, 
  * Neue Folie: eigene Spieler aus der Aufstellung (optional der Gegner aus der Gegneranalyse) und ein Ball.
  * Wer außerhalb des Ausschnitts stünde (z. B. bei Ecken), wird am Rand aufgereiht und kann von dort gezogen werden.
  */
+/**
+ * Gegner, die (fast) auf einem eigenen Spieler stünden, etwas Richtung gegnerisches Tor setzen (der eigene Spieler
+ * steht torseitig) – sonst überdecken sich die Icons.
+ */
+export function separate(own: MpItem[], opp: MpItem[], gap = 3.4): MpItem[] {
+  return opp.map(o => {
+    const hit = own.find(x => Math.hypot(x.x - o.x, x.y - o.y) < gap);
+    return hit ? { ...o, y: clampY(hit.y - gap) } : o;
+  });
+}
 export function newSlide(c: MpContent, cat: MpSlideCat, title: string, withOpp: boolean, withOwn = true): MpSlide {
   const view = catView(cat), v = MP_VIEWS[view];
   const own = withOwn ? c.lineup.filter(x => x.pid || x.label).map(x => ({ ...x, id: mpId("i") })) : [];
-  const opp = withOpp ? c.opp.items.map(x => ({ ...x, id: mpId("i") })) : [];
+  const opp = separate(own, withOpp ? c.opp.items.map(x => ({ ...x, id: mpId("i") })) : []);
   const ball: MpItem = cat === "ecke_off" ? { id: mpId("i"), t: "ball", x: 67, y: 0 } : cat === "ecke_def" ? { id: mpId("i"), t: "ball", x: 1, y: 105 }
     : cat === "anstoss" ? { id: mpId("i"), t: "ball", x: 34, y: 52.5 } : { id: mpId("i"), t: "ball", x: r1(v.x + v.w / 2), y: r1(v.y + v.h / 2) };
   return { id: mpId("s"), cat, title: title.slice(0, MP_LIMITS.slideTitle), view, items: [...fitToView([...own, ...opp], view), ball], note: "", vis: true };
@@ -468,9 +521,19 @@ function cleanItem(v: Partial<MpItem>, only?: MpTool): MpItem | null {
   if (isLine(t)) { it.x2 = clampX(v.x2 ?? it.x); it.y2 = clampY(v.y2 ?? it.y); }
   if (t === "own") it.pid = v.pid ? String(v.pid).slice(0, 40) : null;
   if (t === "opp" || t === "own") { const n = v.n == null ? null : Math.round(Number(v.n)); if (n != null && n >= 0 && n <= 99) it.n = n; }
+  // Schritt eines Ablaufs (1, 2, 3 …) an Pfeilen und Freihandlinien
+  if (isArrow(t) || t === "free") { const n = v.n == null ? null : Math.round(Number(v.n)); if (n != null && n >= 1 && n <= 20) it.n = n; }
+  if (t === "free") {
+    const P = Array.isArray(v.pts) ? v.pts.map(Number) : [], pts: number[] = [];
+    // paarweise (x, y); ungültige Paare fallen weg
+    for (let i = 0; i + 1 < P.length && pts.length < FREE_MAX * 2; i += 2) if (isFinite(P[i]) && isFinite(P[i + 1])) pts.push(clampX(P[i]), clampY(P[i + 1]));
+    if (pts.length < 4) return null;
+    it.pts = pts; it.x = pts[0]; it.y = pts[1]; it.x2 = pts[pts.length - 2]; it.y2 = pts[pts.length - 1];
+    if (v.solid) it.solid = true;
+  }
   if (v.label) it.label = str(v.label, t === "text" ? 40 : 4);
   if (v.col && MP_COLORS.includes(v.col)) it.col = v.col;
-  if (isLine(t) && t !== "zone") { const b = Math.round(Number(v.bend) || 0); if (b) it.bend = Math.max(-2, Math.min(2, b)); }
+  if (isArrow(t)) { const b = Math.round((Number(v.bend) || 0) * 10) / 10; if (b) it.bend = Math.max(-3, Math.min(3, b)); }
   return it;
 }
 /** Ausschnitt aus gespeicherten Daten (ungültig → null) */
@@ -482,7 +545,7 @@ function cleanFrame(v: unknown): MpFrame | null {
 function cleanSlide(sl: Partial<MpSlide>): MpSlide {
   const out: MpSlide = {
     id: idOk(sl.id), cat: SLIDE_CATS.includes(sl.cat as MpSlideCat) ? sl.cat as MpSlideCat : "sonst", title: str(sl.title, MP_LIMITS.slideTitle),
-    view: MP_VIEW_KEYS.includes(sl.view as MpView) ? sl.view as MpView : "full", items: items(sl.items, MP_LIMITS.items), note: str(sl.note, MP_LIMITS.text), vis: sl.vis !== false,
+    view: MP_VIEW_KEYS.includes(sl.view as MpView) ? sl.view as MpView : "full", items: limitFree(items(sl.items, MP_LIMITS.items)), note: str(sl.note, MP_LIMITS.text), vis: sl.vis !== false,
   };
   const f = cleanFrame(sl.frame);
   if (f) { const p = presetOf(f); if (p) out.view = p; else out.frame = f; }
@@ -491,6 +554,8 @@ function cleanSlide(sl: Partial<MpSlide>): MpSlide {
   if (sl.mode && MP_MODES.includes(sl.mode)) out.mode = sl.mode;
   return out;
 }
+/** höchstens MP_LIMITS.free Freihandlinien je Folie */
+const limitFree = (L: MpItem[]): MpItem[] => { let n = 0; return L.filter(x => x.t !== "free" || ++n <= MP_LIMITS.free); };
 const items = (L: unknown, max: number, only?: MpTool): MpItem[] => (Array.isArray(L) ? L : []).slice(0, max).map(x => cleanItem(x || {}, only)).filter((x): x is MpItem => !!x);
 export function cleanContent(v: Partial<MpContent>, cls: ClassKey): MpContent {
   const fmt: MpFmt = FMTS.includes(v.fmt as MpFmt) ? v.fmt as MpFmt : fmtOf(cls);

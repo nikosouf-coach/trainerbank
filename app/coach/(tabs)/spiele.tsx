@@ -2,15 +2,17 @@
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { useEngine, useStore } from "../../src/data/store";
-import { fmtRating, RatingBadge } from "../../src/ui/games";
-import { Card, CardTitle, Header, ListItem, Muted, Row, Screen, Seg, Tag } from "../../src/ui/kit";
-import { PlayerAvatar } from "../../src/ui/playerAvatar";
-import { useTheme } from "../../src/ui/theme";
+import { useEngine, useStore } from "../../../src/data/store";
+import { fmtRating, RatingBadge } from "../../../src/ui/games";
+import { Card, CardTitle, Header, ListItem, Muted, Row, Screen, Seg, Tag } from "../../../src/ui/kit";
+import { PlayerAvatar } from "../../../src/ui/playerAvatar";
+import { useTheme } from "../../../src/ui/theme";
+import { useNavBack } from "../../../src/ui/nav";
 
 type SortKey = "goals" | "assists" | "min" | "avg";
 
 export default function Spiele() {
+  const nb = useNavBack("spiele");
   const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
   const [sort, setSort] = useState<SortKey>("goals");
   const past = E.D.matches.filter(m => m.date <= E.TODAY).sort((a, b) => a.date < b.date ? 1 : -1);
@@ -21,7 +23,7 @@ export default function Spiele() {
   const cell = (v: string, w: number, bold?: boolean) => <Text style={{ width: w, textAlign: "right", fontVariant: ["tabular-nums"], fontWeight: bold ? "800" : "500", color: c.ink, fontSize: 14 }}>{v}</Text>;
   return (
     <Screen testID="coach-spiele">
-      <Header title={t("sp_list")} onBack={() => router.back()} backLabel={t("mo_title")} />
+      <Header title={t("sp_list")} onBack={nb.onBack} backLabel={nb.backLabel} />
       <Card testID="sp-results">
         <CardTitle title={t("sp_results")} />
         {past.length ? past.map(m => (

@@ -245,7 +245,7 @@ export const de: Dict = {
   "lim_more": "Mehr Spielraum: eine spielfreie Woche oder Ergänzungstraining für Spieler mit wenig Spielminuten.",
   "deload": "So entlastest du richtig: Umfang deutlich runter, kurze intensive Reize aber behalten (z. B. 2–3 Sprints, kurze Spielformen). So bleibt die Spritzigkeit erhalten und die Müdigkeit geht trotzdem raus (Bosquet et al. 2007).",
   "mo_title": "Mehr",
-  "mo_sub": "Einstellungen, Module und Prinzipien",
+  "mo_sub": "Alle Bereiche",
   "dev": "in Entwicklung",
   "club": "Verein",
   "clubName": "Vereinsname",

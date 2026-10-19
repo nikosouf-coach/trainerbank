@@ -1,5 +1,6 @@
-// Trainer – Heute: frei anpassbare Startseite (Karten an/aus, Reihenfolge) – nächster Termin, Aufgaben, Ampel,
-// Braucht Aufmerksamkeit und Abwesende (aufklappbar), Woche, Events, letzte Einheit, Teamlast, KI-Coach.
+// Trainer – Heute: frei anpassbare Startseite (Karten an/aus, Reihenfolge) – nächster Termin, Spieltag-Check,
+// Aufgaben, Belastung im Team, Braucht Aufmerksamkeit und Abwesende (aufklappbar), Woche, Events, letzte Einheit,
+// Team-Wochenlast, KI-Coach.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -14,12 +15,14 @@ import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { teamLabel } from "../../../src/core/classes";
 import { firstName, greetKey } from "../../../src/core/people";
 import { MyTasksCard } from "../../../src/ui/day/MyTasks";
+import { MatchdayCard } from "../../../src/ui/matchday";
+import { TeamStatusCard } from "../../../src/ui/teamStatus";
 import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
 import { InboxCard } from "../../../src/ui/inbox";
 import { heroPlanLabel } from "../../../src/ui/matchplan/cards";
 import { ViaClubBanner } from "../../../src/ui/club";
-import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
+import { radius, space, statusColor, useTheme } from "../../../src/ui/theme";
 
 function HeroPill({ label }: { label: string }) {
   return <View style={{ backgroundColor: "rgba(255,255,255,0.18)", borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 }}><Text style={{ color: "#fff", fontWeight: "700", fontSize: 12.5 }}>{label}</Text></View>;
@@ -43,10 +46,9 @@ export default function Heute() {
     const evUp = E.D.events.filter(e => e.date >= E.TODAY && e.date <= addDays(E.TODAY, 14)).sort((a, b) => a.date < b.date ? -1 : 1);
     const m0 = monday(E.TODAY), weeks = [5, 4, 3, 2, 1, 0].map(i => addDays(m0, -7 * i));
     const team = weeks.map(w => { const per = E.D.players.map(p => { const dl = E.daily(p.id); return sum(Object.keys(dl).filter(d => d >= w && d < addDays(w, 7)).map(d => dl[d])); }).filter(x => x > 0); return { label: E.de(w), v: per.length ? sum(per) / per.length : 0 }; });
-    const count = (k: string) => prs.filter(x => x.st === k).length;
-    return { prs, nx, last, da, avl, missing, attn, wp, evUp, team, count };
+    return { prs, nx, last, da, avl, missing, attn, wp, evUp, team };
   }, [s.version, E]); // eslint-disable-line react-hooks/exhaustive-deps
-  const { nx, last, da, avl, missing, attn, wp, evUp, team, count } = data;
+  const { nx, last, da, avl, missing, attn, wp, evUp, team } = data;
 
   const gruss = t(greetKey(E.NOW.getHours())), myName = firstName(s.myStaff?.name || s.user?.displayName);
   const absN = nx ? E.absentOn(nx.date) : [];
@@ -74,21 +76,6 @@ export default function Heute() {
         <HeroPill label={`${E.D.players.length - absN.length} ${t("avail")}`} />
       </Row>
     </Pressable>
-  ) : null;
-
-  const tiles = mods.belastung ? (
-    <Row gap={8} wrap>
-      {(["crit", "warn", "ok", "low", "inj"] as const).map(k => {
-        const col = statusColor(c, k);
-        return (
-          <Pressable key={k} testID={"tile-" + k} accessibilityRole="button" accessibilityLabel={`${t("st_" + k)}: ${count(k)}`} onPress={() => router.push("/coach/kader?filter=" + k)}
-            style={{ flexGrow: 1, flexBasis: 100, backgroundColor: withAlpha(col, 0.1), borderWidth: 1, borderColor: withAlpha(col, 0.35), borderRadius: radius.l, paddingVertical: 10, paddingHorizontal: 12, gap: 2 }}>
-            <Text style={{ fontSize: 26, fontWeight: "800", color: col, fontVariant: ["tabular-nums"] }}>{count(k)}</Text>
-            <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: "700", color: c.ink }}>{t("st_" + k)}</Text>
-          </Pressable>
-        );
-      })}
-    </Row>
   ) : null;
 
   // ---------- Karten (Reihenfolge und Auswahl: „Startseite anpassen“) ----------
@@ -151,15 +138,15 @@ export default function Heute() {
     onQuick={k => { if (k === "ki_q1" && nx?.train) { sheets.open({ k: "ai", date: nx.date }); return true; } return false; }} /> : null;
 
   const cards: Record<string, React.ReactNode> = {
-    next: hero, tasks: <MyTasksCard />, inbox: <InboxCard />, phase: <CoachPhaseCard />, status: tiles, attn: attnCard, absent: absentCard,
+    next: hero, matchday: <MatchdayCard />, tasks: <MyTasksCard />, inbox: <InboxCard />, phase: <CoachPhaseCard />, status: mods.belastung ? <TeamStatusCard /> : null, attn: attnCard, absent: absentCard,
     week: weekCard, events: eventsCard, last: lastCard, load: loadCard, ai: aiCard,
   };
-  const available = (k: string): boolean => ({ inbox: !!mods.entwicklung || !!mods.chat, status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;
+  const available = (k: string): boolean => ({ matchday: true, inbox: !!mods.entwicklung || !!mods.chat, status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;
 
   return (
     <Screen testID="coach-heute">
       <Header eyebrow={`${E.wt(E.TODAY)} ${E.de(E.TODAY)} · ${teamLabel(E.team)}`} title={myName ? `${gruss}, ${myName}` : gruss}
-        right={<TeamLogo size={46} />} />
+        aside={<TeamLogo size={46} />} />
       <ViaClubBanner />
       {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
       <Btn small kind="ghost" testID="dash-edit" label={"⚙ " + t("db_edit")} onPress={() => setEditDash(true)} style={{ alignSelf: "center" }} />

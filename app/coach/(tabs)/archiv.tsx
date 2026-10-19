@@ -1,14 +1,16 @@
 // Trainer – Übungsarchiv: Übungen (mit Zeichnung) nach Kategorie und Thema, gespeicherte Einheiten, Trainerprofile.
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import type { SessionTemplate, StaffProfile } from "../../src/core/types";
-import { useEngine } from "../../src/data/store";
-import { CATS, ExerciseRow, StaffSheet, TemplateSheet, templateMin } from "../../src/ui/archive";
-import { Btn, Card, ChoiceChips, Field, Header, ListItem, Muted, Row, Screen, Seg, Tag } from "../../src/ui/kit";
+import type { SessionTemplate, StaffProfile } from "../../../src/core/types";
+import { useEngine } from "../../../src/data/store";
+import { CATS, ExerciseRow, StaffSheet, TemplateSheet, templateMin } from "../../../src/ui/archive";
+import { Btn, Card, ChoiceChips, Field, Header, ListItem, Muted, Row, Screen, Seg, Tag } from "../../../src/ui/kit";
+import { useNavBack } from "../../../src/ui/nav";
 
 type Tab = "ex" | "tpl" | "staff";
 
 export default function Archiv() {
+  const nb = useNavBack("archiv");
   const E = useEngine(); const { t, tf } = E; const router = useRouter();
   const [tab, setTab] = useState<Tab>("ex");
   const [q, setQ] = useState(""); const [cat, setCat] = useState<string>("all"); const [theme, setTheme] = useState<string | null>(null);
@@ -21,7 +23,7 @@ export default function Archiv() {
   const add = tab === "ex" ? () => router.push("/coach/uebung/neu") : tab === "tpl" ? () => setTpl(null) : () => setProf(null);
   return (
     <Screen testID="coach-archiv">
-      <Header title={t("ar_title")} onBack={() => router.back()} backLabel={t("mo_title")}
+      <Header title={t("ar_title")} onBack={nb.onBack} backLabel={nb.backLabel}
         right={<Btn testID="ar-add" kind="primary" icon="plus" label={tab === "ex" ? t("ar_new") : tab === "tpl" ? t("ar_newTpl") : t("sf_new")} onPress={add} />} />
       <Seg testID="ar-tab" value={tab} onChange={setTab} options={[{ key: "ex", label: t("ar_ex") }, { key: "tpl", label: t("ar_tpl") }, { key: "staff", label: t("ar_staff") }]} />
       {tab === "ex" ? <>

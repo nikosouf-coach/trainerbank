@@ -1,22 +1,23 @@
 // Trainer – Training & Prinzipien: Trainingstage, weitere Einheiten je Woche, Spieltags-Prinzipien, eigene Trainingsarten, Erholungszeiten.
-import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { BANDS, bandLabel, bandOf } from "../../src/core/classes";
-import { useEngine, useStore } from "../../src/data/store";
-import { DaysEditor, PrinciplesEditor } from "../../src/ui/editors";
-import { KindEditor, type KindEditorTarget } from "../../src/ui/kindEditor";
-import { Banner, Btn, Card, CardTitle, Header, Info, Row, Screen, T } from "../../src/ui/kit";
-import { WeeklyUnitsEditor } from "../../src/ui/units";
-import { rpeColor, useTheme } from "../../src/ui/theme";
+import { BANDS, bandLabel, bandOf } from "../../../src/core/classes";
+import { useEngine, useStore } from "../../../src/data/store";
+import { DaysEditor, PrinciplesEditor } from "../../../src/ui/editors";
+import { KindEditor, type KindEditorTarget } from "../../../src/ui/kindEditor";
+import { Banner, Btn, Card, CardTitle, Header, Info, Row, Screen, T } from "../../../src/ui/kit";
+import { WeeklyUnitsEditor } from "../../../src/ui/units";
+import { rpeColor, useTheme } from "../../../src/ui/theme";
+import { useNavBack } from "../../../src/ui/nav";
 
 export default function TrainingSettings() {
-  const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
+  const nb = useNavBack("training");
+  const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme();
   const [kt, setKt] = useState<KindEditorTarget | null>(null);
   const team = E.team, kids = E.grp === "u11";
   const myBands = new Set(E.D.players.map(p => bandOf(E.age(p))));
   return (
     <Screen testID="coach-training">
-      <Header title={t("mh_training")} onBack={() => router.back()} backLabel={t("mo_title")} />
+      <Header title={t("mh_training")} onBack={nb.onBack} backLabel={nb.backLabel} />
       <Card>
         <CardTitle title={t("trSet")} />
         <DaysEditor value={team.settings} onChange={st => s.updateTeam({ settings: st })} tr={E.tr} />

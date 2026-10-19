@@ -1,47 +1,78 @@
-// Trainer – Mehr: Übersicht über Einstellungen (Mannschaft, Verein, Training, Baukasten, Zugang) und Konto.
+// Trainer – Mehr: alle Bereiche nach Themen gruppiert (mit Suche), ohne die Bereiche der unteren Leiste.
+// „Menü anpassen“: Bereiche der unteren Leiste wählen und ordnen, Menüpunkte aus- und einblenden.
 import { useRouter } from "expo-router";
-import React from "react";
-import { openRequests } from "../../../src/core/dev";
+import React, { useState } from "react";
+import { Pressable, Text, View } from "react-native";
 import { classDef, classLabel, teamLabel } from "../../../src/core/classes";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Icon } from "../../../src/ui/icons";
-import { Banner, Btn, Card, Header, ListItem, Screen } from "../../../src/ui/kit";
-import { useTheme } from "../../../src/ui/theme";
+import { Banner, Btn, Col, Header, Muted, Screen, SearchField, T } from "../../../src/ui/kit";
+import { MenuEditor, groupCol } from "../../../src/ui/navEditor";
+import { NAV_GROUPS, useNav, type NavItem } from "../../../src/ui/nav";
+import { radius, useTheme, withAlpha } from "../../../src/ui/theme";
+
+/** Alte Kennungen der Menüpunkte (Tests, Verweise) */
+const legacyId = (k: string): string => k === "matchplaene" ? "matchplan" : k;
 
 export default function Mehr() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
-  const team = E.team, nDays = Object.keys(team.settings.days).length;
-  const go = (h: string) => router.push(h);
-  const chev = <Icon name="chevron" size={18} color={c.muted} />;
-  const club = s.clubs.find(x => x.id === team.clubId) || null;
+  const nav = useNav();
+  const [q, setQ] = useState(""); const [edit, setEdit] = useState(false); const [showHidden, setShowHidden] = useState(false);
+  const team = E.team, club = s.clubs.find(x => x.id === team.clubId) || null;
+  // Untertitel mit aktuellen Angaben
+  const subOf = (n: NavItem): string => {
+    if (n.k === "team") return `${teamLabel(team)} · ${classLabel(classDef(team.cls), E.tr.lang)} · ${t("dp_" + team.depth)}`;
+    if (n.k === "verein") return club ? tf("cl_menuSubLinked", { c: club.name, n: club.teams }) : team.clubId ? t("cl_open") : t("cl_menuSub");
+    if (n.k === "training") return tf("mh_trainingSub", { n: Object.keys(team.settings.days).length });
+    if (n.k === "individual" && nav.badge("individual")) return `${t("iq_open")}: ${nav.badge("individual")}`;
+    if (n.k === "konto") return [s.myStaff?.name, s.isDemo ? t("w_demoHint") : s.user?.email].filter(Boolean).join(" · ");
+    return t(n.sub);
+  };
+  const ql = q.trim().toLowerCase();
+  const match = (n: NavItem) => !ql || `${t(n.title)} ${subOf(n)} ${t(n.short)}`.toLowerCase().includes(ql);
+  const shown = nav.items.filter(n => !nav.bar.includes(n.k) && (!nav.hidden.has(n.k) || !!ql) && match(n));
+  const hidden = nav.items.filter(n => nav.hidden.has(n.k) && !ql);
+  const row = (n: NavItem, last: boolean) => {
+    const col = groupCol(c, n.group), badge = nav.badge(n.k);
+    return (
+      <Pressable key={n.k} testID={"mehr-" + legacyId(n.k)} accessibilityRole="button" accessibilityLabel={t(n.title)} onPress={() => router.push(n.href)}
+        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, paddingHorizontal: 14, backgroundColor: pressed ? c.sunk : "transparent",
+          borderBottomWidth: last ? 0 : 1, borderBottomColor: c.line })}>
+        <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: withAlpha(col, 0.14), alignItems: "center", justifyContent: "center" }}>
+          <Icon name={n.icon} size={21} color={col} />
+        </View>
+        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+          <Text numberOfLines={1} style={{ fontWeight: "800", fontSize: 15, color: c.ink }}>{t(n.title)}</Text>
+          <Text numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 17, color: c.muted }}>{subOf(n)}</Text>
+        </View>
+        {badge ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: c.accentInk, fontWeight: "900", fontSize: 12 }}>{badge}</Text></View> : null}
+        <Icon name="chevron" size={18} color={c.muted} />
+      </Pressable>
+    );
+  };
+  const card = (L: NavItem[]) => (
+    <View style={{ backgroundColor: c.surface, borderRadius: radius.l, borderWidth: 1, borderColor: c.line, overflow: "hidden" }}>{L.map((n, i) => row(n, i === L.length - 1))}</View>
+  );
   return (
     <Screen testID="coach-mehr">
-      <Header eyebrow={t("mo_sub")} title={t("mo_title")} />
-      <Card style={{ paddingVertical: 4, gap: 0 }}>
-        <ListItem testID="mehr-team" title={t("mh_team")} sub={`${teamLabel(team)} · ${classLabel(classDef(team.cls), E.tr.lang)} · ${t("dp_" + team.depth)}`} right={chev} onPress={() => go("/coach/team")} />
-        <ListItem testID="mehr-verein" title={t("cl_title")} right={chev} onPress={() => go("/verein")}
-          sub={club ? tf("cl_menuSubLinked", { c: club.name, n: club.teams }) : team.clubId ? t("cl_open") : t("cl_menuSub")} />
-        <ListItem testID="mehr-training" title={t("mh_training")} sub={tf("mh_trainingSub", { n: nDays })} right={chev} onPress={() => go("/coach/training")} />
-        <ListItem testID="mehr-aufgaben" title={t("tk_title2")} sub={t("tk_menuSub")} right={chev} onPress={() => go("/coach/aufgaben")} />
-        {s.can("cash") ? <ListItem testID="mehr-kasse" title={t("ks_title")} sub={t("ks_menuSub")} right={chev} onPress={() => go("/coach/kasse")} /> : null}
-        {s.can("admin") ? <ListItem testID="mehr-baukasten" title={t("bk_title")} sub={t("bk_sub")} right={chev} onPress={() => go("/coach/baukasten")} /> : null}
-        {E.mods.kontakte ? <ListItem testID="mehr-kontakte" title={t("ct_title")} sub={t("ct_sub")} right={chev} onPress={() => go("/coach/kontakte")} /> : null}
-        {E.mods.vorbereitung ? <ListItem testID="mehr-vorbereitung" title={t("vb_title")} sub={t("vb_sub")} right={chev} onPress={() => go("/coach/vorbereitung")} /> : null}
-        {E.mods.archiv ? <ListItem testID="mehr-archiv" title={t("ar_title")} sub={t("ar_sub")} right={chev} onPress={() => go("/coach/archiv")} /> : null}
-        {E.mods.leistung ? <ListItem testID="mehr-leistung" title={t("lt_title")} sub={t("lt_sub")} right={chev} onPress={() => go("/coach/leistung")} /> : null}
-        {E.mods.entwicklung ? <ListItem testID="mehr-entwicklung" title={t("dv_overview")} sub={t("dv_menuSub")} right={chev} onPress={() => go("/coach/entwicklung")} /> : null}
-        {E.mods.entwicklung ? <ListItem testID="mehr-individual" title={t("iq_title")} sub={openRequests(E.D).length ? `${t("iq_open")}: ${openRequests(E.D).length}` : t("iq_menuSub")} right={chev} onPress={() => go("/coach/individual")} /> : null}
-        {E.mods.challenge ? <ListItem testID="mehr-challenge" title={t("cg_title")} sub={t("cg_menuSub")} right={chev} onPress={() => go("/coach/challenge")} /> : null}
-        {s.can("scout") ? <ListItem testID="mehr-scouting" title={t("m_kaderplanung")} sub={t("sk_menuSub")} right={chev} onPress={() => go("/coach/scouting")} /> : null}
-        {E.mods.matchplan ? <ListItem testID="mehr-matchplan" title={t("mp_list")} sub={t("mp_menuSub")} right={chev} onPress={() => go("/coach/matchplaene")} /> : null}
-        {E.mods.spielanalyse ? <ListItem testID="mehr-spiele" title={t("sp_list")} sub={t("sp_listSub")} right={chev} onPress={() => go("/coach/spiele")} /> : null}
-        {E.mods.videos ? <ListItem testID="mehr-videos" title={t("sp_lib")} sub={t("sp_libSub")} right={chev} onPress={() => go("/coach/videos")} /> : null}
-        <ListItem testID="mehr-wiki" title={t("wk_menu")} sub={t("wk_menuSub")} right={chev} onPress={() => go("/wiki")} />
-        <ListItem testID="mehr-zugang" title={t("mh_access")} sub={t("cd_title") + " · " + t("st_title2")} right={chev} onPress={() => go("/coach/zugang")} />
-        <ListItem testID="mehr-konto" title={t("mh_account")} sub={[s.myStaff?.name, s.isDemo ? t("w_demoHint") : s.user?.email].filter(Boolean).join(" · ")} right={chev} onPress={() => go("/konto")} />
-      </Card>
+      <Header eyebrow={t("mo_sub")} title={t("mo_title")} right={<Btn small icon="sliders" testID="nav-edit" label={t("nv_edit")} onPress={() => setEdit(true)} />} />
+      <SearchField testID="nav-search" value={q} onChange={setQ} placeholder={t("nv_search")} clearLabel={t("cancel")} />
+      {NAV_GROUPS.map(g => {
+        const L = shown.filter(n => n.group === g);
+        return L.length ? <Col key={g} gap={8} testID={"nav-group-" + g}><T v="eyebrow" color={c.muted}>{t("nvg_" + g)}</T>{card(L)}</Col> : null;
+      }) }
+      {ql && !shown.length ? <Muted testID="nav-none">{t("nv_none")}</Muted> : null}
+      {!ql && nav.bar.length ? <Muted small>{tf("nv_inBarHint", { l: nav.bar.map(k => t(nav.items.find(n => n.k === k)!.short)).join(", ") })}</Muted> : null}
+      {hidden.length ? <Col gap={8}>
+        <Pressable testID="nav-hidden-toggle" accessibilityRole="button" accessibilityState={{ expanded: showHidden }} onPress={() => setShowHidden(!showHidden)}>
+          <T v="eyebrow" color={c.muted}>{tf("nv_hidden", { n: hidden.length })} {showHidden ? "▲" : "▼"}</T>
+        </Pressable>
+        {showHidden ? card(hidden) : null}
+      </Col> : null}
       {s.isDemo ? <Banner>{t("pa_demoNote")}</Banner> : null}
       {s.isDemo ? <Btn testID="mehr-to-player" label={t("toPlayer")} onPress={() => { s.setDemoView("player"); router.replace(s.demoPlayer ? "/player/heute" : "/demo-player"); }} style={{ alignSelf: "flex-start" }} /> : null}
+      <MenuEditor visible={edit} onClose={() => setEdit(false)} />
     </Screen>
   );
 }

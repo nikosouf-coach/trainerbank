@@ -1,16 +1,17 @@
 // Trainer – Spieler-App & Trainerteam: Team-Codes teilen/erneuern, Co-Trainer-Anfragen annehmen, Rechte (Zugriffe über den Verein nur ansehen).
-import { useRouter } from "expo-router";
-import { teamLabel } from "../../src/core/classes";
+import { teamLabel } from "../../../src/core/classes";
 import React, { useEffect, useState } from "react";
 import { Share, Text } from "react-native";
-import type { StaffEntry } from "../../src/data/api";
-import { useEngine, useStore } from "../../src/data/store";
-import { Banner, Btn, Card, CardTitle, Col, Header, Info, ListItem, Muted, Row, Screen, T, Tag } from "../../src/ui/kit";
-import { PermChips, PermSheet } from "../../src/ui/perms";
-import { useTheme } from "../../src/ui/theme";
+import type { StaffEntry } from "../../../src/data/api";
+import { useEngine, useStore } from "../../../src/data/store";
+import { Banner, Btn, Card, CardTitle, Col, Header, Info, ListItem, Muted, Row, Screen, T, Tag } from "../../../src/ui/kit";
+import { PermChips, PermSheet } from "../../../src/ui/perms";
+import { useTheme } from "../../../src/ui/theme";
+import { useNavBack } from "../../../src/ui/nav";
 
 export default function Zugang() {
-  const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
+  const nb = useNavBack("zugang");
+  const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
   // Demo: in der Co-Trainer-Ansicht wie ein Co-Trainer (kein Owner)
   const teamId = s.active?.teamId || "", owner = s.active?.role === "owner" && !(s.isDemo && s.demoStaff);
   const [codes, setCodes] = useState<{ joinCode?: string; staffCode?: string }>({ joinCode: E.team.joinCode, staffCode: E.team.staffCode });
@@ -34,7 +35,7 @@ export default function Zugang() {
   const pending = (staff || []).filter(x => x.role === "pending"), team = (staff || []).filter(x => x.role !== "pending");
   return (
     <Screen testID="coach-zugang">
-      <Header title={t("mh_access")} onBack={() => router.back()} backLabel={t("mo_title")} />
+      <Header title={t("mh_access")} onBack={nb.onBack} backLabel={nb.backLabel} />
       <Card testID="codes">
         <CardTitle title={t("cd_title")} info={<Info title={t("pa_code")} text={t("pa_codeHint")} />} />
         <Muted small>{t("cd_sub")}</Muted>

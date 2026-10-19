@@ -23,7 +23,7 @@ export default function PlayerTabs() {
   const unread = useChatBadge();
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Tabs screenOptions={{ headerShown: false, tabBarActiveTintColor: c.accentTx, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line }, tabBarLabelStyle: { fontWeight: "700", fontSize: 11 } }}>
+      <Tabs screenOptions={{ headerShown: false, freezeOnBlur: true, tabBarActiveTintColor: c.accentTx, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line }, tabBarLabelStyle: { fontWeight: "700", fontSize: 11 } }}>
         {TABS.map(x => (
           <Tabs.Screen key={x.name} name={x.name} options={{
             title: t(x.label), tabBarButtonTestID: "tab-" + x.name, tabBarIcon: ({ color }) => <Icon name={x.icon} color={color} />,

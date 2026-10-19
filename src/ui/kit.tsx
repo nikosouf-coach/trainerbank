@@ -1,5 +1,5 @@
 // Bausteine der Oberfläche. Alle Bildschirme setzen sich daraus zusammen.
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useCallback, useContext, useState } from "react";
 import { Image, Modal, Pressable, ScrollView, Switch, Text, TextInput, View, useWindowDimensions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon, type IconName } from "./icons";
@@ -31,23 +31,37 @@ export function Row({ children, gap = space.s, wrap, between, align = "center", 
 export function Col({ children, gap = space.s, style, testID }: { children?: React.ReactNode; gap?: number; style?: StyleProp<ViewStyle>; testID?: string }) {
   return <View testID={testID} style={[{ gap }, style]}>{children}</View>;
 }
+/**
+ * Seite vorübergehend nicht scrollen lassen – z. B. solange ein Spieler auf der Aufstellung gezogen wird (sonst
+ * übernimmt die Seite die Bewegung und das Ziehen bricht ab). Ohne umgebende Seite: ohne Wirkung.
+ */
+const ScrollLockCtx = createContext<(on: boolean) => void>(() => undefined);
+export const useScrollLock = (): ((on: boolean) => void) => useContext(ScrollLockCtx);
 export function Screen({ children, scroll = true, testID }: { children?: React.ReactNode; scroll?: boolean; testID?: string }) {
   const { c } = useTheme(); const ins = useSafeAreaInsets(); const { width } = useWindowDimensions();
+  const [locked, setLocked] = useState(false);
+  const lock = useCallback((on: boolean) => setLocked(on), []);
   const pad = width >= 900 ? 28 : space.l;
   const inner = <View style={{ width: "100%", maxWidth: 1100, alignSelf: "center", gap: 18, paddingHorizontal: pad, paddingTop: ins.top + space.l, paddingBottom: space.xxl * 2 }}>{children}</View>;
   if (!scroll) return <View testID={testID} style={{ flex: 1, backgroundColor: c.bg }}>{inner}</View>;
-  return <ScrollView testID={testID} style={{ flex: 1, backgroundColor: c.bg }} keyboardShouldPersistTaps="handled">{inner}</ScrollView>;
+  return (
+    <ScrollLockCtx.Provider value={lock}>
+      <ScrollView testID={testID} style={{ flex: 1, backgroundColor: c.bg }} keyboardShouldPersistTaps="handled" scrollEnabled={!locked}>{inner}</ScrollView>
+    </ScrollLockCtx.Provider>
+  );
 }
-export function Header({ eyebrow, title, right, info, onBack, backLabel }: { eyebrow?: string; title: string; right?: React.ReactNode; info?: React.ReactNode; onBack?: () => void; backLabel?: string }) {
+/** Kopf einer Seite. right: z. B. ein Knopf (rutscht bei Platzmangel unter den Titel); aside: kleines Element (Logo), bleibt immer rechts. */
+export function Header({ eyebrow, title, right, info, onBack, backLabel, aside }: { eyebrow?: string; title: string; right?: React.ReactNode; info?: React.ReactNode; onBack?: () => void; backLabel?: string; aside?: React.ReactNode }) {
   return (
     <Col gap={6}>
       {onBack ? <Btn small kind="ghost" icon="back" label={backLabel || ""} onPress={onBack} style={{ alignSelf: "flex-start" }} /> : null}
-      <Row between align="flex-end" wrap>
-        <Col gap={4} style={{ flexShrink: 1 }}>
+      <Row between align={aside ? "center" : "flex-end"} wrap={!aside} gap={aside ? 12 : undefined}>
+        <Col gap={4} style={aside ? { flex: 1, minWidth: 0 } : { flexShrink: 1 }}>
           {eyebrow ? <T v="eyebrow">{eyebrow}</T> : null}
           <Row gap={8}><T v="h1" style={[{ flexShrink: 1 }, longest(title) > 13 ? { fontSize: longest(title) > 17 ? 21 : 25 } : null]}>{title}</T>{info}</Row>
         </Col>
         {right}
+        {aside ? <View style={{ flexShrink: 0 }}>{aside}</View> : null}
       </Row>
     </Col>
   );
@@ -134,6 +148,18 @@ export function Field({ label, value, onChangeText, onBlur, placeholder, keyboar
         keyboardType={keyboardType} multiline={multiline} numberOfLines={multiline ? 4 : undefined} secureTextEntry={secure} autoCapitalize={autoCapitalize} autoComplete={autoComplete} maxLength={maxLength}
         style={{ borderWidth: 1, borderColor: c.line, borderRadius: radius.m, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: c.bg, color: c.ink, fontSize: 16, minHeight: multiline ? 96 : 44, textAlignVertical: multiline ? "top" : "center" }} />
       {hint ? <Text style={{ fontSize: 12, color: c.muted }}>{hint}</Text> : null}
+    </View>
+  );
+}
+/** Suchfeld mit Lupe und Löschen-Knopf (ohne eigene Beschriftung – der Platzhalter sagt, was gesucht wird) */
+export function SearchField({ value, onChange, placeholder, testID, clearLabel }: { value: string; onChange: (s: string) => void; placeholder: string; testID?: string; clearLabel: string }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, borderRadius: radius.m, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface }}>
+      <Icon name="search" size={18} color={c.muted} />
+      <TextInput testID={testID} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.muted} accessibilityLabel={placeholder}
+        style={{ flex: 1, paddingVertical: 11, fontSize: 15, color: c.ink, borderWidth: 0 }} />
+      {value ? <Pressable accessibilityRole="button" accessibilityLabel={clearLabel} onPress={() => onChange("")} hitSlop={8}><Icon name="close" size={16} color={c.muted} /></Pressable> : null}
     </View>
   );
 }

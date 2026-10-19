@@ -245,7 +245,7 @@ export const en: Dict = {
   "lim_more": "More room: a week without a match or top-up training for players with few minutes.",
   "deload": "How to deload properly: cut volume clearly but keep short intense stimuli (e.g. 2–3 sprints, short small-sided games). Sharpness stays, fatigue goes (Bosquet et al. 2007).",
   "mo_title": "More",
-  "mo_sub": "Settings, modules and principles",
+  "mo_sub": "All areas",
   "dev": "in development",
   "club": "Club",
   "clubName": "Club name",
