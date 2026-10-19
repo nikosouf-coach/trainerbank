@@ -3,7 +3,7 @@ import { iso, rng } from "./dates";
 import { groupOf, MATCHMIN } from "./classes";
 import { isGoalkeeper } from "./units";
 import {
-  defaultUntil, emptyContent, kickoff, lineupFor, mpId, newSlide, oppLineup, publishedOf, suggestLineup, DEFAULT_SECTIONS,
+  defaultUntil, emptyContent, fitToView, kickoff, lineupFor, mpId, newSlide, oppLineup, publishedOf, suggestLineup, DEFAULT_SECTIONS,
 } from "./matchplan";
 import type { Lang, Match, MatchPlan, MpContent, MpItem, MpLog, MpSlide, TeamData } from "./types";
 
@@ -23,6 +23,11 @@ function place(sl: MpSlide, spots: [string, number, number][]): MpSlide {
     if (it) { used.add(it.id); it.x = x; it.y = y; }
   }
   return { ...sl, items };
+}
+/** Gegenspieler der Reihe nach auf Positionen setzen (Torwart zuerst) */
+function placeOpp(sl: MpSlide, spots: [number, number][]): MpSlide {
+  const opp = sl.items.filter(x => x.t === "opp"), at = new Map(opp.map((x, i) => [x.id, spots[i]] as const));
+  return { ...sl, items: sl.items.map(x => at.get(x.id) ? { ...x, x: at.get(x.id)![0], y: at.get(x.id)![1] } : x) };
 }
 
 export function demoMatchPlans(D: TeamData, lang: Lang, now: Date): void {
@@ -100,13 +105,28 @@ export function demoMatchPlans(D: TeamData, lang: Lang, now: Date): void {
     });
     s2.note = t("Außenverteidiger hoch und breit, der Zehner bietet sich zwischen den Linien an.", "Full-backs high and wide, the no. 10 shows between the lines.");
     let s3 = newSlide(c, "ecke_off", t("Ecke offensiv: kurzer Pfosten", "Attacking corner: near post"), false);
-    s3 = place(s3, [["RA", 67, 1], ["IV", 30, 9], ["IV", 40, 13], ["ST", 25, 7], ["OM", 36, 21], ["DM", 46, 6], ["ZM", 44, 18], ["LA", 20, 16], ["LV", 34, 30], ["RV", 58, 26]]);
-    s3 = arrows(s3, by => [line("pass", { x: 66, y: 1 }, { x: 27, y: 6 }, "y"), ...(by("IV") ? [line("run", by("IV")!, { x: 28, y: 5 })] : [])]);
+    s3 = place(s3, [["RA", 67, 1], ["IV", 30, 9], ["IV", 40, 13], ["ST", 25, 7], ["OM", 36, 21], ["DM", 46, 6], ["ZM", 44, 18], ["LA", 20, 16], ["LV", 34, 27.5], ["RV", 56, 26]]);
+    s3 = arrows(s3, by => [{ ...line("pass", { x: 66, y: 1 }, { x: 27, y: 6 }, "y"), bend: -1 }, ...(by("IV") ? [line("run", by("IV")!, { x: 28, y: 5 })] : [])]);
     s3.note = t("Ball scharf auf den kurzen Pfosten, der erste IV verlängert, zweiter IV und ST gehen auf den langen Pfosten.", "Driven ball to the near post, first centre-back flicks it on, second centre-back and striker attack the far post.");
     let s4 = newSlide(c, "ecke_def", t("Ecke defensiv: Raumdeckung", "Defending corners: zonal"), true);
-    s4 = place(s4, [["TW", 34, 103], ["IV", 30, 98], ["IV", 38, 98], ["DM", 34, 94], ["ST", 34, 84], ["LV", 27, 101], ["RV", 41, 101], ["ZM", 26, 94], ["OM", 42, 94], ["LA", 20, 88], ["RA", 48, 88]]);
-    s4.note = t("Sechs Spieler im Raum, die Nr. 9 bekommt immer einen Manndecker. Konter über ST und LA.", "Six players zonal, no. 9 always gets a man-marker. Counter via striker and left winger.");
-    c.slides = kids ? [s2, s1] : [s1, s2, s3, s4];
+    s4 = place(s4, [["TW", 34, 103.3], ["LV", 28.8, 103.6], ["IV", 27, 99.6], ["IV", 31.6, 99.6], ["DM", 36.2, 99.6], ["DM", 40.8, 99.6], ["RV", 39.8, 103.8], ["OM", 30.5, 94.2], ["ST", 37.6, 93.4], ["LA", 16, 84], ["RA", 52, 84]]);
+    s4 = placeOpp(s4, [[34, 7], [0.6, 104.4], [25.5, 96.4], [31.8, 95.8], [38.6, 96.2], [44.5, 98.5], [36.6, 91.6], [23.5, 88], [46.5, 89], [24, 77.5], [44, 77.5]]);
+    s4 = { ...s4, size: 0.8, mode: "num" };
+    s4.note = t("Sechs Spieler im Raum (Fünfmeterlinie und Pfosten), ein Manndecker für ihre Nr. 9. LA und RA bleiben für den Konter vorne.", "Six players zonal (six-yard line and posts), one man-marker on their no. 9. Left and right winger stay up for the counter.");
+    // Freistoß zentral im gezoomten 16er: Mauer, Schuss mit Bogen, Nachsetzen, Absicherung
+    let s5 = newSlide(c, "frei_off", t("Freistoß zentral: über die Mauer", "Central free kick: over the wall"), true);
+    s5 = { ...s5, view: "pen_att", items: fitToView(s5.items.filter(x => x.t !== "ball"), "pen_att") };
+    s5 = place(s5, [["OM", 33, 25.3], ["DM", 36.6, 25.6], ["ST", 27.5, 16.4], ["LA", 21, 18], ["RA", 46.5, 17.2], ["IV", 41.5, 16.2], ["IV", 20.5, 26], ["DM", 47.5, 26], ["LV", 14.5, 27], ["RV", 53.5, 27]]);
+    s5 = placeOpp(s5, [[34, 1], [30.4, 14.4], [32.8, 14.4], [35.2, 14.4], [37.6, 14.4], [24.5, 10.5], [30, 7], [39, 7.5], [44.5, 10.5], [49.5, 14.5], [19, 15]]);
+    s5.size = 0.8;
+    s5 = { ...s5, items: [...s5.items, { id: mpId("i"), t: "ball", x: 34, y: 23.5 }, { ...line("pass", { x: 34, y: 23 }, { x: 30.6, y: -0.2 }, "y"), bend: 1 }] };
+    s5 = arrows(s5, by => [
+      ...(by("ST") ? [line("run", by("ST")!, { x: 31, y: 6.5 })] : []),
+      ...(by("RA") ? [line("run", by("RA")!, { x: 38.5, y: 5.5 })] : []),
+    ]);
+    s5.note = t("Schütze Nr. 10 mit rechts über die Mauer ins linke Eck, der Sechser täuscht an. Bei Abpraller gehen ST und RA nach; IV, DM und Außenverteidiger sichern ab.",
+      "No. 10 shoots right-footed over the wall into the left corner, the holding midfielder fakes. On a rebound the striker and right winger follow up; centre-back, holding midfielder and full-backs secure.");
+    c.slides = kids ? [s2, s1] : [s1, s2, s3, s4, s5];
     return c;
   };
   const mk = (m: Match, id: string): MatchPlan => ({ id, matchId: m.id, title: (en ? "vs " : "gegen ") + m.gegner, c: build(m), share: null, published: null, publishedAt: null, updatedAt: now.toISOString() });

@@ -53,7 +53,7 @@ export default function PlayerMatchplan() {
           <Banner testID="pv-confidential"><Col gap={2}><T v="small" bold>{t("pv_conf")}</T><T v="small">{tf("pv_confD", { d: until ? `${E.wt(iso(until))} ${E.de(iso(until))} ${String(until.getHours()).padStart(2, "0")}:${String(until.getMinutes()).padStart(2, "0")}` : "" })}</T>
             {Platform.OS === "web" ? <T v="small">{t("pv_web")}</T> : null}</Col></Banner>
           {shot ? <Banner color={c.warn} testID="pv-shot">{t("pv_shot")}</Banner> : null}
-          <PlanContentView pub={plan.content} pid={plan.pid} match={m} />
+          <PlanContentView pub={plan.content} pid={plan.pid} match={m} watermark={`${plan.name} · ${stamp}`} />
         </> : null}
         {plan ? <Watermark text={`${plan.name} · ${stamp}`} height={h} /> : null}
       </View>

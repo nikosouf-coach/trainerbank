@@ -148,8 +148,16 @@ gilt) und gleicht zusätzlich alle 20 s ab, solange der Chat offen ist.
 ### Matchplan
 
 Der Inhalt eines Plans liegt als JSON in `match_plans.content` (Koordinaten in Metern auf einem Hochkant-Feld 68 × 105,
-eigenes Tor unten; ein Ausschnitt wie „Strafraum vorne“ ist nur ein anderer Bildausschnitt). Die App bereinigt den Inhalt
-(`core/matchplan.cleanContent`). Beim Freigeben schreibt die App den Auszug für Spieler (`publishedOf`: nur gewählte
+eigenes Tor unten). Ein Ausschnitt ist nur ein anderer Bildausschnitt – die Positionen bleiben – und füllt immer die
+Breite der Anzeige, ein kleiner Ausschnitt wird also vergrößert: Folien haben eine Voreinstellung (`view`: ganzes
+Feld, Hälften, Angriffsdrittel, 16er vorne/hinten, Ecken je Seite, Strafraum breit) oder einen eigenen Ausschnitt
+(`frame` {x, y, w, h} in Metern; Zoom bis ca. 4-fach, Format hoch/quadratisch/breit, höchstens 5–6 m neben dem Feld;
+`clampFrame`, `zoomFrame`, `panFrame`, `formatFrame`). Entspricht ein Rahmen einer Voreinstellung, wird nur sie
+gespeichert. Je Folie optional Icongröße (`size`) und Icon-Ansicht (`mode`), je Linie ein Bogen (`bend` −2 … 2,
+quadratische Kurve), je Plan das Spielfeld-Design (`look`: Rasen = Standard, nicht gespeichert; Taktiktafel; weiß).
+Die Präsentation zeigt das Feld auf breiten Bildschirmen quer (eigenes Tor links); am Handy dreht ⟲ die ganze Ansicht
+ins Querformat. Die App bereinigt den Inhalt (`core/matchplan.cleanContent`); ältere Pläne bleiben dabei unverändert,
+damit Freigaben nicht als „geändert“ gelten. Beim Freigeben schreibt die App den Auszug für Spieler (`publishedOf`: nur gewählte
 Bereiche, nur Folien mit „für Spieler sichtbar“, Wechselplan standardmäßig nicht) nach `published`; spätere Änderungen
 sehen Spieler erst nach „Freigabe aktualisieren“. Spieler lesen nie die Tabelle, sondern nur über
 `match_plan_open(plan, platform)`: Modul an, freigegeben, im Zeitraum (`share_from` … `share_until`, Standard bis
@@ -319,8 +327,10 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Titel, Ungelesen, Sortierung, Vorschau.
 - `matchplan.ts` – Matchplan: Grundordnungen (11er, 9er, 7er, 5er), Aufstellung per Ziehen (`placePlayer`: tauschen,
   einwechseln, Bank, aus dem Kader, frei verschieben), Vorschlag nach Position, Wechselplan mit geplanten Minuten
-  und Hinweisen, Folien mit Ausschnitt (`fitToView`), Freigabe (Auszug, Zeitraum, nur Kader, Aufgaben nur eigene),
-  Zugriffsstatistik, Bereinigung.
+  und Hinweisen, Folien mit Ausschnitt (Voreinstellungen, eigener Ausschnitt mit Zoom/Verschieben/Format, Spieler
+  außerhalb erkennen und am Rand aufreihen: `fitToView`), gebogene Linien (`bendCtrl`, `linePoint`), Folien aus anderen
+  Plänen übernehmen (`copySlide`), Freigabe (Auszug, Zeitraum, nur Kader, Aufgaben nur eigene), Zugriffsstatistik,
+  Bereinigung.
 - `club.ts` – Verein: Funktionen und Standardrechte (wie `club_default_perms`), Kennzahlen je Team (wie
   `club_overview`), Summen der Übersicht, Ziele für Hochziehen/Wechsel, Belastung mitnehmen (Recht in beiden Teams).
 - `scout.ts` – Kaderplanung & Scouting: Saisons (Stichtag 1. Juli), spielberechtigte Jahrgänge und Altersgrenze,

@@ -402,11 +402,29 @@ export interface MpItem {
   /** Positionskürzel (z. B. IV) bzw. Text */
   label?: string;
   col?: MpColor;
+  /** Linien: Bogen (−2 … 2, positiv = nach links in Laufrichtung; fehlt = gerade) */
+  bend?: number;
 }
-/** Ausschnitt: ganzes Feld, Angriffs-/Abwehrhälfte, Strafraum vorne/hinten */
-export type MpView = "full" | "att" | "def" | "box_att" | "box_def";
+/**
+ * Voreingestellter Ausschnitt: ganzes Feld, Hälften, Angriffsdrittel, 16er vorne/hinten (gezoomt), Ecken je Seite und
+ * Strafraum mit beiden Ecken (breit).
+ */
+export type MpView = "full" | "att" | "def" | "third" | "pen_att" | "pen_def" | "cor_al" | "cor_ar" | "cor_dl" | "cor_dr" | "box_att" | "box_def";
+/** Frei gewählter Ausschnitt in Metern (Hochkant-Koordinaten, wie die Elemente) */
+export interface MpFrame { x: number; y: number; w: number; h: number }
+/** Spielfeld-Design: Rasen, Taktiktafel dunkel, weiß */
+export type MpLook = "grass" | "dark" | "white";
 export type MpSlideCat = "grund" | "ball" | "gegen" | "umschalt" | "ecke_off" | "ecke_def" | "frei_off" | "frei_def" | "einwurf" | "anstoss" | "sonst";
-export interface MpSlide { id: string; cat: MpSlideCat; title: string; view: MpView; items: MpItem[]; note: string; vis: boolean }
+export interface MpSlide {
+  id: string; cat: MpSlideCat; title: string; view: MpView;
+  /** eigener Ausschnitt (Zoom/Verschieben); fehlt = Voreinstellung `view` */
+  frame?: MpFrame | null;
+  /** Icongröße nur für diese Folie; fehlt = wie im Plan */
+  size?: number | null;
+  /** Icon-Ansicht nur für diese Folie (z. B. nur Nummern bei Ecken); fehlt = wie im Plan */
+  mode?: MpMode | null;
+  items: MpItem[]; note: string; vis: boolean;
+}
 export type MpSection = "lineup" | "slides" | "idea" | "opp" | "tasks" | "subs";
 export type MpFmt = 11 | 9 | 7 | 5;
 export interface MpSub { id: string; min: number; out: string | null; in: string | null; note: string }
@@ -420,6 +438,8 @@ export interface MpContent {
   fmt: MpFmt; formation: string; lineup: MpItem[]; bench: string[]; captain: string | null;
   slides: MpSlide[]; idea: MpIdea; opp: MpOpp; tasks: Record<string, string>; subs: MpSub[]; subsNote: string;
   mode: MpMode; size: number;
+  /** Spielfeld-Design (fehlt = Rasen) */
+  look?: MpLook;
 }
 /** Freigabe für Spieler: Bereiche, Zeitraum (bis Spielende), nur Kader, Aufgaben nur die eigene */
 export interface MpShare { sections: MpSection[]; from: string | null; until: string; squadOnly: boolean; ownTasks: boolean }

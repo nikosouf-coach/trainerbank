@@ -2,32 +2,49 @@
 // Ziehen: Spieler auf eine Position (tauschen), frei aufs Feld, auf die Bank oder aus dem Kader. Leere Positionen
 // lassen sich verschieben. Antippen: Spieler wählen, dann Ziel antippen – oder die Knöpfe der Auswahlleiste nutzen.
 import React, { useMemo, useRef, useState } from "react";
-import { Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
-import { BENCH_DEF, FMTS, formationsOf, lineupFor, moveItem, placePlayer, squadOf, suggestLineup, type MpDrop } from "../../core/matchplan";
-import type { MpContent, MpFmt, MpItem, MpMode } from "../../core/types";
+import { Pressable, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
+import { BENCH_DEF, FMTS, MP_LOOKS, formationsOf, lineupFor, moveItem, placePlayer, squadOf, suggestLineup, type MpDrop } from "../../core/matchplan";
+import type { MpContent, MpFmt, MpItem, MpLook, MpMode } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
 import { Banner, Btn, Col, Muted, Picker, Row, Seg, T } from "../kit";
 import { PlayerAvatar } from "../playerAvatar";
 import { radius, useTheme, withAlpha } from "../theme";
 import { useAvail, useTokenInfo } from "./common";
-import { Pitch, TokenGhost, geom, tokenPx, usePitchWidth } from "./pitch";
+import { FULL, LOOKS, Pitch, TokenGhost, geom, tokenPx, usePitchWidth } from "./pitch";
 
 const CHIP_H = 42, GAP = 6, HEAD = 28;
 type Hit = { k: "token"; it: MpItem } | { k: "chip"; pid: string; zone: "bench" | "out" } | { k: "pitch"; x: number; y: number } | { k: "zone"; zone: "bench" | "out" };
 type Drag = { what: { k: "pid"; pid: string } | { k: "slot"; id: string }; x0: number; y0: number; moved: boolean };
 
 export const SIZES: { key: string; v: number }[] = [{ key: "S", v: 0.8 }, { key: "M", v: 1 }, { key: "L", v: 1.2 }, { key: "XL", v: 1.4 }];
-/** Ansicht der Icons und Größe (gilt für den ganzen Plan, auch für Spieler) */
-export function DisplayControls({ c, onChange }: { c: MpContent; onChange: (c: MpContent) => void }) {
-  const E = useEngine(); const { t } = E;
-  const cur = SIZES.reduce((a, b) => Math.abs(b.v - c.size) < Math.abs(a.v - c.size) ? b : a);
+/** Nächstliegende Größenstufe */
+export const sizeKey = (v: number): string => SIZES.reduce((a, b) => Math.abs(b.v - v) < Math.abs(a.v - v) ? b : a).key;
+/** Ansicht der Icons, Größe und Spielfeld-Design (gilt für den ganzen Plan, auch für Spieler) */
+export function DisplayControls({ c, onChange, testID = "mp" }: { c: MpContent; onChange: (c: MpContent) => void; testID?: string }) {
+  const E = useEngine(); const { t } = E; const { c: col } = useTheme();
+  const look = c.look || "grass";
+  const setLook = (l: MpLook) => { const n = { ...c }; if (l === "grass") delete n.look; else n.look = l; onChange(n); };
   return (
     <Row wrap gap={10} align="flex-end">
       <Col gap={4}><Muted small>{t("mp_mode")}</Muted>
-        <Seg testID="mp-mode" value={c.mode} onChange={(m: MpMode) => onChange({ ...c, mode: m })} options={(["num", "name", "photo"] as const).map(k => ({ key: k, label: t("mp_mode_" + k) }))} />
+        <Seg testID={testID + "-mode"} value={c.mode} onChange={(m: MpMode) => onChange({ ...c, mode: m })} options={(["num", "name", "photo"] as const).map(k => ({ key: k, label: t("mp_mode_" + k) }))} />
       </Col>
       <Col gap={4}><Muted small>{t("mp_size")}</Muted>
-        <Seg testID="mp-size" value={cur.key} onChange={k => onChange({ ...c, size: SIZES.find(x => x.key === k)!.v })} options={SIZES.map(x => ({ key: x.key, label: x.key }))} />
+        <Seg testID={testID + "-size"} value={sizeKey(c.size)} onChange={k => onChange({ ...c, size: SIZES.find(x => x.key === k)!.v })} options={SIZES.map(x => ({ key: x.key, label: x.key }))} />
+      </Col>
+      <Col gap={4}><Muted small>{t("mp_look")}</Muted>
+        <Row gap={6} testID={testID + "-look"}>
+          {MP_LOOKS.map(l => {
+            const on = look === l, L = LOOKS[l];
+            return (
+              <Pressable key={l} testID={testID + "-look-" + l} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={t("mpl_" + l)} onPress={() => setLook(l)}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingHorizontal: 9, borderRadius: radius.m, borderWidth: 1.5, borderColor: on ? col.accent : col.line, backgroundColor: on ? col.accentSoft : col.surface }}>
+                <View style={{ width: 18, height: 18, borderRadius: 4, backgroundColor: L.bg, borderWidth: 1, borderColor: L.mark }} />
+                <Text style={{ fontWeight: "700", fontSize: 13, color: col.ink }}>{t("mpl_" + l)}</Text>
+              </Pressable>
+            );
+          })}
+        </Row>
       </Col>
     </Row>
   );
@@ -41,7 +58,7 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
   const [ghost, setGhost] = useState<{ x: number; y: number; pid: string | null; id?: string } | null>(null);
   const drag = useRef<Drag | null>(null);
 
-  const pw = usePitchWidth("full", W), g = geom("full", pw), ox = Math.max(0, (W - pw) / 2), d = tokenPx(pw, c.size);
+  const pw = usePitchWidth(FULL, W), g = geom(FULL, pw), ox = Math.max(0, (W - pw) / 2), d = tokenPx(pw, c.size);
   const squad = squadOf(c);
   const outList = useMemo(() => E.D.players.filter(p => !squad.includes(p.id)).sort((a, b) => Number(av.out(a.id)) - Number(av.out(b.id)) || (a.nr ?? 99) - (b.nr ?? 99)).map(p => p.id),
     [E, squad.join(","), av]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -160,7 +177,7 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
         {W ? <>
           <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}>
             <View style={{ position: "absolute", left: ox, top: 0 }}>
-              <Pitch view="full" items={c.lineup} width={pw} mode={c.mode} size={c.size} accent={col.accent} accentInk={col.accentInk} info={info} captain={c.captain}
+              <Pitch frame={FULL} items={c.lineup} width={pw} mode={c.mode} size={c.size} accent={col.accent} accentInk={col.accentInk} info={info} captain={c.captain} look={c.look}
                 selected={sel ? c.lineup.find(z => z.pid === sel)?.id || null : null} hidden={ghost?.id || null} dot={av.dot} testID="mp-pitch" />
             </View>
             {zoneHead("bench", benchTop, benchH)}

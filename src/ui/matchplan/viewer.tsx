@@ -7,33 +7,20 @@ import { useEngine } from "../../data/store";
 import { Card, CardTitle, Col, Muted, Row, T } from "../kit";
 import { radius, useTheme, withAlpha } from "../theme";
 import { useTokenInfo } from "./common";
-import { Pitch, usePitchWidth } from "./pitch";
+import { FULL, Pitch, usePitchWidth } from "./pitch";
 import { SlidesView } from "./slides";
 
-/** Wasserzeichen über den ganzen Inhalt (schräg, wiederholt) – Name des Spielers und Zeitpunkt */
-export function Watermark({ text, height, testID = "mp-watermark" }: { text: string; height: number; testID?: string }) {
-  const { dark } = useTheme();
-  const rows = Math.max(4, Math.ceil(height / 110));
-  return (
-    <View pointerEvents="none" testID={testID} style={{ position: "absolute", left: 0, right: 0, top: 0, height, overflow: "hidden" }}>
-      {Array.from({ length: rows }).map((_, i) => (
-        <Text key={i} numberOfLines={1} style={{ position: "absolute", top: i * 110 + 30, left: i % 2 ? -160 : -100, width: 1400, transform: [{ rotate: "-24deg" }],
-          fontSize: 17, fontWeight: "800", letterSpacing: 1, color: dark ? "rgba(255,255,255,0.075)" : "rgba(0,0,0,0.075)" }}>
-          {`${text}   ·   ${text}   ·   ${text}   ·   ${text}`}
-        </Text>
-      ))}
-    </View>
-  );
-}
+export { Watermark } from "./watermark";
 
 function Section({ title, children, testID }: { title: string; children: React.ReactNode; testID?: string }) {
   return <Card testID={testID}><CardTitle title={title} />{children}</Card>;
 }
 const Para = ({ label, text }: { label: string; text: string }) => text.trim() ? <Col gap={3}><T v="small" bold>{label}</T><T>{text}</T></Col> : null;
 
-export function PlanContentView({ pub, pid, match }: { pub: MpPublished; pid: string | null; match: Match | null }) {
+/** watermark: Text des Wasserzeichens (Spieler) – gilt auch für die Folien im Vollbild */
+export function PlanContentView({ pub, pid, match, watermark }: { pub: MpPublished; pid: string | null; match: Match | null; watermark?: string }) {
   const E = useEngine(); const { t } = E; const { c: col } = useTheme(); const info = useTokenInfo();
-  const [W, setW] = useState(0); const pw = usePitchWidth("full", W);
+  const [W, setW] = useState(0); const pw = usePitchWidth(FULL, W);
   const has = (k: string) => pub.sections.includes(k as never);
   const mine = pid && pub.tasks ? pub.tasks[pid] : null;
   const myPos = pid ? pub.lineup?.find(x => x.pid === pid)?.label : null, onBench = pid ? pub.bench?.includes(pid) : false;
@@ -64,13 +51,13 @@ export function PlanContentView({ pub, pid, match }: { pub: MpPublished; pid: st
       </Section> : null}
       {has("lineup") && pub.lineup ? <Section title={`${t("mp_sec_lineup")}${pub.formation ? " · " + pub.formation : ""}`} testID="pv-lineup">
         <View onLayout={(e: LayoutChangeEvent) => setW(Math.floor(e.nativeEvent.layout.width))} style={{ width: "100%", alignItems: "center" }}>
-          {W ? <Pitch view="full" items={pub.lineup} width={pw} mode={mode} size={size} accent={col.accent} accentInk={col.accentInk} info={info} captain={pub.captain} highlight={pid} testID="pv-pitch" /> : null}
+          {W ? <Pitch frame={FULL} items={pub.lineup} width={pw} mode={mode} size={size} accent={col.accent} accentInk={col.accentInk} info={info} captain={pub.captain} highlight={pid} look={pub.look} testID="pv-pitch" /> : null}
         </View>
         {pub.bench?.length ? <Col gap={4}><T v="small" bold>{t("mp_benchShort")}</T>
           <Muted small>{pub.bench.map(b => { const i = info(b); return i ? (i.nr != null ? i.nr + " " : "") + i.label : null; }).filter(Boolean).join(" · ")}</Muted></Col> : null}
       </Section> : null}
       {has("slides") && pub.slides?.length ? <Section title={t("mp_sec_slides")} testID="pv-slides-card">
-        <SlidesView slides={pub.slides} c={{ mode, size, captain: pub.captain || null }} />
+        <SlidesView slides={pub.slides} c={{ mode, size, captain: pub.captain || null, look: pub.look }} watermark={watermark} />
       </Section> : null}
       {has("opp") && pub.opp ? <Section title={`${t("mp_opp")}${match ? " · " + match.gegner : ""}`} testID="pv-opp">
         {pub.opp.formation ? <T bold>{t("mp_oppFormation")}: {pub.opp.formation}</T> : null}

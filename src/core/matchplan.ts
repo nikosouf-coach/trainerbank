@@ -3,26 +3,116 @@
 //
 // Koordinaten in Metern auf einem Hochkant-Spielfeld (68 × 105): x = Breite (0 = links), y = Länge
 // (0 = gegnerisches Tor oben, 105 = eigenes Tor unten). Die eigene Mannschaft spielt nach oben.
-// Ein Ausschnitt (z. B. nur der Strafraum für Ecken) ist nur ein anderer Bildausschnitt – die Positionen bleiben.
+// Ein Ausschnitt (z. B. nur der 16er bei Standards) ist nur ein anderer Bildausschnitt – die Positionen bleiben. Er
+// füllt immer die volle Breite der Anzeige: ein kleiner Ausschnitt wird also größer dargestellt (Zoom).
 import { posGroup } from "./classes";
 import type {
-  ClassKey, Match, MatchPlan, MpAvail, MpColor, MpContent, MpFmt, MpIdea, MpItem, MpMode, MpOpp, MpPublished, MpSection, MpShare, MpSlide, MpSlideCat, MpSub, MpTool, MpView, Player,
+  ClassKey, Match, MatchPlan, MpAvail, MpColor, MpContent, MpFmt, MpFrame, MpIdea, MpItem, MpLook, MpMode, MpOpp, MpPublished, MpSection, MpShare, MpSlide, MpSlideCat, MpSub, MpTool, MpView, Player,
 } from "./types";
 
 export const PW = 68, PL = 105;
-/** Bildausschnitte (viewBox in Metern, mit Rand). Alle in voller Breite – die Icons bleiben gleich groß. */
-export const MP_VIEWS: Record<MpView, { x: number; y: number; w: number; h: number }> = {
+/**
+ * Voreingestellte Ausschnitte (Meter, mit Rand). Der 16er ist gezoomt (ca. 1,6-fach), die Ecken zeigen eine Seite mit
+ * Eckfahne und Strafraum, „Strafraum (breit)“ beide Ecken.
+ */
+export const MP_VIEWS: Record<MpView, MpFrame> = {
   full: { x: -3, y: -3, w: 74, h: 111 },
   att: { x: -3, y: -3, w: 74, h: 59 },
   def: { x: -3, y: 49, w: 74, h: 59 },
+  third: { x: -3, y: -3, w: 74, h: 42 },
+  pen_att: { x: 11, y: -4, w: 46, h: 34 },
+  pen_def: { x: 11, y: 75, w: 46, h: 34 },
+  cor_al: { x: -3, y: -4, w: 60, h: 35 },
+  cor_ar: { x: 11, y: -4, w: 60, h: 35 },
+  cor_dl: { x: -3, y: 74, w: 60, h: 35 },
+  cor_dr: { x: 11, y: 74, w: 60, h: 35 },
   box_att: { x: -3, y: -4, w: 74, h: 37 },
   box_def: { x: -3, y: 72, w: 74, h: 37 },
 };
-export const MP_VIEW_KEYS: MpView[] = ["full", "att", "def", "box_att", "box_def"];
+/** Reihenfolge in der Auswahl (je drei: Feld, 16er, Ecken vorne, Ecken hinten) */
+export const MP_VIEW_KEYS: MpView[] = ["full", "att", "def", "third", "pen_att", "pen_def", "cor_al", "cor_ar", "box_att", "cor_dl", "cor_dr", "box_def"];
 export const SLIDE_CATS: MpSlideCat[] = ["grund", "ball", "gegen", "umschalt", "ecke_off", "ecke_def", "frei_off", "frei_def", "einwurf", "anstoss", "sonst"];
-/** Passender Ausschnitt je Folienart (Ecken: nur der Strafraum) */
+/** Passender Ausschnitt je Folienart (Ecken: Eckfahne und Strafraum, gezoomt) */
 export const catView = (c: MpSlideCat): MpView =>
-  c === "ecke_off" ? "box_att" : c === "ecke_def" ? "box_def" : c === "frei_off" ? "att" : c === "frei_def" ? "def" : "full";
+  c === "ecke_off" ? "cor_ar" : c === "ecke_def" ? "cor_dl" : c === "frei_off" ? "att" : c === "frei_def" ? "def" : "full";
+
+// ---------- Ausschnitt: Zoom, Verschieben, Format ----------
+/** Größter Ausschnitt (ganzes Feld mit Rand) und kleinster (ca. 4-fach gezoomt) */
+export const FRAME_MAX = { w: PW + 6, h: PL + 6 };
+export const FRAME_MIN_W = 18;
+/** Formate (Höhe : Breite): hochkant wie das ganze Feld, quadratisch, breit wie der 16er */
+export const FRAME_FORMATS: { k: "tall" | "square" | "wide"; r: number }[] = [{ k: "tall", r: 1.5 }, { k: "square", r: 1 }, { k: "wide", r: 0.6 }];
+const fr = (n: number): number => Math.round(n * 10) / 10;
+/** Größe begrenzen (Seitenverhältnis 0,4 … 1,6 bleibt erhalten) */
+function sizeFrame(w0: number, h0: number): { w: number; h: number } {
+  const r = Math.max(0.4, Math.min(1.6, h0 / w0));
+  const w = Math.max(FRAME_MIN_W, Math.min(w0, FRAME_MAX.w, FRAME_MAX.h / r));
+  return { w, h: w * r };
+}
+/** Ausschnitt in den Grenzen halten: Mindest-/Höchstgröße, höchstens 5 m (seitlich) bzw. 6 m (hinter dem Tor) neben dem Feld */
+export function clampFrame(f: MpFrame): MpFrame {
+  const w0 = Number(f.w), h0 = Number(f.h);
+  if (!(w0 > 0) || !(h0 > 0) || !isFinite(w0) || !isFinite(h0)) return { ...MP_VIEWS.full };
+  const { w, h } = sizeFrame(w0, h0);
+  const x = Math.max(-5, Math.min(PW + 5 - w, Number(f.x) || 0)), y = Math.max(-6, Math.min(PL + 6 - h, Number(f.y) || 0));
+  return { x: fr(x), y: fr(y), w: fr(w), h: fr(h) };
+}
+/** Zoomen um einen Punkt (Faktor > 1 = näher heran); der Punkt bleibt an seiner Stelle, das Format bleibt */
+export function zoomFrame(f: MpFrame, factor: number, cx = f.x + f.w / 2, cy = f.y + f.h / 2): MpFrame {
+  const { w, h } = sizeFrame(f.w / factor, f.h / factor), k = w / f.w;
+  return clampFrame({ x: cx - (cx - f.x) * k, y: cy - (cy - f.y) * k, w, h });
+}
+/** Ausschnitt verschieben (Meter) */
+export const panFrame = (f: MpFrame, dx: number, dy: number): MpFrame => clampFrame({ ...f, x: f.x + dx, y: f.y + dy });
+/** Format ändern (Höhe : Breite); die Mitte bleibt */
+export function formatFrame(f: MpFrame, ratio: number): MpFrame {
+  const cx = f.x + f.w / 2, cy = f.y + f.h / 2;
+  let w = f.w, h = w * ratio;
+  if (h > FRAME_MAX.h) { h = FRAME_MAX.h; w = h / ratio; }
+  return clampFrame({ x: cx - w / 2, y: cy - h / 2, w, h });
+}
+/** Nächstliegendes Format eines Ausschnitts */
+export const formatOf = (f: MpFrame): "tall" | "square" | "wide" =>
+  FRAME_FORMATS.reduce((a, b) => Math.abs(Math.log(b.r) - Math.log(f.h / f.w)) < Math.abs(Math.log(a.r) - Math.log(f.h / f.w)) ? b : a).k;
+/** Zoom gegenüber der ganzen Feldbreite (1 = ganze Breite) */
+export const zoomOf = (f: MpFrame): number => Math.round((FRAME_MAX.w / f.w) * 100) / 100;
+/** Ausschnitt einer Folie: eigener Ausschnitt oder die Voreinstellung */
+export const frameOf = (sl: Pick<MpSlide, "view" | "frame">): MpFrame => sl.frame || MP_VIEWS[sl.view] || MP_VIEWS.full;
+/** Voreinstellung, die genau diesem Ausschnitt entspricht (sonst null = eigener Ausschnitt) */
+export function presetOf(f: MpFrame): MpView | null {
+  for (const k of MP_VIEW_KEYS) { const v = MP_VIEWS[k]; if (Math.abs(v.x - f.x) < 0.3 && Math.abs(v.y - f.y) < 0.3 && Math.abs(v.w - f.w) < 0.3 && Math.abs(v.h - f.h) < 0.3) return k; }
+  return null;
+}
+/** Ausschnitt einer Folie setzen: entspricht er einer Voreinstellung, wird nur sie gespeichert */
+export function withFrame<T extends Pick<MpSlide, "view" | "frame">>(sl: T, f: MpFrame): T {
+  const c = clampFrame(f), p = presetOf(c);
+  return p ? { ...sl, view: p, frame: null } : { ...sl, frame: c };
+}
+/** Liegt der Punkt im Ausschnitt (mit Abstand m zum Rand)? */
+export const inFrame = (f: MpFrame, x: number, y: number, m = 0): boolean => x >= f.x + m && x <= f.x + f.w - m && y >= f.y + m && y <= f.y + f.h - m;
+/** Feldspieler (eigene und Gegner) außerhalb des Ausschnitts – Torhüter bleiben ohnehin im Tor */
+export const outsideFrame = (items: MpItem[], f: MpFrame): MpItem[] => items.filter(it => (it.t === "own" || it.t === "opp") && it.label !== "TW" && !inFrame(f, it.x, it.y, 0.5));
+
+// ---------- Linien mit Bogen ----------
+/** Kontrollpunkt einer gebogenen Linie (quadratische Kurve); null = gerade */
+export function bendCtrl(it: Pick<MpItem, "x" | "y" | "x2" | "y2" | "bend">): { x: number; y: number } | null {
+  const b = it.bend || 0; if (!b) return null;
+  const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, dx = x2 - it.x, dy = y2 - it.y;
+  if (Math.hypot(dx, dy) < 0.5) return null;
+  // positiv = nach links in Laufrichtung (Bildschirm: y nach unten)
+  const k = b * 0.25;
+  return { x: (it.x + x2) / 2 + dy * k, y: (it.y + y2) / 2 - dx * k };
+}
+/** Punkt auf der Linie (t = 0 … 1), auch für gebogene Linien */
+export function linePoint(it: Pick<MpItem, "x" | "y" | "x2" | "y2" | "bend">, t: number): { x: number; y: number } {
+  const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, c = bendCtrl(it);
+  if (!c) return { x: it.x + (x2 - it.x) * t, y: it.y + (y2 - it.y) * t };
+  const u = 1 - t;
+  return { x: u * u * it.x + 2 * u * t * c.x + t * t * x2, y: u * u * it.y + 2 * u * t * c.y + t * t * y2 };
+}
+
+// ---------- Spielfeld-Design ----------
+export const MP_LOOKS: MpLook[] = ["grass", "dark", "white"];
 /** Standardsituationen (eigener Bereich in der Folienliste) */
 export const isSetPiece = (c: MpSlideCat): boolean => ["ecke_off", "ecke_def", "frei_off", "frei_def", "einwurf", "anstoss"].includes(c);
 
@@ -273,9 +363,9 @@ export const newSub = (min: number): MpSub => ({ id: mpId("w"), min, out: null, 
  * Neue Folie: eigene Spieler aus der Aufstellung (optional der Gegner aus der Gegneranalyse) und ein Ball.
  * Wer außerhalb des Ausschnitts stünde (z. B. bei Ecken), wird am Rand aufgereiht und kann von dort gezogen werden.
  */
-export function newSlide(c: MpContent, cat: MpSlideCat, title: string, withOpp: boolean): MpSlide {
+export function newSlide(c: MpContent, cat: MpSlideCat, title: string, withOpp: boolean, withOwn = true): MpSlide {
   const view = catView(cat), v = MP_VIEWS[view];
-  const own = c.lineup.filter(x => x.pid || x.label).map(x => ({ ...x, id: mpId("i") }));
+  const own = withOwn ? c.lineup.filter(x => x.pid || x.label).map(x => ({ ...x, id: mpId("i") })) : [];
   const opp = withOpp ? c.opp.items.map(x => ({ ...x, id: mpId("i") })) : [];
   const ball: MpItem = cat === "ecke_off" ? { id: mpId("i"), t: "ball", x: 67, y: 0 } : cat === "ecke_def" ? { id: mpId("i"), t: "ball", x: 1, y: 105 }
     : cat === "anstoss" ? { id: mpId("i"), t: "ball", x: 34, y: 52.5 } : { id: mpId("i"), t: "ball", x: r1(v.x + v.w / 2), y: r1(v.y + v.h / 2) };
@@ -283,19 +373,23 @@ export function newSlide(c: MpContent, cat: MpSlideCat, title: string, withOpp: 
 }
 /**
  * Spieler, die außerhalb des Ausschnitts stünden (z. B. bei Ecken), am Rand des Ausschnitts aufreihen – eigene und
- * Gegner je eine Reihe. Torhüter bleiben im eigenen Tor, wenn es außerhalb liegt. Linien und Ball bleiben unverändert.
+ * Gegner je eine Reihe (zur Feldmitte hin). Torhüter bleiben im eigenen Tor, wenn es außerhalb liegt. Linien und Ball
+ * bleiben unverändert.
  */
-export function fitToView(items: MpItem[], view: MpView): MpItem[] {
-  if (view === "full") return items;
-  const v = MP_VIEWS[view], top = view === "def" || view === "box_def";
-  const inside = (it: MpItem) => it.x >= v.x + 1 && it.x <= v.x + v.w - 1 && it.y >= v.y + 1 && it.y <= v.y + v.h - 1;
+export function fitToView(items: MpItem[], target: MpView | MpFrame): MpItem[] {
+  const v = typeof target === "string" ? MP_VIEWS[target] || MP_VIEWS.full : target;
+  if (v.w >= FRAME_MAX.w - 0.5 && v.h >= FRAME_MAX.h - 0.5) return items;
+  const top = v.y + v.h / 2 > PL / 2;
+  const inside = (it: MpItem) => inFrame(v, it.x, it.y, 1);
   const moved = new Map<string, { x: number; y: number }>();
+  // Abstand zum Rand (Platz für den Namen unter dem Icon) und zwischen den Reihen – wächst mit dem Ausschnitt
+  const edge = Math.max(3.5, Math.min(6, v.h * 0.12)), gap = Math.max(4.5, Math.min(6, v.h * 0.15));
   const park = (L: MpItem[], row: number, keeperHome: boolean) => {
     const out = L.filter(it => !inside(it) && !(keeperHome && it.label === "TW")); if (!out.length) return;
-    const y = top ? v.y + 3 + row * 5 : v.y + v.h - 3 - row * 5;
-    const step = Math.min(6.5, (PW - 4) / Math.max(1, out.length - 1));
-    const x0 = PW / 2 - step * (out.length - 1) / 2;
-    out.forEach((it, i) => moved.set(it.id, { x: r1(x0 + i * step), y: r1(y) }));
+    const y = top ? v.y + edge + row * gap : v.y + v.h - edge - row * gap;
+    const step = out.length > 1 ? Math.min(6.5, Math.max(0, v.w - 8) / (out.length - 1)) : 0;
+    const x0 = v.x + v.w / 2 - step * (out.length - 1) / 2;
+    out.forEach((it, i) => moved.set(it.id, { x: clampX(x0 + i * step), y: clampY(y) }));
   };
   park(items.filter(x => x.t === "own"), 0, !top);
   park(items.filter(x => x.t === "opp"), 1, top);
@@ -323,6 +417,7 @@ export function shareState(p: Pick<MatchPlan, "published" | "share">, now: Date)
 export function publishedOf(c: MpContent, sections: MpSection[]): MpPublished {
   const has = (k: MpSection) => sections.includes(k);
   const P: MpPublished = { sections: MP_SECTIONS.filter(has), fmt: c.fmt, mode: c.mode, size: c.size };
+  if (c.look && c.look !== "grass") P.look = c.look;
   if (has("lineup")) { P.formation = c.formation; P.lineup = c.lineup; P.bench = c.bench; P.captain = c.captain; }
   if (has("slides")) P.slides = c.slides.filter(x => x.vis);
   if (has("idea")) P.idea = c.idea;
@@ -375,7 +470,26 @@ function cleanItem(v: Partial<MpItem>, only?: MpTool): MpItem | null {
   if (t === "opp" || t === "own") { const n = v.n == null ? null : Math.round(Number(v.n)); if (n != null && n >= 0 && n <= 99) it.n = n; }
   if (v.label) it.label = str(v.label, t === "text" ? 40 : 4);
   if (v.col && MP_COLORS.includes(v.col)) it.col = v.col;
+  if (isLine(t) && t !== "zone") { const b = Math.round(Number(v.bend) || 0); if (b) it.bend = Math.max(-2, Math.min(2, b)); }
   return it;
+}
+/** Ausschnitt aus gespeicherten Daten (ungültig → null) */
+function cleanFrame(v: unknown): MpFrame | null {
+  if (!v || typeof v !== "object") return null;
+  const f = v as Partial<MpFrame>, n = [f.x, f.y, f.w, f.h].map(Number);
+  return n.every(isFinite) && n[2] > 0 && n[3] > 0 ? clampFrame({ x: n[0], y: n[1], w: n[2], h: n[3] }) : null;
+}
+function cleanSlide(sl: Partial<MpSlide>): MpSlide {
+  const out: MpSlide = {
+    id: idOk(sl.id), cat: SLIDE_CATS.includes(sl.cat as MpSlideCat) ? sl.cat as MpSlideCat : "sonst", title: str(sl.title, MP_LIMITS.slideTitle),
+    view: MP_VIEW_KEYS.includes(sl.view as MpView) ? sl.view as MpView : "full", items: items(sl.items, MP_LIMITS.items), note: str(sl.note, MP_LIMITS.text), vis: sl.vis !== false,
+  };
+  const f = cleanFrame(sl.frame);
+  if (f) { const p = presetOf(f); if (p) out.view = p; else out.frame = f; }
+  const sz = Number(sl.size);
+  if (sl.size != null && sz > 0) out.size = Math.max(0.6, Math.min(1.8, Math.round(sz * 10) / 10));
+  if (sl.mode && MP_MODES.includes(sl.mode)) out.mode = sl.mode;
+  return out;
 }
 const items = (L: unknown, max: number, only?: MpTool): MpItem[] => (Array.isArray(L) ? L : []).slice(0, max).map(x => cleanItem(x || {}, only)).filter((x): x is MpItem => !!x);
 export function cleanContent(v: Partial<MpContent>, cls: ClassKey): MpContent {
@@ -389,10 +503,7 @@ export function cleanContent(v: Partial<MpContent>, cls: ClassKey): MpContent {
   return {
     fmt, formation: validFormation(fmt, v.formation), lineup, bench,
     captain: v.captain && squad.has(v.captain) ? v.captain : null,
-    slides: (Array.isArray(v.slides) ? v.slides : []).slice(0, MP_LIMITS.slides).map((sl: Partial<MpSlide>) => ({
-      id: idOk(sl.id), cat: SLIDE_CATS.includes(sl.cat as MpSlideCat) ? sl.cat as MpSlideCat : "sonst", title: str(sl.title, MP_LIMITS.slideTitle),
-      view: MP_VIEW_KEYS.includes(sl.view as MpView) ? sl.view as MpView : "full", items: items(sl.items, MP_LIMITS.items), note: str(sl.note, MP_LIMITS.text), vis: sl.vis !== false,
-    })),
+    slides: (Array.isArray(v.slides) ? v.slides : []).slice(0, MP_LIMITS.slides).map((sl: Partial<MpSlide>) => cleanSlide(sl || {})),
     idea: { motto: str(idea.motto, 120), keys: (Array.isArray(idea.keys) ? idea.keys : []).map(k => str(k, 120).trim()).filter(Boolean).slice(0, MP_LIMITS.keys),
       ball: str(idea.ball, MP_LIMITS.text), gegen: str(idea.gegen, MP_LIMITS.text), umschalt: str(idea.umschalt, MP_LIMITS.text) },
     opp: { formation: opp.formation && FORMATIONS[fmt][opp.formation] ? opp.formation : null, items: items(opp.items, fmt, "opp"),
@@ -405,7 +516,13 @@ export function cleanContent(v: Partial<MpContent>, cls: ClassKey): MpContent {
     subsNote: str(v.subsNote, 600),
     mode: MP_MODES.includes(v.mode as MpMode) ? v.mode as MpMode : "name",
     size: Math.max(0.7, Math.min(1.6, Math.round((Number(v.size) || 1) * 10) / 10)),
+    // Rasen ist der Standard und wird nicht gespeichert (ältere Freigaben bleiben unverändert)
+    ...(v.look && v.look !== "grass" && MP_LOOKS.includes(v.look) ? { look: v.look } : {}),
   };
+}
+/** Folie (z. B. aus einem anderen Matchplan) mit neuen IDs kopieren */
+export function copySlide(sl: MpSlide, title?: string): MpSlide {
+  return { ...JSON.parse(JSON.stringify(sl)) as MpSlide, id: mpId("s"), ...(title != null ? { title: title.slice(0, MP_LIMITS.slideTitle) } : {}), items: sl.items.map(x => ({ ...x, id: mpId("i") })) };
 }
 export const cleanShare = (x: MpShare): MpShare => ({
   sections: MP_SECTIONS.filter(k => x.sections.includes(k)), from: x.from || null, until: x.until, squadOnly: !!x.squadOnly, ownTasks: x.ownTasks !== false,

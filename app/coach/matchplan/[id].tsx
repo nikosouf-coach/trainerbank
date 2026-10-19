@@ -86,7 +86,7 @@ export default function MatchplanEditor() {
         <LineupEditor c={draft.c} onChange={setC} date={m?.date || null} ro={ro} />
         <DisplayControls c={draft.c} onChange={setC} />
       </Col> : null}
-      {tab === "slides" ? <SlidesPanel c={draft.c} onChange={setC} ro={ro} /> : null}
+      {tab === "slides" ? <SlidesPanel c={draft.c} onChange={setC} ro={ro} planId={stored.id} /> : null}
       {tab === "idea" ? <IdeaEditor c={draft.c} onChange={setC} ro={ro} /> : null}
       {tab === "opp" ? <OppEditor c={draft.c} onChange={setC} ro={ro} /> : null}
       {tab === "tasks" ? <TasksEditor c={draft.c} onChange={setC} ro={ro} /> : null}

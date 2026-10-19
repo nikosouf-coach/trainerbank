@@ -3,8 +3,9 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildDemo, demoExtras, demoTeam } from "../demo";
 import {
-  DEFAULT_SECTIONS, FORMATIONS, MP_VIEWS, availFor, changedSincePublish, cleanContent, copyPlan, defaultUntil, emptyContent, fmtOf, forPlayer, lineupFor,
-  newPlan, newSlide, oppLineup, placePlayer, plannedMinutes, publishedOf, seenStats, shareState, slotsOf, squadOf, stableJson, suggestLineup, visibleTo,
+  DEFAULT_SECTIONS, FORMATIONS, FRAME_MAX, FRAME_MIN_W, MP_VIEWS, MP_VIEW_KEYS, availFor, bendCtrl, changedSincePublish, clampFrame, cleanContent, copyPlan, copySlide,
+  defaultUntil, emptyContent, fitToView, fmtOf, formatFrame, formatOf, forPlayer, frameOf, inFrame, linePoint, lineupFor, newPlan, newSlide, oppLineup, outsideFrame,
+  panFrame, placePlayer, plannedMinutes, presetOf, publishedOf, seenStats, shareState, slotsOf, squadOf, stableJson, suggestLineup, visibleTo, withFrame, zoomFrame, zoomOf,
 } from "../matchplan";
 import type { MatchPlan, MpContent, Player } from "../types";
 
@@ -115,17 +116,105 @@ test("Folien: Ausschnitt je Art, Spieler außerhalb werden am Rand aufgereiht", 
   const c = full();
   c.opp.items = oppLineup(11, "4-4-2");
   const corner = newSlide(c, "ecke_off", "Ecke", true);
-  assert.equal(corner.view, "box_att");
-  const v = MP_VIEWS.box_att;
+  assert.equal(corner.view, "cor_ar", "Ecke offensiv: Eckfahne rechts mit Strafraum");
+  const v = MP_VIEWS.cor_ar;
   const own = corner.items.filter(x => x.t === "own"), opp = corner.items.filter(x => x.t === "opp");
   assert.equal(own.length, 11); assert.equal(opp.length, 11);
-  assert.ok(corner.items.filter(x => !(x.t === "own" && x.label === "TW")).every(x => x.y >= v.y && x.y <= v.y + v.h), "alle im Ausschnitt");
+  assert.ok(corner.items.filter(x => !(x.t === "own" && x.label === "TW")).every(x => inFrame(v, x.x, x.y)), "alle im Ausschnitt (auch seitlich)");
+  assert.ok(inFrame(v, 67, 0) && inFrame(v, 13.84, 0) && inFrame(v, 54.16, 16.5), "Eckfahne und ganzer Strafraum sichtbar");
+  assert.equal(newSlide(c, "ecke_def", "E", false).view, "cor_dl");
+  assert.equal(newSlide(c, "gegen", "G", true, false).items.filter(x => x.t === "own").length, 0, "ohne eigene Spieler");
   assert.equal(own.find(x => x.label === "TW")!.y, 98, "eigener Torwart bleibt bei einer Ecke vorne im Tor");
   assert.equal(corner.items.find(x => x.t === "ball")!.x, 67);
   const grund = newSlide(c, "grund", "Grund", false);
   assert.equal(grund.view, "full");
   assert.deepEqual(grund.items.filter(x => x.t === "own").map(x => [x.x, x.y]), c.lineup.map(x => [x.x, x.y]), "ganzes Feld: Positionen aus der Aufstellung");
   assert.notEqual(grund.items[0].id, c.lineup[0].id, "neue IDs");
+});
+
+test("Ausschnitt: Voreinstellungen, Zoom um einen Punkt, Verschieben, Format, Grenzen", () => {
+  // 16er gezoomt: kleiner als die ganze Breite, ganzer Strafraum mit Bogen und Tor im Bild
+  const pen = MP_VIEWS.pen_att;
+  assert.ok(zoomOf(pen) > 1.3, "16er wird größer dargestellt");
+  assert.ok(inFrame(pen, 13.84, -1.6) && inFrame(pen, 54.16, 20.15), "Strafraum, Tor und Bogen");
+  assert.ok(inFrame(MP_VIEWS.pen_def, 13.84, 106.6) && inFrame(MP_VIEWS.pen_def, 54.16, 84.85));
+  for (const k of MP_VIEW_KEYS) assert.deepEqual(clampFrame(MP_VIEWS[k]), MP_VIEWS[k], k + " liegt in den Grenzen");
+  assert.equal(new Set(MP_VIEW_KEYS).size, Object.keys(MP_VIEWS).length);
+  // Zoom um die Mitte: Format bleibt, Mitte bleibt
+  const f = MP_VIEWS.full, z = zoomFrame(f, 2);
+  assert.equal(z.w, 37); assert.equal(z.h, 55.5);
+  assert.ok(Math.abs(z.x + z.w / 2 - (f.x + f.w / 2)) < 0.1 && Math.abs(z.y + z.h / 2 - (f.y + f.h / 2)) < 0.1, "Mitte bleibt (auf 0,1 m gerundet)");
+  // Zoom um einen Punkt: der Punkt bleibt an derselben relativen Stelle
+  const p = zoomFrame(pen, 1.5, 34, 0), rel = (fr: typeof pen) => [(34 - fr.x) / fr.w, (0 - fr.y) / fr.h];
+  assert.ok(Math.abs(rel(p)[0] - rel(pen)[0]) < 0.01 && Math.abs(rel(p)[1] - rel(pen)[1]) < 0.01);
+  // Grenzen: höchstens ganzes Feld, mindestens FRAME_MIN_W, nicht weit neben das Feld
+  assert.deepEqual(zoomFrame(f, 0.5), clampFrame(f), "weiter raus als das ganze Feld geht nicht");
+  assert.equal(zoomFrame(pen, 10).w, FRAME_MIN_W);
+  const far = panFrame(pen, 500, -500);
+  assert.equal(far.x, 68 + 5 - pen.w); assert.equal(far.y, -6);
+  assert.deepEqual(clampFrame({ x: NaN, y: 0, w: -1, h: 3 }), MP_VIEWS.full, "Unsinn → ganzes Feld");
+  // Format: Mitte bleibt, hochkant wird höchstens so hoch wie das Feld
+  const sq = formatFrame(pen, 1);
+  assert.equal(formatOf(sq), "square"); assert.equal(sq.w, pen.w); assert.ok(Math.abs(sq.x + sq.w / 2 - (pen.x + pen.w / 2)) < 0.1);
+  const tall = formatFrame(f, 1.5); assert.ok(tall.h <= FRAME_MAX.h && tall.w <= FRAME_MAX.w);
+  assert.equal(formatOf(MP_VIEWS.full), "tall"); assert.equal(formatOf(MP_VIEWS.pen_att), "wide");
+  // Voreinstellung erkennen, sonst eigener Ausschnitt
+  const sl = newSlide(full(), "grund", "A", false);
+  assert.equal(presetOf(MP_VIEWS.cor_ar), "cor_ar");
+  assert.deepEqual(withFrame(sl, MP_VIEWS.pen_def), { ...sl, view: "pen_def", frame: null });
+  const own = withFrame(sl, z);
+  assert.equal(own.view, "full", "Voreinstellung bleibt als Grundlage");
+  assert.deepEqual(frameOf(own), z); assert.deepEqual(frameOf(sl), MP_VIEWS.full);
+});
+
+test("Ausschnitt: Spieler außerhalb erkennen und innerhalb des Ausschnitts aufreihen", () => {
+  const c = full(); c.opp.items = oppLineup(11, "4-4-2");
+  const items = [...c.lineup, ...c.opp.items];
+  const pen = MP_VIEWS.pen_att;
+  const out = outsideFrame(items, pen);
+  assert.ok(out.length > 10, "beim 16er stehen viele außerhalb");
+  const fit = fitToView(items, pen);
+  assert.ok(fit.filter(x => !(x.t === "own" && x.label === "TW")).every(x => inFrame(pen, x.x, x.y)), "alle (außer dem eigenen Torwart) im Ausschnitt");
+  assert.equal(fit.find(x => x.t === "own" && x.label === "TW")!.y, 98, "eigener Torwart bleibt im Tor");
+  const zoomIn = zoomFrame(MP_VIEWS.full, 2.5, 34, 52);
+  assert.ok(fitToView(items, zoomIn).filter(x => !(x.t === "own" && x.label === "TW")).every(x => inFrame(zoomIn, x.x, x.y)), "auch bei eigenem Ausschnitt");
+  assert.deepEqual(fitToView(items, "full"), items, "ganzes Feld: nichts verschieben");
+});
+
+test("Linien: Bogen links/rechts, Punkt auf der Kurve, Bereinigung", () => {
+  const up = { x: 34, y: 50, x2: 34, y2: 30 };
+  assert.equal(bendCtrl(up), null);
+  const l = bendCtrl({ ...up, bend: 1 })!, r = bendCtrl({ ...up, bend: -2 })!;
+  assert.ok(l.x < 34, "positiv = links in Laufrichtung (nach oben gespielt → kleineres x)");
+  assert.ok(r.x > 34 && Math.abs(r.x - 34) > Math.abs(l.x - 34), "negativ = rechts, stärker");
+  const mid = linePoint({ ...up, bend: 1 }, 0.5);
+  assert.ok(mid.x < 34 && Math.abs(mid.y - 40) < 0.01);
+  assert.deepEqual(linePoint(up, 0.25), { x: 34, y: 45 });
+  const c = cleanContent({ ...emptyContent("u19"), slides: [{ id: "s1", cat: "ecke_off", title: "E", view: "full", note: "", vis: true,
+    items: [{ id: "a", t: "pass", x: 1, y: 1, x2: 5, y2: 5, bend: 7 }, { id: "b", t: "zone", x: 1, y: 1, x2: 5, y2: 5, bend: 1 }, { id: "c", t: "run", x: 1, y: 1, bend: 0 }] }] }, "u19");
+  assert.equal(c.slides[0].items[0].bend, 2); assert.equal(c.slides[0].items[1].bend, undefined, "Zonen nicht gebogen");
+  assert.ok(!("bend" in c.slides[0].items[2]), "gerade wird nicht gespeichert");
+});
+
+test("Folien individuell: eigener Ausschnitt, Icongröße, Design; ältere Freigaben gelten nicht als geändert", () => {
+  const base = full(); base.slides = [newSlide(base, "grund", "A", false)];
+  const legacyPub = publishedOf(base, DEFAULT_SECTIONS);
+  const plan: MatchPlan = { ...newPlan("p", null, "u19", "T"), c: base, share: { sections: DEFAULT_SECTIONS, from: null, until: "2030-01-01T00:00:00Z", squadOnly: false, ownTasks: true }, published: legacyPub };
+  const cleaned = cleanContent(JSON.parse(JSON.stringify(base)), "u19");
+  assert.equal(changedSincePublish({ ...plan, c: cleaned }), false, "Bereinigen ändert ältere Pläne nicht");
+  assert.equal("look" in cleaned, false, "Rasen ist Standard und wird nicht gespeichert");
+  const z = zoomFrame(MP_VIEWS.full, 1.8, 30, 20);
+  const c = cleanContent({ ...base, look: "white", slides: [{ ...base.slides[0], frame: z, size: 1.33 }, { ...base.slides[0], id: "x2", frame: MP_VIEWS.pen_att }, { ...base.slides[0], id: "x3", frame: { x: 1, y: 2, w: "a" as never, h: 3 }, size: 0 }] }, "u19");
+  assert.deepEqual(c.slides[0].frame, z); assert.equal(c.slides[0].size, 1.3);
+  assert.equal(c.slides[1].view, "pen_att"); assert.equal(c.slides[1].frame, undefined, "Voreinstellung statt Rahmen");
+  assert.equal(c.slides[2].frame, undefined); assert.equal(c.slides[2].size, undefined);
+  assert.equal(c.look, "white"); assert.equal(publishedOf(c, DEFAULT_SECTIONS).look, "white");
+  assert.equal(cleanContent({ ...base, look: "neon" as never }, "u19").look, undefined);
+  assert.equal(changedSincePublish({ ...plan, c }), true, "Ausschnitt und Design sehen Spieler → geändert");
+  // Folie aus einem anderen Plan übernehmen: neue IDs, Inhalt gleich
+  const cp = copySlide(c.slides[0], "Kopie");
+  assert.notEqual(cp.id, c.slides[0].id); assert.equal(cp.title, "Kopie"); assert.deepEqual(cp.frame, z);
+  assert.ok(cp.items.every((x, i) => x.id !== c.slides[0].items[i].id && x.x === c.slides[0].items[i].x));
 });
 
 test("Freigabe: Bereiche, Folien nur sichtbare, Aufgaben nur eigene, Zeitraum, nur Kader, Änderungen erkennen", () => {
@@ -203,7 +292,8 @@ test("Demo: freigegebener Plan fürs nächste Spiel mit Protokoll, früherer Pla
   assert.ok(next && last);
   assert.equal(shareState(next, NOW), "live"); assert.equal(shareState(last, NOW), "ended");
   assert.equal(next.c.lineup.filter(x => x.pid).length, 11);
-  assert.equal(next.c.slides.length, 4);
+  assert.equal(next.c.slides.length, 5);
+  assert.ok(next.c.slides.some(sl => sl.view === "pen_att" && sl.items.some(x => x.bend)), "Freistoß im gezoomten 16er mit Bogenschuss");
   assert.ok(Object.keys(next.c.tasks).length >= 4);
   assert.ok(next.c.subs.length >= 2);
   assert.equal(changedSincePublish(next), false);
