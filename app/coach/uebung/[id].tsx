@@ -6,7 +6,7 @@ import type { CoachPoint, Drawing, Exercise } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { useAi } from "../../../src/ui/ai";
 import { CATS } from "../../../src/ui/archive";
-import { BoardEditor, emptyDrawing } from "../../../src/ui/board";
+import { SketchField } from "../../../src/ui/sketch";
 import { Btn, Card, CardTitle, ChoiceChips, Col, Field, Header, Muted, NumField, NumScale, Picker, Row, Screen, T } from "../../../src/ui/kit";
 import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
@@ -67,8 +67,8 @@ export default function Uebung() {
         <Field testID="ex-desc" label={t("ex_desc")} value={desc} onChangeText={setDesc} multiline />
       </Card>
       <Card testID="ex-drawing">
-        <CardTitle title={t("bd_draw")} right={drawing ? <Btn small kind="ghost" label={t("del")} onPress={() => setDrawing(null)} /> : undefined} />
-        {drawing ? <BoardEditor value={drawing} onChange={setDrawing} /> : <Btn testID="ex-draw-add" label={t("bd_add")} icon="plus" onPress={() => setDrawing(emptyDrawing())} style={{ alignSelf: "flex-start" }} />}
+        <CardTitle title={t("bd_draw")} />
+        <SketchField testID="ex-sketch" value={drawing} onChange={setDrawing} labels={{ add: t("bd_add"), edit: t("blk_drawEdit"), del: t("blk_drawDel") }} />
       </Card>
       <Card testID="ex-points">
         <CardTitle title={t("ex_points")} />

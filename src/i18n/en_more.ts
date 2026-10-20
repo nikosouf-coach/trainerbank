@@ -36,7 +36,7 @@ export const en_more: Dict = {
   su_logo: "Club logo", su_color: "Club colour",
   su_s_mods: "Features", su_infoT: "Show info buttons (i)", su_infoD: "Small (i) buttons explain terms like ACWR or RPE right where they appear. Change any time under More → Account.",
   su_s_orga: "Players & staff", su_s_orgaB: "What players see and may do in their app – and who coaches with you.",
-  su_pvT: "Player app", su_staffT: "More coaches", su_staffD: "Assistant, goalkeeper and fitness coaches, physio. They get their own access with their tasks later.", su_addStaff: "Add coach",
+  su_pvT: "Player app", su_stepN: "Step {n} of {m}", su_staffT: "Coaching team & staff", su_staffD: "Assistant, goalkeeper and fitness coaches, physio, team manager. They get their own access with their tasks later.", su_addStaff: "Add staff",
   su_s_load: "Reminders", su_s_loadB: "Push messages so players log their data.",
   su_s_science: "Sports science", su_s_scienceB: "How precisely the app calculates and which tests your team does.",
   su_testsT: "Performance testing: tests", su_testsD: "Which tests do you use? Exactly these appear later in performance testing (results, personal bests, progress). Recommended: at the start and end of pre-season and in the winter break.",

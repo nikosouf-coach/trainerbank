@@ -75,15 +75,3 @@ export function CoachPlanCard({ match, compact }: { match: Match; compact?: bool
     </Card>
   );
 }
-
-/** Kurzer Hinweis in der Kopfzeile des nächsten Spiels (Startseite Trainer) */
-export function heroPlanLabel(E: ReturnType<typeof useEngine>, match: Match): string | null {
-  if (!E.mods.matchplan) return null;
-  const p = E.D.plans.find(x => x.matchId === match.id);
-  if (!p) return E.t("mp_heroNone");
-  const st = shareState(p, new Date());
-  if (st !== "live") return E.t("mp_title") + ": " + E.t("mp_st_" + st);
-  const rec = p.share?.squadOnly ? squadOf(p.c) : E.D.players.map(x => x.id);
-  const n = seenStats((E.D.planLogs[p.id] || []).filter(l => !p.publishedAt || l.at >= p.publishedAt), rec).seen.length;
-  return E.t("mp_title") + ": " + E.tf("mp_seen", { n, m: rec.length });
-}

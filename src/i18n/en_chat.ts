@@ -62,4 +62,11 @@ export const en_chat: Dict = {
   err_chat_off: "Chat is switched off.", err_dm_off: "Direct messages are not possible here.", err_chat_rate: "Too many messages in a short time – please wait a moment.",
   err_open_requests: "You already have two open requests.", err_indiv_off: "Requests for individual sessions are switched off.", err_members: "Too many members (at most 60).",
   err_invalid_members: "Please select at least one person.", err_challenge_closed: "This challenge has already ended.", err_duplicate: "Already exists.",
+  // Folders
+  ch_fAll: "All", ch_f_mine: "Direct", ch_f_groups: "Groups", ch_f_read: "Monitoring",
+  ch_f_mineD: "Direct – your one-to-one conversations", ch_f_groupsD: "Groups – team, staff and groups", ch_f_readD: "Monitoring – chats you only read for safeguarding",
+  ch_fEdit: "Edit folders", ch_fPre: "Built-in folders", ch_fShow: "Show", ch_fOwn: "Your folders",
+  ch_fOwnD: "Create your own folders, e.g. “Parents”, “Goalkeepers” or “Important”, and add chats. A chat can be in several folders.",
+  ch_fNew: "New folder", ch_fNewN: "Folder {n}", ch_fName: "Name", ch_fDel: "Delete folder", ch_fChatsN: "{n} chats – assign",
+  ch_fEmpty: "No chats in this folder.", ch_fAdd: "Add chats", ch_fInfo: "Add to folder", ch_fLimit: "At most {n} chats in your own folders.",
 };

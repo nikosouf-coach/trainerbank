@@ -1,5 +1,5 @@
-// Spieler – Meine Daten: Überblick (Belastung, Beteiligung, Schlaf, Minuten), Saison & Rückmeldung, Belastung, Befunde,
-// Tests, Beteiligung, Spielminuten, Zusatzsport, Abwesenheiten, Meilensteine.
+// Spieler – Meine Daten: Überblick (Belastung, Beteiligung, Schlaf, Minuten), Wochenziele und Zuverlässigkeit, Saison
+// & Rückmeldung, Belastung, Befunde, Tests, Beteiligung, Spielminuten, Zusatzsport, Abwesenheiten, Meilensteine.
 import React, { useMemo } from "react";
 import { View } from "react-native";
 import { addDays, diff, monday, sum } from "../../../src/core/dates";
@@ -9,7 +9,7 @@ import { WeekBars } from "../../../src/ui/charts";
 import { Bar, Card, Chip, Col, Header, Info, ListItem, Muted, Row, Screen, StatusChip, T } from "../../../src/ui/kit";
 import { PlayerFindings } from "../../../src/ui/injury";
 import { PerfCard } from "../../../src/ui/perf";
-import { Badges, MySeason } from "../../../src/ui/player/parts";
+import { Badges, MySeason, WeekRings } from "../../../src/ui/player/parts";
 import { StatTile } from "../../../src/ui/games";
 import { statusColor, useTheme } from "../../../src/ui/theme";
 
@@ -42,6 +42,9 @@ export default function Daten() {
       <Header title={t("pn_daten")} />
       {kpis.length ? <Row wrap gap={8} testID="pd-kpi">{kpis.map(x => <View key={x.k} style={{ flexGrow: 1, flexBasis: "40%", flexDirection: "row" }}><StatTile label={x.label} value={x.value} color={x.color} /></View>)}</Row> : null}
       {E.mods.belastung && pr.sl != null && pr.sl < pr.tg[0] ? <Muted small testID="pd-sleep-hint">{t("pd_sleep")}: {tf("pd_goal", { a: pr.tg[0], b: pr.tg[1] })}</Muted> : null}
+      {E.mods.belastung ? <WeekRings g={g} /> : null}
+      {E.mods.belastung ? <Muted small testID="pd-rel">{t("gm_rel")}: {g.reliability == null ? t("gm_relFew")
+        : `${Math.round(g.reliability * 100)} % · ` + tf("gm_relD", { c: g.rel.checkins.done, ct: g.rel.checkins.total, r: g.rel.rpe.done, rt: g.rel.rpe.total })}</Muted> : null}
       {E.mods.spielanalyse || E.mods.videos ? <MySeason pid={p.id} /> : null}
       {showLoad ? <Card testID="pd-load">
         <Row between><T v="h3">{t("pd_load")}</T><Info title={t("pd_load")} text={t("tx_src")} /></Row>

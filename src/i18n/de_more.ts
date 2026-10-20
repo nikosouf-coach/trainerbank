@@ -36,7 +36,7 @@ export const de_more: Dict = {
   su_logo: "Vereinslogo", su_color: "Vereinsfarbe",
   su_s_mods: "Funktionen", su_infoT: "Info-Buttons (i) anzeigen", su_infoD: "Kleine (i)-Knöpfe erklären Begriffe wie ACWR oder RPE genau dort, wo sie auftauchen. Jederzeit änderbar unter Mehr → Konto.",
   su_s_orga: "Spieler & Trainerteam", su_s_orgaB: "Was Spieler in ihrer App sehen und dürfen – und wer mit dir trainiert.",
-  su_pvT: "Spieler-App", su_staffT: "Weitere Trainer", su_staffD: "Co-, Torwart- und Athletiktrainer, Physio. Sie bekommen später einen eigenen Zugang mit ihren Aufgaben.", su_addStaff: "Trainer hinzufügen",
+  su_pvT: "Spieler-App", su_stepN: "Schritt {n} von {m}", su_staffT: "Trainerteam & Staff", su_staffD: "Co-, Torwart- und Athletiktrainer, Physio, Betreuer. Sie bekommen später einen eigenen Zugang mit ihren Aufgaben.", su_addStaff: "Staff hinzufügen",
   su_s_load: "Erinnerungen", su_s_loadB: "Push-Nachrichten, damit die Spieler ihre Daten eintragen.",
   su_s_science: "Sportwissenschaft", su_s_scienceB: "Wie genau die App rechnet und welche Tests dein Team macht.",
   su_testsT: "Leistungsdiagnostik: Tests", su_testsD: "Welche Tests nutzt ihr? Genau diese erscheinen später in der Leistungsdiagnostik (Ergebnisse, Bestwerte, Entwicklung). Empfohlen: zu Beginn und am Ende der Vorbereitung sowie in der Winterpause.",

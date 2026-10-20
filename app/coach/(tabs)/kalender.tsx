@@ -68,47 +68,61 @@ export default function Kalender() {
     );
   };
 
+  /** Intensität eines Tages: vergangen = Ø RPE der Einheit, sonst geplanter RPE */
+  const tr0 = (x: { train?: { rpe: number } | null }, past: boolean, sess: unknown): number | null => {
+    if (!x.train) return null;
+    if (past && sess) { const a = E.sessAvg((sess as { date: string }).date); return a ?? x.train.rpe; }
+    return x.train.rpe;
+  };
   const month = () => {
     const first = parse(cal.month), mo = first.getMonth(), y = first.getFullYear();
-    const start = monday(cal.month), last = iso(new Date(y, mo + 1, 0)), end = addDays(monday(last), 6), n = E.D.players.length;
-    const narrow = width < 560;
+    const start = monday(cal.month), last = iso(new Date(y, mo + 1, 0)), end = addDays(monday(last), 6);
+    // Zellbreite: Wörter nur, wenn sie ganz hineinpassen (Tablet/Browser) – am Handy nur Symbole und Farben
+    const cellW = (Math.min(width, 1100) - 2 * 16 - 12) / 7, words = cellW >= 118;
     const cells: React.ReactNode[] = [];
     for (let d = start; d <= end; d = addDays(d, 1)) {
       const x = E.weekPlan(monday(d)).items.find(i => i.date === d)!, inM = parse(d).getMonth() === mo, past = d < E.TODAY, sess = E.D.sessions.find(z => z.date === d);
-      const L: React.ReactNode[] = []; const tx = (k: string, s2: string, col?: string, bold?: boolean) => <Text key={k} numberOfLines={1} style={{ fontSize: narrow ? 9.5 : 11, color: col || c.muted, fontWeight: bold ? "800" : "500" }}>{s2}</Text>;
-      const chip = (k: string, s2: string, col: string) => <View key={k} style={{ backgroundColor: col, borderRadius: 4, paddingHorizontal: 3, alignSelf: "flex-start" }}><Text numberOfLines={1} style={{ fontSize: narrow ? 9 : 10.5, color: "#fff", fontWeight: "800" }}>{s2}</Text></View>;
+      const L: React.ReactNode[] = [];
+      const tx = (k: string, s2: string, col?: string, bold?: boolean) => <Text key={k} numberOfLines={2} style={{ fontSize: 11, lineHeight: 13.5, color: col || c.muted, fontWeight: bold ? "700" : "500" }}>{s2}</Text>;
+      /** Balken je Termin: Farbe = Art bzw. Intensität; hohl = abgesagt */
+      const bar = (k: string, col: string, hollow?: boolean) => <View key={k} style={{ height: 6, borderRadius: 3, backgroundColor: hollow ? "transparent" : col, borderWidth: hollow ? 1 : 0, borderColor: col }} />;
+      const rpeNow = tr0(x, past, sess);
       if (x.match) {
-        L.push(chip("m", t("it_match"), c.accent));
-        L.push(tx("mz", `${x.match.heim ? "H" : "A"} ${x.match.zeit}`));
-        L.push(tx("mg", x.match.gegner, c.ink, true));
-        if (past && sess && showI) { const a = E.sessAvg(d); if (a != null) L.push(tx("ma", "Ø " + E.num(a, 1))); }
+        L.push(<Row key="m" gap={3}><Icon name="ball" size={words ? 13 : 12} color={c.accentTx} strokeWidth={2} />{words ? <Text numberOfLines={1} style={{ flex: 1, fontSize: 11, fontWeight: "700", color: c.ink }}>{x.match.zeit}</Text> : null}</Row>);
+        if (words) L.push(tx("mg", (x.match.heim ? "" : "@ ") + x.match.gegner, c.ink, true));
       }
       const tr = x.train;
-      if (tr && tr.kind === "frei") L.push(tx("f", t("k_frei"), c.ok, true));
-      else if (tr) {
-        if (past && sess) {
-          const a = E.sessAvg(d), da = E.D.players.filter(p => E.attStatus(d, p.id) === "da").length;
-          L.push(showI && a != null ? chip("r", "Ø " + E.num(a, 1), rpeColor(c, Math.round(a))) : chip("r", t("it_training"), c.build));
-          L.push(tx("k", E.kn(tr.kind), c.ink, true)); if (!narrow) L.push(tx("z", `${E.zeitOf(d)} · ${sess.dauer}′`)); L.push(<Row key="p" gap={2}><Icon name="person" size={narrow ? 9 : 11} color={c.muted} strokeWidth={2.2} /><Text style={{ fontSize: narrow ? 9.5 : 11, color: c.muted, fontWeight: "500" }}>{da}</Text></Row>);
-        } else {
-          L.push(showI ? chip("r", "RPE " + tr.rpe, rpeColor(c, tr.rpe)) : chip("r", t("it_training"), c.low));
-          L.push(tx("k", E.kn(tr.kind), c.ink, true)); if (!narrow) L.push(tx("z", `${E.zeitOf(d)} · ${tr.dauer}′`)); L.push(<Row key="p" gap={2}><Icon name="person" size={narrow ? 9 : 11} color={c.muted} strokeWidth={2.2} /><Text style={{ fontSize: narrow ? 9.5 : 11, color: c.muted, fontWeight: "500" }}>{n - E.absentOn(d).length}</Text></Row>);
+      if (tr && tr.kind !== "frei") {
+        L.push(bar("r", rpeNow != null && showI ? rpeColor(c, Math.round(rpeNow)) : c.low));
+        if (words) {
+          L.push(tx("k", E.kn(tr.kind), c.ink, true));
+          L.push(tx("z", `${E.zeitOf(d)} · ${past && sess ? sess.dauer : tr.dauer}′`));
         }
-      } else if (x.cancelled) L.push(<Text key="c" numberOfLines={1} style={{ fontSize: narrow ? 9.5 : 11, color: c.muted, textDecorationLine: "line-through" }}>{t("it_training")}</Text>);
-      else if (x.brk && E.regularDay(d)) L.push(<Text key="b" numberOfLines={1} style={{ fontSize: narrow ? 9.5 : 11, color: "#16a3a3", fontWeight: "700" }}>{t("vb_breakDay")}</Text>);
-      if (x.units.length) L.push(narrow ? tx("u", "+" + x.units.length, c.ink, true) : <React.Fragment key="u">{x.units.map(u => tx("u" + u.slot, "+ " + E.unitTitle(u), c.ink))}</React.Fragment>);
-      x.events.forEach(e => L.push(tx("e" + e.id, "● " + e.titel, c.event)));
+      } else if (x.cancelled) L.push(bar("c", c.build, true));
+      else if (x.brk && E.regularDay(d)) L.push(bar("b", "#16a3a3", true));
+      if (x.units.length) L.push(words ? <React.Fragment key="u">{x.units.map(u => tx("u" + u.slot, "+ " + E.unitTitle(u), c.ink))}</React.Fragment>
+        : <Text key="u" style={{ fontSize: 10, fontWeight: "700", color: c.ink }}>+{x.units.length}</Text>);
+      if (x.events.length) L.push(words ? <React.Fragment key="e">{x.events.map(e => tx("e" + e.id, "● " + e.titel, c.event))}</React.Fragment>
+        : <Row key="e" gap={2}>{x.events.slice(0, 3).map(e => <View key={e.id} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.event }} />)}</Row>);
       const today = d === E.TODAY;
       cells.push(
         <Pressable key={d} testID={"mcell-" + d} accessibilityRole="button" accessibilityLabel={`${E.wt(d)} ${E.de(d)}`} onPress={() => openDay(d)}
-          style={{ width: `${100 / 7}%`, minHeight: narrow ? 82 : 104, padding: 2 }}>
-          <View style={{ flex: 1, borderRadius: 7, borderWidth: today ? 2 : 1, borderColor: today ? c.accent : c.line, backgroundColor: inM ? c.surface : c.sunk, padding: narrow ? 3 : 5, gap: 2, opacity: inM ? 1 : 0.55, overflow: "hidden" }}>
-            <Row between gap={2}><Text style={{ fontWeight: "800", fontSize: narrow ? 11 : 13, color: today ? c.accentTx : c.ink }}>{parse(d).getDate()}</Text>{x.md && !narrow ? <Text style={{ fontSize: 9.5, color: c.muted, fontWeight: "700" }}>{x.md}</Text> : null}</Row>
+          style={{ width: `${100 / 7}%`, minHeight: words ? 104 : 64, padding: 2 }}>
+          <View style={{ flex: 1, borderRadius: 8, borderWidth: today ? 2 : 1, borderColor: today ? c.accent : c.line, backgroundColor: inM ? c.surface : c.sunk, padding: words ? 5 : 4, gap: 3, opacity: inM ? 1 : 0.5, overflow: "hidden" }}>
+            <Row between gap={2}><Text style={{ fontWeight: "700", fontSize: words ? 13 : 12, color: today ? c.accentTx : c.ink }}>{parse(d).getDate()}</Text>{x.md && words ? <Text style={{ fontSize: 9.5, color: c.muted, fontWeight: "700" }}>{x.md}</Text> : null}</Row>
             {L}
           </View>
         </Pressable>
       );
     }
+    const legend = words ? null : (
+      <Row wrap gap={12} testID="cal-legend" style={{ paddingHorizontal: 4, paddingTop: 8 }}>
+        <Row gap={5}><View style={{ width: 16, height: 6, borderRadius: 3, backgroundColor: showI ? rpeColor(c, 6) : c.low }} /><Text style={{ fontSize: 11.5, color: c.muted }}>{showI ? t("cal_lgTrainI") : t("it_training")}</Text></Row>
+        <Row gap={5}><Icon name="ball" size={12} color={c.accentTx} strokeWidth={2} /><Text style={{ fontSize: 11.5, color: c.muted }}>{t("it_match")}</Text></Row>
+        <Row gap={5}><View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.event }} /><Text style={{ fontSize: 11.5, color: c.muted }}>{t("it_event")}</Text></Row>
+        <Row gap={5}><Text style={{ fontSize: 11, fontWeight: "700", color: c.ink }}>+1</Text><Text style={{ fontSize: 11.5, color: c.muted }}>{t("cal_lgUnit")}</Text></Row>
+      </Row>
+    );
     return (
       <>
         <CalNav label={`${E.tl("months")[mo]} ${y}`} todayLabel={t("thisW")}
@@ -118,6 +132,7 @@ export default function Kalender() {
         <Card style={{ padding: 6, gap: 0 }}>
           <View style={{ flexDirection: "row" }}>{[1, 2, 3, 4, 5, 6, 0].map(k => <Text key={k} style={{ width: `${100 / 7}%`, textAlign: "center", fontSize: 11, fontWeight: "700", color: c.muted, paddingVertical: 4 }}>{E.tl("wd")[k]}</Text>)}</View>
           <View style={{ flexDirection: "row", flexWrap: "wrap" }}>{cells}</View>
+          {legend}
         </Card>
       </>
     );

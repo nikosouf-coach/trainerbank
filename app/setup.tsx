@@ -5,7 +5,7 @@
 //   [Sportwissenschaft – nur „Volle Tiefe“] · Zusammenfassung
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "../src/core/classes";
 import { iso } from "../src/core/dates";
 import type { ClassKey, Depth, Modules, Principles, StaffRoleKey, TeamSettings } from "../src/core/types";
@@ -15,9 +15,12 @@ import { Banner, Btn, Card, CardTitle, Col, Field, Header, Info, Muted, Row, Scr
 import {
   ColorPicker, ImageSlot, PlayerViewFields, ProfileFields, ReminderFields, SetupOverview, StaffQuickAdd, TestPicker, emptyProfile, profileName, type ProfileDraft,
 } from "../src/ui/setupParts";
-import { radius, useTheme } from "../src/ui/theme";
+import { radius, useTheme, withAlpha } from "../src/ui/theme";
 
 type Step = "me" | "team" | "mods" | "days" | "orga" | "load" | "principles" | "science" | "summary";
+/** Titel je Schritt (für Screenreader an den Fortschritts-Tabs) */
+const STEP_TITLE: Record<Step, string> = { me: "su_s_me", team: "su_s_team", mods: "su_s_mods", days: "su_daysT", orga: "su_s_orga", load: "su_s_load",
+  principles: "ob_q4", science: "su_s_science", summary: "su_s_sum" };
 
 export default function Setup() {
   const s = useStore(); const tr = s.tr; const { t, tf } = tr; const router = useRouter(); const { c } = useTheme();
@@ -82,7 +85,15 @@ export default function Setup() {
 
   return (
     <Screen testID={"setup-" + cur}>
-      <Row gap={6} wrap>{steps.map((st, i) => <View key={st} style={{ width: 26, height: 5, borderRadius: radius.pill, backgroundColor: i <= idx ? c.accent : c.line }} />)}</Row>
+      {/* Fortschritt – jeder Abschnitt ist antippbar und springt direkt zu diesem Schritt (Pflichtangaben prüft „Erstellen“) */}
+      <Row gap={6} testID="su-steps">{steps.map((st, i) => (
+        <Pressable key={st} testID={"su-step-" + st} accessibilityRole="tab" accessibilityState={{ selected: i === idx }}
+          accessibilityLabel={tf("su_stepN", { n: i + 1, m: steps.length }) + " · " + t(STEP_TITLE[st])}
+          onPress={() => { setStep(i); setMsg(""); }} hitSlop={6}
+          style={({ hovered }: { hovered?: boolean }) => ({ flex: 1, maxWidth: 56, paddingVertical: 8, opacity: hovered && i !== idx ? 0.7 : 1 })}>
+          <View style={{ height: i === idx ? 6 : 5, borderRadius: radius.pill, backgroundColor: i < idx ? withAlpha(c.accent, 0.55) : i === idx ? c.accent : c.line }} />
+        </Pressable>
+      ))}</Row>
       {demo && idx === 0 ? <Banner>{t("su_demoNote")}</Banner> : null}
 
       {cur === "me" ? <>
@@ -151,7 +162,8 @@ export default function Setup() {
 
       {cur === "principles" ? <>
         <Header title={t("ob_q4")} /><Muted>{t("ob_q4b")}</Muted>
-        <Card><PrinciplesEditor value={principles} onChange={setPrinciples} tr={tr} cls={cls} depth={depth} kinds={[]} /></Card>
+        <Card testID="su-principles"><PrinciplesEditor value={principles} onChange={setPrinciples} tr={tr} cls={cls} depth={depth} kinds={[]} intro
+          days={Object.keys(settings.days).map(Number)} spieltag={settings.spieltag} /></Card>
       </> : null}
 
       {cur === "science" ? <>

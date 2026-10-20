@@ -7,7 +7,7 @@
 // füllt immer die volle Breite der Anzeige: ein kleiner Ausschnitt wird also größer dargestellt (Zoom).
 import { posGroup } from "./classes";
 import type {
-  ClassKey, Match, MatchPlan, MpAvail, MpColor, MpContent, MpFmt, MpFrame, MpIdea, MpItem, MpLook, MpMode, MpOpp, MpPublished, MpSection, MpShare, MpSlide, MpSlideCat, MpSub, MpTool, MpView, Player,
+  ClassKey, Match, MatchPlan, MpAvail, MpColor, MpContent, MpDash, MpFmt, MpFrame, MpIdea, MpItem, MpLook, MpMode, MpOpp, MpPublished, MpSection, MpShare, MpSlide, MpSlideCat, MpSub, MpTool, MpView, Player,
 } from "./types";
 
 export const PW = 68, PL = 105;
@@ -91,7 +91,7 @@ export function withFrame<T extends Pick<MpSlide, "view" | "frame">>(sl: T, f: M
 /** Liegt der Punkt im Ausschnitt (mit Abstand m zum Rand)? */
 export const inFrame = (f: MpFrame, x: number, y: number, m = 0): boolean => x >= f.x + m && x <= f.x + f.w - m && y >= f.y + m && y <= f.y + f.h - m;
 /** Feldspieler (eigene und Gegner) außerhalb des Ausschnitts – Torhüter bleiben ohnehin im Tor */
-export const outsideFrame = (items: MpItem[], f: MpFrame): MpItem[] => items.filter(it => (it.t === "own" || it.t === "opp") && it.label !== "TW" && !inFrame(f, it.x, it.y, 0.5));
+export const outsideFrame = (items: MpItem[], f: MpFrame): MpItem[] => items.filter(it => isToken(it.t) && it.label !== "TW" && !inFrame(f, it.x, it.y, 0.5));
 
 // ---------- Linien mit Bogen ----------
 /** Kontrollpunkt einer gebogenen Linie (quadratische Kurve); null = gerade */
@@ -154,7 +154,17 @@ export const isSetPiece = (c: MpSlideCat): boolean => ["ecke_off", "ecke_def", "
 export const MP_SECTIONS: MpSection[] = ["lineup", "slides", "idea", "opp", "tasks", "subs"];
 /** Standard der Freigabe: alles außer dem Wechselplan (der bleibt im Trainerteam) */
 export const DEFAULT_SECTIONS: MpSection[] = ["lineup", "slides", "idea", "opp", "tasks"];
-export const MP_TOOLS: MpTool[] = ["own", "opp", "ball", "cone", "text", "pass", "run", "drib", "line", "zone", "circle", "free"];
+export const MP_TOOLS: MpTool[] = ["own", "opp", "neu", "ball", "cone", "text", "pass", "run", "drib", "line", "zone", "circle", "free",
+  "goal", "mgoal", "pole", "dummy", "ladder", "hurdle", "ring"];
+/** Spieler-Icons: eigene, Gegner, Joker */
+export const isToken = (t: MpTool): boolean => t === "own" || t === "opp" || t === "neu";
+/** Trainingsmaterial (an einem Punkt, teils drehbar) */
+export const MATERIAL: MpTool[] = ["goal", "mgoal", "pole", "dummy", "ladder", "hurdle", "ring"];
+export const isMaterial = (t: MpTool): boolean => MATERIAL.includes(t);
+/** Drehbares Material (Tore, Dummy-Wand, Leiter, Hürde) */
+export const isRotatable = (t: MpTool): boolean => t === "goal" || t === "mgoal" || t === "dummy" || t === "ladder" || t === "hurdle";
+/** Elemente an einem Punkt (ohne Linien): Spieler, Ball, Hütchen, Material */
+export const isPoint = (t: MpTool): boolean => isToken(t) || t === "ball" || t === "cone" || isMaterial(t);
 /** Elemente aus zwei Punkten (Start/Ziel bzw. Ecken, Mitte/Rand) */
 export const LINE_TOOLS: MpTool[] = ["pass", "run", "drib", "line", "zone", "circle"];
 export const isLine = (t: MpTool): boolean => LINE_TOOLS.includes(t);
@@ -165,7 +175,12 @@ export const isArrow = (t: MpTool): boolean => ARROW_TOOLS.includes(t);
 export const isArea = (t: MpTool): boolean => t === "zone" || t === "circle";
 /** Größte Zahl an Punkten einer Freihandlinie */
 export const FREE_MAX = 40;
-export const MP_COLORS: MpColor[] = ["w", "y", "r", "b"];
+export const MP_COLORS: MpColor[] = ["w", "y", "r", "b", "g", "o", "k"];
+/** Linienstile (durchgezogen, lang gestrichelt, kurz gestrichelt, gepunktet) und Strichstärken */
+export const MP_DASHES: MpDash[] = ["solid", "long", "short", "dot"];
+export const MP_WIDTHS: (1 | 2 | 3)[] = [1, 2, 3];
+/** Linienstil eines Elements: eigener Stil oder der Standard der Art (Laufweg und alte Freihand kurz gestrichelt) */
+export const dashOf = (it: Pick<MpItem, "t" | "ls" | "solid">): MpDash => it.ls || (it.t === "run" ? "short" : it.t === "free" ? (it.solid ? "solid" : "short") : isArea(it.t) ? "short" : "solid");
 export const MP_MODES: MpMode[] = ["num", "name", "photo"];
 /** Grenzen (u. a. damit ein Plan klein bleibt: Freihandlinien je Folie, je höchstens FREE_MAX Punkte) */
 export const MP_LIMITS = { slides: 20, items: 80, free: 8, keys: 3, task: 300, subs: 12, oppKeys: 8, text: 1500, title: 80, slideTitle: 60, bench: 20, tasks: 40 };
@@ -466,15 +481,17 @@ export function shareState(p: Pick<MatchPlan, "published" | "share">, now: Date)
   if (p.share.from && now < new Date(p.share.from)) return "scheduled";
   return now < new Date(p.share.until) ? "live" : "ended";
 }
-/** Für Spieler veröffentlichter Stand: nur freigegebene Bereiche und für Spieler sichtbare Folien */
+/** Ohne „hinzugefügt von“ (bleibt im Trainerteam) */
+const noBy = (it: MpItem): MpItem => { if (!it.by) return it; const x = { ...it }; delete x.by; return x; };
+/** Für Spieler veröffentlichter Stand: nur freigegebene Bereiche und für Spieler sichtbare Folien (ohne Urheber) */
 export function publishedOf(c: MpContent, sections: MpSection[]): MpPublished {
   const has = (k: MpSection) => sections.includes(k);
   const P: MpPublished = { sections: MP_SECTIONS.filter(has), fmt: c.fmt, mode: c.mode, size: c.size };
   if (c.look && c.look !== "grass") P.look = c.look;
-  if (has("lineup")) { P.formation = c.formation; P.lineup = c.lineup; P.bench = c.bench; P.captain = c.captain; }
-  if (has("slides")) P.slides = c.slides.filter(x => x.vis);
+  if (has("lineup")) { P.formation = c.formation; P.lineup = c.lineup.map(noBy); P.bench = c.bench; P.captain = c.captain; }
+  if (has("slides")) P.slides = c.slides.filter(x => x.vis).map(sl => { const x: MpSlide = { ...sl, items: sl.items.map(noBy) }; delete x.by; return x; });
   if (has("idea")) P.idea = c.idea;
-  if (has("opp")) P.opp = c.opp;
+  if (has("opp")) P.opp = { ...c.opp, items: c.opp.items.map(noBy) };
   if (has("tasks")) P.tasks = Object.fromEntries(Object.entries(c.tasks).filter(([, v]) => v.trim()));
   if (has("subs")) { P.subs = c.subs; P.subsNote = c.subsNote; }
   return P;
@@ -520,7 +537,7 @@ function cleanItem(v: Partial<MpItem>, only?: MpTool): MpItem | null {
   const it: MpItem = { id: idOk(v.id), t, x: clampX(v.x ?? 0), y: clampY(v.y ?? 0) };
   if (isLine(t)) { it.x2 = clampX(v.x2 ?? it.x); it.y2 = clampY(v.y2 ?? it.y); }
   if (t === "own") it.pid = v.pid ? String(v.pid).slice(0, 40) : null;
-  if (t === "opp" || t === "own") { const n = v.n == null ? null : Math.round(Number(v.n)); if (n != null && n >= 0 && n <= 99) it.n = n; }
+  if (isToken(t)) { const n = v.n == null ? null : Math.round(Number(v.n)); if (n != null && n >= 0 && n <= 99) it.n = n; }
   // Schritt eines Ablaufs (1, 2, 3 …) an Pfeilen und Freihandlinien
   if (isArrow(t) || t === "free") { const n = v.n == null ? null : Math.round(Number(v.n)); if (n != null && n >= 1 && n <= 20) it.n = n; }
   if (t === "free") {
@@ -534,6 +551,10 @@ function cleanItem(v: Partial<MpItem>, only?: MpTool): MpItem | null {
   if (v.label) it.label = str(v.label, t === "text" ? 40 : 4);
   if (v.col && MP_COLORS.includes(v.col)) it.col = v.col;
   if (isArrow(t)) { const b = Math.round((Number(v.bend) || 0) * 10) / 10; if (b) it.bend = Math.max(-3, Math.min(3, b)); }
+  if ((isLine(t) || t === "free") && v.ls && MP_DASHES.includes(v.ls)) it.ls = v.ls;
+  if ((isLine(t) || t === "free") && (v.w === 1 || v.w === 3)) it.w = v.w;
+  if (isRotatable(t)) { const r = ((Math.round((Number(v.rot) || 0) / 15) * 15) % 360 + 360) % 360; if (r) it.rot = r; }
+  if (v.by && /^[A-Za-z0-9_-]{1,40}$/.test(String(v.by))) it.by = String(v.by);
   return it;
 }
 /** Ausschnitt aus gespeicherten Daten (ungültig → null) */
@@ -552,11 +573,14 @@ function cleanSlide(sl: Partial<MpSlide>): MpSlide {
   const sz = Number(sl.size);
   if (sl.size != null && sz > 0) out.size = Math.max(0.6, Math.min(1.8, Math.round(sz * 10) / 10));
   if (sl.mode && MP_MODES.includes(sl.mode)) out.mode = sl.mode;
+  if (typeof sl.by === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(sl.by)) out.by = sl.by;
   return out;
 }
 /** höchstens MP_LIMITS.free Freihandlinien je Folie */
 const limitFree = (L: MpItem[]): MpItem[] => { let n = 0; return L.filter(x => x.t !== "free" || ++n <= MP_LIMITS.free); };
 const items = (L: unknown, max: number, only?: MpTool): MpItem[] => (Array.isArray(L) ? L : []).slice(0, max).map(x => cleanItem(x || {}, only)).filter((x): x is MpItem => !!x);
+/** Elemente bereinigen (z. B. Übungsskizzen): höchstens max, Freihandlinien begrenzt */
+export const cleanItems = (L: unknown, max: number): MpItem[] => limitFree(items(L, max));
 export function cleanContent(v: Partial<MpContent>, cls: ClassKey): MpContent {
   const fmt: MpFmt = FMTS.includes(v.fmt as MpFmt) ? v.fmt as MpFmt : fmtOf(cls);
   const lineup = items(v.lineup, fmt, "own");

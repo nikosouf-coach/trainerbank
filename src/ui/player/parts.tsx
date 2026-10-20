@@ -19,7 +19,7 @@ import { radius, space, useTheme, withAlpha } from "../theme";
 /** Belohnungsfarbe (Gold) – in beiden Themen gut sichtbar. */
 export const GOLD = "#f2b705";
 
-/** Kopf mit Bild, Begrüßung, Serie und Zuverlässigkeit (Angaben der letzten 4 Wochen). */
+/** Kopf mit Bild, Begrüßung, Serie und Zuverlässigkeit (Angaben der letzten 4 Wochen; Details unter „Meine Daten“). */
 export function PlayerHero({ p, g }: { p: Player; g: GameState }) {
   const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
   const ink = c.accentInk, sub = ink === "#ffffff" ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.62)";
@@ -47,9 +47,6 @@ export function PlayerHero({ p, g }: { p: Player; g: GameState }) {
         <View style={{ height: 6, borderRadius: 99, backgroundColor: withAlpha(ink, 0.2), overflow: "hidden" }}>
           <View style={{ width: `${Math.max(3, pct ?? 0)}%`, height: "100%", backgroundColor: pct != null && pct >= 90 ? GOLD : ink, borderRadius: 99 }} />
         </View>
-        <Text style={{ color: sub, fontSize: 12.5 }}>
-          {pct == null ? t("gm_relFew") : tf("gm_relD", { c: g.rel.checkins.done, ct: g.rel.checkins.total, r: g.rel.rpe.done, rt: g.rel.rpe.total })}{pct != null && pct >= 90 ? " · " + t("gm_relTop") : ""}
-        </Text>
       </Col> : null}
     </View>
   );
@@ -148,7 +145,7 @@ export function TodoTile({ icon, title, sub, done, onPress, testID, color }: { i
 }
 
 /** Nächste Termine (Training, Spiele, Events) der kommenden zwei Wochen. */
-export function NextDates({ pid, max = 6 }: { pid: string; max?: number }) {
+export function NextDates({ pid, max = 6, onMore }: { pid: string; max?: number; onMore?: () => void }) {
   const E = useEngine(); const { t } = E; const { c } = useTheme();
   const showPlan = E.playerSees("plan"), kids = E.grp === "u11";
   const rows: React.ReactNode[] = []; let firstTrain = false;
@@ -181,7 +178,7 @@ export function NextDates({ pid, max = 6 }: { pid: string; max?: number }) {
         const train = x.train;
         day.push({ zeit: E.zeitOf(x.date), add: () => {
           // Eigene Vorgabe (Spielersatz, Reha, Aufbau …) – bei der nächsten Einheit mit Umsetzungshinweis
-          const mine = showPlan && !kids ? <MyTarget pid={pid} date={x.date} detail={!firstTrain} testID={"my-target-" + x.date} /> : null;
+          const mine = showPlan && !kids ? <MyTarget pid={pid} date={x.date} detail={!firstTrain && max > 1} testID={"my-target-" + x.date} /> : null;
           item(x.date + "t", c.ok, t("it_training"), showPlan ? E.kn(train.kind) : t("it_training"), `${E.zeitOf(x.date)} · ${train.dauer} ${t("min")}${showPlan && !kids ? " · " + t("intensity") + ": " + E.intWord(train.rpe) : ""}`, mine);
           firstTrain = true;
         } });
@@ -195,7 +192,7 @@ export function NextDates({ pid, max = 6 }: { pid: string; max?: number }) {
   }
   return (
     <Card testID="player-dates">
-      <T v="h2">{t("pl_dates")}</T>
+      <Row between><T v="h2">{max === 1 ? t("pl_next1") : t("pl_dates")}</T>{onMore ? <Btn small kind="ghost" testID="pd-more" label={t("pl_cal") + " ›"} onPress={onMore} /> : null}</Row>
       {rows.length ? <Col gap={12}>{rows}</Col> : <Muted>{t("pl_noDates")}</Muted>}
     </Card>
   );

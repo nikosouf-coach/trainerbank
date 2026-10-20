@@ -51,7 +51,7 @@ export function PlanContentView({ pub, pid, match, watermark }: { pub: MpPublish
       </Section> : null}
       {has("lineup") && pub.lineup ? <Section title={`${t("mp_sec_lineup")}${pub.formation ? " · " + pub.formation : ""}`} testID="pv-lineup">
         <View onLayout={(e: LayoutChangeEvent) => setW(Math.floor(e.nativeEvent.layout.width))} style={{ width: "100%", alignItems: "center" }}>
-          {W ? <Pitch frame={FULL} items={pub.lineup} width={pw} mode={mode} size={size} accent={col.accent} accentInk={col.accentInk} info={info} captain={pub.captain} highlight={pid} look={pub.look} testID="pv-pitch" /> : null}
+          {W ? <Pitch frame={FULL} items={pub.lineup} width={pw} mode={mode} size={size} accent={col.club} accentInk={col.clubInk} info={info} captain={pub.captain} highlight={pid} look={pub.look} testID="pv-pitch" /> : null}
         </View>
         {pub.bench?.length ? <Col gap={4}><T v="small" bold>{t("mp_benchShort")}</T>
           <Muted small>{pub.bench.map(b => { const i = info(b); return i ? (i.nr != null ? i.nr + " " : "") + i.label : null; }).filter(Boolean).join(" · ")}</Muted></Col> : null}

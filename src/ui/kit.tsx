@@ -195,7 +195,7 @@ export function NumField({ label, value, onChange, min, max, testID, style, step
     onChangeText={s => { setTxt(s); const n = Number(s.replace(",", ".")); if (s.trim() === "") { setLast(null); onChange(null); } else if (Number.isFinite(n)) { const v = Math.max(min ?? -Infinity, Math.min(max ?? Infinity, step ? Math.round(n / step) * step : n)); setLast(v); onChange(v); } }} />;
 }
 /** Auswahl aus einer Liste (öffnet ein Blatt). */
-export function Picker<K extends string>({ label, value, options, onChange, testID, style }: { label: string; value: K; options: { key: K; label: string }[]; onChange: (k: K) => void; testID?: string; style?: StyleProp<ViewStyle> }) {
+export function Picker<K extends string>({ label, value, options, onChange, testID, style }: { label: string; value: K; options: { key: K; label: string; sub?: string }[]; onChange: (k: K) => void; testID?: string; style?: StyleProp<ViewStyle> }) {
   const { c } = useTheme(); const [open, setOpen] = useState(false);
   const cur = options.find(o => o.key === value);
   return (
@@ -210,7 +210,10 @@ export function Picker<K extends string>({ label, value, options, onChange, test
         {options.map(o => (
           <Pressable key={o.key} testID={testID ? testID + "-opt-" + o.key : undefined} accessibilityRole="button" onPress={() => { setOpen(false); onChange(o.key); }}
             style={{ paddingVertical: 13, paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: c.line, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={{ color: c.ink, fontSize: 16, fontWeight: o.key === value ? "700" : "400", flexShrink: 1 }}>{o.label}</Text>
+            <View style={{ flexShrink: 1, gap: 2 }}>
+              <Text style={{ color: c.ink, fontSize: 16, fontWeight: o.key === value ? "700" : "400" }}>{o.label}</Text>
+              {o.sub ? <Text style={{ color: c.muted, fontSize: 13, lineHeight: 18 }}>{o.sub}</Text> : null}
+            </View>
             {o.key === value ? <Icon name="check" size={18} color={c.accentTx} /> : null}
           </Pressable>
         ))}

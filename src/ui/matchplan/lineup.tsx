@@ -207,7 +207,7 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
         {W ? <>
           <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}>
             <View style={{ position: "absolute", left: ox, top: 0 }}>
-              <Pitch frame={FULL} items={c.lineup} width={pw} mode={c.mode} size={c.size} accent={col.accent} accentInk={col.accentInk} info={info} captain={c.captain} look={c.look}
+              <Pitch frame={FULL} items={c.lineup} width={pw} mode={c.mode} size={c.size} accent={col.club} accentInk={col.clubInk} info={info} captain={c.captain} look={c.look}
                 selected={sel ? c.lineup.find(z => z.pid === sel)?.id || null : null} hidden={ghost?.id || null} dot={av.dot} testID="mp-pitch" />
             </View>
             {zoneHead("bench", benchTop, benchH)}
@@ -219,7 +219,7 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
           <View testID="mp-lineup-surface" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
             onStartShouldSetResponder={start} onMoveShouldSetResponder={() => !!drag.current} onResponderTerminationRequest={() => !drag.current?.armed}
             onResponderGrant={grant} onResponderMove={move} onResponderRelease={release} onResponderTerminate={stop} />
-          <Ghost bind={ghostAt} d={d} info={ghostInfo} mode={c.mode} accent={col.accent} accentInk={col.accentInk} />
+          <Ghost bind={ghostAt} d={d} info={ghostInfo} mode={c.mode} accent={col.club} accentInk={col.clubInk} />
         </> : null}
       </View>
       {selP?.p && !ro ? <View testID="mp-selbar" style={{ padding: 10, borderRadius: radius.l, backgroundColor: withAlpha("#ffe066", 0.2), borderWidth: 1, borderColor: "#e0a800", gap: 8 }}>

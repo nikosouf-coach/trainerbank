@@ -1,6 +1,6 @@
-// Trainer – Heute: frei anpassbare Startseite (Karten an/aus, Reihenfolge) – nächster Termin, Spieltag-Check,
-// Aufgaben, Belastung im Team, Braucht Aufmerksamkeit und Abwesende (aufklappbar), Woche, Events, letzte Einheit,
-// Team-Wochenlast, KI-Coach.
+// Trainer – Heute: aufs Wesentliche reduziert – nächster Termin, „Heute wichtig“ (alles Offene in je einer Zeile),
+// Belastung im Team, die Woche und der KI-Coach als Eintrag. Weitere Karten (Spieltag-Check, Aufgaben, Posteingang,
+// Braucht Aufmerksamkeit, Abwesende, Events, letzte Einheit, Team-Wochenlast) lassen sich dazuschalten.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -8,8 +8,9 @@ import { addDays, monday, sum } from "../../../src/core/dates";
 import { useEngine, useStore } from "../../../src/data/store";
 import { AiPanel } from "../../../src/ui/ai";
 import { WeekBars, WeekStrip } from "../../../src/ui/charts";
-import { Bar, Btn, Card, CardTitle, Chip, Col, Fold, Header, Info, ListItem, Muted, Row, Screen, T } from "../../../src/ui/kit";
-import { CustomizeTip, DashEditor, useDash } from "../../../src/ui/dashboard";
+import { Bar, Btn, Card, CardTitle, Chip, Col, Fold, Header, Info, ListItem, Muted, Row, Screen, Sheet, T } from "../../../src/ui/kit";
+import { CustomizeLinks, DashEditor, useDash } from "../../../src/ui/dashboard";
+import { FocusCard } from "../../../src/ui/focus";
 import { MenuEditor } from "../../../src/ui/navEditor";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
@@ -21,7 +22,6 @@ import { TeamStatusCard } from "../../../src/ui/teamStatus";
 import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
 import { InboxCard } from "../../../src/ui/inbox";
-import { heroPlanLabel } from "../../../src/ui/matchplan/cards";
 import { ViaClubBanner } from "../../../src/ui/club";
 import { Icon } from "../../../src/ui/icons";
 import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
@@ -33,7 +33,7 @@ function HeroPill({ label, color }: { label: string; color: string }) {
 export default function Heute() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
   const sheets = usePlanSheets();
-  const dash = useDash(); const [editDash, setEditDash] = useState(false); const [editMenu, setEditMenu] = useState(false);
+  const dash = useDash(); const [editDash, setEditDash] = useState(false); const [editMenu, setEditMenu] = useState(false); const [aiOpen, setAiOpen] = useState(false);
   const mods = E.mods, kids = E.grp === "u11";
 
   const data = useMemo(() => {
@@ -69,16 +69,13 @@ export default function Heute() {
       <Text numberOfLines={2} style={{ color: ink, fontSize: 26, lineHeight: 31, fontWeight: "800", letterSpacing: -0.6 }}>{nxTitle}</Text>
       <Row wrap gap={6}>
         {nx.match ? <>
-          <HeroPill color={ink} label={nx.match.zeit} /><HeroPill color={ink} label={nx.match.heim ? t("home") : t("away")} /><HeroPill color={ink} label={t("comp_" + nx.match.comp)} />
-          {heroPlanLabel(E, nx.match) ? <HeroPill color={ink} label={heroPlanLabel(E, nx.match)!} /> : null}
+          <HeroPill color={ink} label={`${nx.match.zeit} · ${nx.match.heim ? t("home") : t("away")}`} />
         </> : <>
-          {nx.train!.md ? <HeroPill color={ink} label={nx.train!.md} /> : null}
           <HeroPill color={ink} label={`${E.zeitOf(nx.date)} · ${nx.train!.dauer} ${t("min")}`} />
           {E.lvl(1) && !kids ? <HeroPill color={ink} label={`${E.intWord(nx.train!.rpe)} · RPE ${nx.train!.rpe}`} /> : null}
-          {nx.train!.notReady.length ? <HeroPill color={ink} label={tf("notReadyN", { n: nx.train!.notReady.length })} /> : null}
-          {E.unitsOn(nx.date).map(u => <HeroPill color={ink} key={"u" + u.slot} label={`+ ${u.zeit} ${E.unitTitle(u)}`} />)}
         </>}
         <HeroPill color={ink} label={`${E.D.players.length - absN.length} ${t("avail")}`} />
+        {nx.train?.notReady.length ? <HeroPill color={ink} label={tf("notReadyN", { n: nx.train.notReady.length })} /> : null}
       </Row>
     </Pressable>
   ) : null;
@@ -139,23 +136,37 @@ export default function Heute() {
     </Card>
   );
 
-  const aiCard = mods.ki ? <AiPanel mode="coach" testID="ai" context={() => E.aiContext(pid => s.aiPlayers.includes(pid))} quick={["ki_q1", "ki_q2", "ki_q3"]} placeholder={t("ki_ph")} note={t("ki_note")}
-    onQuick={k => { if (k === "ki_q1" && nx?.train) { sheets.open({ k: "ai", date: nx.date }); return true; } return false; }} /> : null;
+  // KI-Coach: auf der Startseite nur ein Eintrag – das Gespräch öffnet sich als Blatt
+  const aiCard = mods.ki ? (
+    <Pressable testID="ai-open" accessibilityRole="button" accessibilityLabel={t("ki_title")} onPress={() => setAiOpen(true)}>
+      <Card style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14 }}>
+        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}><Icon name="spark" size={18} color={c.accentTx} /></View>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{t("ki_title")}</Text>
+          <Text numberOfLines={1} style={{ fontSize: 12.5, color: c.muted }}>{t("fc_aiSub")}</Text>
+        </View>
+        <Icon name="chevron" size={16} color={c.muted} />
+      </Card>
+    </Pressable>
+  ) : null;
 
   const cards: Record<string, React.ReactNode> = {
-    next: hero, matchday: <MatchdayCard />, tasks: <MyTasksCard />, inbox: <InboxCard />, phase: <CoachPhaseCard />, status: mods.belastung ? <TeamStatusCard /> : null, attn: attnCard, absent: absentCard,
-    week: weekCard, events: eventsCard, last: lastCard, load: loadCard, ai: aiCard,
+    next: hero, focus: <FocusCard />, matchday: <MatchdayCard />, tasks: <MyTasksCard />, inbox: <InboxCard />, phase: <CoachPhaseCard />, status: mods.belastung ? <TeamStatusCard /> : null,
+    attn: attnCard, absent: absentCard, week: weekCard, events: eventsCard, last: lastCard, load: loadCard, ai: aiCard,
   };
-  const available = (k: string): boolean => ({ matchday: true, inbox: !!mods.entwicklung || !!mods.chat, status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;
+  const available = (k: string): boolean => ({ focus: true, matchday: true, inbox: !!mods.entwicklung || !!mods.chat, status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;
 
   return (
     <Screen testID="coach-heute">
       <Header eyebrow={`${E.wt(E.TODAY)} ${E.de(E.TODAY)} · ${teamLabel(E.team)}`} title={myName ? `${gruss}, ${myName}` : gruss}
         aside={<TeamLogo size={46} />} />
       <ViaClubBanner />
-      <CustomizeTip id="coach-custom" onBar={() => setEditMenu(true)} onDash={() => setEditDash(true)} />
       {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
-      <Btn small kind="ghost" icon="sliders" testID="dash-edit" label={t("db_edit")} onPress={() => setEditDash(true)} style={{ alignSelf: "center" }} />
+      <CustomizeLinks onDash={() => setEditDash(true)} onBar={() => setEditMenu(true)} />
+      <Sheet visible={aiOpen} onClose={() => setAiOpen(false)} title={t("ki_title")} testID="ai-sheet" closeLabel={t("close")}>
+        {aiOpen ? <AiPanel mode="coach" testID="ai" context={() => E.aiContext(pid => s.aiPlayers.includes(pid))} quick={["ki_q1", "ki_q2", "ki_q3"]} placeholder={t("ki_ph")} note={t("ki_note")}
+          onQuick={k => { if (k === "ki_q1" && nx?.train) { setAiOpen(false); sheets.open({ k: "ai", date: nx.date }); return true; } return false; }} /> : null}
+      </Sheet>
       <DashEditor visible={editDash} onClose={() => setEditDash(false)} available={available}
         extra={<Btn small testID="dash-to-menu" icon="grid" label={t("tip_bar")} onPress={() => { setEditDash(false); setEditMenu(true); }} style={{ alignSelf: "flex-start" }} />} />
       <MenuEditor visible={editMenu} onClose={() => setEditMenu(false)} />

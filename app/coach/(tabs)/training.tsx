@@ -4,9 +4,9 @@ import { BANDS, bandLabel, bandOf } from "../../../src/core/classes";
 import { useEngine, useStore } from "../../../src/data/store";
 import { DaysEditor, PrinciplesEditor } from "../../../src/ui/editors";
 import { KindEditor, type KindEditorTarget } from "../../../src/ui/kindEditor";
-import { Banner, Btn, Card, CardTitle, Header, Info, Row, Screen, T } from "../../../src/ui/kit";
+import { Banner, Card, CardTitle, Header, Info, Row, Screen, T } from "../../../src/ui/kit";
 import { WeeklyUnitsEditor } from "../../../src/ui/units";
-import { rpeColor, useTheme } from "../../../src/ui/theme";
+import { useTheme } from "../../../src/ui/theme";
 import { useNavBack } from "../../../src/ui/nav";
 
 export default function TrainingSettings() {
@@ -29,12 +29,8 @@ export default function TrainingSettings() {
       {E.mods.planung ? <Card testID="training-principles">
         <CardTitle title={t("pr_title")} info={<Info title={t("pr_title")} text={t("pr_sub")} />} />
         {kids ? <Banner>{t("w_kids")}</Banner> : <PrinciplesEditor value={team.principles} onChange={pr => s.updateTeam({ principles: pr })} tr={E.tr} cls={team.cls} depth={team.depth} kinds={E.D.kinds}
+          days={Object.keys(team.settings.days).map(Number)} spieltag={team.settings.spieltag}
           onNewKind={md => setKt({ kind: null, md })} onEditKind={k => setKt({ kind: k })} />}
-        {!kids && !E.D.kinds.length ? <Btn small testID="kind-new" label={t("kind_new")} onPress={() => setKt({ kind: null })} style={{ alignSelf: "flex-start" }} /> : null}
-        {E.D.kinds.length ? <Row wrap gap={6}>
-          {E.D.kinds.map(k => <Btn key={k.id} small testID={"kind-" + k.id} label={`${k.name}${E.lvl(1) ? " · RPE " + k.rpe : ""}`} onPress={() => setKt({ kind: k })} style={{ borderColor: rpeColor(c, k.rpe) }} />)}
-          <Btn small kind="ghost" icon="plus" label={t("kind_new").replace("+ ", "")} onPress={() => setKt({ kind: null })} />
-        </Row> : null}
       </Card> : null}
       {E.mods.regeneration && E.lvl(2) ? <Card>
         <CardTitle title={t("rt_title")} info={<Info title={t("rt_title")} text={t("rt_note")} />} />

@@ -3,7 +3,7 @@
 
 import { CONTENT } from "./content";
 import {
-  BANDS, KIND_RPE, MATCHMIN, MDS, PLAYER_VIEW, bandOf, capOf, classDef, classLabel, groupOf, isGrowthAge, sleepTarget, DEPTH, teamLabel,
+  BANDS, KINDS, KIND_RPE, MATCHMIN, MDS, PLAYER_VIEW, bandOf, capOf, classDef, classLabel, groupOf, isGrowthAge, sleepTarget, DEPTH, teamLabel,
 } from "./classes";
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
 import { translator } from "./i18n";
@@ -12,6 +12,7 @@ import { complaintEffect, type PainEffect } from "./pain";
 import { cmjDrop, fitnessIndex, testRank } from "./perf";
 import { phaseOn } from "./prep";
 import { headCoach } from "./people";
+import { mdLabel } from "./principles";
 import { TW_DIVES_MD1, UNIT_DEF, divesIn, inUnit, isGoalkeeper, mergeUnits, recurringOn, rpeEntry, trainingForm, twPhase, unitMembers } from "./units";
 import type {
   Absence, AttStatus, CoachMsg, Complaint, CustomKind, DayUnit, Kind, Lang, Match, Pitch, Player, PotCat, RpeEntry, Session, Status,
@@ -88,12 +89,12 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
   const isCustom = (k: string): k is `c:${string}` => typeof k === "string" && k.startsWith("c:");
   const customOf = (k: string): CustomKind | undefined => D.kinds.find(x => "c:" + x.id === k);
   const kn = (k: Kind | string): string => isCustom(k) ? (customOf(k)?.name || "?") : t("k_" + k);
-  const allKinds = (): Kind[] => [...(["regen", "frei", "aktiv", "schnell", "taktik", "extensiv", "intensiv", "aufbau"] as Kind[]), ...D.kinds.map(x => ("c:" + x.id) as Kind)];
+  const allKinds = (): Kind[] => [...(KINDS as Kind[]), ...D.kinds.map(x => ("c:" + x.id) as Kind)];
   const kindRpe = (k: Kind): number => Math.min(CAP, isCustom(k) ? (customOf(k)?.rpe || 5) : (KIND_RPE[k as keyof typeof KIND_RPE] ?? 5));
   const contentOf = (ck: string): string => isCustom(ck) ? (customOf(ck)?.inhalt || "") : (CONTENT[ck] || CONTENT.taktik)[opts.lang];
   function contentKey(kind: Kind, platz: Pitch): string {
     if (isCustom(kind)) return kind;
-    if (kind === "intensiv" && grp === "u15") return "intensiv_u15";
+    if ((kind === "intensiv" || kind === "aufbau") && grp === "u15") return kind + "_u15";
     return CONTENT[kind + "_" + platz] ? kind + "_" + platz : kind;
   }
   const intWord = (r: number): string => !r ? t("i_0") : r <= 3 ? t("i_easy") : r <= 5 ? t("i_mid") : r <= 7 ? t("i_high") : t("i_max");
@@ -144,10 +145,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     const prev = ms.filter(x => x < d).at(-1), next = ms.find(x => x > d);
     const after = prev ? diff(prev, d) : 99, before = next ? diff(d, next) : 99;
     if (matchOn(d)) return { md: "MD", after: 0, before: 0 };
-    if (after <= 2 && after < before) return { md: "MD+" + after, after, before };
-    if (before <= 6) return { md: "MD-" + before, after, before };
-    if (after <= 3) return { md: "MD+" + after, after, before };
-    return { md: "", after, before };
+    return { md: mdLabel(after, before), after, before };
   }
 
   // ---------- Personen ----------
@@ -306,17 +304,18 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     let fi = 0, ki = 0;
     items.forEach(x => {
       if (!x.trainDay) return;
-      let kind: Kind, rpe: number, spielfrei = false, coach = false; const o = D.over[x.date];
+      let kind: Kind, rpe: number, spielfrei = false, coach = false, note = ""; const o = D.over[x.date];
       if (o && o.kind) { kind = o.kind; rpe = o.rpe != null ? o.rpe : kindRpe(kind); coach = true; spielfrei = !x.md; }
       else if (grp === "u11") { kind = "kids"; rpe = 5; }
-      else if (x.md && team.principles[x.md]) { kind = team.principles[x.md].kind; rpe = team.principles[x.md].rpe; }
+      else if (x.md && team.principles[x.md]) { kind = team.principles[x.md].kind; rpe = team.principles[x.md].rpe; note = team.principles[x.md].note?.trim() || ""; }
       else { const f = free[fi++ % free.length]; kind = f[0]; rpe = f[1]; spielfrei = true; }
       const platz = dayCfg(x.date).platz, dur = durOf(x.date);
       x.train = {
         date: x.date, md: x.md, kind, rpe, dauer: kind === "frei" ? 0 : dur, platz, spielfrei, coach, notes: [], changes: [],
-        ck: kind === "kids" ? "kids" + (ki++ % 2) : contentKey(kind, platz), inhalt: "", notReady: [],
+        // eigene Beschreibung aus den Prinzipien ist der Standard-Inhalt (sonst der Vorschlag zur Trainingsart)
+        ck: kind === "kids" ? "kids" + (ki++ % 2) : contentKey(kind, platz), inhalt: note, notReady: [],
       };
-      if (kind === "frei" && o?.keepRest) { Object.assign(x.train, { kind: "regen", rpe: 2, dauer: Math.min(60, dur), ck: contentKey("regen", platz), keptRest: true }); }
+      if (kind === "frei" && o?.keepRest) { Object.assign(x.train, { kind: "regen", rpe: 2, dauer: Math.min(60, dur), ck: contentKey("regen", platz), inhalt: "", keptRest: true }); }
     });
     const tr = items.filter(x => x.train).map(x => x.train!) as PlanTrain[];
     let limit: WeekPlan["limit"] = null; let baseAUv: number | null = null;
@@ -341,6 +340,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
           byKind("extensiv").forEach(p => L.push(() => up(p, Math.min(7, cap))));
           byKind("aufbau").forEach(p => L.push(() => up(p, Math.min(7, cap))));
           byKind("taktik").forEach(p => L.push(() => up(p, 6)));
+          byKind("technik").forEach(p => L.push(() => up(p, 5)));
           byKind("intensiv").forEach(p => L.push(() => up(p, cap)));
           if (!S.fix) {
             byKind("intensiv").forEach(p => L.push(() => { change(p, t("minutes"), p.dauer, p.dauer + 15); p.dauer += 15; return true; }));
@@ -354,14 +354,14 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
         } else {
           customs().forEach(p => L.push(() => { const n = Math.max(3, p.rpe - 2); if (n < p.rpe) { change(p, "RPE", p.rpe, n); p.rpe = n; return true; } }));
           const set = (k: Kind, lim: number): void => byKind(k).forEach(p => L.push(() => { if (p.rpe > lim) { change(p, "RPE", p.rpe, lim); p.rpe = lim; return true; } }));
-          set("intensiv", 6); set("extensiv", 4); set("aufbau", 4); set("regen", 2); set("schnell", 3); set("taktik", 4);
+          set("intensiv", 6); set("extensiv", 4); set("aufbau", 4); set("regen", 2); set("schnell", 3); set("taktik", 4); set("technik", 3);
         }
         return L;
       };
       const run = (dir: number, done: () => boolean): void => { for (const s of steps(dir)) { if (done()) break; s(); } };
       // Normalwoche: in kleinen Schritten senken, Nebentage zuerst, der intensive Schlüsseltag zuletzt
       const gentleDown = (done: () => boolean): void => {
-        const order: [Kind, number][] = [["extensiv", 4], ["aufbau", 4], ["taktik", 4], ["schnell", 3], ["intensiv", 6]];
+        const order: [Kind, number][] = [["extensiv", 4], ["aufbau", 4], ["taktik", 4], ["technik", 3], ["schnell", 3], ["intensiv", 6]];
         for (let pass = 0; pass < 4; pass++) for (const [k, min] of order) for (const p of tr.filter(q => q.kind === k && !q.keptRest && !q.coach)) {
           if (done()) return; if (p.rpe > min) { change(p, "RPE", p.rpe, p.rpe - 1); p.rpe--; }
         }
@@ -713,7 +713,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
 Infotiefe des Trainers: ${t("dp_" + team.depth)}.
 Trainingstage: ${Object.entries(S.days).map(([d, v]) => tl("wd")[+d] + " " + v.zeit + ", " + (v.dauer || S.dauer) + " Min. (" + t("p_" + v.platz) + ")").join("; ")}.
 ${Object.entries(S.units || {}).some(([, L]) => L.length) ? "Weitere Einheiten je Woche: " + Object.entries(S.units || {}).flatMap(([d, L]) => L.map(u => tl("wd")[+d] + " " + u.zeit + " " + unitTitle(u) + " " + u.dauer + " Min.")).join("; ") + ".\n" : ""}Torhüter im Kader: ${D.players.filter(isGK).length}.
-Trainingsprinzipien: ${["MD", ...MDS].filter(md => team.principles[md]).map(md => md + " " + kn(team.principles[md].kind) + " RPE " + team.principles[md].rpe).join("; ")}.
+Trainingsprinzipien: ${["MD", ...MDS].filter(md => team.principles[md]).map(md => md + " " + kn(team.principles[md].kind) + " RPE " + team.principles[md].rpe + (team.principles[md].note ? " („" + team.principles[md].note + "“)" : "")).join("; ")}.
 ${D.kinds.length ? "Eigene Trainingsarten: " + D.kinds.map(k => k.name + " (RPE " + k.rpe + "): " + k.inhalt).join(" | ") + "\n" : ""}Spieldauer: ${matchMin()} Min.
 Wochenplan aktuelle Woche:
 ${plan}

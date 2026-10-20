@@ -9,7 +9,7 @@ import { blocksTotal, crewOf, dayBlocks, isMyBlock, myTask, timeline } from "../
 import type { DayBlock } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { TemplatePicker } from "../../../src/ui/archive";
-import { BoardView } from "../../../src/ui/board";
+import { SketchView } from "../../../src/ui/sketch";
 import { BlockSheet, CrewDots, SketchImage, StaffDot } from "../../../src/ui/day/BlockSheet";
 import { IndivSummary } from "../../../src/ui/indiv";
 import { DayTasks } from "../../../src/ui/tasks/widgets";
@@ -126,7 +126,7 @@ export default function Trainingstag() {
                   <T v="eyebrow">{t("blk_points")}</T>
                   {b.points.map((p, i) => <Row key={i} gap={6} align="flex-start"><Text style={{ color: c.accentTx, fontWeight: "800" }}>•</Text><Text style={{ flex: 1, color: c.ink, fontSize: 14 }}>{p}</Text></Row>)}
                 </Col> : null}
-                {b.drawing ? <BoardView value={b.drawing} /> : null}
+                {b.drawing ? <SketchView value={b.drawing} /> : null}
                 {b.photo ? <SketchImage path={b.photo} /> : null}
                 <Row gap={6} wrap>
                   <Btn small testID={"td-block-edit-" + b.id} label={t("edit")} onPress={() => setEdit(b)} />

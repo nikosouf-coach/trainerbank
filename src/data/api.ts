@@ -1,5 +1,6 @@
 // Schnittstelle zum Datenspeicher. Zwei Umsetzungen: Supabase (echt) und Demo (im Speicher).
 import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "../core/club";
+import type { ChatFolderPrefs } from "../core/chat";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -25,12 +26,14 @@ export interface UserPrefs {
   nav?: { bar?: string[]; hide?: string[] };
   /** Spieler-Startseite: Reihenfolge und Sichtbarkeit der Karten */
   dashPlayer?: { k: string; on: boolean }[];
-  /** Spieler-Leiste: ausgeblendete Bereiche (daten, tipps, chat) */
+  /** Spieler-Leiste: ausgeblendete Bereiche (kalender, chat, daten, tipps; Standard: tipps) */
   navPlayer?: { hide?: string[] };
   /** schon gesehene Tipps (z. B. „Leiste anpassen“) */
   seen?: string[];
   /** Darstellung: wie das System, hell oder dunkel */
   theme?: ThemeMode;
+  /** Chat-Ordner: vorgegebene umbenannt/ausgeblendet, eigene Ordner mit Chats */
+  chatFolders?: ChatFolderPrefs;
 }
 /** Darstellung: wie das System, immer hell oder immer dunkel */
 export type ThemeMode = "system" | "light" | "dark";

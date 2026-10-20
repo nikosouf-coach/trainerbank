@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildDemo, demoExtras, demoTeam } from "../demo";
 import {
-  DEFAULT_SECTIONS, FORMATIONS, FRAME_MAX, FRAME_MIN_W, FREE_MAX, MP_LIMITS, MP_VIEWS, MP_VIEW_KEYS, availFor, bendCtrl, bendThrough, changedSincePublish, clampFrame, cleanContent, copyPlan, copySlide,
+  DEFAULT_SECTIONS, FORMATIONS, FRAME_MAX, FRAME_MIN_W, FREE_MAX, MP_DASHES, MP_LIMITS, MP_VIEWS, MP_VIEW_KEYS, MP_WIDTHS, availFor, dashOf, isMaterial, bendCtrl, bendThrough, changedSincePublish, clampFrame, cleanContent, copyPlan, copySlide,
   defaultUntil, emptyContent, fitToView, fmtOf, formatFrame, formatOf, forPlayer, frameOf, inFrame, isArea, isArrow, itemMid, linePoint, moveItem, lineupFor, newPlan, newSlide, oppLineup, outsideFrame,
   panFrame, placePlayer, plannedMinutes, presetOf, publishedOf, seenStats, separate, shareState, shiftItem, slotsOf, squadOf, stableJson, suggestLineup, thinPoints, visibleTo, withFrame, zoomFrame, zoomOf,
 } from "../matchplan";
@@ -352,4 +352,31 @@ test("Demo: freigegebener Plan fürs nächste Spiel mit Protokoll, früherer Pla
   const K = buildDemo(demoTeam("u11", "basis", "de"), "de", NOW); demoExtras(K, "de", NOW);
   const kn = K.plans.find(p => p.id === "mp-demo-next")!;
   assert.equal(kn.c.fmt, 7); assert.equal(kn.c.lineup.length, 7);
+});
+
+test("Zeichentool: Linienstil, Stärke, Drehung, Material und „hinzugefügt von“ – intern ja, für Spieler nicht", () => {
+  const c = full();
+  const raw = [
+    { id: "a", t: "pass", x: 10, y: 10, x2: 30, y2: 40, ls: "dot", w: 3, col: "o", bend: 1.26, by: "st-1" },
+    { id: "b", t: "run", x: 10, y: 10, x2: 20, y2: 20, ls: "zickzack", w: 7, by: "<script>" },
+    { id: "c", t: "mgoal", x: 30, y: 30, rot: 100 },
+    { id: "d", t: "neu", x: 5, y: 5, n: 7, label: "TW12345" },
+    { id: "e", t: "ladder", x: 40, y: 60, rot: -90 },
+    { id: "f", t: "zone", x: 1, y: 1, x2: 20, y2: 20, ls: "long", col: "k" },
+  ];
+  const L = cleanContent({ ...c, slides: [{ ...newSlide(c, "grund", "A", false), items: raw as never, by: "st-1" }] }, "u19").slides[0];
+  const [a, b, mg, nu, la, zo] = L.items;
+  assert.deepEqual([a.ls, a.w, a.col, a.bend, a.by], ["dot", 3, "o", 1.3, "st-1"]);
+  assert.equal(b.ls, undefined, "unbekannter Stil fällt weg"); assert.equal(b.w, undefined); assert.equal(b.by, undefined, "ungültige Kennung fällt weg");
+  assert.equal(dashOf(b), "short", "Laufweg ohne Stil: gestrichelt wie bisher"); assert.equal(dashOf(a), "dot"); assert.equal(dashOf({ t: "pass" }), "solid");
+  assert.equal(mg.rot, 105, "Drehung in 15°-Schritten"); assert.equal(la.rot, 270);
+  assert.ok(isMaterial("mgoal") && isMaterial("ladder") && !isMaterial("cone") && !isMaterial("own"));
+  assert.deepEqual([nu.n, nu.label], [7, "TW12"]);
+  assert.deepEqual([zo.ls, zo.col], ["long", "k"]);
+  assert.equal(L.by, "st-1");
+  assert.ok(MP_DASHES.length === 4 && MP_WIDTHS.length === 3);
+  // Veröffentlichung: wer was angelegt hat, bleibt im Trainerteam
+  const pub = publishedOf({ ...c, slides: [L], lineup: c.lineup.map(x => ({ ...x, by: "st-1" })) }, DEFAULT_SECTIONS);
+  assert.ok(!JSON.stringify(pub).includes("st-1"));
+  assert.equal(pub.slides![0].items[0].ls, "dot", "Stil sehen Spieler");
 });

@@ -151,13 +151,14 @@ export function PlayerProgramCard({ pid }: { pid: string }) {
           <Muted small>{started ? (allDone ? tf("pg_progress", { d: pw.done, t: pw.total }) : tf("pg_left", { n: pw.total - pw.done })) : t("pg_ready")}</Muted>
         </Col>
       </Pressable>
-      {pw.injured ? <Muted small>{t("pp_injured")}</Muted> : pw.personal.level !== "standard" || pw.personal.why.length ? <Row gap={6} testID="pg-personal">
+      {/* Vor dem Start nur der Kopf (Details im Programm); während der Phase die Übungen zum Abhaken */}
+      {started && pw.injured ? <Muted small>{t("pp_injured")}</Muted> : started && (pw.personal.level !== "standard" || pw.personal.why.length) ? <Row gap={6} testID="pg-personal">
         <Muted small style={{ flex: 1 }}>{tf("pp_adapted", { l: t("pp_level_" + pw.personal.level) })} · {pw.personal.why.map(k => t(k)).join(" · ")}</Muted>
         <Info title={t("pg_title")} text={t("pp_info")} />
       </Row> : null}
-      <View>
+      {started ? <View>
         {pw.items.map(({ it, done }) => <PlayerItemRow key={it.id} testID={"pg-item-" + it.id} it={it} done={done} locked={!started} onInfo={() => setInfo(it)} onLog={() => setLog(it)} />)}
-      </View>
+      </View> : null}
       <Btn small testID="pg-all" label={t("pg_all")} onPress={() => router.push("/player/programm")} style={{ alignSelf: "flex-start" }} />
       <ItemInfoSheet it={info} pid={pid} locked={!started} onClose={() => setInfo(null)} onLog={() => { const x = info; setInfo(null); setLog(x); }} />
       <LogSheet it={log} ph={ph} pid={pid} onClose={() => setLog(null)} />

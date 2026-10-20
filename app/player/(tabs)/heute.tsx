@@ -1,14 +1,16 @@
-// Spieler – Heute: anpassbare Startseite (Karten an/aus, Reihenfolge; Standard nach Wichtigkeit): Einträge
-// (Morgen-Check, RPE), Körper heute, Trainer-Nachrichten, Reha, Matchplan, Termine, Aufgaben, Bewertung, Programm,
-// Challenge, Ziele, Wochenziele, Kasse – Meilensteine zuletzt (standardmäßig aus, unter „Meine Daten“).
+// Spieler – Heute: aufs Wesentliche reduziert (Standard nach Wichtigkeit): Einträge (Morgen-Check, RPE), Körper heute,
+// Trainer-Nachrichten, Reha, Matchplan, nächster Termin (→ Kalender), Aufgaben, neue Bewertung, Programm und eine
+// Kurzübersicht (Challenge, Ziele, Woche, Kasse). Die ausführlichen Karten lassen sich unter „Startseite anpassen“
+// dazuschalten.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { View } from "react-native";
 import { gameOf } from "../../../src/core/game";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Ring } from "../../../src/ui/charts";
-import { CustomizeTip, DashEditor, PlayerTabsEditor, useDash } from "../../../src/ui/dashboard";
-import { Btn, Card, Col, Msg, Row, Screen, T } from "../../../src/ui/kit";
+import { CustomizeLinks, DashEditor, PlayerTabsEditor, useDash } from "../../../src/ui/dashboard";
+import { Card, Col, Msg, Row, Screen, T } from "../../../src/ui/kit";
+import { PlayerQuick } from "../../../src/ui/player/quick";
 import { Badges, Goals, NewRating, NextDates, PlayerHero, TodoTile, WeekRings } from "../../../src/ui/player/parts";
 import { PlayerProgramCard } from "../../../src/ui/prep";
 import { msgColor } from "../../../src/ui/squad/ProfileCards";
@@ -51,10 +53,11 @@ export default function PlayerHeute() {
     msgs: msgs.length ? <Col gap={10}>{msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}</Col> : null,
     reha: <PlayerRehaCard pid={p.id} />,
     plan: <PlayerPlansCard />,
-    dates: <NextDates pid={p.id} max={4} />,
+    dates: <NextDates pid={p.id} max={1} onMore={() => router.push("/player/kalender")} />,
     tasks: <PlayerTasksCard pid={p.id} />,
     rating: <NewRating pid={p.id} />,
     program: <PlayerProgramCard pid={p.id} />,
+    quick: <PlayerQuick p={p} g={g} />,
     challenge: <ChallengeCard pid={p.id} compact />,
     devgoals: E.playerSees("dev") ? <MyGoalsCard p={p} compact onOpen={() => router.push("/player/entwicklung")} /> : null,
     pot: E.playerSees("goals") ? <Goals pid={p.id} /> : null,
@@ -68,9 +71,8 @@ export default function PlayerHeute() {
   return (
     <Screen testID="player-heute">
       <PlayerHero p={p} g={g} />
-      <CustomizeTip id="player-custom" onBar={() => setEdit(true)} onDash={() => setEdit(true)} />
       {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
-      <Btn small kind="ghost" icon="sliders" testID="p-dash-edit" label={t("db_edit")} onPress={() => setEdit(true)} style={{ alignSelf: "center" }} />
+      <CustomizeLinks testID="p-dash-edit" onDash={() => setEdit(true)} />
       <DashEditor visible={edit} onClose={() => setEdit(false)} available={available} who="player" extra={<PlayerTabsEditor />} />
     </Screen>
   );

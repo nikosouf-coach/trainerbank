@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { applyChallenge, challengeDefsFor, challengeStreak, fromDef, isDone, progressOf, totalsOf, CHALLENGES } from "../challenge";
-import { canDirect, chatDefaults, chatNameOf, chatSettings, chatTitle, isTransparentPair, pairKey, putMsg, sortChats, totalUnread, unreadOf } from "../chat";
+import { CF_LIMITS, canDirect, chatDefaults, chatNameOf, chatSettings, chatTitle, cleanChatFolders, folderOf, isTransparentPair, pairKey, putMsg, sortChats, totalUnread, unreadOf } from "../chat";
 import { addDays, monday } from "../dates";
 import { buildDemo, demoTeam } from "../demo";
 import { COMPETENCIES, INDIV_TOPICS, POS_GROUPS, areaAvg, assessmentsOf, cleanGoal, cleanScores, compsOf, gapsOf, goalProgress, indivUnit, posGroupOf, prepTalk, seasonReview, statSince, suggestStart } from "../dev";
@@ -136,6 +136,21 @@ test("Chat: Kinderschutz-Standards, Einzelchats, Titel, Ungelesen, Sortierung", 
   assert.equal(unreadOf(D, "d", "u1"), 1); assert.equal(unreadOf(D, "t", "u1"), 0, "eigene Nachrichten zählen nicht");
   D.chatRead.d = "2026-10-07T08:00:00.000Z"; assert.equal(totalUnread(D, "u1"), 0);
   assert.deepEqual(sortChats(D).map(c => c.id), ["d", "t", "s"]);
+});
+
+test("Chat-Ordner: Zuordnung (Einzelchats, Gruppen, Mitlesen) und Bereinigung der Einstellungen", () => {
+  const ch = (id: string, kind: Chat["kind"], members: string[] = [], transparent = false): Chat => ({ id, kind, title: "", groupId: null, members, readOnly: false, transparent, createdBy: null, lastAt: null, muted: false });
+  assert.equal(folderOf(ch("d", "direct", ["u1", "u2"]), "u1", true), "mine");
+  assert.equal(folderOf(ch("t", "team"), "u1", true), "groups"); assert.equal(folderOf(ch("c", "custom", ["u1"]), "u1", false), "groups");
+  assert.equal(folderOf(ch("x", "direct", ["u2", "u3"], true), "u1", true), "read", "transparenter Chat ohne Mitgliedschaft → Mitlesen");
+  assert.equal(folderOf(ch("x", "direct", ["u2", "u3"], true), "u1", false), "mine", "ohne Recht kein Mitlesen");
+  const many = [...Array(20)].map((_, i) => ({ id: "f" + i, name: "  Ordner   " + i + " ".repeat(5) + "x".repeat(40), chats: [...Array(30)].map((_, j) => "c" + j) }));
+  const F = cleanChatFolders({ names: { mine: "  Persönlich ", groups: "", read: 5, foo: "x" }, hide: ["read", "foo"], custom: [...many, { id: "f0", name: "Doppelt", chats: [] }, { id: "<b>", name: "x", chats: [] }] });
+  assert.deepEqual(F.names, { mine: "Persönlich" }); assert.deepEqual(F.hide, ["read"]);
+  assert.equal(F.custom!.length, CF_LIMITS.custom);
+  assert.ok(F.custom!.every(f => f.name.length <= CF_LIMITS.name && !f.name.includes("  ")));
+  assert.equal(F.custom!.reduce((a, f) => a + f.chats.length, 0), CF_LIMITS.ids, "höchstens 100 Zuordnungen");
+  assert.deepEqual(cleanChatFolders(null), {}); assert.deepEqual(cleanChatFolders({ custom: [{ id: "a", name: "", chats: ["c1", "c1", 5] }] }).custom, [{ id: "a", name: "…", chats: ["c1"] }]);
 });
 
 test("Texte: Kompetenzen, Challenges, Themen in beiden Sprachen, gleiche Schlüssel de/en", () => {

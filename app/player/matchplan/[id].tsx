@@ -2,7 +2,7 @@
 // Bildschirmschutz (Android gesperrt, iOS Aufnahmen geschwärzt, Screenshots werden erkannt); jeder Aufruf wird protokolliert.
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Platform, ScrollView, View, type LayoutChangeEvent } from "react-native";
+import { ScrollView, View, type LayoutChangeEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { iso } from "../../../src/core/dates";
 import type { MpOpened } from "../../../src/core/types";
@@ -50,8 +50,7 @@ export default function PlayerMatchplan() {
         {state === "gone" ? <Col gap={10}><Banner testID="pv-gone">{t("pv_gone")}</Banner><Btn label={t("nav_heute")} onPress={back} style={{ alignSelf: "flex-start" }} /></Col> : null}
         {state === "offline" ? <Banner testID="pv-offline">{t("pv_offline")}</Banner> : null}
         {plan ? <>
-          <Banner testID="pv-confidential"><Col gap={2}><T v="small" bold>{t("pv_conf")}</T><T v="small">{tf("pv_confD", { d: until ? `${E.wt(iso(until))} ${E.de(iso(until))} ${String(until.getHours()).padStart(2, "0")}:${String(until.getMinutes()).padStart(2, "0")}` : "" })}</T>
-            {Platform.OS === "web" ? <T v="small">{t("pv_web")}</T> : null}</Col></Banner>
+          <Banner testID="pv-confidential"><Col gap={2}><T v="small" bold>{t("pv_conf")}</T><T v="small">{tf("pv_confD", { d: until ? `${E.wt(iso(until))} ${E.de(iso(until))} ${String(until.getHours()).padStart(2, "0")}:${String(until.getMinutes()).padStart(2, "0")}` : "" })}</T></Col></Banner>
           {shot ? <Banner color={c.warn} testID="pv-shot">{t("pv_shot")}</Banner> : null}
           <PlanContentView pub={plan.content} pid={plan.pid} match={m} watermark={`${plan.name} · ${stamp}`} />
         </> : null}

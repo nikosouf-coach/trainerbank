@@ -1,11 +1,11 @@
 // Startseite Trainer: „Belastung im Team“ – Verteilung der Spieler auf die Belastungszonen (ACWR: Belastung der
-// letzten 7 Tage im Verhältnis zum Schnitt der letzten 4 Wochen) als Balken, Zonen antippbar (Kader gefiltert) und
-// darunter, was das für die nächsten Einheiten heißt.
+// letzten 7 Tage im Verhältnis zum Schnitt der letzten 4 Wochen) als Balken, darunter nur die Zonen mit Spielern
+// (antippbar, Kader gefiltert) und die dringlichste Empfehlung in einer Zeile – ausführlich im Info-Blatt.
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { useEngine } from "../data/store";
-import { Card, CardTitle, Col, Info, Row } from "./kit";
+import { Card, CardTitle, Info, Row } from "./kit";
 import { radius, statusColor, useTheme, withAlpha } from "./theme";
 
 const ZONES = ["crit", "warn", "ok", "low", "inj", "build"] as const;
@@ -32,33 +32,28 @@ export function TeamStatusCard() {
       <CardTitle title={t("ts_title")} info={<Info title={t("ts_title")} text={[...advice.map(x => x[2]), t("ts_info1"), t("ts_info2"), t("ts_info3")]} />} />
       {total ? (
         <View testID="ts-bar" accessibilityLabel={shown.map(k => `${t("st_" + k)}: ${n[k]}`).join(", ")}
-          style={{ flexDirection: "row", height: 14, borderRadius: radius.pill, overflow: "hidden", gap: 2, backgroundColor: c.sunk }}>
+          style={{ flexDirection: "row", height: 10, borderRadius: radius.pill, overflow: "hidden", gap: 2, backgroundColor: c.sunk }}>
           {ZONES.filter(k => n[k]).map(k => <View key={k} style={{ flex: n[k], backgroundColor: statusColor(c, k) }} />)}
         </View>
       ) : null}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", rowGap: 6 }}>
-        {shown.map(k => {
-          const col = statusColor(c, k), on = n[k] > 0;
+      {/* Zonen mit Spielern als kleine Marken (antippen = Kader gefiltert) */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+        {shown.filter(k => n[k] > 0).map(k => {
+          const col = statusColor(c, k);
           return (
             <Pressable key={k} testID={"tile-" + k} accessibilityRole="button" accessibilityLabel={`${t("st_" + k)}: ${n[k]}`} onPress={() => router.push("/coach/kader?filter=" + k)}
-              style={({ pressed }) => ({ width: "48.6%", flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 10, borderRadius: radius.m,
-                backgroundColor: pressed ? withAlpha(col, 0.16) : on ? withAlpha(col, 0.08) : "transparent", borderWidth: 1, borderColor: on ? withAlpha(col, 0.3) : c.line })}>
-              <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: col, opacity: on ? 1 : 0.35 }} />
-              <Text style={{ fontSize: 20, fontWeight: "800", color: on ? col : c.muted, fontVariant: ["tabular-nums"], minWidth: 22 }}>{n[k]}</Text>
-              <Text numberOfLines={1} style={{ flex: 1, fontSize: 12.5, fontWeight: "700", color: on ? c.ink : c.muted }}>{t("st_" + k)}</Text>
+              style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 5, paddingHorizontal: 10, borderRadius: radius.pill, backgroundColor: withAlpha(col, pressed ? 0.2 : 0.1) })}>
+              <Text style={{ fontSize: 14, fontWeight: "800", color: col, fontVariant: ["tabular-nums"] }}>{n[k]}</Text>
+              <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: "600", color: c.ink }}>{t("st_" + k)}</Text>
             </Pressable>
           );
         })}
       </View>
       {advice.length ? (
-        <Col gap={6} testID="ts-advice">
-          {advice.map(([k, txt]) => (
-            <Row key={k} gap={8}>
-              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: statusColor(c, k) }} />
-              <Text numberOfLines={1} style={{ flex: 1, fontSize: 13.5, fontWeight: "600", color: c.ink }}>{txt}</Text>
-            </Row>
-          ))}
-        </Col>
+        <Row gap={8} testID="ts-advice">
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: statusColor(c, advice[0][0]) }} />
+          <Text numberOfLines={1} style={{ flex: 1, fontSize: 13, color: c.muted }}>{advice[0][1]}</Text>
+        </Row>
       ) : null}
     </Card>
   );

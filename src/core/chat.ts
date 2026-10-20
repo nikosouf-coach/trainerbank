@@ -160,3 +160,38 @@ export function toggleReaction(m: ChatMsg, emoji: string, me: string): boolean {
   if (!m.reactions[emoji].length) { const r = { ...m.reactions }; delete r[emoji]; m.reactions = r; }
   return on;
 }
+
+// ---------- Ordner ----------
+/** Vorgegebene Ordner: eigene Einzelchats, Gruppen (Team, Trainerteam, Gruppen, eigene Gruppen), nur mitlesen */
+export type ChatFolderKey = "mine" | "groups" | "read";
+export const CHAT_FOLDERS: ChatFolderKey[] = ["mine", "groups", "read"];
+/** Eigener Ordner: Name und zugeordnete Chats */
+export interface ChatFolder { id: string; name: string; chats: string[] }
+/** Ordner-Einstellungen eines Kontos (umbenannt, ausgeblendet, eigene Ordner) */
+export interface ChatFolderPrefs { names?: Partial<Record<ChatFolderKey, string>>; hide?: ChatFolderKey[]; custom?: ChatFolder[] }
+/** Grenzen (die Einstellungen des Kontos sind auf 8 KB begrenzt) */
+export const CF_LIMITS = { name: 30, custom: 10, ids: 100 };
+
+/** In welchen vorgegebenen Ordner gehört ein Chat? */
+export const folderOf = (c: Chat, me: string, canModerate: boolean): ChatFolderKey =>
+  isObserver(c, me, canModerate) ? "read" : c.kind === "direct" ? "mine" : "groups";
+
+/** Gespeicherte Ordner bereinigen: Namen gekürzt, nur gültige Schlüssel, höchstens 10 eigene Ordner und 100 Chats insgesamt */
+export function cleanChatFolders(raw: unknown): ChatFolderPrefs {
+  const r = raw && typeof raw === "object" ? raw as ChatFolderPrefs : {}, out: ChatFolderPrefs = {};
+  const nm = (x: unknown): string => typeof x === "string" ? x.replace(/\s+/g, " ").trim().slice(0, CF_LIMITS.name) : "";
+  const names: Partial<Record<ChatFolderKey, string>> = {};
+  for (const k of CHAT_FOLDERS) { const n = nm(r.names?.[k]); if (n) names[k] = n; }
+  if (Object.keys(names).length) out.names = names;
+  const hide = Array.isArray(r.hide) ? CHAT_FOLDERS.filter(k => r.hide!.includes(k)) : [];
+  if (hide.length) out.hide = hide;
+  let budget = CF_LIMITS.ids; const ids = new Set<string>();
+  const custom = (Array.isArray(r.custom) ? r.custom : []).filter(f => f && typeof f === "object" && typeof f.id === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(f.id) && !ids.has(f.id) && ids.add(f.id))
+    .slice(0, CF_LIMITS.custom).map(f => {
+      const chats = [...new Set((Array.isArray(f.chats) ? f.chats : []).filter(x => typeof x === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(x)))];
+      const keep = chats.slice(0, Math.max(0, budget)); budget -= keep.length;
+      return { id: f.id, name: nm(f.name) || "…", chats: keep };
+    });
+  if (custom.length) out.custom = custom;
+  return out;
+}

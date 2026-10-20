@@ -33,7 +33,8 @@ export function modsFor(depth: Depth, k: ClassKey): Modules {
   return m;
 }
 
-export const KINDS: BuiltinKind[] = ["regen", "frei", "aktiv", "schnell", "taktik", "extensiv", "intensiv", "aufbau"];
+/** Trainingsarten (je ein klarer Schwerpunkt) in der Reihenfolge einer Woche nach dem Spiel. "aufbau" = Kraft. */
+export const KINDS: BuiltinKind[] = ["regen", "frei", "aufbau", "technik", "intensiv", "extensiv", "taktik", "schnell", "aktiv"];
 /** Spieltags-Bezüge der Trainingstage (ohne den Spieltag selbst). */
 export const MDS = ["MD+1", "MD+2", "MD-6", "MD-5", "MD-4", "MD-3", "MD-2", "MD-1"];
 export const PR_ROWS = ["MD", ...MDS];
@@ -49,7 +50,7 @@ export function defaultPrinciples(grp: Group): Principles {
   return {
     "MD": { kind: "spiel", rpe: grp === "u15" ? 7 : 8 },
     "MD+1": { kind: "regen", rpe: 3 }, "MD+2": { kind: "frei", rpe: 0 },
-    "MD-6": { kind: "aufbau", rpe: 5 }, "MD-5": { kind: "aufbau", rpe: 6 },
+    "MD-6": { kind: "aufbau", rpe: 6 }, "MD-5": { kind: "technik", rpe: 5 },
     "MD-4": { kind: "intensiv", rpe: cap }, "MD-3": { kind: "extensiv", rpe: 6 },
     "MD-2": { kind: "schnell", rpe: 4 }, "MD-1": { kind: "aktiv", rpe: 3 },
   };
@@ -72,7 +73,7 @@ export const sleepTarget = (a: number): [number, number] => a < 13 ? [9, 12] : a
 /** Spieldauer nach Altersklasse (DFB-Spielzeiten). */
 export const MATCHMIN: Record<ClassKey, number> = { sen: 90, ue32: 80, u19: 90, u18: 90, u17: 80, u16: 80, u15: 70, u14: 70, u13: 60, u12: 60, u11: 50, u10: 50, u9: 40, u8: 40, u7: 40 };
 
-export const KIND_RPE: Record<BuiltinKind, number> = { regen: 3, frei: 0, aktiv: 3, schnell: 4, taktik: 5, extensiv: 6, intensiv: 8, aufbau: 6, kids: 5, spiel: 8 };
+export const KIND_RPE: Record<BuiltinKind, number> = { regen: 3, frei: 0, aktiv: 3, schnell: 4, taktik: 5, extensiv: 6, intensiv: 8, aufbau: 6, technik: 4, kids: 5, spiel: 8 };
 
 export const NAV_COACH = ["heute", "kalender", "plan", "kader", "module"] as const;
 export const NAV_PLAYER = ["heute", "eintragen", "daten", "tipps", "ich"] as const;

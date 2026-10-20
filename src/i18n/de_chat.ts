@@ -62,4 +62,11 @@ export const de_chat: Dict = {
   err_chat_off: "Der Chat ist ausgeschaltet.", err_dm_off: "Einzelchats sind hier nicht möglich.", err_chat_rate: "Zu viele Nachrichten in kurzer Zeit – bitte kurz warten.",
   err_open_requests: "Du hast schon zwei offene Anfragen.", err_indiv_off: "Anfragen für Individualtraining sind ausgeschaltet.", err_members: "Zu viele Mitglieder (höchstens 60).",
   err_invalid_members: "Bitte mindestens eine Person auswählen.", err_challenge_closed: "Diese Challenge ist schon abgeschlossen.", err_duplicate: "Schon vorhanden.",
+  // Ordner
+  ch_fAll: "Alle", ch_f_mine: "Einzelchats", ch_f_groups: "Gruppen", ch_f_read: "Mitlesen",
+  ch_f_mineD: "Einzelchats – deine Unterhaltungen zu zweit", ch_f_groupsD: "Gruppen – Team, Trainerteam und Gruppen", ch_f_readD: "Mitlesen – Chats, die du nur zum Schutz mitliest",
+  ch_fEdit: "Ordner bearbeiten", ch_fPre: "Vorgegebene Ordner", ch_fShow: "Anzeigen", ch_fOwn: "Eigene Ordner",
+  ch_fOwnD: "Lege eigene Ordner an, z. B. „Eltern“, „Torhüter“ oder „Wichtig“, und ordne Chats zu. Ein Chat kann in mehreren Ordnern liegen.",
+  ch_fNew: "Neuer Ordner", ch_fNewN: "Ordner {n}", ch_fName: "Name", ch_fDel: "Ordner löschen", ch_fChatsN: "{n} Chats – zuordnen",
+  ch_fEmpty: "Keine Chats in diesem Ordner.", ch_fAdd: "Chats hinzufügen", ch_fInfo: "In Ordner legen", ch_fLimit: "Höchstens {n} Chats in eigenen Ordnern.",
 };

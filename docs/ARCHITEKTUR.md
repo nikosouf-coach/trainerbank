@@ -146,6 +146,12 @@ eine Push-Nachricht je Chat und Minute, keine an Mitlesende). Push-Nachrichten e
 neue Nachrichten über Supabase Realtime (`chat_messages`, `chat_reactions` in der Publikation `supabase_realtime`, RLS
 gilt) und gleicht zusätzlich alle 20 s ab, solange der Chat offen ist.
 
+Ordner (nur Ansicht, pro Konto in `profiles.prefs.chatFolders`): vorgegeben „Einzelchats“ (eigene Chats zu zweit),
+„Gruppen“ (Team, Trainerteam, Gruppen, eigene Gruppen) und „Mitlesen“ (transparente Chats ohne Mitgliedschaft, nur
+Trainerteam mit `messages`) – umbenennbar und ausblendbar; dazu bis zu 10 eigene Ordner mit frei gewählten Chats (ein
+Chat kann in mehreren Ordnern liegen, höchstens 100 Zuordnungen, weil `prefs` auf 8 KB begrenzt ist). Zuordnen in
+„Ordner bearbeiten“ oder in der Info eines Chats. `core/chat.folderOf` ordnet zu, `cleanChatFolders` bereinigt.
+
 ### Matchplan
 
 Der Inhalt eines Plans liegt als JSON in `match_plans.content` (Koordinaten in Metern auf einem Hochkant-Feld 68 × 105,
@@ -155,11 +161,21 @@ Feld, Hälften, Angriffsdrittel, 16er vorne/hinten, Ecken je Seite, Strafraum br
 (`frame` {x, y, w, h} in Metern; Zoom bis ca. 4-fach, Format hoch/quadratisch/breit, höchstens 5–6 m neben dem Feld;
 `clampFrame`, `zoomFrame`, `panFrame`, `formatFrame`). Entspricht ein Rahmen einer Voreinstellung, wird nur sie
 gespeichert. Je Folie optional Icongröße (`size`) und Icon-Ansicht (`mode`). Elemente (`MpItem`): Spieler, Gegner,
-Ball, Hütchen, Text; Pfeile (Pass, Laufweg, Dribbling, Linie) mit Bogen (`bend` −3 … 3 in Zehnteln, quadratische
-Kurve; `bendThrough` setzt ihn so, dass der Scheitel am Griff liegt) und Schrittnummer (`n` 1 … 20 – die
-Präsentation zeigt den Ablauf Schritt für Schritt); Freihand (`pts` [x, y, …], höchstens 40 Punkte, ausgedünnt mit
-`thinPoints`, gestrichelt oder `solid`, höchstens 8 je Folie – damit der Plan klein bleibt); Zone (zwei Ecken) und
-Kreis (Mitte, Rand), je Plan das Spielfeld-Design (`look`: Rasen = Standard, nicht gespeichert; Taktiktafel; weiß).
+Joker/neutral (`neu`, mit Nummer oder Kürzel), Ball, Hütchen, Text, Trainingsmaterial (Tor, Minitor, Stange, Dummy,
+Koordinationsleiter, Hürde, Reifen – drehbar in 15°-Schritten, `rot`; Größe relativ zu den Spieler-Icons); Pfeile
+(Pass, Laufweg, Dribbling, Linie) mit Bogen (`bend` −3 … 3 in Zehnteln, quadratische Kurve; `bendThrough` setzt ihn
+so, dass der Scheitel am Griff liegt) und Schrittnummer (`n` 1 … 20 – die Präsentation zeigt den Ablauf Schritt für
+Schritt); Freihand (`pts` [x, y, …], höchstens 40 Punkte, ausgedünnt mit `thinPoints`, höchstens 8 je Folie – damit
+der Plan klein bleibt); Zone (zwei Ecken) und Kreis (Mitte, Rand). Linien, Freihand und Flächen haben Farbe (7, `col`),
+Linienstil (`ls`: durchgezogen, lang/kurz gestrichelt, gepunktet; ohne Angabe wie bisher – Laufweg, Freihand und
+Flächen gestrichelt, `dashOf`) und Stärke (`w` 1–3, Standard 2). „Hinzugefügt von“: `by` (Trainerprofil) an Elementen
+und Folien – nur im Trainerteam sichtbar, `publishedOf` entfernt es. Je Plan das Spielfeld-Design (`look`: Rasen =
+Standard, nicht gespeichert; Taktiktafel; weiß).
+
+Übungsskizzen (Übungsarchiv, Blöcke des Trainingstags) nutzen dieselbe Tafel: `drawing` jsonb im Format `Sketch`
+(`v: 2`, Ausschnitt `view`/`frame`, `look`, `plain` = ohne Feldlinien, `items`). Ältere Skizzen (`DrawingV1`: eigenes
+Feld quer/halb/16er/frei) rechnet `core/sketch.toSketch` beim Öffnen um; gespeichert wird im neuen Format (Grenze der
+Spalte: 60 000 Bytes).
 Die Präsentation zeigt das Feld auf breiten Bildschirmen quer (eigenes Tor links); am Handy dreht ⟲ die ganze Ansicht
 ins Querformat. Die App bereinigt den Inhalt (`core/matchplan.cleanContent`); ältere Pläne bleiben dabei unverändert,
 damit Freigaben nicht als „geändert“ gelten. Beim Freigeben schreibt die App den Auszug für Spieler (`publishedOf`: nur gewählte
@@ -187,7 +203,8 @@ Seiten, die in die Leiste dürfen, liegen in `app/coach/(tabs)/` (Adressen bleib
 übrigen aus. „Mehr“ zeigt alle Bereiche nach Themen (Spieler & Entwicklung, Training & Belastung, Spiel & Analyse,
 Organisation, Verein & Einstellungen) mit Suche; ausgeblendete Menüpunkte stehen unten. Auswahl und Reihenfolge
 speichert jedes Konto in `profiles.prefs.nav` (`bar`, `hide`); Spieler blenden Bereiche ihrer Leiste über
-`prefs.navPlayer.hide` aus (Heute, Eintragen und Ich bleiben). Startseiten: `prefs.dash` (Trainer) und
+`prefs.navPlayer.hide` aus (Heute, Eintragen und Ich bleiben; wählbar Kalender, Chat, Daten, Tipps – ohne Eintrag ist
+„Tipps“ ausgeblendet, damit die Leiste mit dem Kalender bei sechs Einträgen bleibt). Startseiten: `prefs.dash` (Trainer) und
 `prefs.dashPlayer` (Spieler), einmalige Hinweise in `prefs.seen`, Darstellung in `prefs.theme` (system/light/dark;
 zusätzlich auf dem Gerät gespeichert, damit sie schon vor der Anmeldung gilt). Bereichsseiten zeigen „Zurück zu Mehr“ nur, wenn sie
 nicht in der Leiste liegen (`useNavBack`). Bildschirme im Hintergrund werden eingefroren (`enableFreeze`,
@@ -197,7 +214,9 @@ nicht in der Leiste liegen (`useNavBack`). Bildschirme im Hintergrund werden ein
 
 `src/ui/theme.tsx` hält alle Farben als Tokens (`bg`, `surface`, `sunk`, `ink`, `muted`, `line`, Statusfarben,
 Akzent) für Hell und Dunkel – ruhige Neutraltöne, Farbe nur mit Bedeutung (Status, Akzent). Der Akzent ist die
-Vereinsfarbe; sehr dunkle Vereinsfarben werden im Dunkelmodus aufgehellt, sehr helle bekommen dunkle Schrift.
+Vereinsfarbe; sehr dunkle Vereinsfarben werden im Dunkelmodus aufgehellt, sehr helle (Weiß, Silber) im hellen Modus
+für Knöpfe und Flächen zu Graphit abgedunkelt und bekommen dunkle Schrift. Spieler-Icons auf dem Feld zeigen die echte
+Vereinsfarbe (`club`, `clubInk`; helle Icons mit grauem Rand).
 Typografie in Satzschreibung (Überschriften kräftig mit leicht engem Spacing, kleine Kennzeichnungen in
 Großbuchstaben). Karten: feine Linie, Status nur leicht eingetönt; Hinweise ohne Seitenstreifen. Die Marke
 (`src/ui/brand.tsx`): Bildzeichen „b“ mit Mittelkreis und Anstoßpunkt in Markengrün `#0D6B4B`, Wortmarke
@@ -329,7 +348,14 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 ## Fachlogik (`src/core`)
 
 - `dates.ts` – Datumshilfen (ISO-Strings, Montag, KW).
-- `classes.ts` – Altersklassen, Infotiefe, Module, Standard-Prinzipien, Spieldauer.
+- `classes.ts` – Altersklassen, Infotiefe, Module, Trainingsarten (je ein Schwerpunkt: Regeneration, frei, Kraft,
+  Technik, Intensiv, Extensiv, Taktik, Schnelligkeit, Aktivierung), Standard-Prinzipien, Spieldauer.
+- `principles.ts` – Spieltags-Bezug (`mdLabel`: bis zwei Tage nach dem Spiel MD+1/MD+2, sonst MD-n bis zum nächsten
+  Spiel – MD-6/MD-5 nur bei mehr als 7 Tagen zwischen zwei Spielen), Beispielwoche aus Trainingstagen und Spieltag
+  (`exampleWeek`, `principleRows`), Plausibilitäts-Hinweise (zwei harte Tage hintereinander, harter Tag vor dem Spiel,
+  Art und RPE passen nicht, kein harter Reiz), Bereinigung (`cleanPrinciples`; eigene Beschreibung `note` ≤ 300 Zeichen
+  wird Standard-Inhalt der Einheit im Wochenplan).
+- `sketch.ts` – Übungsskizzen: leere Skizze, Umrechnung alter Skizzen ins Format der Matchplan-Tafel.
 - `engine.ts` – `createEngine(data, {today, now, lang})`: Spieltags-Bezug (MD), Wochenplan inkl. Aufbau/Entlastung,
   Erholungsmodell (9 Altersstufen), Kennzahlen (ACWR rollend 7/28), Profile, Ampel, Empfehlungen,
   Datenhinweise für Potenziale, Spieler-Status und -Tipps.

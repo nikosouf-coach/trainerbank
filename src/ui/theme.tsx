@@ -8,6 +8,8 @@ export interface Colors {
   bg: string; surface: string; sunk: string; ink: string; muted: string; line: string;
   ok: string; warn: string; hot: string; crit: string; low: string; build: string; inj: string; event: string;
   accent: string; accentTx: string; accentInk: string; accentSoft: string; overlay: string;
+  /** Vereinsfarbe für Spielerkreise auf dem Feld (helle Farben wie Weiß/Silber bleiben hier hell) */
+  club: string; clubInk: string;
 }
 
 /** Markenfarben (Logo, Startbildschirm, Vorgabe ohne Verein) */
@@ -28,14 +30,21 @@ export function mix(a: string, b: string, t: number): string {
 }
 export const withAlpha = (hex: string, a: number): string => { const [r, g, b] = hexToRgb(hex); return `rgba(${r},${g},${b},${a})`; };
 const lum = (hex: string): number => { const [r, g, b] = hexToRgb(hex); return (r * 299 + g * 587 + b * 114) / 1000; };
+/** Helle Farbe (Weiß, Silber, Gelb …) – braucht dunkle Schrift und auf Weiß einen Rand */
+export const isLight = (hex: string): boolean => /^#[0-9a-f]{6}$/i.test(hex) && lum(hex) > 185;
+/** Lesbare Schriftfarbe auf einer Farbfläche */
+export const inkOn = (hex: string): string => (/^#[0-9a-f]{6}$/i.test(hex) && lum(hex) > 160 ? "#111111" : "#ffffff");
 
 export function makeColors(dark: boolean, accent: string): Colors {
   const base = dark ? DARK : LIGHT;
   const raw = /^#[0-9a-f]{6}$/i.test(accent) ? accent : BRAND.green;
-  // Dunkle Vereinsfarben (Navy, Schwarz) im Dunkelmodus etwas aufhellen, damit Knöpfe auf Schwarz sichtbar bleiben
-  const acc = dark && lum(raw) < 70 ? mix(raw, "#ffffff", lum(raw) < 30 ? 0.3 : 0.16) : raw;
+  // Dunkle Vereinsfarben (Navy, Schwarz) im Dunkelmodus etwas aufhellen, damit Knöpfe auf Schwarz sichtbar bleiben;
+  // sehr helle (Weiß, Silber) im hellen Modus zu Graphit abdunkeln, damit Knöpfe auf Weiß sichtbar bleiben.
+  const acc = dark ? (lum(raw) < 70 ? mix(raw, "#ffffff", lum(raw) < 30 ? 0.3 : 0.16) : lum(raw) > 230 ? mix(raw, base.surface, 0.1) : raw)
+    : isLight(raw) ? mix(raw, base.ink, 0.68) : raw;
   const accentTx = dark ? mix(acc, "#ffffff", 0.6) : lum(acc) > 170 ? mix(acc, "#000000", 0.45) : acc;
-  return { ...base, accent: acc, accentTx, accentInk: lum(acc) > 160 ? "#111111" : "#ffffff", accentSoft: dark ? mix(acc, base.surface, 0.78) : mix(acc, "#ffffff", 0.9) };
+  const club = isLight(raw) ? raw : acc;
+  return { ...base, accent: acc, accentTx, accentInk: inkOn(acc), accentSoft: dark ? mix(acc, base.surface, 0.78) : mix(acc, "#ffffff", 0.9), club, clubInk: inkOn(club) };
 }
 
 export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 };

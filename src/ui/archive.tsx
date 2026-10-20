@@ -5,7 +5,7 @@ import { addDays, monday } from "../core/dates";
 import type { Exercise, SessionTemplate, StaffProfile, StaffRoleKey, TemplateBlock } from "../core/types";
 import type { StaffEntry } from "../data/api";
 import { tmpId, useEngine, useStore } from "../data/store";
-import { BoardView } from "./board";
+import { SketchView } from "./sketch";
 import { Banner, Btn, ChoiceChips, Col, Field, ListItem, Muted, NumField, Picker, Row, Sheet, T, Tag } from "./kit";
 import { radius, useTheme, withAlpha } from "./theme";
 
@@ -33,7 +33,7 @@ export function ExerciseRow({ ex, onPress }: { ex: Exercise; onPress: () => void
   return (
     <Pressable testID={"ex-" + ex.id} accessibilityRole="button" accessibilityLabel={ex.title} onPress={onPress}
       style={{ flexDirection: "row", gap: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.line, alignItems: "center" }}>
-      <View style={{ width: 96 }}>{ex.drawing ? <BoardView value={ex.drawing} /> : <View style={{ height: 62, borderRadius: radius.m, backgroundColor: c.sunk, alignItems: "center", justifyContent: "center" }}><Text style={{ color: c.muted, fontWeight: "800", fontSize: 11 }}>{t("cat_" + ex.cat).toUpperCase()}</Text></View>}</View>
+      <View style={{ width: 96 }}>{ex.drawing ? <SketchView value={ex.drawing} width={96} mini /> : <View style={{ height: 62, borderRadius: radius.m, backgroundColor: c.sunk, alignItems: "center", justifyContent: "center" }}><Text style={{ color: c.muted, fontWeight: "800", fontSize: 11 }}>{t("cat_" + ex.cat).toUpperCase()}</Text></View>}</View>
       <View style={{ flex: 1, gap: 3 }}>
         <Text numberOfLines={2} style={{ fontWeight: "800", fontSize: 15, color: c.ink }}>{ex.title}</Text>
         <Text style={{ fontSize: 12.5, color: c.muted }}>{t("cat_" + ex.cat)} · {ex.dur} {t("min")}{ex.players ? " · " + ex.players : ""}{ex.rpe != null ? " · RPE " + ex.rpe : ""}</Text>

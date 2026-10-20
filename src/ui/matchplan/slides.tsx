@@ -6,14 +6,14 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Modal, Platform, Pressable, ScrollView, Text, View, useWindowDimensions, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  FRAME_FORMATS, FRAME_MIN_W, MP_LIMITS, MP_VIEWS, MP_VIEW_KEYS, SLIDE_CATS, catView, copySlide, fitToView, formatFrame, formatOf, frameOf, isArrow, isLine, isSetPiece, mpId,
+  FRAME_FORMATS, FRAME_MIN_W, MP_LIMITS, MP_VIEWS, MP_VIEW_KEYS, SLIDE_CATS, catView, copySlide, dashOf, fitToView, formatFrame, formatOf, frameOf, isArrow, isLine, isSetPiece, mpId,
   newSlide, outsideFrame, squadOf, withFrame, zoomFrame, zoomOf,
 } from "../../core/matchplan";
 import type { MpContent, MpItem, MpMode, MpSlide, MpSlideCat, MpTool, MpView } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
 import { Banner, Btn, Card, CardTitle, Check, Col, Field, Muted, Picker, Row, Seg, Sheet, T, ToggleRow } from "../kit";
 import { radius, useTheme, withAlpha } from "../theme";
-import { BoardCanvas, ColorRow, ItemForm, PlayerPick, SelBar, TextForm, ToolGrid, addBlock, defCol, dupItem, hasColor, useBoard, type BoardState, type Tool } from "./board";
+import { BoardCanvas, ColorRow, ItemForm, PlayerPick, SelBar, StrokeRow, TextForm, ToolGrid, addBlock, defCol, dupItem, hasColor, hasStroke, useBoard, type BoardState, type Tool } from "./board";
 import { useTokenInfo } from "./common";
 import { DisplayControls, SIZES, sizeKey } from "./lineup";
 import { FrameThumb, Pitch } from "./pitch";
@@ -53,7 +53,7 @@ export function SlideBoard({ slide, c, onChange, ro, testID = "mp-board", only }
 // ---------- Übersicht ----------
 /** Folien des Plans: Vorschaubilder nach Taktik und Standards, neue Folie, Präsentieren, Darstellung */
 export function SlidesPanel({ c, onChange, ro, planId }: { c: MpContent; onChange: (c: MpContent) => void; ro?: boolean; planId?: string }) {
-  const E = useEngine(); const { t, tf } = E; const { c: col } = useTheme(); const info = useTokenInfo();
+  const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c: col } = useTheme(); const info = useTokenInfo();
   const [W, setW] = useState(0);
   const [open, setOpen] = useState<string | null>(null);
   const [present, setPresent] = useState<number | null>(null);
@@ -93,7 +93,10 @@ export function SlidesPanel({ c, onChange, ro, planId }: { c: MpContent; onChang
       {open && !ro ? <SlideEditor c={c} onChange={onChange} id={open} onOpen={setOpen} onClose={() => setOpen(null)} onPresent={i => { setOpen(null); setPresent(i); }} /> : null}
       {present != null && c.slides.length ? <Presenter slides={c.slides} start={present} c={c} onClose={() => setPresent(null)} showHidden /> : null}
       <Sheet visible={adding} onClose={() => setAdding(false)} title={t("mp_slideNew")} testID="mp-slide-sheet" closeLabel={t("cancel")}>
-        {adding ? <NewSlideForm c={c} planId={planId} onCreate={x => { onChange({ ...c, slides: [...c.slides, x] }); setAdding(false); setOpen(x.id); }} /> : null}
+        {adding ? <NewSlideForm c={c} planId={planId} onCreate={x0 => {
+          // „angelegt von“: wer die Folie erstellt bzw. übernommen hat
+          const x: MpSlide = { ...x0 }; if (s.myStaff?.id) x.by = s.myStaff.id; else delete x.by;
+          onChange({ ...c, slides: [...c.slides, x] }); setAdding(false); setOpen(x.id); }} /> : null}
       </Sheet>
     </Col>
   );
@@ -103,12 +106,12 @@ export function SlidesPanel({ c, onChange, ro, planId }: { c: MpContent; onChang
 const SlideCard = React.memo(function SlideCard({ sl, n, look, info, width, onPress }: { sl: MpSlide; n: number; look: MpContent["look"]; info: ReturnType<typeof useTokenInfo>; width: number; onPress: (id: string) => void }) {
   const E = useEngine(); const { t } = E; const { c: col } = useTheme();
   const f = frameOf(sl), areaH = Math.round(width * 0.8), pw = Math.max(40, Math.floor(Math.min(width - 12, (areaH - 12) * f.w / f.h)));
-  const sp = isSetPiece(sl.cat);
+  const sp = isSetPiece(sl.cat), by = sl.by ? E.D.staff.find(x => x.id === sl.by)?.name || null : null;
   return (
     <Pressable testID={"mp-slide-" + sl.id} accessibilityRole="button" accessibilityLabel={`${n}. ${slideLabel(t, sl)}`} onPress={() => onPress(sl.id)}
       style={({ pressed }) => ({ width, borderRadius: radius.l, borderWidth: 1, borderColor: col.line, backgroundColor: col.surface, overflow: "hidden", opacity: pressed ? 0.85 : 1 })}>
       <View style={{ height: areaH, alignItems: "center", justifyContent: "center", backgroundColor: col.sunk }}>
-        <Pitch mini frame={f} items={sl.items} width={pw} mode="num" size={1} accent={col.accent} accentInk={col.accentInk} info={info} look={look} />
+        <Pitch mini frame={f} items={sl.items} width={pw} mode="num" size={1} accent={col.club} accentInk={col.clubInk} info={info} look={look} />
         {!sl.vis ? <View style={{ position: "absolute", right: 6, top: 6, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 99, backgroundColor: "rgba(0,0,0,0.6)" }}>
           <Text style={{ color: "#fff", fontSize: 10.5, fontWeight: "800" }}>🔒 {t("mp_staffOnly")}</Text></View> : null}
       </View>
@@ -121,6 +124,7 @@ const SlideCard = React.memo(function SlideCard({ sl, n, look, info, width, onPr
         </Row>
         <Text numberOfLines={2} style={{ fontWeight: "800", fontSize: 14, color: col.ink }}>{slideLabel(t, sl)}</Text>
         <Text numberOfLines={1} style={{ fontSize: 11.5, color: col.muted }}>{frameLabel(t, sl)}{sl.note ? " · " + t("mp_noteShort") : ""}</Text>
+        {by ? <Text testID={"mp-slide-by-" + sl.id} numberOfLines={1} style={{ fontSize: 11, color: col.muted }}>{E.tf("mp_by", { n: by })}</Text> : null}
       </View>
     </Pressable>
   );
@@ -170,6 +174,32 @@ function NewSlideForm({ c, planId, onCreate }: { c: MpContent; planId?: string; 
 }
 
 // ---------- Editor ----------
+/**
+ * Zeile über den Werkzeugen ohne Auswahl: Name und Hinweis des Werkzeugs; bei Linien und Flächen Farbe, Linienstil
+ * und Strichstärke für neue Elemente (waagerecht scrollbar).
+ */
+export function BoardCtx({ B, look }: { B: BoardState; look?: MpContent["look"] }) {
+  const E = useEngine(); const { t } = E; const { c: col } = useTheme();
+  const colr = hasColor(B.tool), str = hasStroke(B.tool);
+  const head = (
+    <View style={{ minWidth: 0, flexShrink: 1 }}>
+      <Text numberOfLines={1} style={{ fontWeight: "800", fontSize: 13, color: col.ink }}>{t("mpt_" + B.tool)}</Text>
+      <Text testID="mp-board-hint" numberOfLines={colr ? 1 : 2} style={{ fontSize: 11.5, lineHeight: 15, color: col.muted }}>{t("mpt_" + B.tool + "_h")}</Text>
+    </View>
+  );
+  // gleiche Struktur mit und ohne Farbleiste (sonst wechseln Stile beim Werkzeugwechsel)
+  return (
+    <View testID="mp-board-ctx" style={{ minHeight: 50, justifyContent: "center", gap: 4 }}>
+      {colr ? <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: "center", gap: 10, minHeight: 36 }}>
+        <ColorRow small testID="mp-board-colors" value={B.color || (B.tool === "text" ? "w" : defCol(B.tool as MpTool))} onChange={B.setColor} look={look} />
+        {str ? <StrokeRow testID="mp-board-stroke" ls={B.stroke.ls || dashOfTool(B.tool as MpTool)} w={B.stroke.w || 2} onChange={x => B.setStroke(x)} /> : null}
+      </ScrollView> : null}
+      {head}
+    </View>
+  );
+}
+/** Standard-Linienstil eines Werkzeugs */
+const dashOfTool = (t: MpTool) => dashOf({ t });
 const EMPTY: MpSlide = { id: "-", cat: "sonst", title: "", view: "full", items: [], note: "", vis: true };
 
 /**
@@ -188,6 +218,8 @@ function SlideEditor({ c, onChange, id, onOpen, onClose, onPresent }: { c: MpCon
   const [pick, setPick] = useState<string | null>(null);
   const [sheet, setSheet] = useState<"note" | "settings" | null>(null);
   const [area, setArea] = useState({ w: 0, h: 0 });
+  /** dritte Werkzeugreihe (Joker, Trainingsmaterial) */
+  const [mat, setMat] = useState(false);
   useEffect(() => { B.reset(); B.setFraming(false); setEdit(null); setPick(null); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (i < 0) onClose(); }, [i]); // eslint-disable-line react-hooks/exhaustive-deps
   const selIt = B.sel ? sl.items.find(x => x.id === B.sel) || null : null;
@@ -215,21 +247,16 @@ function SlideEditor({ c, onChange, id, onOpen, onClose, onPresent }: { c: MpCon
   const board = area.w ? <BoardCanvas slide={sl} c={c} B={B} testID="mp-board" maxW={Math.min(area.w - 12, wide ? 1100 : 900)} maxH={Math.max(200, area.h - 12)}
     onEdit={it => it.t === "own" ? setPick(it.id) : openForm(it)} onText={p => setTextAt(p)} /> : null;
   const ctx = selIt ? <SelBar it={selIt} look={c.look} onUpdate={x => setItem(x, selIt.id)} onDelete={() => setItem(null, selIt.id)}
-    onDup={() => { const bl = addBlock(sl, selIt.t); if (bl) { s.toast(tf(bl.k, { n: bl.n })); return; } const cp = dupItem(selIt); B.commit({ ...sl, items: [...sl.items, cp] }); B.setSel(cp.id); }}
+    onDup={() => { const bl = addBlock(sl, selIt.t); if (bl) { s.toast(tf(bl.k, { n: bl.n })); return; } const cp = dupItem(selIt, s.myStaff?.id); B.commit({ ...sl, items: [...sl.items, cp] }); B.setSel(cp.id); }}
     onEdit={() => openForm(selIt)} onPick={() => setPick(selIt.id)} onClose={() => B.setSel(null)} /> : (
-    <View testID="mp-board-ctx" style={{ minHeight: 50, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 2 }}>
-      {hasColor(B.tool) ? <ColorRow small testID="mp-board-colors" value={B.color || (B.tool === "text" ? "w" : defCol(B.tool as MpTool))} onChange={B.setColor} look={c.look} /> : null}
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Text numberOfLines={1} style={{ fontWeight: "800", fontSize: 13, color: col.ink }}>{t("mpt_" + B.tool)}</Text>
-        <Text testID="mp-board-hint" numberOfLines={2} style={{ fontSize: 11.5, lineHeight: 15, color: col.muted }}>{t("mpt_" + B.tool + "_h")}</Text>
-      </View>
-    </View>
+    <BoardCtx B={B} look={c.look} />
   );
   const actions = (
     <Row gap={6}>
       <Btn small testID="mp-board-undo" icon="undo" label="" a11y={t("bd_undo")} disabled={!B.canUndo} onPress={B.undo} style={{ minWidth: 40 }} />
       <Btn small testID="mp-board-redo" icon="redo" label="" a11y={t("mp_redo")} disabled={!B.canRedo} onPress={B.redo} style={{ minWidth: 40 }} />
       <View style={{ flex: 1 }} />
+      <Btn small testID="mp-mat" icon="grid" label={wide ? t("mp_material") : ""} a11y={t("mp_material")} kind={mat ? "primary" : "default"} onPress={() => setMat(!mat)} style={{ minWidth: 40 }} />
       <Btn small testID="mp-frame" icon="frame" label={t("mp_frame")} onPress={() => B.setFraming(true)} />
       {!wide ? <Btn small testID="mp-ed-note" icon="note" label={t("mp_noteShort") + (sl.note.trim() ? " •" : "")} onPress={() => setSheet("note")} /> : null}
       {!wide ? <Btn small testID="mp-ed-settings" icon="sliders" label="" a11y={t("mp_slideSettings")} onPress={() => setSheet("settings")} style={{ minWidth: 40 }} /> : null}
@@ -238,7 +265,7 @@ function SlideEditor({ c, onChange, id, onOpen, onClose, onPresent }: { c: MpCon
   const tools = B.framing ? <FramePanel sl={sl} c={c} B={B} compact={!wide} /> : (
     <Col gap={8}>
       {ctx}
-      <ToolGrid B={B} labels={wide} />
+      <ToolGrid B={B} labels={wide} material={mat || /^(neu|goal|mgoal|pole|dummy|ladder|hurdle|ring)$/.test(B.tool)} />
       {actions}
     </Col>
   );
@@ -320,7 +347,7 @@ function NavBtn({ label, a11y, onPress, disabled, testID, dark }: { label: strin
 }
 
 /** Ausschnitt: Voreinstellungen, Zoom, Format, Spieler außerhalb an den Rand holen (compact: unter der Tafel) */
-function FramePanel({ sl, c, B, compact }: { sl: MpSlide; c: Disp; B: BoardState; compact?: boolean }) {
+export function FramePanel({ sl, c, B, compact }: { sl: MpSlide; c: Disp; B: BoardState; compact?: boolean }) {
   const E = useEngine(); const { t, tf } = E; const { c: col } = useTheme();
   const [W, setW] = useState(0);
   const f = frameOf(sl), preset: MpView | null = sl.frame ? null : sl.view, out = outsideFrame(sl.items, f);
@@ -498,7 +525,7 @@ export function Presenter({ slides, start, c, onClose, watermark, showHidden, te
           const dx = tw ? e.nativeEvent.pageY - s0.y : e.nativeEvent.pageX - s0.x, dy = tw ? s0.x - e.nativeEvent.pageX : e.nativeEvent.pageY - s0.y;
           if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) go(dx < 0 ? 1 : -1);
         }}>
-        <Pitch frame={f} items={shownItems} width={pw} rot={rot} mode={sl.mode || c.mode} size={sl.size || c.size} accent={col.accent} accentInk={col.accentInk} info={info} captain={c.captain} look={c.look} testID={testID + "-pitch"} />
+        <Pitch frame={f} items={shownItems} width={pw} rot={rot} mode={sl.mode || c.mode} size={sl.size || c.size} accent={col.club} accentInk={col.clubInk} info={info} captain={c.captain} look={c.look} testID={testID + "-pitch"} />
       </View>
       <View style={{ height: botH, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 12 }}>
         <NavBtn dark testID={testID + "-prev"} label="‹" a11y={t("mp_prev")} disabled={i === 0 && (stp == null || stp <= 1)} onPress={() => go(-1)} />
@@ -549,7 +576,7 @@ export function SlidesView({ slides, c, watermark, testID = "pv-slides" }: { sli
       </Row>
       <View onLayout={(e: LayoutChangeEvent) => setW(Math.floor(e.nativeEvent.layout.width))} style={{ width: "100%", alignItems: "center" }}>
         {W ? <Pressable accessibilityRole="button" accessibilityLabel={t("mp_fullscreen")} onPress={() => setFull(true)}>
-          <Pitch frame={f} items={sl.items} width={pw} mode={sl.mode || c.mode} size={sl.size || c.size} accent={col.accent} accentInk={col.accentInk} info={info} captain={c.captain} look={c.look} testID={testID + "-pitch"} />
+          <Pitch frame={f} items={sl.items} width={pw} mode={sl.mode || c.mode} size={sl.size || c.size} accent={col.club} accentInk={col.clubInk} info={info} captain={c.captain} look={c.look} testID={testID + "-pitch"} />
         </Pressable> : null}
       </View>
       <Row between gap={8}>

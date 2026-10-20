@@ -1,11 +1,13 @@
 // Gemeinsame Editoren für Einrichtung und Einstellungen (gesteuert über value/onChange).
 import React, { useState } from "react";
 import { Pressable, Text, TextInput, View } from "react-native";
-import { CLASSES, KINDS, MDS, PACKAGES, PITCH, classLabel, defaultPrinciples, groupOf, isGrowthAge } from "../core/classes";
+import { CLASSES, KINDS, KIND_RPE, MDS, PACKAGES, PITCH, capOf, classLabel, defaultPrinciples, groupOf, isGrowthAge } from "../core/classes";
+import { PR_NOTE_MAX, exampleWeek, mdOffset, principleHints, principleRows, type PrincipleHint, type WeekDay } from "../core/principles";
 import type { Translator } from "../core/i18n";
-import type { ClassKey, CustomKind, DayUnit, Depth, Kind, Modules, Principles, TeamSettings, UnitArt } from "../core/types";
+import type { BuiltinKind, ClassKey, CustomKind, DayUnit, Depth, Kind, Modules, Principle, Principles, TeamSettings, UnitArt } from "../core/types";
 import { MAX_UNITS_DAY, UNIT_ARTS, UNIT_DEF, cleanUnit, freeWeeklySlot, shiftTime } from "../core/units";
-import { Banner, Btn, Col, Info, Muted, NumField, Picker, Row, T, Tag, TimeField, ToggleRow } from "./kit";
+import { Icon, type IconName } from "./icons";
+import { Banner, Btn, Col, Field, Info, Muted, NumField, Picker, Row, T, Tag, TimeField, ToggleRow } from "./kit";
 import { radius, rpeColor, useTheme, withAlpha } from "./theme";
 
 export function ClassPicker({ value, onChange, tr }: { value: ClassKey; onChange: (k: ClassKey) => void; tr: Translator }) {
@@ -227,16 +229,81 @@ function MinutesField({ label, value, onChange, testID }: { label: string; value
 
 export interface PrinciplesFeedback { list: { md: string; text: string }[] }
 /** Spieltags-Prinzipien inkl. Spieltag (MD), Empfehlung mit Rückmeldung und eigenen Trainingsarten. */
-export function PrinciplesEditor({ value, onChange, tr, cls, depth, kinds, onNewKind, onEditKind }: {
+/** Erklärung der MD-Logik – in der Einrichtung offen, in den Einstellungen aufklappbar */
+function PrinciplesHow({ tr, open: open0, showRpe }: { tr: Translator; open: boolean; showRpe: boolean }) {
+  const { c } = useTheme(); const [open, setOpen] = useState(open0);
+  const lines: [IconName, string][] = [["calendar", tr.t("pr_how1")], ["sliders", tr.t("pr_how2")], ["moon", tr.t("pr_how3")]];
+  return (
+    <View testID="prin-how" style={{ backgroundColor: c.sunk, borderRadius: radius.m, padding: 12, gap: 10 }}>
+      <Pressable testID="prin-how-toggle" accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)}>
+        <Row between gap={8}>
+          <Row gap={8}><Icon name="help" size={18} color={c.accentTx} /><T bold>{tr.t("pr_howT")}</T></Row>
+          <View style={{ transform: [{ rotate: open ? "270deg" : "90deg" }] }}><Icon name="chevron" size={16} color={c.muted} /></View>
+        </Row>
+      </Pressable>
+      {open ? <Col gap={8}>
+        {lines.map(([ic, x], i) => <Row key={i} gap={10} align="flex-start"><View style={{ paddingTop: 2 }}><Icon name={ic} size={16} color={c.muted} /></View><T v="small" style={{ flex: 1 }}>{x}</T></Row>)}
+        {showRpe ? <Muted small>{tr.t("pr_howRpe")}</Muted> : null}
+      </Col> : null}
+    </View>
+  );
+}
+
+/** Beispielwoche Mo–So aus Trainingstagen und Spieltag: Bezug je Tag, Farbe = geplante Intensität */
+function PrinciplesWeek({ week, value, tr, kn, showRpe, spieltag }: { week: WeekDay[]; value: Principles; tr: Translator; kn: (k: Kind) => string; showRpe: boolean; spieltag: number }) {
+  const { c } = useTheme(); const wd = tr.tl("wd"); const [w, setW] = useState(0);
+  const wide = w / 7 >= 78;
+  return (
+    <Col gap={6}>
+      <Col gap={1}><T v="h3">{tr.t("pr_weekT")}</T><Muted small>{tr.tf("pr_weekSub", { d: wd[spieltag] })}</Muted></Col>
+      <View testID="prin-week" onLayout={e => setW(e.nativeEvent.layout.width)} style={{ flexDirection: "row", gap: 4 }}>
+        {week.map(d => {
+          const p = value[d.md], rest = !d.match && (!d.train || p?.kind === "frei");
+          const bar = d.match ? c.accent : rest ? c.line : showRpe ? rpeColor(c, p?.rpe) : c.accent;
+          const kind = d.match ? tr.t("k_spiel") : !d.train ? tr.t("pr_noTrain") : p ? kn(p.kind) : "–";
+          return (
+            <View key={d.wd} testID={"prin-day-" + d.wd} accessibilityLabel={`${wd[d.wd]} · ${d.md} · ${kind}`}
+              style={{ flex: 1, minWidth: 0, alignItems: "center", gap: 3, paddingVertical: 7, borderRadius: radius.s,
+                backgroundColor: d.match ? c.accentSoft : d.train ? c.surface : "transparent", borderWidth: 1, borderColor: d.match ? c.accent : d.train ? c.line : "transparent" }}>
+              <Text style={{ fontSize: 12, fontWeight: "700", color: d.train || d.match ? c.ink : c.muted }}>{wd[d.wd]}</Text>
+              {d.match ? <Icon name="ball" size={15} color={c.accentTx} /> : <Text style={{ fontSize: 11.5, fontWeight: "700", color: d.train ? c.accentTx : c.muted }}>{d.md}</Text>}
+              <View style={{ width: "70%", height: 4, borderRadius: radius.pill, backgroundColor: bar }} />
+              {wide ? <Text numberOfLines={1} style={{ fontSize: 11, color: c.muted, paddingHorizontal: 3 }}>{kind}</Text> : null}
+            </View>
+          );
+        })}
+      </View>
+    </Col>
+  );
+}
+
+/** Abstand zum Spiel in Worten ("Tag nach dem Spiel", "4 Tage vor dem Spiel") */
+const mdWords = (md: string, tr: Translator): string => {
+  const n = mdOffset(md);
+  return !n ? tr.t("pr_mdDay") : n > 0 ? (n === 1 ? tr.t("pr_after1") : tr.tf("pr_afterN", { n })) : n === -1 ? tr.t("pr_before1") : tr.tf("pr_beforeN", { n: -n });
+};
+
+export function PrinciplesEditor({ value, onChange, tr, cls, depth, kinds, days, spieltag, intro = false, onNewKind, onEditKind }: {
   value: Principles; onChange: (p: Principles) => void; tr: Translator; cls: ClassKey; depth: Depth;
-  kinds: CustomKind[]; onNewKind?: (md?: string) => void; onEditKind?: (k: CustomKind) => void;
+  kinds: CustomKind[];
+  /** Trainingstage (0 = So … 6 = Sa) und üblicher Spieltag – für Beispielwoche und Reihenfolge */
+  days: number[]; spieltag: number;
+  /** Erklärung aufgeklappt zeigen (Einrichtung) */
+  intro?: boolean;
+  onNewKind?: (md?: string) => void; onEditKind?: (k: CustomKind) => void;
 }) {
-  const { c } = useTheme();
+  const { c } = useTheme(); const wd = tr.tl("wd");
   const [fb, setFb] = useState<{ list: string[]; rows: string[]; undo: Principles } | null>(null);
+  const [more, setMore] = useState(false); const [noteOpen, setNoteOpen] = useState<string | null>(null);
   const showRpe = depth !== "org";
   const kn = (k: Kind): string => k.startsWith("c:") ? (kinds.find(x => "c:" + x.id === k)?.name || "?") : tr.t("k_" + k);
-  const options = [...KINDS.map(k => ({ key: k as string, label: tr.t("k_" + k) })), ...kinds.map(k => ({ key: "c:" + k.id, label: k.name })), ...(onNewKind ? [{ key: "__new", label: tr.t("kind_newOpt") }] : [])];
-  const setRow = (md: string, patch: Partial<{ kind: Kind; rpe: number }>) => { setFb(null); onChange({ ...value, [md]: { ...(value[md] || { kind: "aufbau", rpe: 5 }), ...patch } }); };
+  const options = [...KINDS.map(k => ({ key: k as string, label: tr.t("k_" + k), sub: tr.t("kdesc_" + k) })),
+    ...kinds.map(k => ({ key: "c:" + k.id, label: k.name, sub: k.inhalt.split("\n")[0] || undefined })), ...(onNewKind ? [{ key: "__new", label: tr.t("kind_newOpt") }] : [])];
+  const setRow = (md: string, patch: Partial<Principle>) => { setFb(null); onChange({ ...value, [md]: { ...(value[md] || { kind: "aufbau", rpe: 5 }), ...patch } }); };
+  const week = exampleWeek(spieltag, days), rows = principleRows(spieltag, days);
+  const hints = showRpe ? principleHints(value, spieltag, days) : [];
+  const hintText = (h: PrincipleHint): string => h.k === "hard2" ? tr.tf("pr_h_hard2", { a: wd[h.a], b: wd[h.b] }) : h.k === "md1" || h.k === "md2" ? tr.tf("pr_h_" + h.k, { r: h.rpe })
+    : h.k === "kindHigh" || h.k === "kindLow" ? tr.tf("pr_h_" + h.k, { md: h.md, k: kn(h.kind), r: h.rpe }) : tr.t("pr_h_noHard");
   const recommend = () => {
     const rec = defaultPrinciples(groupOf(cls)), list: string[] = [], rows: string[] = [];
     ["MD", ...MDS].forEach(md => {
@@ -245,24 +312,58 @@ export function PrinciplesEditor({ value, onChange, tr, cls, depth, kinds, onNew
       if (showRpe && (!a || a.rpe !== b.rpe) && b.kind !== "frei") parts.push(`RPE ${a ? a.rpe : "–"} → ${b.rpe}`);
       if (parts.length) { rows.push(md); list.push(`${md}: ${parts.join(", ")}`); }
     });
-    setFb({ list, rows, undo: value }); onChange(rec);
+    // eigene Beschreibungen bleiben erhalten
+    const keep: Principles = {}; Object.keys(rec).forEach(md => { keep[md] = value[md]?.note ? { ...rec[md], note: value[md].note } : rec[md]; });
+    setFb({ list, rows, undo: value }); onChange(keep);
   };
+  const row = (md: string, day?: number) => {
+    const p = value[md] || { kind: "aufbau" as Kind, rpe: 5 }, hl = fb?.rows.includes(md), custom = kinds.find(x => "c:" + x.id === p.kind);
+    const desc = custom ? custom.inhalt.split("\n")[0] : p.kind.startsWith("c:") ? "" : tr.t("kdesc_" + p.kind), editing = noteOpen === md;
+    return (
+      <View key={md} testID={"prin-row-" + md} style={{ gap: 8, padding: 10, borderRadius: radius.m, borderWidth: 1, borderColor: hl ? c.accent : c.line, backgroundColor: hl ? c.accentSoft : c.surface }}>
+        <Row gap={10}>
+          <View style={{ minWidth: 52, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: c.sunk, alignItems: "center" }}><T bold v="small">{md}</T></View>
+          <T v="small" color={c.muted} style={{ flex: 1 }} numberOfLines={1}>{day != null ? wd[day] + " · " : ""}{mdWords(md, tr)}</T>
+        </Row>
+        <Row gap={8} align="flex-end">
+          <Picker testID={"prin-" + md} label={tr.t("pr_kind")} value={p.kind as string} options={options} style={{ flex: 1 }}
+            onChange={k => { if (k === "__new") { onNewKind && onNewKind(md); return; } const kind = k as Kind; const cu = kinds.find(x => "c:" + x.id === kind);
+              // neue Art → ihre typische Intensität (für die Altersklasse begrenzt), damit Art und RPE zusammenpassen
+              setRow(md, { kind, rpe: kind === "frei" ? 0 : cu ? cu.rpe : Math.min(capOf(cls), KIND_RPE[kind as BuiltinKind] ?? 5) }); }} />
+          {showRpe ? <RpeBox testID={"prin-" + md + "-rpe"} value={p.rpe} disabled={p.kind === "frei"} onChange={r => setRow(md, { rpe: r })} /> : null}
+        </Row>
+        {editing ? <Col gap={6}>
+          <Field testID={"prin-" + md + "-note"} label={tr.t("pr_note")} value={p.note || ""} placeholder={tr.t("pr_notePh")} multiline maxLength={PR_NOTE_MAX}
+            onChangeText={v => setRow(md, { note: v.slice(0, PR_NOTE_MAX) || undefined })} hint={tr.t("pr_noteD")} />
+          <Btn small testID={"prin-" + md + "-note-done"} label={tr.t("done")} onPress={() => { setNoteOpen(null); if (p.note && !p.note.trim()) setRow(md, { note: undefined }); }} style={{ alignSelf: "flex-start" }} />
+        </Col> : <>
+          {p.note ? <T v="small" testID={"prin-" + md + "-note-text"}>{p.note}</T> : desc ? <Muted small>{desc}</Muted> : null}
+          <Pressable testID={"prin-" + md + "-note-edit"} accessibilityRole="button" onPress={() => setNoteOpen(md)} hitSlop={6} style={{ alignSelf: "flex-start" }}>
+            <Row gap={5}><Icon name="pen" size={14} color={c.accentTx} /><T v="small" bold color={c.accentTx}>{tr.t(p.note ? "pr_noteEdit" : "pr_noteAdd")}</T></Row>
+          </Pressable>
+        </>}
+      </View>
+    );
+  };
+  const md0 = value.MD || { kind: "spiel" as Kind, rpe: 8 };
   return (
-    <Col gap={10}>
-      {["MD", ...MDS].map(md => {
-        const p = value[md] || { kind: "spiel" as Kind, rpe: 8 }, hl = fb?.rows.includes(md);
-        return (
-          <Row key={md} gap={8} align="flex-end" style={{ backgroundColor: hl ? c.accentSoft : md === "MD" ? c.sunk : "transparent", borderRadius: radius.s, padding: md === "MD" || hl ? 6 : 0 }}>
-            <T bold style={{ width: 50, paddingBottom: 12 }}>{md}</T>
-            {md === "MD"
-              ? <Row gap={6} style={{ flex: 1, paddingBottom: 10 }}><T bold color={c.accentTx}>{tr.t("k_spiel")}</T><Info title="MD" text={tr.t("pr_md")} testID="info-md" /></Row>
-              : <Picker testID={"prin-" + md} label={tr.t("content")} value={p.kind as string} options={options} style={{ flex: 1 }}
-                  onChange={k => { if (k === "__new") { onNewKind && onNewKind(md); return; } const kind = k as Kind; const custom = kinds.find(x => "c:" + x.id === kind);
-                    setRow(md, { kind, rpe: kind === "frei" ? 0 : custom ? custom.rpe : value[md]?.rpe || 5 }); }} />}
-            {showRpe ? <RpeBox testID={"prin-" + md + "-rpe"} value={p.rpe} disabled={p.kind === "frei"} onChange={r => setRow(md, { rpe: r })} /> : null}
-          </Row>
-        );
-      })}
+    <Col gap={12}>
+      <PrinciplesHow tr={tr} open={intro} showRpe={showRpe} />
+      {days.length ? <PrinciplesWeek week={week} value={value} tr={tr} kn={kn} showRpe={showRpe} spieltag={spieltag} /> : <Muted small testID="prin-nodays">{tr.t("pr_noDays")}</Muted>}
+      {hints.length ? <Banner color={c.warn} testID="prin-hints"><Col gap={4}><T bold v="small">{tr.t("pr_hintsT")}</T>{hints.map((h, i) => <T key={i} v="small">• {hintText(h)}</T>)}</Col></Banner> : null}
+      {showRpe ? <Row testID="prin-row-MD" gap={10} style={{ padding: 10, borderRadius: radius.m, backgroundColor: c.sunk }}>
+        <View style={{ minWidth: 52, paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: c.accent, alignItems: "center" }}><T bold v="small" color={c.accentInk}>MD</T></View>
+        <Row gap={6} style={{ flex: 1 }}><T bold>{tr.t("k_spiel")}</T><Info title="MD" text={tr.t("pr_md")} testID="info-md" /></Row>
+        <RpeBox testID="prin-MD-rpe" value={md0.rpe} onChange={r => setRow("MD", { kind: "spiel", rpe: r })} />
+      </Row> : null}
+      {rows.week.length ? <Col gap={8}><T v="eyebrow">{tr.t("pr_inWeekT")}</T>{rows.week.map(x => row(x.md, x.wd))}</Col> : null}
+      <Pressable testID="prin-other" accessibilityRole="button" accessibilityState={{ expanded: more || !rows.week.length }} onPress={() => setMore(!more)} disabled={!rows.week.length}>
+        <Row between gap={8} style={{ paddingVertical: 6 }}>
+          <T v="eyebrow">{tr.tf("pr_otherT", { n: rows.other.length })}</T>
+          {rows.week.length ? <View style={{ transform: [{ rotate: more ? "270deg" : "90deg" }] }}><Icon name="chevron" size={16} color={c.muted} /></View> : null}
+        </Row>
+      </Pressable>
+      {more || !rows.week.length ? <Col gap={8}><Muted small>{tr.t("pr_otherD")}</Muted>{rows.other.map(md => row(md))}</Col> : null}
       <Row wrap gap={8}>
         <Btn small testID="prin-reset" label={tr.t("pr_reset")} onPress={recommend} />
         <Info title={tr.t("pr_reset")} text={tr.t("pr_info")} testID="info-prin" />

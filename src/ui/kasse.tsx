@@ -287,6 +287,13 @@ export function MyKasseCard({ pid, compact, onManage }: { pid: string; compact?:
 }
 
 /** Für die Spieler-App: offene Summe (für Hinweise) */
+/** Für die Kurzübersicht: offener Betrag als Text (z. B. „5,00 €“), sonst null */
+export function useMyOpenLabel(pid: string | null): string | null {
+  const { E, k, fmt } = useKasse();
+  if (!pid || !k.on) return null;
+  const v = sumOf(itemsFor(E.D, k, pid, E.TODAY, E.tr.lang, r => ruleName(E, r)).filter(i => !i.paid && !i.waived));
+  return v > 0 ? fmt(v) : null;
+}
 export function useMyOpen(pid: string | null): number {
   const { E, k } = useKasse();
   if (!pid || !k.on) return 0;

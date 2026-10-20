@@ -5,12 +5,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { AppState, KeyboardAvoidingView, Linking, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  LINK_RE, MSG_MAX, REACTIONS, canCustom, canSend, chatDefaults, chatSettings, chatTitle, dayOf, directTargets, isObserver, isParticipant, isYouth, msgsOf, openableGroups, previewOf,
-  readOnlyOf, sortChats, timeOf, unreadOf,
+  CF_LIMITS, CHAT_FOLDERS, LINK_RE, MSG_MAX, REACTIONS, canCustom, canSend, chatDefaults, chatSettings, chatTitle, cleanChatFolders, dayOf, directTargets, folderOf, isObserver,
+  isParticipant, isYouth, msgsOf, openableGroups, previewOf, readOnlyOf, sortChats, timeOf, unreadOf, type ChatFolder, type ChatFolderKey, type ChatFolderPrefs,
 } from "../core/chat";
 import { addDays } from "../core/dates";
 import type { Chat, ChatMsg, ChatPerson, ChatReportReason, ChatSettings, TeamData } from "../core/types";
-import { useEngine, useStore } from "../data/store";
+import { tmpId, useEngine, useStore } from "../data/store";
 import { openChatRef } from "../data/push";
 import { Icon } from "./icons";
 import { Avatar, Banner, Btn, Card, CardTitle, Check, ChoiceChips, Col, Field, Header, Info, ListItem, Muted, Row, Screen, Seg, Sheet, T, Tag, ToggleRow, hue } from "./kit";
@@ -86,6 +86,100 @@ function Linkified({ text, color, testID }: { text: string; color: string; testI
   );
 }
 
+// ---------- Ordner ----------
+/** Ordner des Kontos (bereinigt) und Name eines vorgegebenen Ordners */
+function useFolders() {
+  const s = useStore(); const { t } = s.tr;
+  const F = cleanChatFolders(s.prefs.chatFolders);
+  const label = (k: ChatFolderKey): string => F.names?.[k] || t("ch_f_" + k);
+  const save = (x: ChatFolderPrefs) => s.setPrefs({ chatFolders: cleanChatFolders(x) });
+  return { F, label, save };
+}
+
+/** Ordnerleiste über der Chat-Liste: Alle, vorgegebene Ordner, eigene Ordner, bearbeiten */
+function FolderBar({ value, onChange, counts, onEdit }: { value: string; onChange: (k: string) => void; counts: Record<string, { n: number; unread: number }>; onEdit: () => void }) {
+  const { c } = useTheme(); const s = useStore(); const { t } = s.tr; const { F, label } = useFolders();
+  const keys: { k: string; label: string }[] = [{ k: "all", label: t("ch_fAll") },
+    ...CHAT_FOLDERS.filter(k => !F.hide?.includes(k) && (k !== "read" || counts.read?.n)).map(k => ({ k, label: label(k) })),
+    ...(F.custom || []).map(f => ({ k: "c:" + f.id, label: f.name }))];
+  return (
+    <Row gap={6}>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} testID="chat-folders" style={{ flex: 1 }} contentContainerStyle={{ gap: 6, paddingVertical: 2 }}>
+      {keys.map(x => {
+        const on = value === x.k, u = counts[x.k]?.unread || 0;
+        return (
+          <Pressable key={x.k} testID={"chat-folder-" + x.k} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={x.label + (u ? ", " + u : "")} onPress={() => onChange(x.k)}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 13, height: 34, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? c.ink : c.line, backgroundColor: on ? c.ink : c.surface }}>
+            <Text style={{ fontSize: 13.5, fontWeight: "700", color: on ? c.surface : c.ink }}>{x.label}</Text>
+            {u ? <View style={{ minWidth: 18, height: 18, borderRadius: 9, paddingHorizontal: 5, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontSize: 11, fontWeight: "800", color: c.accentInk }}>{u > 99 ? "99+" : u}</Text></View> : null}
+          </Pressable>
+        );
+      })}
+    </ScrollView>
+    {/* bearbeiten bleibt rechts sichtbar, auch wenn die Ordner seitlich scrollen */}
+    <Pressable testID="chat-folders-edit" accessibilityRole="button" accessibilityLabel={t("ch_fEdit")} onPress={onEdit}
+      style={{ width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center", backgroundColor: c.surface }}>
+      <Icon name="pen" size={15} color={c.muted} />
+    </Pressable>
+    </Row>
+  );
+}
+
+/** Ordner bearbeiten: vorgegebene umbenennen/ausblenden, eigene anlegen, benennen, Chats zuordnen, löschen */
+function FolderSheet({ visible, onClose, chats, focus }: { visible: boolean; onClose: () => void; chats: Chat[]; focus?: string | null }) {
+  const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const { F, save } = useFolders();
+  const [d, setD] = useState<ChatFolderPrefs>(F); const [open, setOpen] = useState<string | null>(null); const [was, setWas] = useState(false);
+  if (visible !== was) { setWas(visible); if (visible) { setD(F); setOpen(focus || null); } }
+  const custom = d.custom || [], used = custom.reduce((a, f) => a + f.chats.length, 0);
+  const setCustom = (L: ChatFolder[]) => setD({ ...d, custom: L });
+  const add = () => { const f = { id: tmpId(), name: tf("ch_fNewN", { n: custom.length + 1 }), chats: [] }; setCustom([...custom, f]); setOpen(f.id); };
+  return (
+    <Sheet visible={visible} onClose={onClose} title={t("ch_fEdit")} testID="chat-folders-sheet" closeLabel={t("cancel")}>
+      <T v="eyebrow">{t("ch_fPre")}</T>
+      {CHAT_FOLDERS.map(k => (
+        <View key={k} style={{ gap: 6, padding: 10, borderRadius: radius.m, borderWidth: 1, borderColor: c.line }}>
+          <Row gap={10} align="flex-end">
+            <Field testID={"cf-name-" + k} label={t("ch_f_" + k + "D")} value={d.names?.[k] ?? ""} placeholder={t("ch_f_" + k)} maxLength={CF_LIMITS.name} style={{ flex: 1 }}
+              onChangeText={v => setD({ ...d, names: { ...(d.names || {}), [k]: v } })} />
+          </Row>
+          <ToggleRow testID={"cf-show-" + k} label={t("ch_fShow")} value={!d.hide?.includes(k)} onChange={v => setD({ ...d, hide: v ? (d.hide || []).filter(x => x !== k) : [...(d.hide || []), k] })} />
+        </View>
+      ))}
+      <T v="eyebrow">{t("ch_fOwn")}</T>
+      {custom.length ? null : <Muted small>{t("ch_fOwnD")}</Muted>}
+      {custom.map(f => {
+        const o = open === f.id;
+        return (
+          <View key={f.id} testID={"cf-" + f.id} style={{ gap: 8, padding: 10, borderRadius: radius.m, borderWidth: 1, borderColor: o ? c.accent : c.line }}>
+            <Row gap={8} align="flex-end">
+              <Field testID={"cf-cname-" + f.id} label={t("ch_fName")} value={f.name} maxLength={CF_LIMITS.name} style={{ flex: 1 }} onChangeText={v => setCustom(custom.map(x => x.id === f.id ? { ...x, name: v } : x))} />
+              <Btn small kind="ghost" icon="trash" label="" a11y={t("ch_fDel")} testID={"cf-del-" + f.id} onPress={() => setCustom(custom.filter(x => x.id !== f.id))} />
+            </Row>
+            <Pressable testID={"cf-toggle-" + f.id} accessibilityRole="button" accessibilityState={{ expanded: o }} onPress={() => setOpen(o ? null : f.id)}>
+              <Row between><T v="small" bold color={c.accentTx}>{tf("ch_fChatsN", { n: f.chats.filter(id => chats.some(ch => ch.id === id)).length })}</T>
+                <View style={{ transform: [{ rotate: o ? "270deg" : "90deg" }] }}><Icon name="chevron" size={15} color={c.muted} /></View></Row>
+            </Pressable>
+            {o ? <Col gap={8}>
+              {chats.map(ch => {
+                const on = f.chats.includes(ch.id), full = !on && used >= CF_LIMITS.ids;
+                return <Check key={ch.id} testID={`cf-chat-${f.id}-${ch.id}`} label={<T v="small" color={full ? c.muted : c.ink}>{chatTitle(ch, E.D, s.chatMeId, t)}</T>} value={on}
+                  onChange={v => { if (full) return; setCustom(custom.map(x => x.id === f.id ? { ...x, chats: v ? [...x.chats, ch.id] : x.chats.filter(y => y !== ch.id) } : x)); }} />;
+              })}
+              {used >= CF_LIMITS.ids ? <Muted small>{tf("ch_fLimit", { n: CF_LIMITS.ids })}</Muted> : null}
+            </Col> : null}
+          </View>
+        );
+      })}
+      {custom.length < CF_LIMITS.custom ? <Btn small testID="cf-add" icon="plus" label={t("ch_fNew")} onPress={add} style={{ alignSelf: "flex-start" }} /> : null}
+      <Row gap={8} style={{ justifyContent: "flex-end" }}>
+        <Btn testID="cf-cancel" label={t("cancel")} onPress={onClose} />
+        <Btn testID="cf-save" kind="primary" label={t("save")} onPress={() => { save({ ...d, custom: custom.map((f, i) => f.name.trim() ? f : { ...f, name: tf("ch_fNewN", { n: i + 1 }) }) }); onClose(); }} />
+      </Row>
+    </Sheet>
+  );
+}
+
 // ---------- Liste ----------
 export function ChatListScreen({ area }: { area: Area }) {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter(); const when = useWhen();
@@ -94,7 +188,17 @@ export function ChatListScreen({ area }: { area: Area }) {
   const [q, setQ] = useState("");
   const all = useMemo(() => sortChats({ chats: s.chats, chatMsgs: D.chatMsgs })
     .filter(ch => ch.kind === "team" || ch.kind === "staff" || ch.kind === "custom" || msgsOf(D, ch.id).length > 0 || ch.createdBy === me), [s.chats, D, s.version, me]); // eslint-disable-line react-hooks/exhaustive-deps
-  const list = q.trim() ? all.filter(ch => chatTitle(ch, D, me, t).toLowerCase().includes(q.trim().toLowerCase())) : all;
+  const { F } = useFolders();
+  const [folder, setFolder] = useState("all"); const [fEdit, setFEdit] = useState<{ focus: string | null } | null>(null);
+  // Ordner: vorgegebene nach Art des Chats, eigene nach Zuordnung; gibt es den gewählten nicht mehr → Alle
+  const inFolder = (ch: Chat, k: string): boolean => k === "all" ? true : k.startsWith("c:") ? !!F.custom?.find(f => "c:" + f.id === k)?.chats.includes(ch.id) : folderOf(ch, me, s.chatMod) === k;
+  const counts: Record<string, { n: number; unread: number }> = {};
+  for (const k of ["all", ...CHAT_FOLDERS, ...(F.custom || []).map(f => "c:" + f.id)]) {
+    const L = all.filter(ch => inFolder(ch, k)); counts[k] = { n: L.length, unread: L.filter(ch => !ch.muted).reduce((a, ch) => a + unreadOf(D, ch.id, me), 0) };
+  }
+  const fk = folder === "all" || (folder.startsWith("c:") ? F.custom?.some(f => "c:" + f.id === folder) : !F.hide?.includes(folder as ChatFolderKey) && (folder !== "read" || counts.read.n)) ? folder : "all";
+  const inF = all.filter(ch => inFolder(ch, fk));
+  const list = q.trim() ? inF.filter(ch => chatTitle(ch, D, me, t).toLowerCase().includes(q.trim().toLowerCase())) : inF;
   const reports = s.chatMod ? D.chatReports.filter(r => r.status === "open").length : 0;
   const rules = <Info title={t("ch_rules")} text={[t("ch_info"), ...E.tr.tl("ch_rulesL"), isYouth(D.team.cls) ? t("ch_rulesYouth") : ""]} testID="chat-rules" />;
   if (!st.on || D.team.modules.chat === false) return (
@@ -107,6 +211,7 @@ export function ChatListScreen({ area }: { area: Area }) {
       {reports ? <Pressable testID="chat-reports" accessibilityRole="button" onPress={() => router.push("/coach/meldungen")}>
         <Banner color={c.crit}><Row gap={8}><Icon name="flag" size={16} color={c.crit} /><T v="small" bold>{tf("ch_reportsN", { n: reports })}</T></Row></Banner>
       </Pressable> : null}
+      <FolderBar value={fk} onChange={setFolder} counts={counts} onEdit={() => setFEdit({ focus: fk.startsWith("c:") ? fk.slice(2) : null })} />
       {all.length > 8 ? <Field testID="chat-search" label={t("ch_search")} value={q} onChangeText={setQ} /> : null}
       <Card style={{ paddingVertical: 4, gap: 0 }}>
         {list.length ? list.map(ch => {
@@ -134,9 +239,12 @@ export function ChatListScreen({ area }: { area: Area }) {
               </Col>
             </Pressable>
           );
-        }) : <Muted style={{ paddingVertical: 12 }}>{t("ch_listEmpty")}</Muted>}
+        }) : fk === "all" ? <Muted style={{ paddingVertical: 12 }}>{t("ch_listEmpty")}</Muted>
+          : <Col gap={8} style={{ paddingVertical: 12 }}><Muted testID="chat-folder-empty">{t("ch_fEmpty")}</Muted>
+            {fk.startsWith("c:") ? <Btn small testID="chat-folder-fill" icon="plus" label={t("ch_fAdd")} onPress={() => setFEdit({ focus: fk.slice(2) })} style={{ alignSelf: "flex-start" }} /> : null}</Col>}
       </Card>
       <Muted small>{t("ch_noAccount")}</Muted>
+      <FolderSheet visible={!!fEdit} focus={fEdit?.focus} onClose={() => setFEdit(null)} chats={all} />
     </Screen>
   );
 }
@@ -349,6 +457,7 @@ function ChatInfoSheet({ visible, chat, members, area, onClose }: { visible: boo
       {s.chatMod && (chat.kind === "group" || chat.kind === "staff") ? <ToggleRow testID="chat-info-ro" label={t("ch_announce")} value={chat.readOnly} onChange={v => s.chatSetReadOnly(chat.id, v)} /> : null}
       {chat.kind === "team" && readOnlyOf(chat, st) ? <Banner>{t("ch_readOnlyNote")}</Banner> : null}
       {chat.kind === "custom" && (chat.createdBy === me || staff) && st.on ? <Btn testID="chat-info-edit" icon="eintragen" label={t("ch_editGroup")} onPress={() => { onClose(); router.push(`/${area}/chat-neu?edit=${chat.id}`); }} /> : null}
+      <ChatFolderPick chat={chat} />
       <T v="eyebrow">{t("ch_members")} · {sorted.length}</T>
       <Col gap={0}>
         {sorted.slice(0, 80).map(p => <ListItem key={p.uid} left={<PersonAvatar p={p} size={32} />} title={p.uid === me ? `${p.name} (${t("ch_you")})` : p.name}
@@ -358,6 +467,30 @@ function ChatInfoSheet({ visible, chat, members, area, onClose }: { visible: boo
       <T v="eyebrow">{t("ch_rules")}</T>
       <Col gap={4}>{[...E.tr.tl("ch_rulesL"), isYouth(D.team.cls) ? t("ch_rulesYouth") : ""].filter(Boolean).map((r, i) => <Muted key={i} small>• {r}</Muted>)}</Col>
     </Sheet>
+  );
+}
+
+/** Info eines Chats: in eigene Ordner legen (sofort gespeichert) */
+function ChatFolderPick({ chat }: { chat: Chat }) {
+  const s = useStore(); const { t, tf } = s.tr; const { c } = useTheme(); const { F, save } = useFolders();
+  const custom = F.custom || []; if (!custom.length) return null;
+  const used = custom.reduce((a, f) => a + f.chats.length, 0);
+  return (
+    <Col gap={6} testID="chat-info-folders">
+      <T v="eyebrow">{t("ch_fInfo")}</T>
+      <Row wrap gap={6}>{custom.map(f => {
+        const on = f.chats.includes(chat.id);
+        return (
+          <Pressable key={f.id} testID={"chat-info-folder-" + f.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
+            onPress={() => { if (!on && used >= CF_LIMITS.ids) { s.toast(tf("ch_fLimit", { n: CF_LIMITS.ids })); return; }
+              save({ ...F, custom: custom.map(x => x.id === f.id ? { ...x, chats: on ? x.chats.filter(y => y !== chat.id) : [...x.chats, chat.id] } : x) }); }}
+            style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingHorizontal: 11, height: 32, borderRadius: radius.pill, borderWidth: 1, borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accentSoft : c.surface }}>
+            <Icon name={on ? "check" : "plus"} size={13} color={on ? c.accentTx : c.muted} strokeWidth={2.4} />
+            <Text style={{ fontSize: 13, fontWeight: "700", color: on ? c.accentTx : c.ink }}>{f.name}</Text>
+          </Pressable>
+        );
+      })}</Row>
+    </Col>
   );
 }
 

@@ -7,6 +7,7 @@ import { teamLabel, POS } from "../../../src/core/classes";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Icon } from "../../../src/ui/icons";
 import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, ListItem, Muted, NumField, Row, Screen, T } from "../../../src/ui/kit";
+import { playerHidden } from "../../../src/ui/dashboard";
 import { GOLD, Goals } from "../../../src/ui/player/parts";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { GroupChip } from "../../../src/ui/squad/Groups";
@@ -76,7 +77,7 @@ export default function Ich() {
       {E.playerSees("goals") ? <Goals pid={p.id} /> : null}
       <Card style={{ paddingVertical: 4, gap: 0 }}>
         {/* ausgeblendete Bereiche der Leiste bleiben hier erreichbar */}
-        {(s.prefs.navPlayer?.hide || []).map(k => (
+        {playerHidden(s.prefs).filter(k => k !== "chat" || (E.mods.chat !== false)).map(k => (
           <ListItem key={k} testID={"me-tab-" + k} title={t(k === "chat" ? "nav_chat" : "pn_" + k)} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/" + k)} />
         ))}
         {E.playerSees("dev") ? <ListItem testID="me-dev" title={t("dv_mine")} sub={`${t("dv_myGoals")} · ${t("dv_profile")} · ${t("iq_title")}`} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/entwicklung")} /> : null}

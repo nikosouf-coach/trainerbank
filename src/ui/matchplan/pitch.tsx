@@ -6,24 +6,37 @@
 import React from "react";
 import { Image, Text, View, useWindowDimensions } from "react-native";
 import Svg, { Circle, G, Line, Path, Polyline, Rect, Text as SvgText } from "react-native-svg";
-import { FRAME_MAX, MP_VIEWS, PL, PW, bendCtrl, isArea, isLine, linePoint } from "../../core/matchplan";
-import type { MpColor, MpFrame, MpItem, MpLook, MpMode, Player } from "../../core/types";
+import { FRAME_MAX, MP_VIEWS, PL, PW, bendCtrl, dashOf, isArea, isLine, isMaterial, linePoint } from "../../core/matchplan";
+import type { MpColor, MpDash, MpFrame, MpItem, MpLook, MpMode, Player } from "../../core/types";
 import { usePhotoUrl } from "../playerAvatar";
+import { isLight } from "../theme";
 
 /** Farben eines Designs: Untergrund, Streifen, Feldlinien, Linienfarben, Rand von Texten, leere Position */
 export interface Look { bg: string; stripe: string; mark: string; lines: Record<MpColor, string>; halo: string; empty: string; emptyBorder: string; emptyText: string }
 export const LOOKS: Record<MpLook, Look> = {
-  grass: { bg: "#2f8a46", stripe: "#33944b", mark: "rgba(255,255,255,0.85)", lines: { w: "#ffffff", y: "#ffe066", r: "#ff8787", b: "#74c0fc" },
+  grass: { bg: "#2f8a46", stripe: "#33944b", mark: "rgba(255,255,255,0.85)", lines: { w: "#ffffff", y: "#ffe066", r: "#ff8787", b: "#74c0fc", g: "#b2f2bb", o: "#ffa94d", k: "#111111" },
     halo: "rgba(0,0,0,0.55)", empty: "rgba(255,255,255,0.12)", emptyBorder: "#ffffff", emptyText: "#ffffff" },
-  dark: { bg: "#1c2531", stripe: "#202a37", mark: "rgba(255,255,255,0.6)", lines: { w: "#ffffff", y: "#ffd43b", r: "#ff6b6b", b: "#4dabf7" },
+  dark: { bg: "#1c2531", stripe: "#202a37", mark: "rgba(255,255,255,0.6)", lines: { w: "#ffffff", y: "#ffd43b", r: "#ff6b6b", b: "#4dabf7", g: "#69db7c", o: "#ffa94d", k: "#868e96" },
     halo: "rgba(0,0,0,0.6)", empty: "rgba(255,255,255,0.1)", emptyBorder: "rgba(255,255,255,0.8)", emptyText: "#ffffff" },
-  white: { bg: "#ffffff", stripe: "#f3f5f7", mark: "rgba(40,52,68,0.55)", lines: { w: "#1f2937", y: "#e8890c", r: "#e03131", b: "#1971c2" },
+  white: { bg: "#ffffff", stripe: "#f3f5f7", mark: "rgba(40,52,68,0.55)", lines: { w: "#1f2937", y: "#e8890c", r: "#e03131", b: "#1971c2", g: "#2b8a3e", o: "#e8590c", k: "#111111" },
     halo: "rgba(255,255,255,0.85)", empty: "rgba(31,41,55,0.06)", emptyBorder: "#8a94a3", emptyText: "#4a5565" },
 };
 export const lookOf = (l?: MpLook | null): Look => (l && LOOKS[l]) || LOOKS.grass;
 /** Linienfarbe in einem Design */
 export const lineCol = (l: MpLook | null | undefined, k: MpColor): string => lookOf(l).lines[k];
 export const OPP_COL = "#c92a2a";
+/** Joker / neutrale Spieler */
+export const NEU_COL = "#fab005";
+/** Strichstärke je Stufe (dünn, mittel, dick) */
+export const W_MUL: Record<1 | 2 | 3, number> = { 1: 0.6, 2: 1, 3: 1.65 };
+/** Strichmuster eines Linienstils (Meter, s = Größe der Striche, w = Strichstärke) */
+export function dashArray(ls: MpDash, s: number, w: number): string | undefined {
+  if (ls === "solid") return undefined;
+  if (ls === "dot") return `0.01 ${r2(Math.max(w * 2.3, 0.75 * s))}`;
+  return ls === "long" ? `${r2(2.8 * s)} ${r2(1.3 * s)}` : `${r2(1.5 * s)} ${r2(1.05 * s)}`;
+}
+/** Linienenden: Striche gerade, Punkte und durchgezogene Linien rund */
+export const capOf = (ls: MpDash): "round" | "butt" => ls === "solid" || ls === "dot" ? "round" : "butt";
 export const FULL: MpFrame = MP_VIEWS.full;
 
 /** Zoom gegenüber der ganzen Feldbreite (≥ 1) */
@@ -165,8 +178,8 @@ function freePath(P: number[], end: Pt): string {
  * Form eines Pfeils bzw. einer Linie: Strich (endet vor der Spitze, damit sie sauber bleibt) und Spitze.
  * Für Freihand: Punkte, Spitze in Richtung der letzten Strecke.
  */
-function arrowGeo(it: MpItem, s: number): { d: string; head: string | null; mid: Pt } {
-  const hs = 2.15 * s, x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, b = { x: x2, y: y2 }, a = { x: it.x, y: it.y };
+function arrowGeo(it: MpItem, s: number, wk = 1): { d: string; head: string | null; mid: Pt } {
+  const hs = 2.15 * s * Math.sqrt(wk), x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, b = { x: x2, y: y2 }, a = { x: it.x, y: it.y };
   const withHead = it.t !== "line";
   if (it.t === "free" && it.pts && it.pts.length >= 4) {
     const P = it.pts, n = P.length / 2, e = { x: P[(n - 1) * 2], y: P[(n - 1) * 2 + 1] };
@@ -188,29 +201,83 @@ function arrowGeo(it: MpItem, s: number): { d: string; head: string | null; mid:
   return { d: `M ${r2(a.x)} ${r2(a.y)} Q ${r2(c1.x)} ${r2(c1.y)} ${r2(e.x)} ${r2(e.y)}`, head, mid };
 }
 
-/** Linien, Pfeile, Freihand, Zonen, Kreise, Ball, Hütchen und Texte (in Metern; s = Größe der Striche und Symbole) */
-const Drawn = React.memo(function Drawn({ it, sel, s, look, rot }: { it: MpItem; sel: boolean; s: number; look: Look; rot: boolean }) {
+/**
+ * Größe von Trainingsmaterial im Verhältnis zur Größe der Spieler-Icons (tok = Icon-Durchmesser in Metern), damit
+ * Material in jedem Ausschnitt gut erkennbar bleibt; Großtore mindestens in echter Größe (7,32 m).
+ */
+function matDims(t: MpItem["t"], tok: number): { w: number; h: number } {
+  if (t === "goal") return { w: Math.max(7.32, 1.5 * tok), h: Math.max(2, 0.42 * tok) };
+  if (t === "mgoal") return { w: Math.min(5.5, Math.max(2, 1.2 * tok)), h: Math.max(0.8, 0.36 * tok) };
+  if (t === "ladder") return { w: Math.max(4, 1.9 * tok), h: Math.max(0.6, 0.42 * tok) };
+  if (t === "hurdle") return { w: Math.max(1, 0.75 * tok), h: 0.3 * tok };
+  if (t === "dummy") return { w: 0.85 * tok, h: 0.42 * tok };
+  if (t === "pole") return { w: 0.36 * tok, h: 0.36 * tok };
+  return { w: 0.62 * tok, h: 0.62 * tok };
+}
+/** Ungefähre Größe eines Materials (Radius in Metern) – für Auswahl und Treffer */
+export function materialR(t: MpItem["t"], tok: number): number { const d = matDims(t, tok); return Math.max(d.w, d.h) / 2; }
+/** Trainingsmaterial von oben: Tor, Minitor, Stange, Dummy, Koordinationsleiter, Hürde, Reifen (drehbar über rot) */
+function Material({ it, sel, tok, halo }: { it: MpItem; sel: boolean; tok: number; halo: string }) {
+  const { x, y } = it, rot = it.rot || 0, { w, h } = matDims(it.t, tok), lw = Math.max(0.12, tok * 0.06);
+  let body: React.ReactNode = null;
+  if (it.t === "goal" || it.t === "mgoal") {
+    const n = it.t === "goal" ? 7 : 3, net = Array.from({ length: n }, (_, i) => x - w / 2 + (w / (n + 1)) * (i + 1));
+    body = <G>
+      <Rect x={x - w / 2} y={y - h} width={w} height={h} fill="rgba(255,255,255,0.18)" stroke="none" />
+      {net.map((nx, i) => <Line key={i} x1={nx} y1={y - h} x2={nx} y2={y} stroke="rgba(255,255,255,0.55)" strokeWidth={lw * 0.4} />)}
+      <Path d={`M ${x - w / 2} ${y} V ${y - h} H ${x + w / 2} V ${y}`} fill="none" stroke="#ffffff" strokeWidth={lw} strokeLinejoin="round" />
+      <Line x1={x - w / 2} y1={y} x2={x + w / 2} y2={y} stroke="#ffffff" strokeWidth={lw * 1.5} strokeLinecap="round" />
+    </G>;
+  } else if (it.t === "pole") {
+    body = <G><Circle cx={x} cy={y} r={w / 2} fill="#ffd43b" stroke="#1f2937" strokeWidth={lw * 0.7} /><Circle cx={x} cy={y} r={w * 0.16} fill="#1f2937" /></G>;
+  } else if (it.t === "dummy") {
+    body = <G><Rect x={x - w / 2} y={y - h / 2} width={w} height={h} rx={h / 2} fill="#339af0" stroke="#ffffff" strokeWidth={lw * 0.7} /><Circle cx={x} cy={y} r={h * 0.36} fill="#ffffff" /></G>;
+  } else if (it.t === "ladder") {
+    const rungs = Array.from({ length: 9 }, (_, i) => x - w / 2 + (w / 8) * i);
+    body = <G>
+      <Line x1={x - w / 2} y1={y - h / 2} x2={x + w / 2} y2={y - h / 2} stroke="#ffd43b" strokeWidth={lw} />
+      <Line x1={x - w / 2} y1={y + h / 2} x2={x + w / 2} y2={y + h / 2} stroke="#ffd43b" strokeWidth={lw} />
+      {rungs.map((rx, i) => <Line key={i} x1={rx} y1={y - h / 2} x2={rx} y2={y + h / 2} stroke="#ffd43b" strokeWidth={lw * 0.8} />)}
+    </G>;
+  } else if (it.t === "hurdle") {
+    body = <G><Line x1={x - w / 2} y1={y} x2={x + w / 2} y2={y} stroke="#fa5252" strokeWidth={lw * 1.6} strokeLinecap="round" />
+      <Line x1={x - w / 2} y1={y - h / 2} x2={x - w / 2} y2={y + h / 2} stroke="#ffffff" strokeWidth={lw} strokeLinecap="round" />
+      <Line x1={x + w / 2} y1={y - h / 2} x2={x + w / 2} y2={y + h / 2} stroke="#ffffff" strokeWidth={lw} strokeLinecap="round" /></G>;
+  } else if (it.t === "ring") {
+    body = <Circle cx={x} cy={y} r={w / 2} fill="none" stroke="#20c997" strokeWidth={lw * 1.3} />;
+  }
+  return (
+    <G transform={rot ? `rotate(${rot} ${x} ${y})` : undefined}>
+      {sel ? <Circle cx={x} cy={y} r={materialR(it.t, tok) * 1.15} fill={halo} fillOpacity={0.35} /> : null}
+      {body}
+    </G>
+  );
+}
+
+/** Linien, Pfeile, Freihand, Zonen, Kreise, Ball, Hütchen, Material und Texte (in Metern; s = Größe der Striche und Symbole) */
+const Drawn = React.memo(function Drawn({ it, sel, s, look, rot, tok }: { it: MpItem; sel: boolean; s: number; look: Look; rot: boolean; tok: number }) {
   const col = look.lines[it.col || (it.t === "run" ? "y" : "w")], sw = (sel ? 0.62 : 0.5) * s, halo = "#ffe066";
+  const wk = W_MUL[it.w || 2], ls = dashOf(it);
   if (it.t === "zone" || it.t === "circle") {
-    const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, zc = look.lines[it.col || "y"], dash = `${1.4 * s} ${0.9 * s}`;
+    const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y, zc = look.lines[it.col || "y"], dash = dashArray(ls, s * 0.9, sw * wk);
     const shape = (p: Record<string, unknown>) => it.t === "zone"
       ? <Rect x={Math.min(it.x, x2)} y={Math.min(it.y, y2)} width={Math.abs(x2 - it.x)} height={Math.abs(y2 - it.y)} {...p} />
       : <Circle cx={it.x} cy={it.y} r={Math.max(0.5, Math.hypot(x2 - it.x, y2 - it.y))} {...p} />;
     return (
       <G>
         {sel ? shape({ fill: "none", stroke: halo, strokeOpacity: 0.55, strokeWidth: sw * 3.4 }) : null}
-        {shape({ fill: zc, fillOpacity: 0.22, stroke: zc, strokeWidth: sw, strokeDasharray: dash })}
+        {shape({ fill: zc, fillOpacity: 0.22, stroke: zc, strokeWidth: sw * wk, strokeDasharray: dash, strokeLinecap: capOf(ls) })}
       </G>
     );
   }
   if (isLine(it.t) || it.t === "free") {
-    const g = arrowGeo(it, s), w = it.t === "line" ? sw * 1.4 : sw;
-    const dash = it.t === "run" || (it.t === "free" && !it.solid) ? `${1.6 * s} ${1.1 * s}` : undefined;
+    const g = arrowGeo(it, s, wk), w = (it.t === "line" ? sw * 1.4 : sw) * wk;
+    const dash = dashArray(ls, s, w);
     const br = 1.55 * s, light = look.bg === LOOKS.white.bg;
     return (
       <G>
-        {sel ? <Path d={g.d} fill="none" stroke={halo} strokeOpacity={0.55} strokeWidth={w * 3.6} strokeLinecap="round" strokeLinejoin="round" /> : null}
-        <Path d={g.d} fill="none" stroke={col} strokeWidth={w} strokeDasharray={dash} strokeLinecap={dash ? "butt" : "round"} strokeLinejoin="round" />
+        {sel ? <Path d={g.d} fill="none" stroke={halo} strokeOpacity={0.55} strokeWidth={Math.max(w * 3.6, sw * 2.6)} strokeLinecap="round" strokeLinejoin="round" /> : null}
+        <Path d={g.d} fill="none" stroke={col} strokeWidth={w} strokeDasharray={dash} strokeLinecap={capOf(ls)} strokeLinejoin="round" />
         {g.head ? <Polyline points={g.head} fill={col} stroke={col} strokeWidth={0.22 * s} strokeLinejoin="round" /> : null}
         {it.n ? <G>
           <Circle cx={g.mid.x} cy={g.mid.y} r={br} fill={col} stroke={look.halo} strokeWidth={0.25 * s} />
@@ -222,6 +289,7 @@ const Drawn = React.memo(function Drawn({ it, sel, s, look, rot }: { it: MpItem;
   }
   if (it.t === "ball") return <G>{sel ? <Circle cx={it.x} cy={it.y} r={1.7 * s} fill={halo} fillOpacity={0.5} /> : null}<Circle cx={it.x} cy={it.y} r={0.95 * s} fill="#ffffff" stroke="#111" strokeWidth={0.3 * s} /><Circle cx={it.x} cy={it.y} r={0.35 * s} fill="#111" /></G>;
   if (it.t === "cone") return <G>{sel ? <Circle cx={it.x} cy={it.y} r={1.9 * s} fill={halo} fillOpacity={0.5} /> : null}<Path d={`M ${it.x} ${it.y - 1.3 * s} L ${it.x + 1.1 * s} ${it.y + 0.9 * s} L ${it.x - 1.1 * s} ${it.y + 0.9 * s} Z`} fill="#ff922b" stroke="#fff" strokeWidth={0.2 * s} /></G>;
+  if (isMaterial(it.t)) return <Material it={it} sel={sel} tok={tok} halo={halo} />;
   if (it.t === "text") return (
     <SvgText x={it.x} y={it.y + 1 * s} fontSize={3.2 * s} fontWeight="bold" fill={look.lines[it.col || "w"]} stroke={sel ? halo : look.halo} strokeWidth={(sel ? 0.5 : 0.25) * s} textAnchor="middle"
       transform={rot ? `rotate(-90 ${it.x} ${it.y})` : undefined}>{it.label || ""}</SvgText>
@@ -241,7 +309,7 @@ const OwnToken = React.memo(function OwnToken({ info, d, mode, accent, ink, capt
   return (
     <View style={{ width: d, alignItems: "center" }}>
       <View style={{ width: d, height: d, borderRadius: d / 2, backgroundColor: empty ? look.empty : accent, borderWidth: ring ? 3 : 2,
-        borderColor: ring || (empty ? look.emptyBorder : "#ffffff"), borderStyle: empty ? "dashed" : "solid", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+        borderColor: ring || (empty ? look.emptyBorder : isLight(accent) ? "#7b8591" : "#ffffff"), borderStyle: empty ? "dashed" : "solid", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         {url ? <Image source={{ uri: url }} style={{ width: d, height: d }} />
           : <Text style={{ color: empty ? look.emptyText : ink, fontWeight: "800", fontSize: Math.max(10, d * (empty ? 0.32 : nr != null && nr >= 10 ? 0.4 : 0.46)) }}>
             {empty ? pos : nr != null ? String(nr) : (info?.p?.vn || "?").slice(0, 1).toUpperCase()}</Text>}
@@ -274,20 +342,24 @@ export interface PitchProps {
   rot?: boolean;
   /** Vorschaubild: kleine Punkte ohne Namen */
   mini?: boolean;
+  /** Übungsskizze: eigene Spieler ohne Zuordnung als ausgefüllte Icons mit Nummer bzw. Kürzel */
+  sketch?: boolean;
+  /** ohne Feldlinien (freie Fläche) */
+  plain?: boolean;
   testID?: string;
 }
 
 /** Spielfeld mit allen Elementen eines Ausschnitts (ohne Bedienung); neu gezeichnet nur bei geänderten Angaben */
-export const Pitch = React.memo(function Pitch({ frame, items, width, mode, size, accent, accentInk, info, captain, highlight, selected, hidden, dot, look, rot = false, mini = false, testID }: PitchProps) {
+export const Pitch = React.memo(function Pitch({ frame, items, width, mode, size, accent, accentInk, info, captain, highlight, selected, hidden, dot, look, rot = false, mini = false, sketch = false, plain = false, testID }: PitchProps) {
   const L = lookOf(look), g = geom(frame, width, rot), f = frame, s = decoScale(g.k);
   const d = mini ? miniPx(g.w, g.h, f) : tokenPx(rot ? Math.min(g.w, g.h * 1.5) : g.w, size, f);
-  const tokens = items.filter(it => (it.t === "own" || it.t === "opp") && it.id !== hidden);
+  const tokens = items.filter(it => (it.t === "own" || it.t === "opp" || it.t === "neu") && it.id !== hidden);
   const body = (
     <G>
       <Ground f={f} look={L} />
-      <Markings s={s} col={L.mark} />
-      {items.filter(it => it.t !== "own" && it.t !== "opp" && it.id !== hidden).sort((a, b) => (isArea(a.t) ? -1 : 0) - (isArea(b.t) ? -1 : 0))
-        .map(it => <Drawn key={it.id} it={it} sel={it.id === selected} s={s} look={L} rot={rot} />)}
+      {plain ? null : <Markings s={s} col={L.mark} />}
+      {items.filter(it => it.t !== "own" && it.t !== "opp" && it.t !== "neu" && it.id !== hidden).sort((a, b) => (isArea(a.t) ? -1 : 0) - (isArea(b.t) ? -1 : 0))
+        .map(it => <Drawn key={it.id} it={it} sel={it.id === selected} s={s} look={L} rot={rot} tok={(mini ? tokenPx(g.w, size, f) : d) / g.k} />)}
     </G>
   );
   return (
@@ -297,12 +369,14 @@ export const Pitch = React.memo(function Pitch({ frame, items, width, mode, size
       </Svg>
       {tokens.map(it => {
         const pt = g.px(it.x, it.y);
-        if (it.t === "opp") {
+        // Gegner, Joker und (Übungsskizze) eigene Spieler ohne Zuordnung: ausgefüllter Kreis mit Nummer bzw. Kürzel
+        if (it.t === "opp" || it.t === "neu" || (sketch && it.t === "own" && !it.pid)) {
           const od = mini ? d : Math.round(d * 0.82), sel = it.id === selected;
+          const bg = it.t === "opp" ? OPP_COL : it.t === "neu" ? NEU_COL : accent, fg = it.t === "neu" ? "#111111" : it.t === "own" ? accentInk : "#ffffff";
           return (
-            <View key={it.id} testID={mini ? undefined : "opp-" + it.id} pointerEvents="none" style={{ position: "absolute", left: pt.left - od / 2, top: pt.top - od / 2, width: od, height: od, borderRadius: od / 2,
-              backgroundColor: OPP_COL, borderWidth: mini ? 1 : sel ? 3 : 1.5, borderColor: sel ? "#ffe066" : "#ffffff", alignItems: "center", justifyContent: "center" }}>
-              {!mini || od >= 12 ? <Text style={{ color: "#fff", fontWeight: "800", fontSize: Math.max(mini ? 6 : 9, od * (it.n != null ? 0.44 : 0.32)) }}>{it.n != null ? String(it.n) : mini ? "" : it.label || ""}</Text> : null}
+            <View key={it.id} testID={mini ? undefined : it.t + "-" + it.id} pointerEvents="none" style={{ position: "absolute", left: pt.left - od / 2, top: pt.top - od / 2, width: od, height: od, borderRadius: od / 2,
+              backgroundColor: bg, borderWidth: mini ? 1 : sel ? 3 : 1.5, borderColor: sel ? "#ffe066" : "#ffffff", alignItems: "center", justifyContent: "center" }}>
+              {!mini || od >= 12 ? <Text style={{ color: fg, fontWeight: "800", fontSize: Math.max(mini ? 6 : 9, od * (it.n != null ? 0.44 : 0.32)) }}>{it.n != null ? String(it.n) : mini ? "" : it.label || ""}</Text> : null}
             </View>
           );
         }

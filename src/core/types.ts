@@ -6,7 +6,8 @@ export type ClassKey =
   | "sen" | "ue32" | "u19" | "u18" | "u17" | "u16" | "u15" | "u14" | "u13" | "u12"
   | "u11" | "u10" | "u9" | "u8" | "u7";
 export type Group = "akt" | "u19" | "u15" | "u11";
-export type BuiltinKind = "regen" | "frei" | "aktiv" | "schnell" | "taktik" | "extensiv" | "intensiv" | "aufbau" | "kids" | "spiel";
+/** Eingebaute Trainingsarten ("aufbau" = Kraft; "kids" nur Kinderfußball, "spiel" nur MD) */
+export type BuiltinKind = "regen" | "frei" | "aktiv" | "schnell" | "taktik" | "extensiv" | "intensiv" | "aufbau" | "technik" | "kids" | "spiel";
 /** Eigene Trainingsarten haben die Form "c:<id>". */
 export type Kind = BuiltinKind | `c:${string}`;
 export type Pitch = "ganz" | "halb" | "viertel" | "halle";
@@ -122,7 +123,8 @@ export interface TeamGroup {
   vis?: boolean;
 }
 export type PlayerViewKey = "plan" | "load" | "tips" | "ai" | "goals" | "att" | "ratings" | "stats" | "tests" | "videos" | "contacts" | "program" | "dev";
-export interface Principle { kind: Kind; rpe: number }
+export interface Principle { kind: Kind; rpe: number;
+  /** eigene Beschreibung des Trainers (wird Standard-Inhalt der Einheit an diesem Tag) */ note?: string }
 export type Principles = Record<string, Principle>;
 export interface Modules {
   beteiligung: boolean; planung: boolean; belastung: boolean; regeneration: boolean;
@@ -225,10 +227,17 @@ export interface Finding {
   id: string; pid: string; absenceId: string | null; date: string; title: string;
   path: string; mime: string; consent: "app" | "schriftlich"; ai: string | null; aiAt: string | null; note: string;
 }
-/** Taktik-/Übungszeichnung. Koordinaten in Metern innerhalb des gewählten Spielfelds. */
+/** Übungsskizze im alten Format (bis Oktober 2026): Koordinaten in Metern innerhalb des gewählten Spielfelds. */
 export type BoardKind = "a" | "b" | "gk" | "cone" | "ball" | "goal" | "pass" | "run" | "drib" | "zone";
 export interface BoardItem { id: string; t: BoardKind; x: number; y: number; x2?: number; y2?: number; n?: number }
-export interface Drawing { pitch: "full" | "half" | "box" | "free"; items: BoardItem[] }
+export interface DrawingV1 { pitch: "full" | "half" | "box" | "free"; items: BoardItem[] }
+/**
+ * Übungsskizze (Version 2): dieselbe Tafel wie im Matchplan – Spielfeld hochkant in Metern, Ausschnitt, Design,
+ * auf Wunsch ohne Feldlinien (freie Fläche), Elemente inkl. Trainingsmaterial.
+ */
+export interface Sketch { v: 2; view: MpView; frame?: MpFrame | null; look?: MpLook | null; plain?: boolean; items: MpItem[] }
+/** Gespeicherte Skizze: neues oder altes Format (wird beim Anzeigen umgerechnet, siehe core/sketch) */
+export type Drawing = Sketch | DrawingV1;
 /** Übungsarchiv */
 export type ExerciseCat = "warmup" | "technik" | "pass" | "abschluss" | "spielform" | "taktik" | "athletik" | "torwart" | "cooldown";
 export interface CoachPoint { text: string; staffId?: string | null }
@@ -396,9 +405,16 @@ export interface Video { id: string; title: string; url: string; date: string | 
 
 /** Alles, was die Fachlogik über ein Team wissen muss. */
 // ---------- Matchplan (Paket B) ----------
-/** Elemente der Taktiktafel: eigene Spieler, Gegner, Ball, Hütchen, Text, Pass, Laufweg, Dribbling, Linie, Zone */
-export type MpTool = "own" | "opp" | "ball" | "cone" | "text" | "pass" | "run" | "drib" | "line" | "zone" | "circle" | "free";
-export type MpColor = "w" | "y" | "r" | "b";
+/**
+ * Elemente der Taktiktafel: eigene Spieler, Gegner, Joker (neutral), Ball, Hütchen, Text, Pass, Laufweg, Dribbling,
+ * Linie, Zone, Kreis, Freihand sowie Trainingsmaterial (Tor, Minitor, Stange, Dummy, Koordinationsleiter, Hürde, Reifen)
+ */
+export type MpTool = "own" | "opp" | "neu" | "ball" | "cone" | "text" | "pass" | "run" | "drib" | "line" | "zone" | "circle" | "free"
+  | "goal" | "mgoal" | "pole" | "dummy" | "ladder" | "hurdle" | "ring";
+/** Linienfarben: weiß, gelb, rot, blau, grün, orange, schwarz */
+export type MpColor = "w" | "y" | "r" | "b" | "g" | "o" | "k";
+/** Linienstil: durchgezogen, lang gestrichelt, kurz gestrichelt, gepunktet */
+export type MpDash = "solid" | "long" | "short" | "dot";
 /** Element auf dem Spielfeld (Meter, Hochkant 68 × 105, eigenes Tor unten) */
 export interface MpItem {
   id: string; t: MpTool; x: number; y: number; x2?: number; y2?: number;
@@ -413,8 +429,16 @@ export interface MpItem {
   bend?: number;
   /** Freihand: Punkte [x0, y0, x1, y1, …] in Metern */
   pts?: number[];
-  /** Freihand: durchgezogen statt gestrichelt */
+  /** Freihand (alt): durchgezogen statt gestrichelt – neu: `ls` */
   solid?: boolean;
+  /** Linien, Pfeile, Freihand, Flächen: Linienstil (fehlt = Standard der Art, z. B. Laufweg kurz gestrichelt) */
+  ls?: MpDash;
+  /** Strichstärke 1 (dünn) … 3 (dick); fehlt = 2 */
+  w?: 1 | 2 | 3;
+  /** Trainingsmaterial: Drehung in Grad (0 = quer) */
+  rot?: number;
+  /** hinzugefügt von (Trainerprofil-ID); wird Spielern nicht übermittelt */
+  by?: string;
 }
 /**
  * Voreingestellter Ausschnitt: ganzes Feld, Hälften, Angriffsdrittel, 16er vorne/hinten (gezoomt), Ecken je Seite und
@@ -435,6 +459,8 @@ export interface MpSlide {
   /** Icon-Ansicht nur für diese Folie (z. B. nur Nummern bei Ecken); fehlt = wie im Plan */
   mode?: MpMode | null;
   items: MpItem[]; note: string; vis: boolean;
+  /** angelegt von (Trainerprofil-ID; nur Trainerteam, nicht veröffentlicht) */
+  by?: string;
 }
 export type MpSection = "lineup" | "slides" | "idea" | "opp" | "tasks" | "subs";
 export type MpFmt = 11 | 9 | 7 | 5;

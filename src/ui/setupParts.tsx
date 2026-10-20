@@ -10,10 +10,12 @@ import type { ClassKey, Depth, Group, Modules, PlayerViewKey, Reminders, StaffRo
 import { ROLES } from "./archive";
 import { Icon } from "./icons";
 import { Btn, ChoiceChips, Col, DateField, Field, Muted, Picker, Row, Seg, T, TimeField, ToggleRow } from "./kit";
-import { radius, useTheme, withAlpha } from "./theme";
+import { inkOn, isLight, radius, useTheme, withAlpha } from "./theme";
 
 /** Vereinsfarben zur Auswahl */
-export const COLORS = ["#0b3d91", "#1d4ed8", "#0f766e", "#15803d", "#b91c1c", "#9f1239", "#c2410c", "#a16207", "#6d28d9", "#111827"];
+export const COLORS = ["#0b3d91", "#1d4ed8", "#0f766e", "#15803d", "#b91c1c", "#9f1239", "#c2410c", "#a16207", "#6d28d9", "#111827",
+  // Weiß, Silber, Grau
+  "#ffffff", "#c0c6cc", "#6b7280"];
 /** Trainerlizenzen (DFB/UEFA) – Schlüssel für lic_<key> */
 export const LICENSES = ["none", "kinder", "c", "b", "bplus", "a", "pro", "tw", "athletik", "other"];
 
@@ -79,8 +81,8 @@ export function ColorPicker({ value, onChange }: { value: string; onChange: (c: 
     <Row wrap gap={8}>
       {COLORS.map(col => (
         <Pressable key={col} testID={"color-" + col.slice(1)} accessibilityRole="radio" accessibilityState={{ checked: value === col }} accessibilityLabel={col} onPress={() => onChange(col)}
-          style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: col, alignItems: "center", justifyContent: "center", borderWidth: value === col ? 3 : 0, borderColor: c.ink }}>
-          {value === col ? <Icon name="check" size={17} color="#fff" strokeWidth={3} /> : null}
+          style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: col, alignItems: "center", justifyContent: "center", borderWidth: value === col ? 3 : isLight(col) ? 1 : 0, borderColor: value === col ? c.ink : c.line }}>
+          {value === col ? <Icon name="check" size={17} color={inkOn(col)} strokeWidth={3} /> : null}
         </Pressable>
       ))}
     </Row>
@@ -92,8 +94,8 @@ export function TeamBadge({ logo, club, name, accent, size = 44 }: { logo: strin
   const label = teamLabel({ club, name }), init = (club || name).split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]?.toUpperCase()).join("") || "T";
   return logo
     ? <Image source={{ uri: logo }} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: "#fff" }} accessibilityLabel={label} />
-    : <View accessibilityLabel={label} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: accent, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ color: "#fff", fontWeight: "800", fontSize: size * 0.36 }}>{init}</Text>
+    : <View accessibilityLabel={label} style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: accent, alignItems: "center", justifyContent: "center", borderWidth: isLight(accent) ? 1 : 0, borderColor: "#c9ced4" }}>
+        <Text style={{ color: inkOn(accent), fontWeight: "800", fontSize: size * 0.36 }}>{init}</Text>
       </View>;
 }
 

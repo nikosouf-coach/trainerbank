@@ -4,21 +4,33 @@ import React from "react";
 import { Pressable, View } from "react-native";
 import { useStore } from "../data/store";
 import { Icon } from "./icons";
-import { Btn, Card, Col, Muted, Row, Sheet, T, ToggleRow } from "./kit";
+import { Btn, Col, Muted, Row, Sheet, T, ToggleRow } from "./kit";
 import { radius, useTheme } from "./theme";
 
-/** Karten der Trainer-Startseite (Standard-Reihenfolge). */
-export const DASH_COACH = ["next", "matchday", "tasks", "inbox", "phase", "status", "attn", "absent", "week", "events", "last", "load", "ai"] as const;
+/**
+ * Karten der Trainer-Startseite (Standard-Reihenfolge). Standardmäßig nur das Wichtigste: nächster Termin, „Heute
+ * wichtig“ (bündelt Spieltag-Check, Posteingang, Aufgaben, Überlastung), Belastung im Team und die Woche – die
+ * ausführlichen Karten lassen sich unter „Startseite anpassen“ dazuschalten.
+ */
+export const DASH_COACH = ["next", "focus", "status", "week", "phase", "ai", "matchday", "tasks", "inbox", "attn", "absent", "events", "last", "load"] as const;
 export type DashKey = typeof DASH_COACH[number];
 /**
  * Karten der Spieler-Startseite – nach Wichtigkeit: erst was heute zu tun ist (Einträge, Körper, Nachrichten, Reha),
- * dann Termine und Plan, dann Aufgaben, Bewertung, Programm, Challenge und Ziele; Meilensteine zuletzt (standardmäßig aus).
+ * dann Plan, nächster Termin, Aufgaben, Bewertung, Programm und eine Kurzübersicht (Challenge, Ziele, Woche, Kasse);
+ * die ausführlichen Karten dazu sind standardmäßig aus.
  */
-export const DASH_PLAYER = ["todo", "body", "msgs", "reha", "plan", "dates", "tasks", "rating", "program", "challenge", "devgoals", "pot", "rings", "kasse", "badges"] as const;
-/** Standardmäßig aus (wirken eher als Detail) */
-const DEF_OFF: Record<"coach" | "player", string[]> = { coach: [], player: ["badges"] };
+export const DASH_PLAYER = ["todo", "body", "msgs", "reha", "plan", "dates", "tasks", "rating", "program", "quick", "challenge", "devgoals", "pot", "rings", "kasse", "badges"] as const;
+/** Standardmäßig aus (Details – auf Wunsch zuschaltbar) */
+const DEF_OFF: Record<"coach" | "player", string[]> = {
+  coach: ["matchday", "tasks", "inbox", "attn", "absent", "events", "last", "load"],
+  player: ["challenge", "devgoals", "pot", "rings", "kasse", "badges"],
+};
 /** Bereiche der Spieler-Leiste, die man ausblenden kann (Heute, Eintragen und Ich bleiben immer) */
-export const PLAYER_TABS_OPTIONAL = ["daten", "tipps", "chat"] as const;
+export const PLAYER_TABS_OPTIONAL = ["kalender", "chat", "daten", "tipps"] as const;
+/** Standard: Tipps ausgeblendet (unter „Ich“ erreichbar), damit die Leiste mit Kalender bei sechs Einträgen bleibt */
+const PLAYER_HIDE_DEFAULT = ["tipps"];
+/** Ausgeblendete Bereiche der Spieler-Leiste */
+export const playerHidden = (prefs: { navPlayer?: { hide?: string[] } }): string[] => prefs.navPlayer?.hide ?? PLAYER_HIDE_DEFAULT;
 
 export interface DashItem { k: string; on: boolean }
 type Who = "coach" | "player";
@@ -83,7 +95,7 @@ export function DashEditor({ visible, onClose, available, who = "coach", extra }
 /** Spieler: Bereiche der unteren Leiste ein-/ausblenden (Heute, Eintragen und Ich bleiben) */
 export function PlayerTabsEditor() {
   const s = useStore(); const { t } = s.tr;
-  const hide = s.prefs.navPlayer?.hide || [];
+  const hide = playerHidden(s.prefs);
   const chatOn = !!s.D && s.D.team.modules.chat !== false;
   return (
     <Col gap={4} testID="ptabs-edit">
@@ -97,29 +109,13 @@ export function PlayerTabsEditor() {
   );
 }
 
-/**
- * Einmaliger Hinweis auf der Startseite: Leiste und Startseite lassen sich anpassen (verschwindet nach „Ausblenden“
- * oder sobald man eines davon geöffnet hat; gespeichert im Konto).
- */
-export function CustomizeTip({ id, onBar, onDash }: { id: string; onBar: () => void; onDash: () => void }) {
-  const s = useStore(); const { t } = s.tr; const { c } = useTheme();
-  const seen = s.prefs.seen || [];
-  if (seen.includes(id)) return null;
-  const done = () => s.setPrefs({ seen: [...seen, id].slice(-30) });
+/** Fuß der Startseite: Startseite und (Trainer) untere Leiste anpassen – unaufdringlich, aber immer auffindbar */
+export function CustomizeLinks({ onDash, onBar, testID = "dash-edit" }: { onDash: () => void; onBar?: () => void; testID?: string }) {
+  const s = useStore(); const { t } = s.tr;
   return (
-    <Card testID="tip-custom">
-      <Row gap={12} align="flex-start">
-        <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}><Icon name="sliders" size={19} color={c.accentTx} /></View>
-        <Col gap={2} style={{ flex: 1 }}>
-          <T bold>{t("tip_customT")}</T>
-          <Muted small>{t("tip_customD")}</Muted>
-        </Col>
-        <Pressable testID="tip-custom-close" accessibilityRole="button" accessibilityLabel={t("tip_hide")} onPress={done} hitSlop={10}><Icon name="close" size={18} color={c.muted} /></Pressable>
-      </Row>
-      <Row gap={8} wrap>
-        <Btn small testID="tip-custom-bar" icon="grid" label={t("tip_barS")} onPress={() => { done(); onBar(); }} />
-        <Btn small testID="tip-custom-dash" icon="sliders" label={t("tip_dashS")} onPress={() => { done(); onDash(); }} />
-      </Row>
-    </Card>
+    <Row gap={4} style={{ alignSelf: "center" }} wrap>
+      <Btn small kind="ghost" icon="sliders" testID={testID} label={t("db_edit")} onPress={onDash} />
+      {onBar ? <Btn small kind="ghost" icon="grid" testID="bar-edit" label={t("tip_bar")} onPress={onBar} /> : null}
+    </Row>
   );
 }

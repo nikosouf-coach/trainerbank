@@ -6,7 +6,7 @@ import { ActivityIndicator, Image, Pressable, Text, View } from "react-native";
 import { cleanCrew, crewOf } from "../../core/day";
 import type { CrewRole, DayBlock } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
-import { BoardEditor, BoardView, emptyDrawing } from "../board";
+import { SketchField } from "../sketch";
 import { Btn, Chip, Col, Field, ListItem, Muted, NumField, Picker, Row, Sheet, T } from "../kit";
 import { radius, useTheme, withAlpha } from "../theme";
 
@@ -71,7 +71,7 @@ function BlockForm({ block, onDone }: { block: DayBlock; onDone: () => void }) {
   const [crew, setCrew] = useState<CrewRole[]>(crewOf(block));
   const updCrew = (i: number, p: Partial<CrewRole>) => setCrew(L => L.map((x, j) => j === i ? { ...x, ...p } : x));
   const freeStaff = (i: number) => E.D.staff.filter(x => !crew.some((y, j) => j !== i && y.staffId === x.id));
-  const [pick, setPick] = useState(false), [draw, setDraw] = useState(false), [busy, setBusy] = useState(false), [ask, setAsk] = useState(false);
+  const [pick, setPick] = useState(false), [busy, setBusy] = useState(false), [ask, setAsk] = useState(false);
   const set = (p: Partial<DayBlock>) => setB(x => ({ ...x, ...p }));
   const isNew = block.id.startsWith("tmp-");
   const save = async () => {
@@ -140,12 +140,7 @@ function BlockForm({ block, onDone }: { block: DayBlock; onDone: () => void }) {
       </Col>
       <Col gap={8}>
         <T v="small" bold color={c.muted}>{t("blk_sketch")}</T>
-        {b.drawing && !draw ? <Pressable accessibilityRole="button" onPress={() => setDraw(true)}><BoardView value={b.drawing} testID="blk-board-view" /></Pressable> : null}
-        {draw ? <BoardEditor value={b.drawing || emptyDrawing()} onChange={d => set({ drawing: d })} testID="blk-board" /> : null}
-        <Row gap={8} wrap>
-          <Btn small testID="blk-draw" label={draw ? t("blk_drawDone") : b.drawing ? t("blk_drawEdit") : t("blk_draw")} onPress={() => { if (!b.drawing) set({ drawing: emptyDrawing() }); setDraw(!draw); }} />
-          {b.drawing && !draw ? <Btn small kind="ghost" label={t("blk_drawDel")} onPress={() => set({ drawing: null })} /> : null}
-        </Row>
+        <SketchField testID="blk-sketch" value={b.drawing} onChange={d => set({ drawing: d })} labels={{ add: t("blk_draw"), edit: t("blk_drawEdit"), del: t("blk_drawDel") }} />
         {b.photo ? <SketchImage path={b.photo} testID="blk-photo" /> : null}
         <Row gap={8} wrap>
           <Btn small icon="camera" testID="blk-photo-add" label={b.photo ? t("blk_photoNew") : t("blk_photo")} disabled={busy} onPress={photo} />

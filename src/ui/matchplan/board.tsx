@@ -8,20 +8,25 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, ScrollView, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
-import { MP_COLORS, MP_LIMITS, bendCtrl, bendThrough, clampX, clampY, frameOf, isArea, isArrow, isLine, linePoint, mpId, panFrame, shiftItem, thinPoints, withFrame, zoomFrame } from "../../core/matchplan";
-import type { MpColor, MpContent, MpFrame, MpItem, MpSlide, MpTool } from "../../core/types";
+import { MP_COLORS, MP_DASHES, MP_LIMITS, MP_WIDTHS, bendCtrl, bendThrough, clampX, clampY, dashOf, frameOf, isArea, isArrow, isLine, isMaterial, isRotatable, linePoint, mpId, panFrame, shiftItem, thinPoints, withFrame, zoomFrame } from "../../core/matchplan";
+import type { MpColor, MpContent, MpDash, MpFrame, MpItem, MpSlide, MpTool } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
 import { Icon, type IconName } from "../icons";
-import { Btn, Col, Field, NumField, Picker, Row, Seg, ToggleRow, useScrollLock } from "../kit";
+import { Btn, Col, Field, Muted, NumField, Picker, Row, Seg, useScrollLock } from "../kit";
 import { radius, useTheme, withAlpha } from "../theme";
 import { useTokenInfo } from "./common";
-import { OPP_COL, Pitch, decoScale, geom, lineCol, tokenPx, usePitchWidth } from "./pitch";
+import { NEU_COL, OPP_COL, Pitch, capOf, decoScale, geom, lineCol, materialR, tokenPx, usePitchWidth } from "./pitch";
 
 export type Tool = "move" | MpTool | "del";
-/** Werkzeuge in zwei Reihen: Figuren und Bearbeiten, Linien und Flächen */
-export const TOOL_ROWS: Tool[][] = [["move", "own", "opp", "ball", "cone", "text", "del"], ["pass", "run", "drib", "line", "free", "zone", "circle"]];
+/** Werkzeuge in drei Reihen: Figuren und Bearbeiten, Linien und Flächen, Joker und Trainingsmaterial */
+export const TOOL_ROWS: Tool[][] = [["move", "own", "opp", "ball", "cone", "text", "del"], ["pass", "run", "drib", "line", "free", "zone", "circle"],
+  ["neu", "goal", "mgoal", "pole", "dummy", "ladder", "hurdle", "ring"]];
+/** Element an einem Punkt (Spieler, Ball, Hütchen, Material) */
+const pointTool = (t: MpTool): boolean => t === "own" || t === "opp" || t === "neu" || t === "ball" || t === "cone" || isMaterial(t);
 /** Werkzeuge bzw. Elemente mit Farbe */
 export const hasColor = (t: Tool): boolean => isLine(t as MpTool) || t === "free" || t === "text";
+/** Werkzeuge bzw. Elemente mit Linienstil und Strichstärke */
+export const hasStroke = (t: Tool): boolean => isLine(t as MpTool) || t === "free";
 /** Elemente mit Schrittnummer (Ablauf 1, 2, 3 …) */
 const stepped = (t: MpTool): boolean => isArrow(t) || t === "free";
 /** Standardfarbe einer Art (Laufwege und Flächen gelb) */
@@ -57,6 +62,14 @@ export function ToolIcon({ k, size = 24, color, accent }: { k: Tool; size?: numb
   else if (k === "free") body = <><Path d="M3.5 18.5 C 6.5 9, 10 22.5, 12.6 13.4 C 13.8 9.3, 15.4 8, 16.6 7.4" {...st} strokeWidth={2.1} /><Polyline points={headPts(13.2, 9.6, 20.2, 5.2)} fill={color} /></>;
   else if (k === "zone") body = <Rect x={3.8} y={6} width={16.4} height={12} rx={1.6} fill={color} fillOpacity={0.16} stroke={color} strokeWidth={1.8} strokeDasharray="2.8 2" />;
   else if (k === "circle") body = <Circle cx={12} cy={12} r={8.2} fill={color} fillOpacity={0.16} stroke={color} strokeWidth={1.8} strokeDasharray="2.8 2" />;
+  else if (k === "neu") body = <Circle cx={12} cy={12} r={7.6} fill={NEU_COL} stroke="#ffffff" strokeWidth={2} />;
+  else if (k === "goal") body = <><Path d="M3.5 17 V8 H20.5 V17" {...st} strokeWidth={2.2} /><Path d="M7.7 8V17M12 8V17M16.3 8V17" {...st} strokeWidth={1} /><Path d="M2.5 17 H21.5" {...st} strokeWidth={2.4} /></>;
+  else if (k === "mgoal") body = <><Path d="M7 16 V10.5 H17 V16" {...st} strokeWidth={2.2} /><Path d="M12 10.5V16" {...st} strokeWidth={1} /><Path d="M6 16 H18" {...st} strokeWidth={2.4} /></>;
+  else if (k === "pole") body = <><Circle cx={12} cy={12} r={5.4} fill="#ffd43b" stroke={color} strokeWidth={1.4} /><Circle cx={12} cy={12} r={1.8} fill={color} /></>;
+  else if (k === "dummy") body = <><Rect x={4} y={9} width={16} height={6.4} rx={3.2} fill="#339af0" stroke="#ffffff" strokeWidth={1.2} /><Circle cx={12} cy={12.2} r={2.3} fill="#ffffff" /></>;
+  else if (k === "ladder") body = <><Path d="M3 8.5 H21 M3 15.5 H21" stroke="#e8a400" strokeWidth={1.8} strokeLinecap="round" /><Path d="M5 8.5V15.5M9 8.5V15.5M13 8.5V15.5M17 8.5V15.5M21 8.5V15.5" stroke="#e8a400" strokeWidth={1.4} /></>;
+  else if (k === "hurdle") body = <><Path d="M5 12 H19" stroke="#fa5252" strokeWidth={2.6} strokeLinecap="round" /><Path d="M5 8.5V15.5M19 8.5V15.5" {...st} strokeWidth={1.8} /></>;
+  else if (k === "ring") body = <Circle cx={12} cy={12} r={7} fill="none" stroke="#20c997" strokeWidth={2.4} />;
   return <Svg width={size} height={size} viewBox="0 0 24 24">{body}</Svg>;
 }
 
@@ -69,6 +82,8 @@ export function useBoard(slide: MpSlide, onChange: (s: MpSlide) => void) {
   const undo = useRef<Snap[]>([]), redo = useRef<Snap[]>([]);
   const [tool, setToolRaw] = useState<Tool>("move");
   const [color, setColor] = useState<MpColor | null>(null);
+  /** Stil für neue Linien (fehlt = Standard der Art) */
+  const [stroke, setStroke] = useState<{ ls?: MpDash; w?: 1 | 2 | 3 }>({});
   const [framing, setFramingRaw] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
   const [, bump] = useState(0);
@@ -84,8 +99,8 @@ export function useBoard(slide: MpSlide, onChange: (s: MpSlide) => void) {
     onChange({ ...cur.current, ...s }); bump(x => x + 1);
   };
   return {
-    tool, color, setColor, framing, sel, setSel, commit,
-    setTool: (k: Tool) => { setToolRaw(k); if (k === "del") setSel(null); },
+    tool, color, setColor, stroke, setStroke, framing, sel, setSel, commit,
+    setTool: (k: Tool) => { setToolRaw(k); if (k !== "move") setSel(null); },
     setFraming: (on: boolean) => { setFramingRaw(on); if (on) setSel(null); },
     canUndo: undo.current.length > 0, canRedo: redo.current.length > 0,
     undo: () => step(undo, redo), redo: () => step(redo, undo),
@@ -141,17 +156,23 @@ export function addBlock(slide: MpSlide, t: MpTool): { k: string; n: number } | 
   if (t === "free" && slide.items.filter(x => x.t === "free").length >= MP_LIMITS.free) return { k: "mp_freeFull", n: MP_LIMITS.free };
   return null;
 }
-/** Kopie eines Elements (versetzt) */
-export function dupItem(it: MpItem): MpItem { const c = shiftItem({ ...it, id: mpId("i") }, 3, 3); if (it.t === "own") delete c.pid; return c; }
+/** Kopie eines Elements (versetzt); by = wer kopiert hat */
+export function dupItem(it: MpItem, by?: string | null): MpItem {
+  const c = shiftItem({ ...it, id: mpId("i") }, 3, 3); if (it.t === "own") delete c.pid;
+  if (by) c.by = by; else delete c.by;
+  return c;
+}
 
 /**
  * Spielfeld einer Folie mit Bedienung (ohne Werkzeugleiste). maxH/maxW begrenzen die Größe; der Ausschnitt füllt die
  * verfügbare Breite. onEdit: ausgewähltes Element erneut antippen (Formular), onText: Stelle für einen neuen Text.
  * hold: Tafel liegt auf einer scrollbaren Seite (Ziehen erst nach kurzem Halten bzw. waagerecht).
  */
-export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW = 560, onEdit, onText, hold }: {
+export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW = 560, onEdit, onText, hold, sketch, plain }: {
   slide: MpSlide; c: Pick<MpContent, "mode" | "size" | "captain" | "look">; B: BoardState; ro?: boolean; testID?: string; maxH?: number; maxW?: number;
   onEdit?: (it: MpItem) => void; onText?: (p: Pt) => void; hold?: boolean;
+  /** Übungsskizze (eigene Spieler ohne Zuordnung ausgefüllt) bzw. ohne Feldlinien */
+  sketch?: boolean; plain?: boolean;
 }) {
   const { c: col } = useTheme(); const info = useTokenInfo(); const lock = useScrollLock(); const st = useStore();
   const [W, setW] = useState(0);
@@ -168,10 +189,11 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
   const inside = (e: GestureResponderEvent) => { const x = e.nativeEvent.locationX - ox, y = e.nativeEvent.locationY; return x >= 0 && x <= pw && y >= 0 && y <= g.h; };
   // ---------- Treffer ----------
   const tol = Math.max(1.5, 13 / g.k);
-  const tokR = (it: MpItem): number => it.t === "own" ? d / 2 / g.k : it.t === "opp" ? (d * 0.41) / g.k : it.t === "ball" ? 1.1 * s : it.t === "cone" ? 1.4 * s : 0;
+  const tokR = (it: MpItem): number => it.t === "own" ? (sketch && !it.pid ? d * 0.41 : d / 2) / g.k : it.t === "opp" || it.t === "neu" ? (d * 0.41) / g.k
+    : it.t === "ball" ? 1.1 * s : it.t === "cone" ? 1.4 * s : isMaterial(it.t) ? materialR(it.t, d / g.k) : 0;
   /** Abstand zum Element im Verhältnis zur Trefferweite (< 1 = getroffen); Flächen nachrangig */
   const near = (it: MpItem, p: Pt): number => {
-    if (it.t === "own" || it.t === "opp" || it.t === "ball" || it.t === "cone") return Math.hypot(it.x - p.x, it.y - p.y) / (tokR(it) + 6 / g.k);
+    if (pointTool(it.t)) return Math.hypot(it.x - p.x, it.y - p.y) / (tokR(it) + 6 / g.k);
     if (it.t === "text") { const hw = Math.max(2.6, (it.label || "").length * 1.05 * s), hh = 2.4 * s + 4 / g.k; return Math.max(Math.abs(p.x - it.x) / hw, Math.abs(p.y - it.y) / hh); }
     const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y;
     if (it.t === "zone") {
@@ -194,7 +216,7 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     return best;
   };
   // ---------- Einrasten an Spielern ----------
-  const tokens = slide.items.filter(x => x.t === "own" || x.t === "opp" || x.t === "ball");
+  const tokens = slide.items.filter(x => x.t === "own" || x.t === "opp" || x.t === "neu" || x.t === "ball");
   const tokenNear = (p: Pt, extra: number): MpItem | null => {
     let best: MpItem | null = null, bd = Infinity;
     for (const k of tokens) { const dist = Math.hypot(k.x - p.x, k.y - p.y); if (dist < tokR(k) + extra && dist < bd) { bd = dist; best = k; } }
@@ -210,16 +232,21 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     if (L < r * 1.6) return it;
     return { ...it, x2: clampX(k.x - vx / L * r), y2: clampY(k.y - vy / L * r) };
   };
+  /** Übungsskizze: nächste freie Rückennummer je Spielerart (1, 2, 3 …) */
+  const nextNo = (t: MpTool): number | null => { const ns = slide.items.filter(x => x.t === t && x.n != null).map(x => x.n as number); const n = (ns.length ? Math.max(...ns) : 0) + 1; return n <= 99 ? n : null; };
   const nextStep = (): number | null => {
     const ns = slide.items.filter(x => stepped(x.t) && x.n).map(x => x.n as number);
     return ns.length ? Math.min(20, Math.max(...ns) + 1) : null;
   };
   const touches = (e: GestureResponderEvent): Touch[] => ((e.nativeEvent as unknown as { touches?: Touch[] }).touches || []);
   /** Element übernehmen (neu oder geändert); false = Folie voll */
+  const me = st.myStaff?.id || null;
   const upsert = (it: MpItem): boolean => {
     const known = slide.items.some(x => x.id === it.id), bl = known ? null : addBlock(slide, it.t);
     if (bl) { st.toast(st.tr.tf(bl.k, { n: bl.n })); return false; }
-    B.commit({ ...slide, items: known ? slide.items.map(x => x.id === it.id ? it : x) : [...slide.items, it] });
+    // neu: „hinzugefügt von“ (eigenes Trainerprofil)
+    const x = !known && me && !it.by ? { ...it, by: me } : it;
+    B.commit({ ...slide, items: known ? slide.items.map(y => y.id === x.id ? x : y) : [...slide.items, x] });
     return true;
   };
 
@@ -280,14 +307,15 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     if (tool === "move") { const x = hit(p); begin(x ? { k: "move", id: x.id, p0: p, it0: x, isNew: false, wasSel: B.sel === x.id } : { k: "tap", p0: p }); return; }
     if (tool === "text") { onText?.(p); return; }
     const t = tool as MpTool;
-    if (t === "own" || t === "opp" || t === "ball" || t === "cone") {
+    if (pointTool(t)) {
       const it: MpItem = { id: mpId("i"), t, x: p.x, y: p.y };
+      if (sketch && (t === "own" || t === "opp" || t === "neu")) { const n = nextNo(t); if (n) it.n = n; }
       begin({ k: "move", id: it.id, p0: p, it0: it, isNew: true, wasSel: false }); setLive(it); return;
     }
-    const colr = B.color || defCol(t);
-    if (t === "free") { const it: MpItem = { id: mpId("i"), t, x: p.x, y: p.y, x2: p.x, y2: p.y, col: colr, pts: [p.x, p.y] }; begin({ k: "free", it, pts: [p], p0: p }); return; }
+    const colr = B.color || defCol(t), sty = { ...(B.stroke.ls ? { ls: B.stroke.ls } : {}), ...(B.stroke.w && B.stroke.w !== 2 ? { w: B.stroke.w } : {}) };
+    if (t === "free") { const it: MpItem = { id: mpId("i"), t, x: p.x, y: p.y, x2: p.x, y2: p.y, col: colr, pts: [p.x, p.y], ...sty }; begin({ k: "free", it, pts: [p], p0: p }); return; }
     const s0 = isArrow(t) ? snapStart(p) : p;
-    begin({ k: "new", it: { id: mpId("i"), t, x: s0.x, y: s0.y, x2: s0.x, y2: s0.y, col: colr }, p0: p });
+    begin({ k: "new", it: { id: mpId("i"), t, x: s0.x, y: s0.y, x2: s0.x, y2: s0.y, col: colr, ...sty }, p0: p });
   };
   const move = (e: GestureResponderEvent) => {
     if (B.framing) { frameMove(e); return; }
@@ -352,8 +380,8 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     <View onLayout={(e: LayoutChangeEvent) => setW(Math.floor(e.nativeEvent.layout.width))} style={{ width: "100%", height: W ? g.h : 260 }}>
       {W ? <>
         <View pointerEvents="none" style={{ position: "absolute", left: ox, top: 0 }}>
-          <Pitch frame={f} items={items} width={pw} mode={slide.mode || c.mode} size={size} accent={col.accent} accentInk={col.accentInk} info={info} captain={c.captain} look={c.look}
-            selected={B.sel} testID={testID + "-pitch"} />
+          <Pitch frame={f} items={items} width={pw} mode={slide.mode || c.mode} size={size} accent={col.club} accentInk={col.clubInk} info={info} captain={c.captain} look={c.look}
+            selected={B.sel} testID={testID + "-pitch"} sketch={sketch} plain={plain} />
           {B.framing ? <View pointerEvents="none" style={{ position: "absolute", left: 0, top: 0, width: pw, height: g.h, borderRadius: 12, borderWidth: 3, borderColor: "#ffd43b", borderStyle: "dashed" }} /> : null}
           {selDraw.map(({ h, p }) => {
             const q = g.px(p.x, p.y), z = h === "bend" ? 16 : 20, bend = h === "bend";
@@ -370,12 +398,12 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
   );
 }
 
-/** Werkzeuge (zwei Reihen); schmal nur Symbole – der Name steht in der Hinweiszeile */
-export function ToolGrid({ B, testID = "mp-board", only, labels }: { B: BoardState; testID?: string; only?: Tool[]; labels?: boolean }) {
+/** Werkzeuge (Reihen); schmal nur Symbole – der Name steht in der Hinweiszeile. material = dritte Reihe (Joker, Material) */
+export function ToolGrid({ B, testID = "mp-board", only, labels, material }: { B: BoardState; testID?: string; only?: Tool[]; labels?: boolean; material?: boolean }) {
   const E = useEngine(); const { t } = E; const { c: col } = useTheme();
   return (
     <Col gap={6} testID={testID + "-tools"}>
-      {TOOL_ROWS.map((row, r) => (
+      {TOOL_ROWS.filter((_, r) => r < 2 || material).map((row, r) => (
         <View key={r} style={{ flexDirection: "row", gap: 5 }}>
           {row.filter(k => !only || only.includes(k)).map(k => {
             const on = B.tool === k && !B.framing;
@@ -399,10 +427,38 @@ export function ColorRow({ value, onChange, look, testID, small }: { value: MpCo
   const E = useEngine(); const { c } = useTheme(); const z = small ? 26 : 30;
   return (
     <Row gap={small ? 6 : 8} testID={testID}>
-      {MP_COLORS.map(k => <Pressable key={k} testID={testID + "-" + k} accessibilityRole="radio" accessibilityState={{ checked: value === k }} accessibilityLabel={E.t(k === "w" && look === "white" ? "mpc_wd" : "mpc_" + k)} onPress={() => onChange(k)} hitSlop={4}
+      {MP_COLORS.filter(k => !(look === "white" && k === "k")).map(k => <Pressable key={k} testID={testID + "-" + k} accessibilityRole="radio" accessibilityState={{ checked: value === k }} accessibilityLabel={E.t(k === "w" && look === "white" ? "mpc_wd" : "mpc_" + k)} onPress={() => onChange(k)} hitSlop={4}
         style={{ width: z, height: z, borderRadius: z / 2, backgroundColor: lineCol(look, k), borderWidth: value === k ? 3 : 1, borderColor: value === k ? c.accent : c.line }} />)}
     </Row>
   );
+}
+
+/** Symbol eines Linienstils bzw. einer Strichstärke */
+function StrokeIcon({ ls = "solid", w = 2, color }: { ls?: MpDash; w?: 1 | 2 | 3; color: string }) {
+  const sw = w === 1 ? 1.4 : w === 3 ? 3.6 : 2.4, dash = ls === "solid" ? undefined : ls === "dot" ? `0.01 ${sw * 2.2}` : ls === "long" ? "6 3" : "3 2.6";
+  return <Svg width={24} height={24} viewBox="0 0 24 24"><Path d="M3 12 H21" stroke={color} strokeWidth={sw} strokeDasharray={dash} strokeLinecap={capOf(ls)} /></Svg>;
+}
+/** Linienstil (durchgezogen, lang/kurz gestrichelt, gepunktet) und Strichstärke wählen */
+export function StrokeRow({ ls, w, onChange, testID }: { ls: MpDash; w: 1 | 2 | 3; onChange: (x: { ls: MpDash; w: 1 | 2 | 3 }) => void; testID: string }) {
+  const E = useEngine(); const { c } = useTheme();
+  const box = (on: boolean) => ({ width: 34, height: 32, borderRadius: radius.s, borderWidth: on ? 2 : 1, borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accentSoft : c.surface, alignItems: "center" as const, justifyContent: "center" as const });
+  return (
+    <Row gap={4} testID={testID}>
+      {MP_DASHES.map(k => <Pressable key={k} testID={testID + "-" + k} accessibilityRole="radio" accessibilityState={{ checked: ls === k }} accessibilityLabel={E.t("mpd_" + k)} onPress={() => onChange({ ls: k, w })} hitSlop={2} style={box(ls === k)}>
+        <StrokeIcon ls={k} color={c.ink} /></Pressable>)}
+      <View style={{ width: 6 }} />
+      {MP_WIDTHS.map(k => <Pressable key={k} testID={testID + "-w" + k} accessibilityRole="radio" accessibilityState={{ checked: w === k }} accessibilityLabel={E.t("mpw_" + k)} onPress={() => onChange({ ls, w: k })} hitSlop={2} style={box(w === k)}>
+        <StrokeIcon w={k} color={c.ink} /></Pressable>)}
+    </Row>
+  );
+}
+/** Stil übernehmen (Standardwerte werden nicht gespeichert) */
+export function withStroke(it: MpItem, x: { ls: MpDash; w: 1 | 2 | 3 }): MpItem {
+  const n = { ...it }; delete n.ls; delete n.w; delete n.solid;
+  const def = dashOf({ t: it.t });
+  if (x.ls !== def) n.ls = x.ls;
+  if (x.w !== 2) n.w = x.w;
+  return n;
 }
 
 function SelBtn({ testID, label, icon, tool, onPress, on, disabled, danger, primary, wide }: {
@@ -429,6 +485,7 @@ export function SelBar({ it, look, onUpdate, onDelete, onDup, onEdit, onPick, on
   it: MpItem; look?: MpContent["look"]; onUpdate: (x: MpItem) => void; onDelete: () => void; onDup?: () => void; onEdit?: () => void; onPick?: () => void; onClose: () => void; testID?: string;
 }) {
   const E = useEngine(); const { t } = E; const { c: col } = useTheme(); const info = useTokenInfo();
+  const by = it.by ? E.D.staff.find(x => x.id === it.by)?.name.split(" ")[0] || null : null;
   const inf = it.t === "own" && it.pid ? info(it.pid) : null;
   const colr = it.col || defCol(it.t);
   const setN = (n: number) => { const x = { ...it }; delete x.n; onUpdate(n > 0 ? { ...x, n: Math.min(20, n) } : x); };
@@ -437,17 +494,20 @@ export function SelBar({ it, look, onUpdate, onDelete, onDup, onEdit, onPick, on
       <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: "center", gap: 6, paddingHorizontal: 6, height: 48 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingRight: 2 }}>
           <ToolIcon k={it.t} size={20} color={col.accentTx} accent={col.accent} />
-          <Text testID={testID + "-kind"} numberOfLines={1} style={{ fontWeight: "800", fontSize: 12.5, color: col.accentTx }}>{t("mpts_" + it.t)}</Text>
+          <View>
+            <Text testID={testID + "-kind"} numberOfLines={1} style={{ fontWeight: "800", fontSize: 12.5, color: col.accentTx }}>{t("mpts_" + it.t)}</Text>
+            {by ? <Text testID={testID + "-by"} numberOfLines={1} style={{ fontSize: 10.5, color: col.muted }}>{E.tf("mp_by", { n: by })}</Text> : null}
+          </View>
         </View>
         {it.t === "own" && onPick ? <SelBtn testID={testID + "-player"} primary={!it.pid} icon="person" label={t("mp_pick")} wide={inf?.p ? `${inf.nr != null ? inf.nr + " " : ""}${inf.label}` : t("mp_pick")} onPress={onPick} /> : null}
-        {onEdit && (it.t === "own" || it.t === "opp" || it.t === "text") ? <SelBtn testID={testID + "-edit"} icon="pen" label={t("mp_itemEdit")} onPress={onEdit} /> : null}
+        {onEdit && (it.t === "own" || it.t === "opp" || it.t === "neu" || it.t === "text") ? <SelBtn testID={testID + "-edit"} icon="pen" label={t("mp_itemEdit")} onPress={onEdit} /> : null}
+        {isRotatable(it.t) ? <><Sep /><SelBtn testID={testID + "-rot"} icon="redo" label={t("mp_itemRot")} wide={t("mp_itemRot")} onPress={() => { const r = ((it.rot || 0) + 45) % 360, x = { ...it }; delete x.rot; onUpdate(r ? { ...x, rot: r } : x); }} /></> : null}
         {isArrow(it.t) ? <><Sep />{(["pass", "run", "drib", "line"] as const).map(k => <SelBtn key={k} testID={testID + "-kind-" + k} tool={k} label={t("mpt_" + k)} on={it.t === k}
           onPress={() => onUpdate({ ...it, t: k, col: it.col || (k === "run" ? "y" : "w") })} />)}</> : null}
         {hasColor(it.t) ? <><Sep /><ColorRow small testID={testID + "-col"} value={colr} onChange={k => onUpdate({ ...it, col: k })} look={look} /></> : null}
+        {hasStroke(it.t) ? <><Sep /><StrokeRow testID={testID + "-stroke"} ls={dashOf(it)} w={it.w || 2} onChange={x => onUpdate(withStroke(it, x))} /></> : null}
         {isArrow(it.t) ? <><Sep />{it.bend ? <SelBtn testID={testID + "-straight"} icon="minus" label={t("mp_straight")} wide={t("mp_straight")} onPress={() => { const x = { ...it }; delete x.bend; onUpdate(x); }} />
           : <SelBtn testID={testID + "-curve"} icon="curve" label={t("mp_bend")} wide={t("mp_bend")} onPress={() => onUpdate({ ...it, bend: 1.5 })} />}</> : null}
-        {it.t === "free" ? <><Sep /><SelBtn testID={testID + "-solid"} on={!!it.solid} tool={it.solid ? "pass" : "run"} label={t(it.solid ? "mp_solid" : "mp_dashed")} wide={t(it.solid ? "mp_solid" : "mp_dashed")}
-          onPress={() => { const x = { ...it }; delete x.solid; onUpdate(it.solid ? x : { ...x, solid: true }); }} /></> : null}
         {stepped(it.t) ? <><Sep />
           <SelBtn testID={testID + "-step-minus"} icon="minus" label={t("mp_stepLess")} disabled={!it.n} onPress={() => setN((it.n || 0) - 1)} />
           <View testID={testID + "-step"} accessibilityLabel={t("mp_step")} style={{ minWidth: 30, height: 30, borderRadius: 15, paddingHorizontal: 6, alignItems: "center", justifyContent: "center", backgroundColor: it.n ? col.ink : "transparent", borderWidth: it.n ? 0 : 1.5, borderColor: col.line, borderStyle: "dashed" }}>
@@ -465,16 +525,18 @@ export function SelBar({ it, look, onUpdate, onDelete, onDup, onEdit, onPick, on
 }
 
 /** Element bearbeiten: Spieler, Rückennummer, Text, Art, Bogen, Schritt und Farbe */
-export function ItemForm({ it, squad, look, onSave, onDelete }: { it: MpItem; squad: string[]; look?: MpContent["look"]; onSave: (x: MpItem) => void; onDelete: () => void }) {
+export function ItemForm({ it, squad, look, onSave, onDelete, sketch }: { it: MpItem; squad: string[]; look?: MpContent["look"]; onSave: (x: MpItem) => void; onDelete: () => void; sketch?: boolean }) {
   const E = useEngine(); const { t } = E; const info = useTokenInfo();
   const [x, setX] = useState<MpItem>(it);
   const bendKey = String(Math.max(-2, Math.min(2, Math.round(x.bend || 0))));
+  const by = it.by ? E.D.staff.find(y => y.id === it.by)?.name || null : null;
   return (
     <Col gap={12}>
-      {it.t === "own" ? <Picker testID="mp-item-player" label={t("mp_player")} value={x.pid || ""} onChange={k => setX({ ...x, pid: k || null })}
+      {by ? <Muted small testID="mp-item-by">{E.tf("mp_byLong", { n: by })}</Muted> : null}
+      {it.t === "own" && !sketch ? <Picker testID="mp-item-player" label={t("mp_player")} value={x.pid || ""} onChange={k => setX({ ...x, pid: k || null })}
         options={[{ key: "", label: t("mp_noPlayer") }, ...[...new Set([...squad, ...E.D.players.map(p => p.id)])].map(pid => ({ key: pid, label: (info(pid)?.nr != null ? info(pid)!.nr + " " : "") + (info(pid)?.p ? E.name(info(pid)!.p!) : "?") }))]} /> : null}
-      {it.t === "own" && !x.pid ? <Field testID="mp-item-pos" label={t("mp_posShort")} value={x.label || ""} onChangeText={v => setX({ ...x, label: v.slice(0, 4) })} maxLength={4} style={{ width: 110 }} /> : null}
-      {it.t === "opp" ? <Row gap={10} wrap>
+      {it.t === "own" && !x.pid && !sketch ? <Field testID="mp-item-pos" label={t("mp_posShort")} value={x.label || ""} onChangeText={v => setX({ ...x, label: v.slice(0, 4) })} maxLength={4} style={{ width: 110 }} /> : null}
+      {it.t === "opp" || it.t === "neu" || (it.t === "own" && sketch) ? <Row gap={10} wrap>
         <NumField testID="mp-item-n" label={t("mp_oppNr")} value={x.n ?? null} min={0} max={99} onChange={n => setX({ ...x, n })} style={{ width: 110 }} />
         <Field testID="mp-item-label" label={t("mp_posShort")} value={x.label || ""} onChangeText={v => setX({ ...x, label: v.slice(0, 4) })} maxLength={4} style={{ width: 110 }} />
       </Row> : null}
@@ -484,11 +546,11 @@ export function ItemForm({ it, squad, look, onSave, onDelete }: { it: MpItem; sq
         <Seg testID="mp-item-bend" value={bendKey} onChange={k => { const v = Number(k), y = { ...x }; delete y.bend; setX(v ? { ...y, bend: v } : y); }}
           options={BENDS.map(b => ({ key: b.k, label: b.icon }))} />
       </Col> : null}
-      {it.t === "free" ? <ToggleRow testID="mp-item-solid" label={t("mp_solid")} value={!!x.solid} onChange={v => { const y = { ...x }; delete y.solid; setX(v ? { ...y, solid: true } : y); }} /> : null}
+      {hasStroke(it.t) ? <Col gap={4}><T2 text={t("mp_stroke")} /><StrokeRow testID="mp-item-stroke" ls={dashOf(x)} w={x.w || 2} onChange={v => setX(withStroke(x, v))} /></Col> : null}
       {stepped(it.t) ? <NumField testID="mp-item-step" label={t("mp_step")} value={x.n ?? null} min={1} max={20} onChange={n => { const y = { ...x }; delete y.n; setX(n ? { ...y, n } : y); }} style={{ width: 130 }} /> : null}
       {hasColor(it.t) ? <ColorRow testID="mp-item-col" value={x.col || defCol(x.t)} onChange={k => setX({ ...x, col: k })} look={look} /> : null}
       <Row gap={8} wrap>
-        {it.t !== "ball" && it.t !== "cone" ? <Btn testID="mp-item-save" kind="primary" label={t("save")} onPress={() => onSave(x)} /> : null}
+        {it.t !== "ball" && it.t !== "cone" && !isMaterial(it.t) ? <Btn testID="mp-item-save" kind="primary" label={t("save")} onPress={() => onSave(x)} /> : null}
         <Btn testID="mp-item-del" kind="danger" label={t("mp_itemDel")} onPress={onDelete} />
       </Row>
     </Col>

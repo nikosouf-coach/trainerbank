@@ -37,8 +37,16 @@ export const CONTENT: Record<string, { de: string; en: string }> = {
     "en": "Small-sided games (4 v 4 to 6 v 6), speed and coordination, bodyweight strength only."
   },
   "aufbau": {
-    "de": "Kraft-Ausdauer, Technik unter Druck, Pressing-Formen.",
-    "en": "Strength endurance, technique under pressure, pressing drills."
+    "de": "Kraft und Verletzungsprävention (z. B. Nordic Hamstrings, Copenhagen, Sprünge, Rumpf), danach Spielformen in mittlerer Intensität.",
+    "en": "Strength and injury prevention (e.g. Nordic hamstrings, Copenhagen, jumps, core), then game forms at medium intensity."
+  },
+  "aufbau_u15": {
+    "de": "Kraft mit dem eigenen Körpergewicht: Stabilität, Sprung- und Landetechnik, Rumpf. Danach Spielformen in mittlerer Intensität.",
+    "en": "Bodyweight strength: stability, jumping and landing technique, core. Then game forms at medium intensity."
+  },
+  "technik": {
+    "de": "Technik und Koordination: Passformen, Ballan- und -mitnahme, Dribbling, Torschuss – viele Ballkontakte, wenig Laufbelastung.",
+    "en": "Technique and coordination: passing drills, first touch, dribbling, shooting – many touches, little running load."
   },
   "taktik": {
     "de": "Taktik: Spielaufbau und Pressing-Auslöser in mittlerer Intensität.",

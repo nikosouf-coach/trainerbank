@@ -13,7 +13,7 @@ import { dutyName } from "./tasks/widgets";
 import { radius, useTheme, withAlpha } from "./theme";
 
 type State = "ok" | "todo" | "warn" | "info";
-interface Check { k: string; state: State; title: string; sub?: string; href?: string }
+export interface Check { k: string; state: State; title: string; sub?: string; href?: string }
 
 /** Nächstes Spiel ohne Ergebnis in den nächsten 7 Tagen */
 export function useNextMatch() {
@@ -21,8 +21,9 @@ export function useNextMatch() {
   return useMemo(() => E.D.matches.filter(m => m.date >= E.TODAY && m.date <= addDays(E.TODAY, 7) && !m.result).sort((a, b) => (a.date + a.zeit < b.date + b.zeit ? -1 : 1))[0] || null, [E]);
 }
 
-export function MatchdayCard() {
-  const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
+/** Prüfpunkte fürs nächste Spiel (auch für „Heute wichtig“: offene Punkte) */
+export function useMatchdayChecks(): { m: ReturnType<typeof useNextMatch>; checks: Check[] } {
+  const E = useEngine(); const { t, tf } = E;
   const m = useNextMatch();
   const checks = useMemo((): Check[] => {
     if (!m) return [];
@@ -74,6 +75,12 @@ export function MatchdayCard() {
     if (open.length) L.push({ k: "tasks", state: "todo", title: tf(open.length === 1 ? "md_tasks1" : "md_tasks", { n: open.length }), sub: open.slice(0, 2).map(x => x.title).join(" · "), href: "/coach/aufgaben" });
     return L;
   }, [E, m]); // eslint-disable-line react-hooks/exhaustive-deps
+  return { m, checks };
+}
+
+export function MatchdayCard() {
+  const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
+  const { m, checks } = useMatchdayChecks();
   if (!m) return null;
   const done = checks.filter(x => x.state === "ok" || x.state === "info").length;
   const days = Math.round((new Date(m.date + "T12:00:00").getTime() - new Date(E.TODAY + "T12:00:00").getTime()) / 864e5);
