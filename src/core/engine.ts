@@ -446,7 +446,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     return { p, m, st, att, sl, w0, rec, gr, tg, reasons, ab };
   }
   function advice(pr: Profile): string {
-    if (pr.st === "inj") return t("a_inj");
+    if (pr.st === "inj") return pr.ab?.typ === "krank" ? t("a_sick") : t("a_inj");
     const x: string[] = [];
     if (pr.w0 && pr.w0.beschw === COMPLAINT_CLEAR) x.push(t("a_sore"));
     if (pr.rec && pr.rec.notReady) x.push(t("a_notrec"));
@@ -575,7 +575,7 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
 
   function tipRegen(p: Player, pr: Profile): Tip {
     let head = ""; const L: string[] = [], tg = pr.tg, md = mdOf(TODAY).md;
-    if (pr.st === "inj") head = t("tr_inj");
+    if (pr.st === "inj") head = pr.ab?.typ === "krank" ? t("tr_sick") : t("tr_inj");
     else if (!pr.rec) L.push(t("tr1"), t("tr2"), t("tr3"), tf("tr4", { a: tg[0], b: tg[1] }));
     else {
       const rem = !pr.rec.none ? pr.rec.remaining : 0;

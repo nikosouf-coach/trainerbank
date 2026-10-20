@@ -13,7 +13,7 @@ import { isGoalkeeper } from "../core/units";
 import { tmpId, useEngine, useStore } from "../data/store";
 import { StatTile } from "./games";
 import { Icon } from "./icons";
-import { Banner, Bar, Btn, Card, CardTitle, Check, Chip, ChoiceChips, Col, DateField, Field, Info, Muted, NumField, Picker, Row, Seg, Sheet, T, ToggleRow } from "./kit";
+import { Banner, Bar, Btn, Card, CardTitle, Check, Chip, ChoiceChips, Col, DateField, Field, Muted, NumField, Picker, Row, Seg, Sheet, T, ToggleRow } from "./kit";
 import { radius, useTheme, withAlpha, type Colors } from "./theme";
 
 export const areaColor = (c: Colors, a: DevArea): string => ({ tech: c.low, takt: c.event, ath: c.hot, ment: c.ok }[a]);
@@ -78,7 +78,7 @@ export function ProfileView({ p, forPlayer }: { p: Player; forPlayer?: boolean }
         return (
           <Col key={area} gap={8} testID={"dev-area-" + area}>
             <Row between wrap>
-              <Text style={{ fontSize: 12, fontWeight: "800", letterSpacing: 0.8, color: col, textTransform: "uppercase" }}>{t("da_" + area)}</Text>
+              <Text style={{ fontSize: 12, fontWeight: "800", letterSpacing: 0.8, color: col }}>{t("da_" + area)}</Text>
               <Muted small>
                 {aC != null ? "Ø " + fmt(Math.round(aC * 10) / 10) : ""}{aF != null && aC != null && Math.abs(aC - aF) >= 0.1 ? ` (${aC > aF ? "▲" : "▼"} ${tf("dv_since", { d: E.de(first!.date) })})` : ""}
                 {aS != null ? `${aC != null ? " · " : ""}${t("dv_self")} Ø ${fmt(Math.round(aS * 10) / 10)}` : ""}
@@ -136,7 +136,7 @@ function AssessForm({ target, onClose }: { target: { p: Player; by: "coach" | "s
       <Row wrap gap={8}><Chip label={t("pgr_" + pg)} /><Muted small>{n} / {all}</Muted></Row>
       {DEV_AREAS.map(area => (
         <Col key={area} gap={10}>
-          <Text style={{ fontSize: 12, fontWeight: "800", letterSpacing: 0.8, color: areaColor(c, area), textTransform: "uppercase" }}>{t("da_" + area)}</Text>
+          <Text style={{ fontSize: 12, fontWeight: "800", letterSpacing: 0.8, color: areaColor(c, area) }}>{t("da_" + area)}</Text>
           {COMPETENCIES[pg][area].map(key => (
             <Col key={key} gap={6} style={{ paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: c.line }}>
               <T v="small" bold>{t((by === "self" ? "cps_" : "cp_") + key)}</T>
@@ -181,7 +181,7 @@ export function GoalCard({ g, onEdit, onEntry, canTick, testID, compact }: { g: 
       <Row between align="flex-start" gap={8}>
         <Col gap={3} style={{ flex: 1 }}>
           <Row gap={6} wrap>
-            <Text style={{ fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: col, textTransform: "uppercase" }}>{t("da_" + g.area)} · {t("dv_k_" + g.kind)}</Text>
+            <Text style={{ fontSize: 12.5, fontWeight: "700", color: col }}>{t("da_" + g.area)} · {t("dv_k_" + g.kind)}</Text>
             {g.by === "player" ? <Chip label={t("dv_byPlayer")} color={c.warn} /> : null}
             {!g.vis ? <Chip label={t("hidden")} color={c.build} /> : null}
           </Row>
@@ -391,7 +391,7 @@ function TalkForm({ target, onClose }: { target: { p: Player; talk?: DevTalk }; 
     <Sheet visible onClose={onClose} title={`${isNew ? t("dv_talkNew") : t("dv_talkEdit")}: ${E.name(p)}`} testID="talk-sheet" closeLabel={t("cancel")}>
       <Row gap={6}><Muted small style={{ flex: 1 }}>{t("dv_talksInfo")}</Muted></Row>
       {isNew ? <Card tone={c.low} testID="talk-prep">
-        <T v="h3">{t("dv_prep")}</T>
+        <CardTitle title={t("dv_prep")} />
         {!prep.strengths.length && !prep.focus.length && !prep.gaps.length && !prep.open.length ? <Muted small>{t("dv_prepNone")}</Muted> : null}
         {prep.strengths.length ? <Col gap={2}><T v="eyebrow">{t("dv_prepStrengths")}</T>{prep.strengths.map((l, i) => <T key={i} v="small">• {pt(l)}</T>)}</Col> : null}
         {prep.focus.length ? <Col gap={2}><T v="eyebrow">{t("dv_prepFocus")}</T>{prep.focus.map((l, i) => <T key={i} v="small">• {pt(l)}</T>)}</Col> : null}
@@ -486,27 +486,6 @@ export function ReviewView({ p, forPlayer }: { p: Player; forPlayer?: boolean })
   );
 }
 
-/** Kurzfassung für das Spielerprofil (Trainer) */
-export function DevSummaryCard({ p, onOpen }: { p: Player; onOpen: () => void }) {
-  const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
-  const coach = assessmentsOf(E.D, p.id, "coach")[0], self = assessmentsOf(E.D, p.id, "self")[0];
-  const goals = goalsOf(E.D, p.id).filter(g => g.status === "active"), behind = goals.filter(g => goalProgress(E.D, g, E.TODAY).behind).length;
-  const talk = E.D.talks.filter(x => x.pid === p.id).sort((a, b) => a.date < b.date ? 1 : -1)[0];
-  return (
-    <Card testID="dev-summary">
-      <CardTitle title={t("dv_title")} info={<Info title={t("dv_title")} text={t("dv_info")} />} right={<Btn small testID="dev-open" label={t("dv_open") + " ›"} onPress={onOpen} />} />
-      <Row wrap gap={8}>
-        <Chip label={`${t("dv_ovLast")}: ${coach ? E.de(coach.date) : t("dv_ovNever")}`} color={coach ? c.low : c.build} />
-        {self && (!coach || self.date > coach.date) ? <Chip label={t("dv_ovSelfNew")} color={c.warn} /> : null}
-        <Chip label={`${t("dv_ovGoals")}: ${goals.length}`} color={goals.length ? c.ok : c.build} />
-        {behind ? <Chip label={tf("dv_ovBehind", { n: behind })} color={c.warn} /> : null}
-        {talk?.next ? <Chip label={`${t("dv_ovTalk")}: ${E.de(talk.next)}${talk.next <= E.TODAY ? " · " + t("dv_ovDue") : ""}`} color={talk.next <= E.TODAY ? c.warn : c.event} /> : null}
-      </Row>
-      {goals.slice(0, 2).map(g => <GoalCard key={g.id} g={g} testID={"dev-sum-goal-" + g.id} />)}
-    </Card>
-  );
-}
-
 /** Spieler-Startseite: aktive Ziele (höchstens 3) mit Fortschritt */
 export function MyGoalsCard({ p, onOpen, compact }: { p: Player; onOpen: () => void; compact?: boolean }) {
   const E = useEngine(); const { t } = E;
@@ -514,7 +493,7 @@ export function MyGoalsCard({ p, onOpen, compact }: { p: Player; onOpen: () => v
   const L = goalsOf(E.D, p.id).filter(g => g.status === "active" && (g.vis || g.by === "player")).slice(0, compact ? 2 : 3);
   return (
     <Card testID="player-devgoals">
-      <CardTitle title={t("dv_myGoals")} right={<Btn small kind="ghost" testID="pgoals-open" label={t("dv_mine") + " ›"} onPress={onOpen} />} />
+      <CardTitle title={t("dv_myGoals")} right={<Btn small kind="ghost" testID="pgoals-open" label={t("dv_mine")} onPress={onOpen} />} />
       {L.length ? L.map(g => compact
         ? <Pressable key={g.id} accessibilityRole="button" accessibilityLabel={g.title} onPress={onOpen}><GoalCard g={g} compact onEntry={() => setEntry(g)} /></Pressable>
         : <GoalCard key={g.id} g={g} canTick onEntry={() => setEntry(g)} />) : <Muted small>{t("dv_myGoalHint")}</Muted>}

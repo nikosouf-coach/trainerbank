@@ -7,11 +7,12 @@ import type { Player } from "../../../src/core/types";
 import { useEngine, useStore } from "../../../src/data/store";
 import { TeamHotspots } from "../../../src/ui/bodyMap";
 import { TeamMarksCard } from "../../../src/ui/marks";
-import { Banner, Bar, Btn, Card, CardTitle, Chip, Col, Header, Info, ListItem, Muted, Row, Screen, SearchField, Seg, StatusChip, T, Tag } from "../../../src/ui/kit";
+import { Banner, Bar, Btn, Card, CardTitle, Chip, Col, Group, Header, Info, ListItem, Muted, Row, Screen, SearchField, Section, Seg, T } from "../../../src/ui/kit";
 import { TermInfo } from "../../../src/ui/termInfo";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { GroupsTab } from "../../../src/ui/squad/Groups";
+import { PlayerRow } from "../../../src/ui/squad/PlayerRow";
 import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
 import { radius, statusColor, useTheme } from "../../../src/ui/theme";
 
@@ -37,66 +38,79 @@ export default function Kader() {
   const mods = E.mods, groups = E.D.groups;
   const prs = useMemo(() => E.D.players.map(p => E.profile(p.id)), [s.version, E]); // eslint-disable-line react-hooks/exhaustive-deps
   const neu = E.D.players.filter(p => p.neu);
-  const keys = ["alle", "TW", "Abwehr", "Mittelfeld", "Sturm", ...groups.map(g => "g:" + g.id), ...(mods.belastung ? ["crit", "warn", "low"] : []), "inj"];
+  // Filter: Alle, dann Belastung mit Anzahl (nur Zonen mit Spielern – das Auffällige zuerst), Positionen, Gruppen
+  const stN = (k: string): number => prs.filter(x => x.st === k).length;
+  const keys = ["alle", ...[...(mods.belastung ? ["crit", "warn", "low"] : []), "inj"].filter(k => stN(k) > 0 || filter === k), "TW", "Abwehr", "Mittelfeld", "Sturm", ...groups.map(g => "g:" + g.id)];
   const keyLabel = (k: string) => k.startsWith("g:") ? (groups.find(g => "g:" + g.id === k)?.name || "?") : t("f_" + k);
   const list = prs.filter(x => filter === "alle" || posGroup(x.p.pos) === filter || x.st === filter || (filter.startsWith("g:") && (x.p.groups || []).includes(filter.slice(2))))
     .filter(x => !q || E.name(x.p).toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => (a.p.active === false ? 1 : 0) - (b.p.active === false ? 1 : 0) || (a.p.nr ?? 99) - (b.p.nr ?? 99));
-  const cols = width >= 1000 ? 4 : width >= 700 ? 3 : 2;
+
+  // Wert rechts in der Zeile: ACWR (ab Infotiefe 2), sonst Beteiligung der letzten 28 Tage
+  const showAcwr = !!mods.belastung && E.lvl(2);
+  const row = (x: typeof prs[number]) => {
+    const stOn = (mods.belastung || x.st === "inj") && x.st !== "none";
+    const val = showAcwr ? (x.m && x.m.acwr != null && x.st !== "inj" ? E.num(x.m.acwr, 2) : "–") : mods.beteiligung ? (x.att != null ? Math.round(x.att * 100) + " %" : "–") : null;
+    // Nur Auffälliges benennen (Sweet Spot und Datenaufbau zeigt der Punkt am Bild); bei Ausfall den Grund („Krank“, „Verletzung“)
+    const loud = stOn && x.st !== "ok" && x.st !== "build";
+    const flag = loud ? (x.st === "inj" && x.ab ? t("ab_" + x.ab.typ) : t("sts_" + x.st)) : x.ab ? t("ab_" + x.ab.typ) : x.p.neu ? t("newP") : x.p.origin ? E.tf("cl_from", { t: x.p.origin }) : x.p.active === false ? t("kd_inactive") : undefined;
+    return (
+      <PlayerRow key={x.p.id} testID={"pcard-" + x.p.id} p={x.p} name={E.name(x.p)} status={mods.belastung || x.st === "inj" ? x.st : null}
+        sub={`${x.p.pos}, ${E.age(x.p)} ${t("yrs")}`} flag={flag} flagColor={loud ? statusColor(c, x.st) : x.p.neu ? c.low : c.muted}
+        value={val} valueColor={showAcwr && stOn && x.st !== "ok" ? statusColor(c, x.st) : undefined}
+        dim={x.p.active === false} onPress={() => router.push("/coach/spieler/" + x.p.id)} />
+    );
+  };
+  // Ohne Filter und Suche: nach Mannschaftsteilen wie auf dem Spielberichtsbogen; sonst eine Liste
+  const LINES = ["TW", "Abwehr", "Mittelfeld", "Sturm"] as const;
+  const grouped = filter === "alle" && !q;
+  const sections = grouped ? LINES.map(g => ({ g, L: list.filter(x => posGroup(x.p.pos) === g) })).filter(x => x.L.length) : [];
+  const wideList = width >= 900;
+  const listEl = !list.length ? <Muted>{t("noPlayers")}</Muted> : grouped ? (
+    wideList ? <Row align="flex-start" gap={18}>
+      {[sections.filter((_, i) => i % 2 === 0), sections.filter((_, i) => i % 2 === 1)].map((col, ci) => (
+        <Col key={ci} gap={20} style={{ flex: 1, minWidth: 0 }}>{col.map(x => <Section key={x.g} testID={"kader-line-" + x.g} title={`${t("f_" + x.g)} (${x.L.length})`}>{x.L.map(row)}</Section>)}</Col>
+      ))}
+    </Row> : <>{sections.map(x => <Section key={x.g} testID={"kader-line-" + x.g} title={`${t("f_" + x.g)} (${x.L.length})`}>{x.L.map(row)}</Section>)}</>
+  ) : <Group testID="kader-list">{list.map(row)}</Group>;
 
   const spieler = (
     <>
       {neu.length ? <Banner color={c.low} testID="kader-new">
-        <Col gap={6}>
+        <Col gap={8}>
           <T bold>{tf(neu.length === 1 ? "kd_newApp1" : "kd_newApp", { n: neu.length })}</T>
-          <T v="small">{t("kd_newAppD")}</T>
-          {neu.map(p => <Row key={p.id} gap={8} wrap><T v="small" bold>{E.name(p)}</T><Btn small testID={"kader-merge-" + p.id} label={t("kd_merge")} onPress={() => setMerge(p)} /></Row>)}
+          {neu.map(p => <Row key={p.id} between gap={8}><T style={{ flex: 1 }}>{E.name(p)}</T><Btn small testID={"kader-merge-" + p.id} label={t("kd_merge")} onPress={() => setMerge(p)} /></Row>)}
+          <Muted small>{t("kd_newAppD")}</Muted>
         </Col>
       </Banner> : null}
       <SearchField testID="kader-search" value={q} onChange={setQ} placeholder={t("search")} clearLabel={t("cancel")} />
-      {/* Filter: Positionen und Gruppen, darunter Belastung (mit Anzahl) – je eine waagerecht scrollbare Zeile */}
-      <Col gap={6} testID="kader-filters">
-        {[keys.filter(k => !STATUS_F.includes(k)), keys.filter(k => STATUS_F.includes(k))].map((L, r) => L.length ? (
-          <ScrollView key={r} horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
-            {L.map(k => {
-              const on = filter === k, st = STATUS_F.includes(k), col = st ? statusColor(c, k) : c.accent, n = st ? prs.filter(x => x.st === k).length : null;
-              return (
-                <Pressable key={k} testID={"kader-f-" + k} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => setFilter(on && k !== "alle" ? "alle" : k)}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1.5, borderColor: on ? col : c.line, backgroundColor: on ? col : c.surface, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 11 }}>
-                  {st && !on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: col }} /> : null}
-                  <Text style={{ fontWeight: "700", fontSize: 13, color: on ? "#fff" : c.ink }}>{keyLabel(k)}</Text>
-                  {n != null ? <Text style={{ fontWeight: "800", fontSize: 12, color: on ? "#fff" : c.muted, fontVariant: ["tabular-nums"] }}>{n}</Text> : null}
-                </Pressable>
-              );
-            })}
-          </ScrollView>
-        ) : null)}
-        {filter !== "alle" || q ? <Muted small testID="kader-count">{tf("kd_shown", { n: list.length, m: prs.length })}</Muted> : null}
+      {/* Filter: Positionen und Gruppen, dahinter Belastung (mit Anzahl) – eine waagerecht scrollbare Zeile */}
+      <Col gap={8} testID="kader-filters">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
+          {keys.map(k => {
+            const on = filter === k, st = STATUS_F.includes(k), col = statusColor(c, k), n = st ? stN(k) : null;
+            return (
+              <Pressable key={k} testID={"kader-f-" + k} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => setFilter(on && k !== "alle" ? "alle" : k)}
+                style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: on ? c.ink : c.line, backgroundColor: on ? c.ink : c.surface, borderRadius: radius.pill, paddingVertical: 7, paddingHorizontal: 13 }}>
+                {st ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: col }} /> : null}
+                <Text style={{ fontWeight: "600", fontSize: 13.5, color: on ? c.bg : c.ink }}>{keyLabel(k)}</Text>
+                {n != null ? <Text style={{ fontWeight: "700", fontSize: 12.5, color: on ? c.bg : c.muted, fontVariant: ["tabular-nums"] }}>{n}</Text> : null}
+              </Pressable>
+            );
+          })}
+        </ScrollView>
+        <Row between gap={8} style={{ paddingHorizontal: 2 }}>
+          {filter !== "alle" || q ? <Muted small testID="kader-count">{tf("kd_shown", { n: list.length, m: prs.length })}</Muted> : <View />}
+          {showAcwr ? <Row gap={4}><Muted small>{t("kd_valAcwr")}</Muted><TermInfo k="acwr" testID="term-acwr-kader" /></Row>
+            : mods.beteiligung ? <Muted small>{t("kd_valAtt")}</Muted> : null}
+        </Row>
       </Col>
-      {list.length ? <View style={{ flexDirection: "row", flexWrap: "wrap", marginHorizontal: -5 }}>
-        {list.map(x => (
-          <View key={x.p.id} style={{ width: `${100 / cols}%`, padding: 5 }}>
-            <Pressable testID={"pcard-" + x.p.id} accessibilityRole="button" accessibilityLabel={E.name(x.p)} onPress={() => router.push("/coach/spieler/" + x.p.id)}
-              style={{ backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, borderRadius: radius.l, padding: 12, alignItems: "center", gap: 6, opacity: x.p.active === false ? 0.55 : 1, minHeight: 190 }}>
-              <Text style={{ position: "absolute", left: 10, top: 8, fontWeight: "800", fontSize: 13, color: c.muted }}>{x.p.nr ?? ""}</Text>
-              <PlayerAvatar p={x.p} size={56} status={mods.belastung || x.st === "inj" ? x.st : null} />
-              <Text numberOfLines={2} style={{ fontWeight: "800", fontSize: 14.5, color: c.ink, textAlign: "center" }}>{E.name(x.p)}</Text>
-              <Row gap={4} wrap style={{ justifyContent: "center" }}><Tag label={x.p.pos} /><Tag label={`${E.age(x.p)} ${t("years")}`} />{x.p.neu ? <Chip label={t("newP")} color={c.low} /> : null}{x.p.origin ? <Chip label={E.tf("cl_from", { t: x.p.origin })} color={c.accentTx} /> : null}{x.p.active === false ? <Tag label={t("kd_inactive")} /> : null}</Row>
-              {(mods.belastung || x.st === "inj") && x.st !== "none" ? <StatusChip status={x.st} label={t("st_" + x.st)} /> : x.ab ? <Chip label={t("ab_" + x.ab.typ)} color={c.build} /> : null}
-              <Row gap={10} style={{ justifyContent: "center" }}>
-                {mods.belastung && E.lvl(2) ? <Row gap={4}><Muted small>ACWR <Text style={{ fontWeight: "800", color: c.ink }}>{x.m && x.m.acwr != null && x.st !== "inj" ? E.num(x.m.acwr, 2) : "–"}</Text></Muted><TermInfo k="acwr" testID={"term-acwr-" + x.p.id} /></Row> : null}
-                {mods.beteiligung ? <Muted small>{t("attShort")} <Text style={{ fontWeight: "800", color: c.ink }}>{x.att != null ? Math.round(x.att * 100) + "%" : "–"}</Text></Muted> : null}
-              </Row>
-            </Pressable>
-          </View>
-        ))}
-      </View> : <Muted>{t("noPlayers")}</Muted>}
-      {E.D.inactive.length ? <Card testID="kader-inactive">
-        <CardTitle title={tf("in_title", { n: E.D.inactive.length })} info={<Info title={tf("in_title", { n: E.D.inactive.length })} text={t("in_info")} />}
-          right={<Btn small kind="ghost" testID="kader-inactive-toggle" label={showInactive ? t("in_hide") : t("in_show")} onPress={() => setShowInactive(!showInactive)} />} />
-        {showInactive ? E.D.inactive.map(p => <ListItem key={p.id} testID={"inactive-" + p.id} title={E.name(p)} sub={`${p.pos}${p.nr ? " · #" + p.nr : ""}`} left={<PlayerAvatar p={p} size={36} />}
+      {listEl}
+      {E.D.inactive.length ? <Section testID="kader-inactive" plain={!showInactive} title={tf("in_title", { n: E.D.inactive.length })} info={<Info title={tf("in_title", { n: E.D.inactive.length })} text={t("in_info")} />}
+        action={{ label: showInactive ? t("in_hide") : t("in_show"), onPress: () => setShowInactive(!showInactive), testID: "kader-inactive-toggle" }}>
+        {showInactive ? E.D.inactive.map(p => <PlayerRow key={p.id} testID={"inactive-" + p.id} p={p} name={E.name(p)} sub={p.pos} dim
           right={<Btn small testID={"reactivate-" + p.id} label={t("in_reactivate")} onPress={async () => { await s.savePlayer({ ...p, active: true }); s.toast(tf("in_done", { n: E.name(p) })); }} />} />) : null}
-      </Card> : null}
+      </Section> : null}
     </>
   );
 
@@ -128,7 +142,7 @@ export default function Kader() {
   return (
     <Screen testID="coach-kader">
       <Header eyebrow={`${E.team.name} · ${E.D.players.filter(p => p.active !== false).length} ${t("players")}`} title={t("nav_kader")}
-        right={<Btn testID="kader-add" kind="primary" label={t("addPlayer")} onPress={() => setEdit(null)} />} />
+        right={<Btn testID="kader-add" kind="primary" icon="plus" label={t("addPlayer")} onPress={() => setEdit(null)} />} />
       <Seg testID="kader-tab" value={tab} onChange={setTab} options={[{ key: "spieler", label: t("tab_spieler") }, ...(mods.beteiligung ? [{ key: "abw" as Tab, label: t("tab_abw") }] : []), { key: "gruppen", label: t("tab_gruppen") }]} />
       {tab === "spieler" ? spieler : tab === "abw" ? abw() : <GroupsTab onFilter={g => { setFilter(g); setTab("spieler"); }} />}
       <PlayerSheet player={edit} onClose={() => setEdit(undefined)} />

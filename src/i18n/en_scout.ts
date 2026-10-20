@@ -25,7 +25,7 @@ export const en_scout: Dict = {
   sk_squad: "Squad {s}", sk_shadow: "Shadow squad", sk_addPlayer: "Plan a player", sk_addCand: "Add candidate", sk_newCand: "New candidate",
   sk_allPos: "Show all positions", sk_none: "Nobody planned yet.", sk_noneShadow: "No shadow candidates yet.",
   sk_pickOwn: "Own players", sk_pickRisers: "Call-ups from the club", sk_pickSigned: "Signings (agreed)", sk_pickCands: "Candidates from scouting", sk_pickEmpty: "No matching entries.",
-  sk_up: "move up", sk_down: "move down", sk_remove: "remove", sk_rank: "Rank {r}",
+  sk_up: "Move up", sk_down: "Move down", sk_remove: "Remove", sk_rank: "Rank {r}",
   sk_side_l: "left", sk_side_r: "right", sk_side_c: "centre",
   sks_fix: "set", sks_persp: "Prospect", sks_open: "open", sks_unsure: "uncertain", sks_leave: "Leaving", sks_ageout: "Age limit",
   sks_riser: "Call-up", sks_signed: "Signing", sks_pending: "Candidate", sks_gone: "no longer here",

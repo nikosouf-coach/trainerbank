@@ -1,7 +1,7 @@
 // Trainer – Planung: Wochenplan aus Spieltags-Prinzipien, Wochentyp (Aufbau/Entlastung), Tage anpassen, KI-Einheit, Wochenbilanz.
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
-import { Text, View } from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from "react-native";
 import { addDays, kwOf, monday } from "../../../src/core/dates";
 import type { Change, PlanItem, PlanTrain } from "../../../src/core/engine";
 import { CONTENT } from "../../../src/core/content";
@@ -16,15 +16,16 @@ import { Banner, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, Muted, Nu
 import { CalNav } from "../../../src/ui/plan/CalNav";
 import { setCal, useCal } from "../../../src/ui/plan/calState";
 import { UnitChips } from "../../../src/ui/units";
-import { Sec, usePlanSheets } from "../../../src/ui/plan/sheets";
+import { usePlanSheets } from "../../../src/ui/plan/sheets";
+import { Icon } from "../../../src/ui/icons";
 import { radius, rpeColor, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
 interface Draft { kind: Kind; rpe: number; dauer: number; inhalt: string; touched: boolean }
 const chgTxt = (c: Change, arrow: string): string => c.from === "" ? `${c.what}: ${c.to}` : `${c.what} ${c.from}${arrow}${c.to}`;
 
 export default function Plan() {
-  const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
-  const cal = useCal(); const sheets = usePlanSheets(); const router = useRouter();
+  const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c, dark } = useTheme();
+  const cal = useCal(); const sheets = usePlanSheets(); const router = useRouter(); const { width } = useWindowDimensions();
   const params = useLocalSearchParams<{ date: string }>();
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   const [kindTarget, setKindTarget] = useState<KindEditorTarget | null>(null);
@@ -85,94 +86,153 @@ export default function Plan() {
   };
   const why = (p: PlanTrain): string[] => [E.whyOf(p), ...(p.notes.length ? [[...new Set(p.notes)].map(k => t(k)).join(" ")] : [])];
 
+  /** Kopf eines Tages: Datum als feste Spalte (Wochentag, Tag, Spieltags-Abstand), Titel mit Intensität, eine Zeile Angaben – antippen öffnet den Trainingstag */
+  const dayHead = (x: PlanItem, title: React.ReactNode, meta?: string, extra?: React.ReactNode, desc?: string) => (
+    <Pressable testID={"plan-tag-" + x.date} accessibilityRole="button" accessibilityLabel={`${E.wt(x.date)} ${E.de(x.date)}: ${t("td_dayLink")}`} onPress={() => router.push("/coach/tag/" + x.date)}
+      style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, opacity: pressed ? 0.7 : 1 })}>
+      <View style={{ width: 42, alignItems: "center" }}>
+        <Text style={{ fontSize: 12.5, fontWeight: "700", color: x.date === E.TODAY ? c.accentTx : c.muted }}>{E.wt(x.date)}</Text>
+        <Text style={{ fontSize: 21, lineHeight: 25, fontWeight: "800", color: c.ink, fontVariant: ["tabular-nums"], letterSpacing: -0.5 }}>{Number(x.date.slice(8, 10))}</Text>
+        {x.md ? <Text style={{ fontSize: 10.5, fontWeight: "600", color: c.muted, fontVariant: ["tabular-nums"] }}>{x.md}</Text> : null}
+      </View>
+      <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
+        <Row gap={8} wrap>{title}</Row>
+        {desc ? <Text testID={"plan-desc-" + x.date} numberOfLines={2} style={{ fontSize: 13.5, lineHeight: 19, color: c.ink }}>{desc}</Text> : null}
+        {meta ? <Text numberOfLines={2} style={{ fontSize: 13, lineHeight: 18, color: c.muted }}>{meta}</Text> : null}
+        {extra}
+      </View>
+      <Icon name="chevron" size={15} color={c.faint} strokeWidth={2.4} />
+    </Pressable>
+  );
+  /** Fläche eines Tages mit Intensitätsstreifen links */
+  const dayBox = (x: PlanItem, col: string, children: React.ReactNode) => (
+    <View key={x.date} testID={"plan-day-" + x.date} style={{ backgroundColor: c.surface, borderRadius: radius.l, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line, paddingVertical: 12, paddingRight: 14, paddingLeft: 12, gap: 10, overflow: "hidden" }}>
+      <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, backgroundColor: col }} />
+      {children}
+    </View>
+  );
+  /** Kennzahl-Zeile der Wochenbilanz: Bezeichnung links (darf umbrechen), Wert rechts (bricht nie um) */
+  const kv = (label: string, value: string, big?: boolean) => (
+    <Row key={label} between gap={12}>
+      <Text style={{ flex: 1, minWidth: 0, fontSize: 14, lineHeight: 19, color: big ? c.ink : c.muted, fontWeight: big ? "600" : "400" }}>{label}</Text>
+      <Text style={{ flexShrink: 0, fontSize: big ? 18 : 14.5, fontWeight: big ? "800" : "700", color: c.ink, fontVariant: ["tabular-nums"] }}>{value}</Text>
+    </Row>
+  );
+  const chip = (col: string, label: string) => <View style={{ backgroundColor: withAlpha(col, 0.13), borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 }}><Text style={{ color: col, fontWeight: "700", fontSize: 12 }}>{label}</Text></View>;
+
   const dayCard = (x: PlanItem) => {
-    // Kopf: Datum, Spieltag-Abstand und Link zum Trainingstag in einer Zeile, darunter Art und Intensität
-    const head = (extra?: React.ReactNode) => <Col gap={4}>
-      <Row gap={8}>
-        <T bold>{E.wt(x.date)} {E.de(x.date)}</T>{x.md ? <Tag label={x.md} /> : null}
-        <Btn small kind="ghost" testID={"plan-tag-" + x.date} label={t("td_dayLink")} onPress={() => router.push("/coach/tag/" + x.date)} style={{ marginLeft: "auto", paddingHorizontal: 4, minHeight: 28, paddingVertical: 2 }} />
-      </Row>
-      {extra ? <Row wrap gap={8}>{extra}</Row> : null}
-    </Col>;
-    if (x.match) return (
-      <Sec key={x.date} color={c.accentTx} testID={"plan-day-" + x.date}>
-        {head(<Chip label={t("it_match")} color={c.accentTx} />)}
-        <T v="small">{x.match.zeit} · {t("vs")} {x.match.gegner} · {x.match.heim ? t("home") : t("away")} · {t("comp_" + x.match.comp)}</T>
-        {pro ? <Muted small>{tf("matchLoad", { m: E.matchMin(), r: E.matchRpe() })}: {E.int(E.matchLoad())} AU</Muted> : null}
-        {actual(x.date, E.matchRpe())}
-        <UnitChips units={x.units} testID={"plan-units-" + x.date} />
-      </Sec>
-    );
+    if (x.match) return dayBox(x, c.accent, <>
+      {dayHead(x, <><T bold style={{ fontSize: 16 }}>{t("vs")} {x.match.gegner}</T>{chip(c.accentTx, t("it_match"))}</>,
+        `${x.match.zeit} · ${x.match.heim ? t("home") : t("away")} · ${t("comp_" + x.match.comp)}`,
+        pro ? <Text testID={"plan-matchload-" + x.date} style={{ fontSize: 12.5, lineHeight: 17, color: c.muted }}>{tf("matchLoad", { m: E.matchMin(), r: E.matchRpe() })}: {E.int(E.matchLoad())} AU</Text> : null)}
+      {actual(x.date, E.matchRpe())}
+      <UnitChips units={x.units} testID={"plan-units-" + x.date} />
+    </>);
     if (!x.train) return (
-      <View key={x.date} testID={"plan-day-" + x.date} style={{ paddingVertical: 6, paddingHorizontal: 4 }}>
-        <Muted small><Text style={{ color: c.ink, fontWeight: "700" }}>{E.wt(x.date)} {E.de(x.date)}</Text>{x.md ? ` · ${x.md}` : ""} · {x.brk ? t("vb_breakDay") : x.cancelled ? t("it_training") + " " + t("cancelled") : t("noTraining")}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}</Muted>
-        <UnitChips units={x.units} testID={"plan-units-" + x.date} />
+      <View key={x.date} testID={"plan-day-" + x.date} style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 4, paddingLeft: 12 }}>
+        <View style={{ width: 42, alignItems: "center" }}>
+          <Text style={{ fontSize: 12.5, fontWeight: "700", color: x.date === E.TODAY ? c.accentTx : c.muted }}>{E.wt(x.date)}</Text>
+          <Text style={{ fontSize: 17, fontWeight: "700", color: c.muted, fontVariant: ["tabular-nums"] }}>{Number(x.date.slice(8, 10))}</Text>
+        </View>
+        <Col gap={4} style={{ flex: 1 }}>
+          <Muted small>{x.brk ? t("vb_breakDay") : x.cancelled ? t("it_training") + " " + t("cancelled") : t("noTraining")}{x.md ? ` · ${x.md}` : ""}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}</Muted>
+          <UnitChips units={x.units} testID={"plan-units-" + x.date} />
+        </Col>
       </View>
     );
     const p = x.train, dr = drafts[x.date];
-    if (p.kind === "frei") return (
-      <Sec key={x.date} color={c.ok} testID={"plan-day-" + x.date}>
-        {head(<><T bold color={c.ok}>{t("k_frei")}</T>{E.lvl(1) ? <Info title={t("ib_why")} text={t("w_frei")} /> : null}</>)}
-        <T v="small">{tf("restRec", { md: p.md })} {CONTENT.frei[E.tr.lang]}</T>
-        <Row wrap gap={6}>
-          <Btn small kind="primary" testID={"plan-restcancel-" + x.date} label={t("restBtn")} onPress={() => { s.setCal(x.date, { ...(E.D.cal[x.date] || {}), cancel: true }); s.toast(t("t_saved")); }} />
-          <Btn small testID={"plan-restkeep-" + x.date} label={t("restKeep")} onPress={() => s.setOver(x.date, { ...(E.D.over[x.date] || {}), keepRest: true })} />
+    if (p.kind === "frei") return dayBox(x, c.ok, <>
+      {dayHead(x, <><T bold style={{ fontSize: 16 }} color={c.ok}>{t("k_frei")}</T>{E.lvl(1) ? <Info title={t("ib_why")} text={t("w_frei")} /> : null}</>, `${tf("restRec", { md: p.md })} ${CONTENT.frei[E.tr.lang]}`)}
+      <Row wrap gap={6}>
+        <Btn small kind="primary" testID={"plan-restcancel-" + x.date} label={t("restBtn")} onPress={() => { s.setCal(x.date, { ...(E.D.cal[x.date] || {}), cancel: true }); s.toast(t("t_saved")); }} />
+        <Btn small testID={"plan-restkeep-" + x.date} label={t("restKeep")} onPress={() => s.setOver(x.date, { ...(E.D.over[x.date] || {}), keepRest: true })} />
+      </Row>
+      <UnitChips units={x.units} testID={"plan-units-" + x.date} />
+    </>);
+    const ab = E.absentOn(x.date).length, col = rpeColor(c, show ? p.rpe : 5);
+    const meta = `${E.zeitOf(x.date)} · ${p.dauer} ${t("min")} · ${t("p_" + p.platz)}${pro ? ` · ${E.int(p.dauer * p.rpe)} AU` : ""}${x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}${ab ? ` · ${ab} ${t("absent")}` : ""}`;
+    return dayBox(x, col, <>
+      {dayHead(x, <>
+        <T bold style={{ fontSize: 16 }}>{E.kn(p.kind)}</T>
+        {show ? chip(col, `${E.intWord(p.rpe)} · RPE ${p.rpe}`) : null}
+        {p.adjusted || p.coach ? <Tag label={t("adjusted")} /> : null}
+        {E.lvl(1) ? <Info title={`${t("ib_why")} · ${E.wt(x.date)} ${E.de(x.date)}`} text={why(p)} testID={"plan-why-" + x.date} /> : null}
+      </>, meta, show && p.changes.length && wp.mode !== "normal" ? <Text style={{ fontSize: 12.5, color: c.muted }}>{p.changes.map(ch => ch.short || chgTxt(ch, " → ")).join(", ")}</Text> : null, !dr ? p.inhalt : undefined)}
+      <UnitChips units={x.units} testID={"plan-units-" + x.date} />
+      <DayFlowRow date={x.date} testID={"plan-flow-" + x.date} />
+      {!dr ? actual(x.date, p.rpe) : null}
+      {show && !dr ? <IndivSummary date={x.date} testID={"plan-iv-" + x.date} /> : null}
+      {p.notReady.length && show ? <Col gap={4}>
+        <Pressable testID={"plan-nr-" + x.date} accessibilityRole="button" accessibilityState={{ expanded: !!openNR[x.date] }} onPress={() => setOpenNR(o => ({ ...o, [x.date]: !o[x.date] }))} style={{ flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start" }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.crit }} />
+          <Text style={{ fontSize: 13.5, fontWeight: "600", color: c.ink }}>{tf(p.notReady.length === 1 ? "notReady1" : "notReadyN", { n: p.notReady.length })}</Text>
+          <View style={{ transform: [{ rotate: openNR[x.date] ? "-90deg" : "90deg" }] }}><Icon name="chevron" size={13} color={c.muted} strokeWidth={2.4} /></View>
+        </Pressable>
+        {openNR[x.date] ? <T v="small" color={c.crit}>{p.notReady.map(q => `${E.name(q)} (${E.age(q)})`).join(", ")}</T> : null}
+      </Col> : null}
+      {dr ? <Col gap={10} testID={"plan-edit-" + x.date}>
+        <Picker testID={"plan-kind-" + x.date} label={t("f_kind")} value={dr.kind as string} options={kindOpts}
+          onChange={k => { if (k === "__new") { setKindTarget({ kind: null, date: x.date }); return; } setDrafts(o => ({ ...o, [x.date]: { ...dr, kind: k as Kind, rpe: E.kindRpe(k as Kind), inhalt: "", touched: false } })); }} />
+        <Field testID={"plan-inhalt-" + x.date} label={t("content")} value={dr.touched || dr.kind === p.kind ? dr.inhalt : ""} placeholder={E.kn(dr.kind)} multiline
+          onChangeText={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, inhalt: v, touched: true } }))} />
+        <Row wrap gap={10} align="flex-end">
+          <NumField testID={"plan-dauer-" + x.date} label={t("minutes")} value={dr.dauer} min={0} max={180} onChange={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, dauer: v ?? dr.dauer } }))} style={{ width: 110 }} />
         </Row>
-        <UnitChips units={x.units} testID={"plan-units-" + x.date} />
-      </Sec>
-    );
-    const ab = E.absentOn(x.date).length;
-    return (
-      <Sec key={x.date} color={rpeColor(c, show ? p.rpe : 5)} testID={"plan-day-" + x.date}>
-        {head(<>
-          <T bold style={{ fontSize: 16 }}>{E.kn(p.kind)}</T>
-          {show ? <View style={{ backgroundColor: withAlpha(rpeColor(c, p.rpe), 0.15), borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 2 }}><Text style={{ color: rpeColor(c, p.rpe), fontWeight: "800", fontSize: 12 }}>{E.intWord(p.rpe)} · RPE {p.rpe}</Text></View> : null}
-          {p.adjusted || p.coach ? <Tag label={t("adjusted")} /> : null}
-          {show && p.changes.length && wp.mode !== "normal" ? <Muted small>{p.changes.map(ch => ch.short || chgTxt(ch, "→")).join(" · ")}</Muted> : null}
-          {E.lvl(1) ? <Info title={`${t("ib_why")} · ${E.wt(x.date)} ${E.de(x.date)}`} text={why(p)} testID={"plan-why-" + x.date} /> : null}
-        </>)}
-        {!dr ? <T v="small" numberOfLines={2}>{p.inhalt}</T> : null}
-        <Muted small>{E.zeitOf(x.date)} · {p.dauer} {t("min")} · {t("p_" + p.platz)}{pro ? ` · ${E.int(p.dauer * p.rpe)} AU` : ""}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}{ab ? ` · ${ab} ${t("absent")}` : ""}</Muted>
-        <UnitChips units={x.units} testID={"plan-units-" + x.date} />
-        <DayFlowRow date={x.date} testID={"plan-flow-" + x.date} />
-        {!dr ? actual(x.date, p.rpe) : null}
-        {show && !dr ? <IndivSummary date={x.date} testID={"plan-iv-" + x.date} /> : null}
-        {p.notReady.length && show ? <Col gap={4}>
-          <Btn small kind="ghost" testID={"plan-nr-" + x.date} label={"⚠ " + tf("notReadyN", { n: p.notReady.length }) + (openNR[x.date] ? " ▴" : " ▾")} onPress={() => setOpenNR(o => ({ ...o, [x.date]: !o[x.date] }))} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} />
-          {openNR[x.date] ? <T v="small" color={c.crit}>{p.notReady.map(q => `${E.name(q)} (${E.age(q)})`).join(", ")}</T> : null}
-        </Col> : null}
-        {dr ? <Col gap={10} testID={"plan-edit-" + x.date}>
-          <Picker testID={"plan-kind-" + x.date} label={t("f_kind")} value={dr.kind as string} options={kindOpts}
-            onChange={k => { if (k === "__new") { setKindTarget({ kind: null, date: x.date }); return; } setDrafts(o => ({ ...o, [x.date]: { ...dr, kind: k as Kind, rpe: E.kindRpe(k as Kind), inhalt: "", touched: false } })); }} />
-          <Field testID={"plan-inhalt-" + x.date} label={t("content")} value={dr.touched || dr.kind === p.kind ? dr.inhalt : ""} placeholder={E.kn(dr.kind)} multiline
-            onChangeText={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, inhalt: v, touched: true } }))} />
-          <Row wrap gap={10} align="flex-end">
-            <NumField testID={"plan-dauer-" + x.date} label={t("minutes")} value={dr.dauer} min={0} max={180} onChange={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, dauer: v ?? dr.dauer } }))} style={{ width: 110 }} />
-          </Row>
-          {show ? <Col gap={6}><T v="small" bold color={c.muted}>{t("target")}: {dr.rpe} · {E.intWord(dr.rpe)}</T>
-            <NumScale testID={"plan-rpe-" + x.date} value={dr.rpe} min={1} max={10} onChange={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, rpe: v } }))} color={n => rpeColor(c, n)} />
-            {dr.rpe > E.CAP ? <Banner color={c.warn} testID={"plan-rpe-warn-" + x.date}>{tf("rpe_overCap", { c: E.CAP, m: E.matchRpe() })}</Banner> : null}</Col> : null}
-          {E.mods.archiv ? <Row gap={8} wrap>
-            <Btn small icon="plus" testID={"plan-fromarchive-" + x.date} label={t("tp_fromArchive")} onPress={() => setPickFor(x.date)} />
-            <Btn small testID={"plan-saveas-" + x.date} label={t("tp_saveAs")} onPress={() => s.saveTemplate({ id: tmpId(), title: `${E.kn(dr.kind)} ${x.md || ""}`.trim(), theme: E.kn(dr.kind), blocks: [{ exId: null, text: dr.touched || dr.kind === p.kind ? dr.inhalt : p.inhalt, min: dr.dauer }], notes: "" }).then(() => s.toast(t("tp_saved")))} />
-          </Row> : null}
-          <Row gap={8} wrap>
-            <Btn small testID={"plan-reset-" + x.date} label={t("reset")} onPress={() => resetDay(x.date)} />
-            <Btn small label={t("cancel")} onPress={() => setDrafts(o => { const n = { ...o }; delete n[x.date]; return n; })} />
-            <Btn small kind="primary" testID={"plan-done-" + x.date} label={t("done")} onPress={() => saveDraft(x.date)} />
-          </Row>
-        </Col> : <Row wrap gap={6}>
-          <Btn small testID={"plan-adjust-" + x.date} label={t("adjust")} onPress={() => startEdit(x.date, p)} />
-          {E.mods.ki ? <Btn small icon="spark" testID={"plan-ai-" + x.date} label={t("ki_session")} onPress={() => sheets.open({ k: "ai", date: x.date })} /> : null}
-        </Row>}
-      </Sec>
-    );
+        {show ? <Col gap={6}><T v="small" bold color={c.muted}>{t("target")}: {dr.rpe} · {E.intWord(dr.rpe)}</T>
+          <NumScale testID={"plan-rpe-" + x.date} value={dr.rpe} min={1} max={10} onChange={v => setDrafts(o => ({ ...o, [x.date]: { ...dr, rpe: v } }))} color={n => rpeColor(c, n)} />
+          {dr.rpe > E.CAP ? <Banner color={c.warn} testID={"plan-rpe-warn-" + x.date}>{tf("rpe_overCap", { c: E.CAP, m: E.matchRpe() })}</Banner> : null}</Col> : null}
+        {E.mods.archiv ? <Row gap={8} wrap>
+          <Btn small icon="plus" testID={"plan-fromarchive-" + x.date} label={t("tp_fromArchive")} onPress={() => setPickFor(x.date)} />
+          <Btn small testID={"plan-saveas-" + x.date} label={t("tp_saveAs")} onPress={() => s.saveTemplate({ id: tmpId(), title: `${E.kn(dr.kind)} ${x.md || ""}`.trim(), theme: E.kn(dr.kind), blocks: [{ exId: null, text: dr.touched || dr.kind === p.kind ? dr.inhalt : p.inhalt, min: dr.dauer }], notes: "" }).then(() => s.toast(t("tp_saved")))} />
+        </Row> : null}
+        <Row gap={8} wrap>
+          <Btn small testID={"plan-reset-" + x.date} label={t("reset")} onPress={() => resetDay(x.date)} />
+          <Btn small label={t("cancel")} onPress={() => setDrafts(o => { const n = { ...o }; delete n[x.date]; return n; })} />
+          <Btn small kind="primary" testID={"plan-done-" + x.date} label={t("done")} onPress={() => saveDraft(x.date)} />
+        </Row>
+      </Col> : <Row wrap gap={6}>
+        <Btn small icon="pen" testID={"plan-adjust-" + x.date} label={t("adjust")} onPress={() => startEdit(x.date, p)} />
+        {E.mods.ki ? <Btn small icon="spark" testID={"plan-ai-" + x.date} label={t("ki_session")} onPress={() => sheets.open({ k: "ai", date: x.date })} /> : null}
+      </Row>}
+    </>);
   };
 
   const ws = cal.week, we = addDays(ws, 6), vcol = statusColor(c, vk === "none" ? "build" : vk);
+  const wideW = width >= 1100;
+  const changesCard = show && wp.mode !== "normal" ? <Card testID="plan-changes">
+        <CardTitle title={t("chTitle")} info={modeText.length ? <Info title={`${t("ib_mode")}: ${t(wp.mode === "aufbau" ? "wk_aufbau" : "wk_entl")}`} text={modeText} /> : undefined} />
+        {changes.length ? changes.map(p => <Col key={p.date} gap={2}><T v="small" bold>{E.wt(p.date)} {E.de(p.date)} · {p.md} {E.kn(p.kind)}</T><Muted small>{p.changes.map(ch => chgTxt(ch, " → ")).join(" · ")}</Muted></Col>) : <Muted>{t("chNone")}</Muted>}
+        {modeShort ? <Muted small>{modeShort}</Muted> : null}
+      </Card> : null;
+  const summaryCard = show ? <Card testID="plan-summary">
+        <CardTitle title={t("pl_weekProfile")} info={<Info title={t("ib_week")} text={t("ib_week_t")} />} />
+        <WeekStrip days={wp.items.map(x => ({ label: E.wt(x.date), md: x.md, rpe: x.match ? 8 : x.train && x.train.kind !== "frei" ? x.train.rpe : 0, match: !!x.match, today: x.date === E.TODAY }))} />
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: withAlpha(vcol, dark ? 0.16 : 0.1), borderRadius: radius.m, paddingVertical: 10, paddingHorizontal: 12 }}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: vcol }} />
+          <Text testID="plan-verdict" style={{ flex: 1, fontWeight: "700", fontSize: 14.5, lineHeight: 20, color: c.ink }}>{t("v_" + vk)}</Text>
+        </View>
+        {pro ? <Col gap={6} testID="plan-figures">
+          {kv(t("weekTotal"), `${E.int(total)} AU`, true)}
+          {wp.unitAU ? kv(t("un_load"), `${E.int(wp.unitAU)} AU`) : null}
+          {kv(t("usual"), chronic ? E.int(chronic) + " AU" : "–")}
+          {kv(t("ratio"), ratio ? E.num(ratio, 2) : "–")}
+        </Col> : null}
+        {!hard && act.length >= 3 && wp.mode !== "entlastung" && wp.items.filter(x => x.match).length < 2 ? <Banner color={c.warn}>{t("no_hard")}</Banner> : null}
+        <Col gap={6}>
+          <T v="eyebrow">{t("dist")}</T>
+          <Dist hard={hard} mid={mid} easy={easy} />
+          <Row wrap gap={14}>
+            {([[c.crit, hard, "d_hard"], [c.warn, mid, "d_mid"], [c.ok, easy, "d_easy"]] as const).map(([col, n, k]) => (
+              <Row key={k} gap={6}><View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: col }} /><Muted small>{n} {t(k)}</Muted></Row>
+            ))}
+          </Row>
+        </Col>
+      </Card> : null;
+  // Breiter Bildschirm (Web): Wochenprofil bleibt beim Blättern durch die Tage oben im Blick
+  const stick = Platform.OS === "web" ? ({ position: "sticky", top: 12 } as unknown as ViewStyle) : null;
   return (
     <Screen testID="coach-plan">
-      <Header eyebrow={t("pl_sub")} title={t("nav_plan")} info={E.lvl(1) ? <Info title={t("ib_plan")} text={["m1", "m2", "m3", "m4", "m5"].map(k => t(k))} testID="plan-method" /> : undefined} />
+      <Header title={t("nav_plan")} info={E.lvl(1) ? <Info title={t("ib_plan")} text={["m1", "m2", "m3", "m4", "m5"].map(k => t(k))} testID="plan-method" /> : undefined} />
       <CalNav label={`${t("kw")} ${kwOf(ws)} · ${E.de(ws)}–${E.de(we)}`} todayLabel={t("thisW")}
         onPrev={() => setCal({ week: addDays(ws, -7) })} onNext={() => setCal({ week: addDays(ws, 7) })} onToday={() => setCal({ week: monday(E.TODAY) })} />
       {show ? <Row wrap gap={10}>
@@ -180,33 +240,11 @@ export default function Plan() {
           options={[{ key: "normal", label: t("wk_normal") }, { key: "aufbau", label: t("wk_aufbau") }, { key: "entlastung", label: t("wk_entl") }]} />
         <Chip label={`${t("trainLoad")}: ${E.int(wp.trainAU)} AU${wp.mode !== "normal" ? ` · ${pct} ${t("vsNormal")}` : ""}`} color={c.accentTx} />
       </Row> : null}
-      {show && wp.mode !== "normal" ? <Card testID="plan-changes">
-        <CardTitle title={t("chTitle")} info={modeText.length ? <Info title={`${t("ib_mode")}: ${t(wp.mode === "aufbau" ? "wk_aufbau" : "wk_entl")}`} text={modeText} /> : undefined} />
-        {changes.length ? changes.map(p => <Col key={p.date} gap={2}><T v="small" bold>{E.wt(p.date)} {E.de(p.date)} · {p.md} {E.kn(p.kind)}</T><Muted small>{p.changes.map(ch => chgTxt(ch, " → ")).join(" · ")}</Muted></Col>) : <Muted>{t("chNone")}</Muted>}
-        {modeShort ? <Muted small>{modeShort}</Muted> : null}
-      </Card> : null}
-      {show ? <Card testID="plan-summary">
-        <CardTitle title={t("pl_weekProfile")} info={<Info title={t("ib_week")} text={t("ib_week_t")} />} />
-        <WeekStrip days={wp.items.map(x => ({ label: E.wt(x.date), md: x.md, rpe: x.match ? 8 : x.train && x.train.kind !== "frei" ? x.train.rpe : 0, match: !!x.match, today: x.date === E.TODAY }))} />
-        <View style={{ backgroundColor: withAlpha(vcol, 0.12), borderLeftWidth: 4, borderLeftColor: vcol, borderRadius: 8, padding: 10 }}><Text testID="plan-verdict" style={{ fontWeight: "800", color: c.ink }}>{t("v_" + vk)}</Text></View>
-        {pro ? <Col gap={4}>
-          <Row between><T style={{ flexShrink: 1 }}>{t("weekTotal")}</T><T bold style={{ fontSize: 18, fontVariant: ["tabular-nums"] }}>{E.int(total)} AU</T></Row>
-          {wp.unitAU ? <Row between><Muted>{t("un_load")}</Muted><T bold>{E.int(wp.unitAU)} AU</T></Row> : null}
-          <Row between><Muted>{t("usual")}</Muted><T bold>{chronic ? E.int(chronic) + " AU" : "–"}</T></Row>
-          <Row between><Muted>{t("ratio")}</Muted><T bold>{ratio ? E.num(ratio, 2) : "–"}</T></Row>
-        </Col> : null}
-        {!hard && act.length >= 3 && wp.mode !== "entlastung" && wp.items.filter(x => x.match).length < 2 ? <Banner color={c.warn}>{t("no_hard")}</Banner> : null}
-        <Col gap={6}>
-          <T v="eyebrow">{t("dist")}</T>
-          <Dist hard={hard} mid={mid} easy={easy} />
-          <Row wrap gap={14}>
-            <Muted small><Text style={{ color: c.crit }}>●</Text> {hard} {t("d_hard")}</Muted>
-            <Muted small><Text style={{ color: c.warn }}>●</Text> {mid} {t("d_mid")}</Muted>
-            <Muted small><Text style={{ color: c.ok }}>●</Text> {easy} {t("d_easy")}</Muted>
-          </Row>
-        </Col>
-      </Card> : null}
-      <Col gap={10}>{wp.items.map(dayCard)}</Col>
+      {/* Breiter Bildschirm: Wochenübersicht links (bleibt im Blick), Tage rechts */}
+      {wideW ? <Row align="stretch" gap={20}>
+        <Col gap={20} style={{ flex: 5, minWidth: 0 }}>{changesCard}{summaryCard ? <View style={stick}>{summaryCard}</View> : null}</Col>
+        <Col gap={10} style={{ flex: 7, minWidth: 0, alignSelf: "flex-start" }}>{wp.items.map(dayCard)}</Col>
+      </Row> : <>{changesCard}{summaryCard}<Col gap={10}>{wp.items.map(dayCard)}</Col></>}
       <TemplatePicker visible={!!pickFor} onClose={() => setPickFor(null)} onPick={tp => {
         const d = pickFor!; const dr = drafts[d]; if (!dr) return;
         setDrafts(o => ({ ...o, [d]: { ...dr, inhalt: tp.title + "\n" + templateText(E, tp), dauer: templateMin(tp), touched: true } }));

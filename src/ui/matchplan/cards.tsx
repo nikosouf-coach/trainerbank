@@ -8,36 +8,35 @@ import { seenStats, shareState, squadOf } from "../../core/matchplan";
 import type { Match } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
 import { Icon } from "../icons";
-import { Btn, Card, Chip, Col, Muted, Row, T } from "../kit";
-import { radius, useTheme, withAlpha } from "../theme";
+import { Btn, Card, Chip, Col, Group, Muted, Row, T } from "../kit";
+import { radius, useTheme } from "../theme";
 
 /** Spieler: freigegebene Matchpläne (neu = noch nicht angesehen) */
 export function PlayerPlansCard() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
   useEffect(() => { s.refreshMyPlans(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (!E.mods.matchplan || !s.myPlans.length) return null;
-  const ink = c.accentInk, sub = ink === "#ffffff" ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.62)";
   return (
-    <Col gap={10}>
+    <Group>
       {s.myPlans.map(p => {
         const m = p.matchId ? E.D.matches.find(x => x.id === p.matchId) : null;
         return (
           <Pressable key={p.id} testID={"pp-" + p.id} accessibilityRole="button" accessibilityLabel={p.title} onPress={() => router.push("/player/matchplan/" + p.id)}
-            style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: radius.xl, backgroundColor: c.accent }}>
-            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: withAlpha(ink === "#ffffff" ? "#ffffff" : "#000000", 0.16), alignItems: "center", justifyContent: "center" }}>
-              <Icon name="board" size={22} color={ink} />
+            style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, backgroundColor: pressed ? c.sunk : "transparent" })}>
+            <View style={{ width: 40, height: 40, borderRadius: 12, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
+              <Icon name="board" size={21} color={c.accentInk} strokeWidth={2} />
             </View>
             <Col gap={2} style={{ flex: 1 }}>
-              <Text style={{ color: sub, fontSize: 12.5, fontWeight: "600" }}>
-                {t("mp_title")}{m ? ` · ${E.wt(m.date)} ${E.de(m.date)}` : ""}{!p.seen ? " · " + t("pp_new") : ""}</Text>
-              <Text numberOfLines={2} style={{ color: ink, fontSize: 17, fontWeight: "700", letterSpacing: -0.2 }}>{p.title}</Text>
-              <Text style={{ color: sub, fontSize: 12.5 }}>{tf("pp_until", { d: `${E.wt(iso(new Date(p.until)))} ${new Date(p.until).toTimeString().slice(0, 5)}` })}</Text>
+              <Text style={{ color: c.muted, fontSize: 12.5, fontWeight: "600" }}>{t("mp_title")}{m ? ` · ${E.wt(m.date)} ${E.de(m.date)}` : ""}</Text>
+              <Text numberOfLines={2} style={{ color: c.ink, fontSize: 16, fontWeight: "700", letterSpacing: -0.2 }}>{p.title}</Text>
+              <Text style={{ color: c.muted, fontSize: 12.5 }}>{tf("pp_until", { d: `${E.wt(iso(new Date(p.until)))} ${new Date(p.until).toTimeString().slice(0, 5)}` })}</Text>
             </Col>
-            {!p.seen ? <View testID={"pp-new-" + p.id} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: "#ffd43b" }} /> : <Icon name="chevron" size={20} color={ink} />}
+            {!p.seen ? <View testID={"pp-new-" + p.id} accessibilityLabel={t("pp_new")} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: radius.pill, backgroundColor: c.accent }}><Text style={{ color: c.accentInk, fontSize: 11.5, fontWeight: "700" }}>{t("pp_new")}</Text></View> : null}
+            <Icon name="chevron" size={15} color={c.faint} strokeWidth={2.4} />
           </Pressable>
         );
       })}
-    </Col>
+    </Group>
   );
 }
 

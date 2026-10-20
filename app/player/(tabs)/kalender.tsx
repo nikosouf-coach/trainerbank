@@ -5,7 +5,7 @@ import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { addDays, iso, kwOf, monday, monthStart, parse } from "../../../src/core/dates";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Icon } from "../../../src/ui/icons";
-import { Card, CardTitle, Col, Header, Muted, Row, Screen, Seg, T } from "../../../src/ui/kit";
+import { Card, CardTitle, Col, Header, Muted, Row, Screen, Seg } from "../../../src/ui/kit";
 import { CalNav } from "../../../src/ui/plan/CalNav";
 import { AgendaDay, DueRow, useAgenda } from "../../../src/ui/player/agenda";
 import { rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
@@ -90,7 +90,7 @@ export default function PlayerKalender() {
           </Row>
         </Card>
         <Card testID="pc-sel">
-          <T v="h3">{sel === E.TODAY ? t("today") : `${E.wt(sel)} ${E.de(sel)}`}</T>
+          <CardTitle title={sel === E.TODAY ? t("today") : `${E.wt(sel)} ${E.de(sel)}`} />
           <AgendaDay pid={pid} date={sel} testID="pc-sel-day" />
         </Card>
       </>

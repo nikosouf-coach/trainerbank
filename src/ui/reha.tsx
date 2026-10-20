@@ -6,7 +6,7 @@ import { guessArea, rehaGroupOf, rehaPlan } from "../core/reha";
 import type { Absence } from "../core/types";
 import { useEngine, useStore } from "../data/store";
 import { RegionMap } from "./bodyMap";
-import { Btn, Card, Col, Muted, Picker, Row, Seg, T } from "./kit";
+import { Btn, Card, CardTitle, Col, Muted, Picker, Row, Seg, T } from "./kit";
 import { radius, useTheme, withAlpha } from "./theme";
 
 /** Region (ohne Krankheitszeichen) mit Seite. value = Code wie „hams:l“ oder null */
@@ -60,7 +60,7 @@ export function PlayerRehaCard({ pid }: { pid: string }) {
   if (!a) return null;
   return (
     <Card testID="player-reha" tone={c.inj}>
-      <T v="h3">{t("rh_mine")}</T>
+      <CardTitle title={t("rh_mine")} />
       <RehaPlanView a={a} testID="p-reha" />
     </Card>
   );

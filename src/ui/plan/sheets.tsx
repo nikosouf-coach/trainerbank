@@ -46,7 +46,7 @@ function DayBody({ date, open, close }: { date: string; open: (s: SheetState) =>
     <Col gap={12}>
       <Row between wrap gap={8}>
         <Col gap={2}><T v="eyebrow">{(x.md ? x.md + " · " : "") + t("kw") + " " + kwOf(date)}</T><T v="h2">{E.wt(date)} {E.de(date)}</T></Col>
-        {!onTagPage ? <Btn small kind="primary" testID="day-open-tag" label={t("td_open") + " ›"} onPress={() => { close(); router.push("/coach/tag/" + date); }} /> : null}
+        {!onTagPage ? <Btn small kind="primary" testID="day-open-tag" label={t("td_open")} onPress={() => { close(); router.push("/coach/tag/" + date); }} /> : null}
       </Row>
       {x.match ? <Sec color={c.accentTx}>
         <T bold>{t("it_match")} {t("vs")} {x.match.gegner}</T>
@@ -69,7 +69,7 @@ function DayBody({ date, open, close }: { date: string; open: (s: SheetState) =>
         <Muted small>{E.zeitOf(date)} · {tr.dauer} {t("min")} · {t("p_" + tr.platz)}</Muted>
         <T v="small">{tr.inhalt}</T>
         {sess ? <T v="small">{mods.beteiligung ? tf("day_att", { a: E.D.players.filter(p => E.attStatus(date, p.id) === "da").length }) : ""}{showI && E.sessAvg(date) != null ? " · " + tf("day_rpeAvg", { r: E.num(E.sessAvg(date)!, 1) }) : ""}</T> : null}
-        {!past && showI && tr.notReady.length ? <T v="small" color={c.crit}>⚠ {tf("notReadyN", { n: tr.notReady.length })}: {tr.notReady.map(q => q.vn).join(", ")}</T> : null}
+        {!past && showI && tr.notReady.length ? <T v="small" color={c.crit}>{tf(tr.notReady.length === 1 ? "notReady1" : "notReadyN", { n: tr.notReady.length })}: {tr.notReady.map(q => q.vn).join(", ")}</T> : null}
         <Row wrap gap={6}>
           {mods.planung && !past ? <Btn small testID="day-plan" label={t("day_plan")} onPress={() => { close(); router.push("/coach/plan?date=" + date); }} /> : null}
           {mods.ki && !past ? <Btn small icon="spark" testID="day-ai" label={t("ki_session")} onPress={() => open({ k: "ai", date })} /> : null}

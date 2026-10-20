@@ -29,7 +29,7 @@ export default function EntwicklungTeam() {
   const n = rows.length, assessed = rows.filter(r => !r.stale).length, withGoals = rows.filter(r => r.goals.length).length, talksDue = rows.filter(r => r.due).length;
   const kpi = (k: string, label: string, v: number, of: number | null, col: string) => (
     <View key={k} testID={"dev-sum-" + k} style={{ flex: 1, minWidth: 0, gap: 4 }}>
-      <Text numberOfLines={2} style={{ fontSize: 11, fontWeight: "700", color: c.muted, textTransform: "uppercase", letterSpacing: 0.5 }}>{label}</Text>
+      <Text numberOfLines={2} style={{ fontSize: 12.5, fontWeight: "600", color: c.muted }}>{label}</Text>
       <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink, fontVariant: ["tabular-nums"] }}>{v}{of != null ? <Text style={{ fontSize: 14, color: c.muted }}> / {of}</Text> : null}</Text>
       {of != null ? <Bar value={of ? v / of : 0} color={col} /> : null}
     </View>
@@ -39,7 +39,7 @@ export default function EntwicklungTeam() {
     <Screen testID="coach-dev-team">
       <Header title={t("dv_overview")} onBack={nb.onBack} backLabel={nb.backLabel} info={<Info title={t("dv_overview")} text={[t("dv_ovInfo"), t("dv_info")]} />} />
       {!E.mods.entwicklung ? <Muted>{tf("bk_needs", { m: t("m_entwicklung") })}</Muted> : <>
-        {iq ? <Pressable testID="dev-team-iq" accessibilityRole="button" onPress={() => router.push("/coach/individual")}><Banner>{t("iq_open")}: {iq} ›</Banner></Pressable> : null}
+        {iq ? <Pressable testID="dev-team-iq" accessibilityRole="button" onPress={() => router.push("/coach/individual")}><Banner>{t("iq_open")}: {iq}</Banner></Pressable> : null}
         {n ? <Card testID="dev-team-sum"><Row gap={14} align="flex-start">
           {kpi("assessed", t("dv_sumAssessed"), assessed, n, c.ok)}
           {kpi("goals", t("dv_sumGoals"), withGoals, n, c.accent)}

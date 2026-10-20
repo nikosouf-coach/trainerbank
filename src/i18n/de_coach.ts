@@ -14,7 +14,7 @@ export const de_coach: Dict = {
   sp_rate: "Note", sp_none: "Tippe auf einen Spieler, um Minuten, Tore, Vorlagen und Note einzutragen.", sp_fill: "Minuten aus RPE übernehmen", sp_filled: "{n} Spieler übernommen",
   sp_videos: "Videos zum Spiel", sp_open: "Spielbericht", sp_season: "Saison", sp_games: "Spiele", sp_avg: "Ø Note", sp_list: "Spiele & Statistik", sp_listSub: "Ergebnisse, Torschützen, Noten",
   sp_table: "Spielerstatistik", sp_results: "Ergebnisse", sp_noGames: "Noch keine gespielten Spiele.", sp_lib: "Videos", sp_libSub: "Alle Video-Links des Teams",
-  sp_player: "Spieldaten", sp_played: "eingesetzt", sp_bench: "nicht eingesetzt", sp_resultSave: "Ergebnis speichern",
+  sp_player: "Spieldaten", sp_played: "eingesetzt", sp_bench: "Nicht eingesetzt", sp_resultSave: "Ergebnis speichern",
   pr_games: "Spiele & Bewertungen", pr_ratings: "Noten & Feedback", pr_noRatings: "Noch keine Noten.", tr_rate: "Note",
   // Zeichentool, Übungsarchiv, Einheiten, Trainerprofile
   bd_full: "Ganzes Feld", bd_half: "Halbes Feld", bd_box: "Strafraum", bd_free: "Freie Fläche", bd_t_a: "Spieler Team A", bd_t_b: "Spieler Team B", bd_t_gk: "Torwart",

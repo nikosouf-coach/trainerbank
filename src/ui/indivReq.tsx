@@ -95,7 +95,7 @@ export function IndivInbox({ compact }: { compact?: boolean }) {
     );
   };
   if (compact) return open.length ? <Card testID="iq-inbox">
-    <CardTitle title={t("iq_open")} right={<Btn small kind="ghost" label={t("iq_answer") + " ›"} onPress={() => router.push("/coach/individual")} />} />
+    <CardTitle title={t("iq_open")} right={<Btn small kind="ghost" label={t("iq_answer")} onPress={() => router.push("/coach/individual")} />} />
     {open.slice(0, 4).map(row)}
   </Card> : null;
   return (

@@ -1,11 +1,14 @@
-// Farben, Abstände und Typografie (Erscheinungsbild „Trainerbank“). Hell/Dunkel: wie das System oder fest gewählt
-// (Konto → Darstellung). Ruhige Neutraltöne, Farbe nur mit Bedeutung (Status, Akzent); die Akzentfarbe ist die Vereinsfarbe.
+// Farben, Abstände und Typografie (Erscheinungsbild „Trainerbank“, Leitfaden: docs/DESIGN.md). Hell/Dunkel: wie das
+// System oder fest gewählt (Konto → Darstellung). Neutraltöne mit einem Hauch Grün-Grau (Kreide auf Rasen), Farbe nur mit
+// Bedeutung: Statusfarben für Belastung und Gesundheit, die Vereinsfarbe (Akzent) für das Wichtigste einer Seite.
 import React, { createContext, useContext, useMemo } from "react";
 import { useColorScheme } from "react-native";
 import type { ThemeMode } from "../data/api";
 
 export interface Colors {
   bg: string; surface: string; sunk: string; ink: string; muted: string; line: string;
+  /** Dritte Textstufe: Pfeile, Platzhalter, Nebensächliches */
+  faint: string;
   ok: string; warn: string; hot: string; crit: string; low: string; build: string; inj: string; event: string;
   accent: string; accentTx: string; accentInk: string; accentSoft: string; overlay: string;
   /** Vereinsfarbe für Spielerkreise auf dem Feld (helle Farben wie Weiß/Silber bleiben hier hell) */
@@ -13,11 +16,11 @@ export interface Colors {
 }
 
 /** Markenfarben (Logo, Startbildschirm, Vorgabe ohne Verein) */
-export const BRAND = { green: "#0d6b4b", greenDark: "#3fbf8a", ink: "#101418", paper: "#f5f6f8" };
+export const BRAND = { green: "#0d6b4b", greenDark: "#3fbf8a", ink: "#121815", paper: "#f2f4f3", night: "#0d1110" };
 
-// Neutral mit einem Hauch Grün-Grau, gedämpfte Statusfarben – wirkt ruhig und hochwertig in beiden Modi
-const LIGHT = { bg: "#f5f6f8", surface: "#ffffff", sunk: "#eef0f3", ink: "#101418", muted: "#5d6672", line: "#e3e6ea", ok: "#1d8656", warn: "#b47d0a", hot: "#cf5f2a", crit: "#c23b2b", low: "#2e66c2", build: "#868e98", inj: "#7652ad", event: "#5f55c6", overlay: "rgba(12,16,22,0.42)" };
-const DARK = { bg: "#0b0d10", surface: "#14171b", sunk: "#1c2025", ink: "#eceff2", muted: "#98a1ab", line: "#262b31", ok: "#3cb67d", warn: "#e1a53e", hot: "#ec7c48", crit: "#ee6955", low: "#74a2ec", build: "#7c848e", inj: "#a98bd8", event: "#9e92ea", overlay: "rgba(0,0,0,0.62)" };
+// Statusfarben im hellen Modus so dunkel, dass sie als Schrift auf ihrer eigenen Tönung lesbar bleiben (≥ 4,5 : 1)
+const LIGHT = { bg: "#f2f4f3", surface: "#ffffff", sunk: "#e8ecea", ink: "#121815", muted: "#5e6964", line: "#dce1de", faint: "#8d9792", ok: "#17794f", warn: "#94620b", hot: "#ad4e1d", crit: "#bb372c", low: "#2d67c0", build: "#6a7470", inj: "#7652ad", event: "#5a54c6", overlay: "rgba(10,16,13,0.44)" };
+const DARK = { bg: "#0d1110", surface: "#161b19", sunk: "#202623", ink: "#e9eeeb", muted: "#95a19b", line: "#2a312e", faint: "#6c7772", ok: "#3db57f", warn: "#e0a640", hot: "#ec7d4a", crit: "#ee6a57", low: "#75a3ec", build: "#7e8883", inj: "#aa8cd9", event: "#9f93ea", overlay: "rgba(0,0,0,0.64)" };
 
 function hexToRgb(h: string): [number, number, number] {
   const x = h.replace("#", ""); const v = x.length === 3 ? x.split("").map(c => c + c).join("") : x.padEnd(6, "0");
@@ -48,16 +51,19 @@ export function makeColors(dark: boolean, accent: string): Colors {
 }
 
 export const space = { xs: 4, s: 8, m: 12, l: 16, xl: 24, xxl: 32 };
-export const radius = { s: 8, m: 12, l: 16, xl: 20, pill: 999 };
-/** Typografie: Satzschreibung, kräftige aber ruhige Gewichte, leicht enges Spacing bei Überschriften */
+/** Formen nach Rolle: Kacheln 14, Gruppen und Karten 16, Hauptelement 22, Blätter 24, Knöpfe und Chips als Kapsel */
+export const radius = { s: 8, m: 12, tile: 14, l: 16, xl: 22, sheet: 24, pill: 999 };
+/** Typografie: Systemschrift in Satzschreibung (keine Großbuchstaben-Etiketten), kräftige Titel mit engem Spacing, gleich breite Ziffern */
 export const font = {
-  h1: { fontSize: 28, lineHeight: 34, fontWeight: "800" as const, letterSpacing: -0.6 },
-  h2: { fontSize: 18, lineHeight: 24, fontWeight: "700" as const, letterSpacing: -0.25 },
-  h3: { fontSize: 15.5, lineHeight: 21, fontWeight: "700" as const, letterSpacing: -0.1 },
+  h1: { fontSize: 30, lineHeight: 36, fontWeight: "800" as const, letterSpacing: -0.8 },
+  h2: { fontSize: 19, lineHeight: 24, fontWeight: "700" as const, letterSpacing: -0.35 },
+  h3: { fontSize: 16, lineHeight: 21, fontWeight: "700" as const, letterSpacing: -0.15 },
   body: { fontSize: 15, lineHeight: 21 },
   small: { fontSize: 13, lineHeight: 18 },
-  tiny: { fontSize: 11, lineHeight: 14 },
-  eyebrow: { fontSize: 11.5, lineHeight: 15, fontWeight: "600" as const, letterSpacing: 0.5, textTransform: "uppercase" as const },
+  tiny: { fontSize: 11.5, lineHeight: 15 },
+  eyebrow: { fontSize: 12.5, lineHeight: 16, fontWeight: "600" as const, letterSpacing: 0 },
+  /** Kennzahl (Kacheln, Hauptelement) */
+  fig: { fontSize: 30, lineHeight: 34, fontWeight: "800" as const, letterSpacing: -0.8, fontVariant: ["tabular-nums"] as ("tabular-nums")[] },
   num: { fontVariant: ["tabular-nums"] as ("tabular-nums")[] },
 };
 

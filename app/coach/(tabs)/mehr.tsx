@@ -2,14 +2,12 @@
 // „Menü anpassen“: Bereiche der unteren Leiste wählen und ordnen, Menüpunkte aus- und einblenden.
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { Pressable, Text, View } from "react-native";
 import { classDef, classLabel, teamLabel } from "../../../src/core/classes";
 import { useEngine, useStore } from "../../../src/data/store";
-import { Icon } from "../../../src/ui/icons";
-import { Banner, Btn, Col, Header, Muted, Screen, SearchField, T } from "../../../src/ui/kit";
+import { Banner, Btn, Header, Muted, NavRow, Screen, SearchField, Section } from "../../../src/ui/kit";
 import { MenuEditor, groupCol } from "../../../src/ui/navEditor";
 import { NAV_GROUPS, useNav, type NavItem } from "../../../src/ui/nav";
-import { radius, useTheme, withAlpha } from "../../../src/ui/theme";
+import { useTheme } from "../../../src/ui/theme";
 
 /** Alte Kennungen der Menüpunkte (Tests, Verweise) */
 const legacyId = (k: string): string => k === "matchplaene" ? "matchplan" : k;
@@ -33,44 +31,27 @@ export default function Mehr() {
   const match = (n: NavItem) => !ql || `${t(n.title)} ${subOf(n)} ${t(n.short)}`.toLowerCase().includes(ql);
   const shown = nav.items.filter(n => !nav.bar.includes(n.k) && (!nav.hidden.has(n.k) || !!ql) && match(n));
   const hidden = nav.items.filter(n => nav.hidden.has(n.k) && !ql);
-  const row = (n: NavItem, last: boolean) => {
-    const col = groupCol(c, n.group), badge = nav.badge(n.k);
-    return (
-      <Pressable key={n.k} testID={"mehr-" + legacyId(n.k)} accessibilityRole="button" accessibilityLabel={t(n.title)} onPress={() => router.push(n.href)}
-        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 14, minHeight: 52, backgroundColor: pressed ? c.sunk : "transparent",
-          borderBottomWidth: last ? 0 : 1, borderBottomColor: c.line })}>
-        <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: withAlpha(col, 0.13), alignItems: "center", justifyContent: "center" }}>
-          <Icon name={n.icon} size={18} color={col} />
-        </View>
-        <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, fontWeight: "600", fontSize: 15.5, letterSpacing: -0.1, color: c.ink }}>{t(n.title)}</Text>
-        {detailOf(n) ? <Text numberOfLines={1} style={{ maxWidth: "42%", fontSize: 13.5, color: c.muted }}>{detailOf(n)}</Text> : null}
-        {badge ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: c.crit, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 12 }}>{badge}</Text></View> : null}
-        <Icon name="chevron" size={18} color={c.muted} />
-      </Pressable>
-    );
+  const row = (n: NavItem) => {
+    const badge = nav.badge(n.k);
+    return <NavRow key={n.k} testID={"mehr-" + legacyId(n.k)} icon={n.icon} iconColor={groupCol(c, n.group)} title={t(n.title)} value={detailOf(n) || null}
+      badge={badge || null} badgeColor={c.crit} a11y={t(n.title)} onPress={() => router.push(n.href)} />;
   };
-  const card = (L: NavItem[]) => (
-    <View style={{ backgroundColor: c.surface, borderRadius: radius.l, borderWidth: 1, borderColor: c.line, overflow: "hidden" }}>{L.map((n, i) => row(n, i === L.length - 1))}</View>
-  );
   return (
     <Screen testID="coach-mehr">
-      <Header eyebrow={t("mo_sub")} title={t("mo_title")} right={<Btn small icon="sliders" testID="nav-edit" label={t("nv_edit")} onPress={() => setEdit(true)} />} />
+      <Header title={t("mo_title")} right={<Btn small icon="sliders" testID="nav-edit" label={t("nv_edit")} onPress={() => setEdit(true)} />} />
       <SearchField testID="nav-search" value={q} onChange={setQ} placeholder={t("nv_search")} clearLabel={t("cancel")} />
       {NAV_GROUPS.map(g => {
         const L = shown.filter(n => n.group === g);
-        return L.length ? <Col key={g} gap={8} testID={"nav-group-" + g}><T v="eyebrow" color={c.muted}>{t("nvg_" + g)}</T>{card(L)}</Col> : null;
-      }) }
+        return L.length ? <Section key={g} quiet testID={"nav-group-" + g} title={t("nvg_" + g)}>{L.map(row)}</Section> : null;
+      })}
       {ql && !shown.length ? <Muted testID="nav-none">{t("nv_none")}</Muted> : null}
-      {!ql && nav.bar.length ? <Muted small>{tf("nv_inBarHint", { l: nav.bar.map(k => t(nav.items.find(n => n.k === k)!.short)).join(", ") })}</Muted> : null}
-      {hidden.length ? <Col gap={8}>
-        <Pressable testID="nav-hidden-toggle" accessibilityRole="button" accessibilityState={{ expanded: showHidden }} onPress={() => setShowHidden(!showHidden)}>
-          <T v="eyebrow" color={c.muted}>{tf("nv_hidden", { n: hidden.length })} {showHidden ? "▲" : "▼"}</T>
-        </Pressable>
-        {showHidden ? card(hidden) : null}
-      </Col> : null}
+      {!ql && nav.bar.length ? <Muted small style={{ paddingHorizontal: 4 }}>{tf("nv_inBarHint", { l: nav.bar.map(k => t(nav.items.find(n => n.k === k)!.short)).join(", ") })}</Muted> : null}
+      {hidden.length ? <Section quiet title={tf("nv_hidden", { n: hidden.length })} plain={!showHidden}
+        action={{ label: showHidden ? t("in_hide") : t("in_show"), onPress: () => setShowHidden(!showHidden), testID: "nav-hidden-toggle" }}>
+        {showHidden ? hidden.map(row) : null}
+      </Section> : null}
       {s.isDemo ? <Banner>{t("pa_demoNote")}</Banner> : null}
-      {s.isDemo ? <Btn testID="mehr-to-player" label={t("toPlayer")} onPress={() => { s.setDemoView("player"); router.replace(s.demoPlayer ? "/player/heute" : "/demo-player"); }} style={{ alignSelf: "flex-start" }} /> : null}
+      {s.isDemo ? <Btn testID="mehr-to-player" icon="person" label={t("toPlayer")} onPress={() => { s.setDemoView("player"); router.replace(s.demoPlayer ? "/player/heute" : "/demo-player"); }} style={{ alignSelf: "flex-start" }} /> : null}
       <MenuEditor visible={edit} onClose={() => setEdit(false)} />
     </Screen>
   );

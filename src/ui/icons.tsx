@@ -9,7 +9,8 @@ export type IconName =
   | "flame" | "star" | "trophy" | "moon" | "bolt" | "calendar" | "target"
   | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people" | "scout" | "search" | "filter" | "up" | "down"
   | "board" | "ball" | "video" | "stopwatch" | "trend" | "whistle" | "sun" | "book" | "checklist" | "wallet" | "phone" | "shield" | "club"
-  | "grid" | "key" | "sliders" | "help" | "pen" | "undo" | "redo" | "copy" | "layers" | "minus" | "curve" | "frame" | "note";
+  | "grid" | "key" | "sliders" | "help" | "pen" | "undo" | "redo" | "copy" | "layers" | "minus" | "curve" | "frame" | "note"
+  | "clock" | "heart" | "pulse" | "home";
 
 const P: Record<IconName, React.ReactNode> = {
   heute: <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -76,6 +77,10 @@ const P: Record<IconName, React.ReactNode> = {
   frame: <Path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M20 15v4a1 1 0 0 1-1 1h-4M9 20H5a1 1 0 0 1-1-1v-4" />,
   note: <><Path d="M5 4h10l4 4v12H5z" /><Path d="M15 4v4h4M8.5 12h7M8.5 16h5" /></>,
   people: <><Circle cx={9} cy={8} r={3.2} /><Path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><Circle cx={17} cy={9} r={2.6} /><Path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8" /></>,
+  clock: <><Circle cx={12} cy={12} r={9} /><Path d="M12 7v5l3.2 2" /></>,
+  heart: <Path d="M12 20.5s-7.4-4.5-9.1-9.3C1.7 7.8 3.9 4.5 7.3 4.5c2 0 3.5 1.1 4.7 2.8 1.2-1.7 2.7-2.8 4.7-2.8 3.4 0 5.6 3.3 4.4 6.7-1.7 4.8-9.1 9.3-9.1 9.3z" />,
+  pulse: <Path d="M2.5 12h4l2.5-6 4.5 12 2.5-6h5.5" />,
+  home: <><Path d="M4 11l8-6.5 8 6.5" /><Path d="M6 9.5V20h12V9.5" /><Path d="M10 20v-5h4v5" /></>,
 };
 
 export function Icon({ name, size = 22, color = "#000", strokeWidth = 1.8 }: { name: IconName; size?: number; color?: ColorValue; strokeWidth?: number }) {

@@ -82,7 +82,7 @@ export function DayTasks({ date }: { date: string }) {
   const ptGroups = groupTasks(ptasks);
   return (
     <Card testID="td-tasks">
-      <CardTitle title={t("td_tasks")} right={<Btn small kind="ghost" testID="td-tasks-all" label={t("tk_all") + " ›"} onPress={() => router.push("/coach/aufgaben")} />} />
+      <CardTitle title={t("td_tasks")} right={<Btn small kind="ghost" testID="td-tasks-all" label={t("tk_all")} onPress={() => router.push("/coach/aufgaben")} />} />
       {byDuty.length ? <Col gap={6} testID="td-duties">
         <T v="eyebrow">{t("dy_title")}</T>
         {byDuty.map(k => (

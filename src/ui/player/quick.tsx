@@ -3,17 +3,16 @@
 // „Startseite anpassen“ zusätzlich einschalten).
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, Text, View } from "react-native";
 import { entryOf, isDone, progressOf, weekChallenges } from "../../core/challenge";
 import { goalsOf } from "../../core/dev";
 import type { GameState } from "../../core/game";
 import type { Player } from "../../core/types";
 import { useEngine } from "../../data/store";
 import { CH_COLOR } from "../challenge";
-import { Icon, type IconName } from "../icons";
+import type { IconName } from "../icons";
 import { useMyOpenLabel } from "../kasse";
-import { Card } from "../kit";
-import { useTheme, withAlpha } from "../theme";
+import { Group, NavRow } from "../kit";
+import { useTheme } from "../theme";
 import { GOLD } from "./parts";
 
 interface Row { k: string; icon: IconName; color: string; title: string; value: string; go: string; done?: boolean }
@@ -40,24 +39,17 @@ export function PlayerQuick({ p, g }: { p: Player; g: GameState }) {
   // Wochenziele (Check-ins, RPE, dabei)
   if (E.mods.belastung) {
     const w = g.week, done = w.checkins.done + w.rpe.done + w.att.done, total = w.checkins.total + w.rpe.total + w.att.total;
-    if (total) rows.push({ k: "week", icon: "trophy", color: GOLD, title: t("gm_week"), go: "/player/daten", value: `${done}/${total}`, done: done >= total });
+    if (total) rows.push({ k: "week", icon: "trophy", color: GOLD, title: t("gm_week"), go: "/player/daten/week", value: `${done}/${total}`, done: done >= total });
   }
   // Kasse (nur wenn etwas offen ist)
   if (open) rows.push({ k: "kasse", icon: "wallet", color: c.warn, title: t("ks_mine"), go: "/player/kasse", value: tf("pq_open", { v: open }) });
   if (!rows.length) return null;
   return (
-    <Card testID="player-quick" style={{ paddingVertical: 6, gap: 0 }}>
-      {rows.map((x, i) => (
-        <Pressable key={x.k} testID={"pq-" + x.k} accessibilityRole="button" accessibilityLabel={`${x.title}: ${x.value}`} onPress={() => router.push(x.go)}
-          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 48, paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: c.line, opacity: pressed ? 0.7 : 1 })}>
-          <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: withAlpha(x.color, 0.13), alignItems: "center", justifyContent: "center" }}>
-            <Icon name={x.icon} size={17} color={x.color} strokeWidth={2} />
-          </View>
-          <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: "600", color: c.ink }}>{x.title}</Text>
-          <Text numberOfLines={1} style={{ fontSize: 13.5, fontWeight: x.done ? "700" : "500", color: x.done ? c.ok : c.muted, fontVariant: ["tabular-nums"] }}>{x.value}</Text>
-          <Icon name="chevron" size={16} color={c.muted} />
-        </Pressable>
+    <Group testID="player-quick">
+      {rows.map(x => (
+        <NavRow key={x.k} testID={"pq-" + x.k} icon={x.icon} iconColor={x.color} title={x.title} value={x.value} valueColor={x.done ? c.ok : undefined}
+          a11y={`${x.title}: ${x.value}`} onPress={() => router.push(x.go)} />
       ))}
-    </Card>
+    </Group>
   );
 }

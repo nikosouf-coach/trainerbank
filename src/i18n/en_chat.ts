@@ -11,7 +11,7 @@ export const en_chat: Dict = {
   nav_chat: "Chat",
   dv_menuSub: "Profiles, goals and talks for all players", cg_menuSub: "Optional tasks for at home", iq_menuSub: "Answer players' requests",
   dv_overview: "Development in the team", dv_ovInfo: "Overview: when each player was last assessed, which goals are running, where things are stuck and which talks are due.",
-  dv_ovLast: "Assessment", dv_ovGoals: "Goals", dv_ovTalk: "Talk", dv_ovNever: "never", dv_ovSelfNew: "new self-assessment", dv_ovBehind: "{n} behind plan", dv_ovDue: "due",
+  dv_ovLast: "Assessment", dv_ovGoals: "Goals", dv_ovTalk: "Talk", dv_ovNever: "never", dv_ovSelfNew: "New self-assessment", dv_ovBehind: "{n} behind plan", dv_ovDue: "due",
   dv_prepTake: "Copy into strengths and development areas",
   db_inbox: "Inbox",
   dv_potTitle: "Potentials from your coaches",

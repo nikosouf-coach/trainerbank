@@ -206,7 +206,7 @@ export function ChatListScreen({ area }: { area: Area }) {
   );
   return (
     <Screen testID="chat-list">
-      <Header eyebrow={t("ch_sub")} title={t("ch_title")} info={rules}
+      <Header title={t("ch_title")} info={rules}
         right={<Btn testID="chat-new" kind="primary" small icon="plus" label={t("ch_new")} onPress={() => router.push(`/${area}/chat-neu`)} />} />
       {reports ? <Pressable testID="chat-reports" accessibilityRole="button" onPress={() => router.push("/coach/meldungen")}>
         <Banner color={c.crit}><Row gap={8}><Icon name="flag" size={16} color={c.crit} /><T v="small" bold>{tf("ch_reportsN", { n: reports })}</T></Row></Banner>

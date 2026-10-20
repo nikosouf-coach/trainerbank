@@ -213,15 +213,30 @@ nicht in der Leiste liegen (`useNavBack`). Bildschirme im Hintergrund werden ein
 
 ### Erscheinungsbild
 
-`src/ui/theme.tsx` hält alle Farben als Tokens (`bg`, `surface`, `sunk`, `ink`, `muted`, `line`, Statusfarben,
-Akzent) für Hell und Dunkel – ruhige Neutraltöne, Farbe nur mit Bedeutung (Status, Akzent). Der Akzent ist die
-Vereinsfarbe; sehr dunkle Vereinsfarben werden im Dunkelmodus aufgehellt, sehr helle (Weiß, Silber) im hellen Modus
-für Knöpfe und Flächen zu Graphit abgedunkelt und bekommen dunkle Schrift. Spieler-Icons auf dem Feld zeigen die echte
-Vereinsfarbe (`club`, `clubInk`; helle Icons mit grauem Rand).
-Typografie in Satzschreibung (Überschriften kräftig mit leicht engem Spacing, kleine Kennzeichnungen in
-Großbuchstaben). Karten: feine Linie, Status nur leicht eingetönt; Hinweise ohne Seitenstreifen. Die Marke
-(`src/ui/brand.tsx`): Bildzeichen „b“ mit Mittelkreis und Anstoßpunkt in Markengrün `#0D6B4B`, Wortmarke
-„trainer**bank**“; daraus erzeugt sind App-Icon, adaptives Icon, Splash (hell `#F5F6F8`, dunkel `#0B0D10`),
+Leitfaden mit Farben, Schrift, Formen und Seitenmustern: [DESIGN.md](DESIGN.md). `src/ui/theme.tsx` hält alle Farben als
+Tokens (`bg`, `surface`, `sunk`, `ink`, `muted`, `faint`, `line`, Statusfarben, Akzent) für Hell und Dunkel –
+Neutraltöne mit einem Hauch Grün-Grau, Statusfarben nur für Belastung und Gesundheit (im hellen Modus so dunkel, dass sie
+als Schrift auf ihrer Tönung lesbar sind). Der Akzent ist die Vereinsfarbe; sehr dunkle Vereinsfarben werden im
+Dunkelmodus aufgehellt, sehr helle (Weiß, Silber) im hellen Modus für Knöpfe und Flächen zu Graphit abgedunkelt und
+bekommen dunkle Schrift. Spieler-Icons auf dem Feld zeigen die echte Vereinsfarbe (`club`, `clubInk`; helle Icons mit
+grauem Rand). Typografie: Systemschrift in Satzschreibung, keine Großbuchstaben-Etiketten, gleich breite Ziffern.
+
+Seitenmuster (`src/ui/kit.tsx`): Übersicht → Bereich → Detailseite. `Section` stellt den Titel über eine `Group`
+(Fläche mit Zeilen und eingerückten Trennlinien); eine `Card`, die mit `CardTitle` beginnt, zeigt ihren Titel ebenso
+über der Fläche. `NavRow` (Symbol, Titel, eine Zeile Nebentext, Wert, Pfeil) führt auf Detailseiten; `PlayerRow`
+(`src/ui/squad`) zeigt Spieler mit Rückennummer wie auf dem Spielberichtsbogen. Detailseiten folgen derselben
+Reihenfolge: Befund im Kopf (`Header sub`), Daten, Vorschläge (`Tips`), „Hintergrund & Quellen“ (`WikiBackground` aus
+`src/ui/insight.tsx` – dieselben Texte und Quellen wie im Wiki). `PageTitle` blendet den Kartentitel aus, wenn eine
+Karte allein auf ihrer Bereichsseite steht. Knöpfe, Chips und Felder passen ihre Füllung der Fläche an
+(Seitengrund, Gruppe, Kachel). Detailseiten haben auf großen Bildschirmen eine Lesebreite (`Screen narrow`), „Heute“,
+Planung, Kader und Spielerprofil nutzen dort zwei Spalten.
+
+Neue Seiten: `/coach/belastung` (Belastung im Team), `/coach/spieler/[id]/[sec]` (Bereiche des Spielerprofils:
+`load`, `health`, `rec`, `perf`, `games`, `pot`, `abs`, `notes`; Entwicklung bleibt `/coach/entwicklung/[id]`),
+`/player/koerper` (Dein Körper heute) und `/player/daten/[sec]` (`load`, `week`, `season`, `tests`, `att`, `health`).
+
+Die Marke (`src/ui/brand.tsx`): Bildzeichen „b“ mit Mittelkreis und Anstoßpunkt in Markengrün `#0D6B4B`, Wortmarke
+„trainer**bank**“; daraus erzeugt sind App-Icon, adaptives Icon, Splash (hell `#F2F4F3`, dunkel `#0D1110`),
 Benachrichtigungs-Icon und Favicon. Darstellung: `ThemeProvider` mit `mode` (wie System, hell, dunkel) aus
 `prefs.theme` bzw. dem Gerät; im Web folgt der Seitenhintergrund dem Modus.
 

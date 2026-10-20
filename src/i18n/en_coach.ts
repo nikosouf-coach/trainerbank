@@ -14,7 +14,7 @@ export const en_coach: Dict = {
   sp_rate: "Rating", sp_none: "Tap a player to enter minutes, goals, assists and rating.", sp_fill: "Take minutes from RPE", sp_filled: "{n} players filled",
   sp_videos: "Match videos", sp_open: "Match report", sp_season: "Season", sp_games: "Games", sp_avg: "Avg rating", sp_list: "Matches & stats", sp_listSub: "Results, scorers, ratings",
   sp_table: "Player stats", sp_results: "Results", sp_noGames: "No matches played yet.", sp_lib: "Videos", sp_libSub: "All video links of the team",
-  sp_player: "Match data", sp_played: "played", sp_bench: "did not play", sp_resultSave: "Save result",
+  sp_player: "Match data", sp_played: "played", sp_bench: "Did not play", sp_resultSave: "Save result",
   pr_games: "Matches & ratings", pr_ratings: "Ratings & feedback", pr_noRatings: "No ratings yet.", tr_rate: "Rating",
   // Drawing tool, drill library, sessions, coach profiles
   bd_full: "Full pitch", bd_half: "Half pitch", bd_box: "Box", bd_free: "Free area", bd_t_a: "Player team A", bd_t_b: "Player team B", bd_t_gk: "Goalkeeper",

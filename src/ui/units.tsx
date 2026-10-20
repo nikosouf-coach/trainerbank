@@ -9,7 +9,7 @@ import { MAX_UNITS_DAY, TW_THEMES, UNIT_ARTS, UNIT_DEF, cleanUnit, freeDateSlot,
 import type { DayUnit, UnitArt } from "../core/types";
 import { useEngine, useStore } from "../data/store";
 import { StaffDot } from "./day/BlockSheet";
-import { Banner, Btn, Card, CardTitle, ChoiceChips, Col, Field, Info, Muted, NumField, NumScale, Picker, Row, Sheet, T, TimeField } from "./kit";
+import { Banner, Btn, Card, CardTitle, ChoiceChips, cap, Col, Field, Info, Muted, NumField, NumScale, Picker, Row, Sheet, T, TimeField } from "./kit";
 import { GroupChip } from "./squad/Groups";
 import { radius, rpeColor, useTheme, withAlpha } from "./theme";
 
@@ -107,7 +107,7 @@ function UnitForm({ target, onDone }: { target: UnitTarget; onDone: () => void }
       <Row gap={8} wrap>
         <Btn testID="unit-save" kind="primary" label={t("un_save")} onPress={save} />
         {!isNew && target.mode === "day" && (origin === "weekly" || origin === "changed") ? <Btn testID="unit-cancel" label={t("un_cancelDay")} onPress={() => { s.saveUnit(target.date, { ...cleanUnit(target.unit!), cancel: true, from: null }); s.toast(t("un_cancelledT")); onDone(); }} /> : null}
-        {!isNew && target.mode === "day" && origin === "changed" ? <Btn kind="ghost" testID="unit-reset" label={t("un_fromWeekly")} onPress={() => { s.deleteUnit(target.date, u.slot); onDone(); }} /> : null}
+        {!isNew && target.mode === "day" && origin === "changed" ? <Btn kind="ghost" testID="unit-reset" label={cap(t("un_fromWeekly"))} onPress={() => { s.deleteUnit(target.date, u.slot); onDone(); }} /> : null}
         {!isNew && (target.mode === "week" || origin === "extra") ? <Btn kind="ghost" testID="unit-del" label={t("un_del")} onPress={() => {
           if (target.mode === "week") s.saveWeeklyUnits(wd, (S.units?.[wd] || []).filter(x => x.slot !== u.slot)); else s.deleteUnit(target.date, u.slot);
           s.toast(t("un_deleted")); onDone();

@@ -29,7 +29,7 @@ export default function EntwicklungSpieler() {
   return (
     <Screen testID="coach-dev">
       <Header eyebrow={`${t("dv_title")} · ${t("pgr_" + pg)}`} title={E.name(p)} onBack={back} backLabel={t("btn_back")} info={<Info title={t("dv_title")} text={t("dv_info")} />} />
-      {openIq ? <Pressable testID="dev-iq" accessibilityRole="button" onPress={() => router.push("/coach/individual")}><Banner>{`${t("iq_open")}: ${openIq} · ${t("iq_answer")} ›`}</Banner></Pressable> : null}
+      {openIq ? <Pressable testID="dev-iq" accessibilityRole="button" onPress={() => router.push("/coach/individual")}><Banner>{`${t("iq_open")}: ${openIq} · ${t("iq_answer")}`}</Banner></Pressable> : null}
       <Seg testID="dev-tab" value={tab} onChange={setTab} wrap options={[
         { key: "profil", label: t("dv_profile") }, { key: "ziele", label: t("dv_goals") }, { key: "gespraeche", label: t("dv_talks") }, { key: "rueckblick", label: t("dv_review") },
       ]} />

@@ -101,7 +101,7 @@ export const de_steer: Dict = {
   sf_account: "App-Konto", sf_accountD: "Verknüpfe das Profil mit dem Konto des Trainers. Dann sieht er in seiner App seine Blöcke und Aufgaben.", sf_noAccount: "nicht verknüpft",
   sf_accountNone: "Noch keine weiteren Trainer mit App-Konto. Einladen über Mehr → Zugang & Codes.",
   demo_co: "Co-Trainer",
-  td_dayLink: "Trainingstag ›",
+  td_dayLink: "Trainingstag öffnen",
   // Aufgaben
   tk_title2: "Aufgaben & Dienste", tk_menuSub: "Todos, Materialdienst, Strafenkatalog", tk_tab: "Aufgaben", tk_all: "Alle",
   tk_info: "Aufgaben für dein Trainerteam (Todos) und für Spieler, Dienste wie Materialdienst reihum und ein Strafenkatalog – auf Wunsch mit Automatik. Spieler sehen nur ihre eigenen Aufgaben, Dienste und Strafen.",

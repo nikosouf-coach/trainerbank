@@ -1,53 +1,53 @@
 // Bausteine der Spieler-App: Kopf mit Zuverlässigkeit, Wochenziele, Meilensteine, Aufgaben, Termine, Ziele, Einwilligung.
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { addDays, diff, monday } from "../../core/dates";
 import type { GameState, Ring } from "../../core/game";
 import type { Player } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
 import { Icon, type IconName } from "../icons";
-import { Btn, Card, Col, Info, Muted, Row, T } from "../kit";
+import { Btn, Card, CardTitle, Col, Info, Muted, Row, T } from "../kit";
+import { longDate } from "../insight";
 import { PlayerAvatar } from "../playerAvatar";
 import { RatingBadge, softRatingColor, StatTile, VideoList } from "../games";
 import { MyTarget } from "../indiv";
 import { MarkBadge, RatingOrMark, TrainingFormLine } from "../marks";
 import { potColor } from "../squad/ProfileCards";
-import { radius, space, useTheme, withAlpha } from "../theme";
+import { radius, useTheme, withAlpha } from "../theme";
 
 /** Belohnungsfarbe (Gold) – in beiden Themen gut sichtbar. */
 export const GOLD = "#f2b705";
 
-/** Kopf mit Bild, Begrüßung, Serie und Zuverlässigkeit (Angaben der letzten 4 Wochen; Details unter „Meine Daten“). */
+/** Kopf: Datum, Begrüßung und Bild, darunter Serie und Zuverlässigkeit als kleine Kapseln (Details unter „Meine Daten“). */
 export function PlayerHero({ p, g }: { p: Player; g: GameState }) {
-  const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
-  const ink = c.accentInk, sub = ink === "#ffffff" ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.62)";
+  const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
   const rel = g.reliability, pct = rel != null ? Math.round(rel * 100) : null;
+  const pill = { flexDirection: "row" as const, alignItems: "center" as const, gap: 6, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, borderRadius: radius.pill, paddingVertical: 6, paddingHorizontal: 11 };
   return (
-    <View testID="player-hero" style={{ backgroundColor: c.accent, borderRadius: radius.xl, padding: space.l + 2, gap: 14 }}>
+    <View testID="player-hero" style={{ gap: 12 }}>
       <Row gap={14}>
-        <View style={{ borderWidth: 2, borderColor: withAlpha(ink, 0.55), borderRadius: 40 }}><PlayerAvatar p={p} size={56} /></View>
-        <Col gap={2} style={{ flex: 1 }}>
-          <Text style={{ color: sub, fontSize: 13, fontWeight: "600" }}>{E.wt(E.TODAY)} {E.de(E.TODAY)} · {E.team.name}</Text>
-          <Text numberOfLines={1} style={{ color: ink, fontSize: 25, lineHeight: 30, fontWeight: "800", letterSpacing: -0.6 }}>{tf("ph_hi", { n: p.vn })}</Text>
-          {p.nr != null || p.pos ? <Text style={{ color: sub, fontSize: 13, fontWeight: "600" }}>{[p.nr != null ? "#" + p.nr : "", p.pos].filter(Boolean).join(" · ")}</Text> : null}
+        <Col gap={2} style={{ flex: 1, minWidth: 0 }}>
+          <T v="eyebrow">{longDate(E, E.TODAY)} · {E.team.name}</T>
+          <T v="h1" numberOfLines={1}>{tf("ph_hi", { n: p.vn })}</T>
         </Col>
-        <View testID="player-streak" accessibilityLabel={g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} style={{ alignItems: "center", backgroundColor: withAlpha(ink, 0.12), borderRadius: radius.l, paddingHorizontal: 10, paddingVertical: 8, minWidth: 58 }}>
-          <Icon name="flame" size={20} color={g.streak ? "#ffb703" : withAlpha(ink, 0.55)} strokeWidth={2} />
-          <Text style={{ color: ink, fontWeight: "800", fontSize: 18, fontVariant: ["tabular-nums"] }}>{g.streak}</Text>
-          <Text style={{ color: sub, fontSize: 10.5, fontWeight: "600" }}>{t("gm_days")}</Text>
-        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel={t("pn_ich")} onPress={() => router.push("/player/ich")}><PlayerAvatar p={p} size={50} /></Pressable>
       </Row>
-      {E.mods.belastung ? <Col gap={6} testID="player-reliability">
-        <Row between>
-          <Text style={{ color: ink, fontWeight: "700", fontSize: 13 }}>{t("gm_rel")}</Text>
-          <Text style={{ color: ink, fontWeight: "700", fontSize: 13, fontVariant: ["tabular-nums"] }}>{pct != null ? pct + " %" : "–"}</Text>
-        </Row>
-        <View style={{ height: 6, borderRadius: 99, backgroundColor: withAlpha(ink, 0.2), overflow: "hidden" }}>
-          <View style={{ width: `${Math.max(3, pct ?? 0)}%`, height: "100%", backgroundColor: pct != null && pct >= 90 ? GOLD : ink, borderRadius: 99 }} />
+      <Row gap={8} wrap>
+        <View testID="player-streak" accessibilityLabel={g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} style={pill}>
+          <Icon name="flame" size={16} color={g.streak ? GOLD : c.faint} strokeWidth={2.2} />
+          <Text style={{ color: c.ink, fontWeight: "700", fontSize: 13.5, fontVariant: ["tabular-nums"] }}>{g.streak} {t("gm_days")}</Text>
         </View>
-      </Col> : null}
+        {E.mods.belastung ? (
+          <Pressable testID="player-reliability" accessibilityRole="button" accessibilityLabel={`${t("gm_rel")}: ${pct != null ? pct + " %" : "–"}`} onPress={() => router.push("/player/daten/week")} style={pill}>
+            <View style={{ width: 34, height: 6, borderRadius: 3, backgroundColor: c.sunk, overflow: "hidden" }}>
+              <View style={{ width: `${Math.max(4, pct ?? 0)}%`, height: "100%", backgroundColor: pct != null && pct >= 90 ? GOLD : c.ok }} />
+            </View>
+            <Text style={{ color: c.ink, fontWeight: "600", fontSize: 13.5, fontVariant: ["tabular-nums"] }}>{t("gm_relS")} {pct != null ? pct + " %" : "–"}</Text>
+          </Pressable>
+        ) : null}
+      </Row>
     </View>
   );
 }
@@ -63,7 +63,7 @@ export function WeekRings({ g }: { g: GameState }) {
   const S = 132, cx = S / 2, W = 12;
   return (
     <Card testID="player-rings">
-      <Row between><T v="h2">{t("gm_week")}</T><Info title={t("gm_badges")} text={t("gm_info")} testID="game-info" /></Row>
+      <CardTitle title={t("gm_week")} info={<Info title={t("gm_badges")} text={t("gm_info")} testID="game-info" />} />
       <Row gap={18} wrap>
         <Svg width={S} height={S}>
           {rings.map((x, i) => {
@@ -116,29 +116,33 @@ export function Badges({ g, compact }: { g: GameState; compact?: boolean }) {
   });
   return (
     <Card testID="player-badges">
-      <Row between><T v="h2">{t("gm_badges")}</T><Muted small>{tf("gm_earned", { n, m: g.badges.length })}</Muted></Row>
+      <CardTitle title={t("gm_badges")} right={<Muted small>{tf("gm_earned", { n, m: g.badges.length })}</Muted>} />
       {compact ? <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 4 }}>{tiles}</ScrollView>
         : <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>{tiles}</View>}
     </Card>
   );
 }
 
-/** Große Aufgaben-Kachel (Morgen-Check, RPE): offen = farbig, erledigt = ruhig mit Haken. */
-export function TodoTile({ icon, title, sub, done, onPress, testID, color }: { icon: IconName; title: string; sub?: string; done?: boolean; onPress: () => void; testID?: string; color: string }) {
+/**
+ * Große Aufgaben-Kachel (Morgen-Check, RPE): offen = in Vereinsfarbe (das Wichtigste der Seite), erledigt = ruhig mit
+ * Haken. color: Farbe des Symbols, solange die Kachel ruhig ist.
+ */
+export function TodoTile({ icon, title, sub, done, onPress, testID }: { icon: IconName; title: string; sub?: string; done?: boolean; onPress: () => void; testID?: string; color?: string }) {
   const { c } = useTheme();
-  const fg = done ? c.ink : "#ffffff";
+  const ink = c.accentInk, soft = ink === "#ffffff" ? "rgba(255,255,255,0.82)" : "rgba(0,0,0,0.62)";
+  const fg = done ? c.ink : ink;
   return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={title} onPress={onPress}
-      style={({ pressed }) => ({ flexGrow: 1, flexBasis: 140, gap: 10, padding: 14, borderRadius: radius.l, backgroundColor: done ? c.surface : color, opacity: pressed ? 0.88 : 1, borderWidth: 1, borderColor: done ? c.line : color })}>
+    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={title + (sub ? ", " + sub : "")} onPress={onPress}
+      style={({ pressed }) => ({ flexGrow: 1, flexBasis: 140, gap: 12, padding: 16, borderRadius: radius.xl, backgroundColor: done ? c.surface : c.accent, opacity: pressed ? 0.9 : 1, borderWidth: StyleSheet.hairlineWidth, borderColor: done ? c.line : c.accent })}>
       <Row between>
-        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: done ? withAlpha(c.ok, 0.14) : "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center" }}>
-          <Icon name={done ? "check" : icon} size={18} color={done ? c.ok : "#ffffff"} strokeWidth={2.4} />
+        <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: done ? withAlpha(c.ok, 0.14) : withAlpha(ink === "#ffffff" ? "#ffffff" : "#000000", 0.18), alignItems: "center", justifyContent: "center" }}>
+          <Icon name={done ? "check" : icon} size={19} color={done ? c.ok : ink} strokeWidth={2.4} />
         </View>
-        {!done ? <Icon name="chevron" size={18} color="rgba(255,255,255,0.85)" /> : null}
+        {!done ? <Icon name="chevron" size={18} color={soft} strokeWidth={2.4} /> : null}
       </Row>
       <Col gap={2}>
-        <Text numberOfLines={1} style={{ fontWeight: "700", fontSize: 15.5, letterSpacing: -0.2, color: fg }}>{title}</Text>
-        {sub ? <Text numberOfLines={1} style={{ fontSize: 12.5, color: done ? c.muted : "rgba(255,255,255,0.85)" }}>{sub}</Text> : null}
+        <Text numberOfLines={1} style={{ fontWeight: "700", fontSize: 16.5, letterSpacing: -0.3, color: fg }}>{title}</Text>
+        {sub ? <Text numberOfLines={1} style={{ fontSize: 13, color: done ? c.muted : soft }}>{sub}</Text> : null}
       </Col>
     </Pressable>
   );
@@ -159,12 +163,12 @@ export function NextDates({ pid, max = 6, onMore }: { pid: string; max?: number;
       const ab = E.absenceOn(pid, x.date);
       const item = (key: string, col: string, kind: string, title: string, sub: string, extra?: React.ReactNode) => rows.push(
         <Row key={key} gap={12} align="flex-start" testID={"date-" + key}>
-          <View style={{ width: 54, alignItems: "center", paddingVertical: 6, borderRadius: radius.m, backgroundColor: withAlpha(col.startsWith("#") ? col : "#888888", 0.12) }}>
-            <Text style={{ fontSize: 11, fontWeight: "800", color: col }}>{E.wt(x.date).toUpperCase()}</Text>
-            <Text style={{ fontSize: 15, fontWeight: "800", color: c.ink }}>{E.de(x.date).slice(0, 5)}</Text>
+          <View style={{ width: 50, alignItems: "center", paddingVertical: 6, borderRadius: radius.m, backgroundColor: withAlpha(col.startsWith("#") ? col : "#888888", 0.12) }}>
+            <Text style={{ fontSize: 12, fontWeight: "700", color: col }}>{E.wt(x.date)}</Text>
+            <Text style={{ fontSize: 18, lineHeight: 22, fontWeight: "800", color: c.ink, fontVariant: ["tabular-nums"] }}>{Number(x.date.slice(8, 10))}</Text>
           </View>
           <Col gap={2} style={{ flex: 1 }}>
-            <Text style={{ fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, color: col, textTransform: "uppercase" }}>{kind} · {when}</Text>
+            <Text style={{ fontSize: 12.5, fontWeight: "700", color: col }}>{kind} · {when}</Text>
             <Text style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{title}</Text>
             {sub ? <Text style={{ fontSize: 13, color: c.muted }}>{sub}</Text> : null}
             {ab ? <Text style={{ fontSize: 12, fontWeight: "700", color: c.low }}>{t("ab_" + ab.typ)} · {t("pl_absent")}</Text> : null}
@@ -192,7 +196,7 @@ export function NextDates({ pid, max = 6, onMore }: { pid: string; max?: number;
   }
   return (
     <Card testID="player-dates">
-      <Row between><T v="h2">{max === 1 ? t("pl_next1") : t("pl_dates")}</T>{onMore ? <Btn small kind="ghost" testID="pd-more" label={t("pl_cal") + " ›"} onPress={onMore} /> : null}</Row>
+      <CardTitle title={max === 1 ? t("pl_next1") : t("pl_dates")} right={onMore ? <Btn small kind="ghost" testID="pd-more" label={t("pl_cal")} onPress={onMore} /> : undefined} />
       {rows.length ? <Col gap={12}>{rows}</Col> : <Muted>{t("pl_noDates")}</Muted>}
     </Card>
   );
@@ -207,11 +211,11 @@ export function Goals({ pid }: { pid: string }) {
   if (dev && !goals.length) return null;
   return (
     <Card testID="player-goals">
-      <Row between><T v="h2">{dev ? t("dv_potTitle") : t("pl_goals")}</T>{goals.length ? <Muted small>{goals.length}</Muted> : null}</Row>
+      <CardTitle title={dev ? t("dv_potTitle") : t("pl_goals")} right={goals.length ? <Muted small>{goals.length}</Muted> : undefined} />
       {goals.length ? <ScrollView horizontal showsHorizontalScrollIndicator contentContainerStyle={{ gap: 10, paddingBottom: 4 }}>
         {goals.map(g => { const col = potColor(c, g.cat); return (
           <View key={g.id} testID={"goal-" + g.id} style={{ width: 220, padding: 12, borderRadius: radius.l, backgroundColor: withAlpha(col, 0.12), borderWidth: 1, borderColor: withAlpha(col, 0.35), gap: 6 }}>
-            <Row gap={6}><Icon name="target" size={18} color={col} /><Text style={{ fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: col, textTransform: "uppercase" }}>{t("pc_" + g.cat)}</Text></Row>
+            <Row gap={6}><Icon name="target" size={18} color={col} /><Text style={{ fontSize: 12.5, fontWeight: "700", color: col }}>{t("pc_" + g.cat)}</Text></Row>
             <Text style={{ fontSize: 14.5, color: c.ink, lineHeight: 20 }}>{g.text}</Text>
           </View>
         ); })}
@@ -225,7 +229,7 @@ export function HealthConsentGate() {
   const s = useStore(); const { t } = s.tr; const { c } = useTheme();
   return (
     <Card tone={c.warn} testID="consent-gate">
-      <Row gap={8}><T v="h3" style={{ flex: 1 }}>{t("pl_consentT")}</T><Info title={t("cs_health")} text={t("cs_health_l")} /></Row>
+      <CardTitle title={t("pl_consentT")} info={<Info title={t("cs_health")} text={t("cs_health_l")} />} />
       <T v="small">{t("pl_consentD")}</T>
       <Btn testID="consent-give" kind="primary" label={t("pl_consentBtn")} onPress={async () => { try { await s.giveConsent("health_data"); } catch (e) { s.toast(s.errText(e)); } }} style={{ alignSelf: "flex-start" }} />
     </Card>
@@ -242,13 +246,13 @@ export function NewRating({ pid }: { pid: string }) {
   if (!r || !E.playerSees("ratings")) return null;
   const m = r.kind === "spiel" ? E.D.matches.find(x => x.date === r.date) : null;
   return (
-    <Pressable testID="player-newrating" accessibilityRole="button" onPress={() => router.push("/player/daten")}>
-      <Card tone={r.mark === "good" ? c.ok : r.rating != null && r.rating >= 7 ? softRatingColor(r.rating) : undefined}>
+    <Pressable testID="player-newrating" accessibilityRole="button" onPress={() => router.push("/player/daten/season")}>
+      <Card>
         <Row gap={12} align="flex-start">
           {r.mark ? <MarkBadge mark={r.mark} size="l" /> : <RatingBadge value={r.rating} size="l" soft />}
           <Col gap={3} style={{ flex: 1 }}>
             <T v="eyebrow">{E.coachName() ? E.tf("pl_newRatingN", { n: E.coachName() }) : t("pl_newRating")}</T>
-            <Text style={{ fontWeight: "800", fontSize: 15, color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}{r.mark ? " · " + t(r.mark === "good" ? "te_mineGood" : "te_minePoor") : ""}</Text>
+            <Text style={{ fontWeight: "700", fontSize: 15.5, color: c.ink }}>{E.wt(r.date)} {E.de(r.date)} · {m ? `${t("vs")} ${m.gegner}` : r.kind === "spiel" ? t("it_match") : t("it_training")}{r.mark ? " · " + t(r.mark === "good" ? "te_mineGood" : "te_minePoor") : ""}</Text>
             {r.tags?.length ? <Text style={{ fontSize: 13, color: c.muted }}>{r.tags.map(k => t("mt_" + k)).join(" · ")}</Text> : null}
             {r.text ? <Text style={{ fontSize: 14, color: c.ink }}>{r.text}</Text> : null}
           </Col>
@@ -266,7 +270,7 @@ export function MySeason({ pid }: { pid: string }) {
   return (
     <>
       {E.playerSees("stats") ? <Card testID="pd-season">
-        <T v="h3">{t("pl_mySeason")}</T>
+        <CardTitle title={t("pl_mySeason")} />
         <Row wrap gap={8}>
           <StatTile label={t("sp_games")} value={String(ss.games)} />
           <StatTile label={t("sp_min")} value={String(ss.min)} />
@@ -280,7 +284,7 @@ export function MySeason({ pid }: { pid: string }) {
         </Row> : null}
       </Card> : null}
       {E.playerSees("ratings") && rs.length ? <Card testID="pd-ratings">
-        <Row between><T v="h3">{t("pl_ratings")}</T>{ss.avg != null ? <Row gap={6}><Muted small>{t("sp_avg")}</Muted><RatingBadge value={Math.round(ss.avg * 10) / 10} size="s" soft /></Row> : null}</Row>
+        <CardTitle title={t("pl_ratings")} right={ss.avg != null ? <Row gap={6}><Muted small>{t("sp_avg")}</Muted><RatingBadge value={Math.round(ss.avg * 10) / 10} size="s" soft /></Row> : undefined} />
         <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 4, height: 70 }}>
           {rs.filter(r => r.rating != null).slice(0, 12).reverse().map(r => <View key={r.id} style={{ flex: 1, height: `${Math.max(10, (r.rating! - 3) / 7 * 100)}%`, backgroundColor: softRatingColor(r.rating), borderRadius: 4, opacity: r.rating! >= 7 ? 1 : 0.55 }} />)}
         </View>
@@ -296,7 +300,7 @@ export function MySeason({ pid }: { pid: string }) {
           </Row>
         ); })}
       </Card> : null}
-      {E.playerSees("videos") && vids.length ? <Card testID="pd-videos"><T v="h3">{t("pl_videos")}</T><VideoList videos={vids} /></Card> : null}
+      {E.playerSees("videos") && vids.length ? <Card testID="pd-videos"><CardTitle title={t("pl_videos")} /><VideoList videos={vids} /></Card> : null}
     </>
   );
 }

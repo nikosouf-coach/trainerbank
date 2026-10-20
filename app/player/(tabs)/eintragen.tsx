@@ -6,7 +6,7 @@ import { at, diff } from "../../../src/core/dates";
 import { gameOf } from "../../../src/core/game";
 import type { AbsenceType, Complaint, ExtraType, PainInfo, WellnessItems } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
-import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, Info, ListItem, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T } from "../../../src/ui/kit";
+import { Banner, Btn, Card, CardTitle, ChoiceChips, Col, DateField, Field, Header, Info, ListItem, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T } from "../../../src/ui/kit";
 import { cleanAreas } from "../../../src/core/body";
 import { cleanPainMap } from "../../../src/core/pain";
 import { BodyMap } from "../../../src/ui/bodyMap";
@@ -131,7 +131,7 @@ function WellForm({ onDone }: { onDone: () => void }) {
 
 const EXTRA: ExtraType[] = ["gym", "lauf", "schule", "verein", "sonst"];
 function ExtraForm() {
-  const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
+  const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme();
   const p = E.P(s.mePid!)!;
   const [art, setArt] = useState<ExtraType>("gym");
   const [label, setLabel] = useState("");
@@ -148,7 +148,7 @@ function ExtraForm() {
   return (
     <>
       <Card testID="form-extra">
-        <T v="h3">{t("px_art")}</T>
+        <CardTitle title={t("px_art")} />
         <ChoiceChips testID="extra-art" value={art} onChange={setArt} options={EXTRA.map(k => ({ key: k, label: t("px_" + k) }))} />
         {art === "sonst" ? <Field testID="extra-label" label={t("pl_otherLabel")} value={label} onChangeText={setLabel} placeholder={t("pl_otherPh")} maxLength={60} /> : null}
         <Row wrap gap={10}>
@@ -161,7 +161,7 @@ function ExtraForm() {
         <Btn testID="extra-save" kind="primary" label={t("save")} onPress={save} style={{ alignSelf: "flex-start" }} />
       </Card>
       <Card>
-        <T v="h3">{t("px_list")}</T>
+        <CardTitle title={t("px_list")} />
         {L.length ? L.map(x => <ListItem key={x.id} title={`${E.wt(x.date)} ${E.de(x.date)} · ${x.label || t("px_" + x.art)}`} sub={`${x.min} ${t("min")} · RPE ${x.rpe}`}
           right={<Btn small kind="ghost" icon="trash" label="" a11y={t("del")} onPress={() => s.deleteExtra(p.id, x.id)} />} />) : <Muted>{t("px_none")}</Muted>}
       </Card>
@@ -182,7 +182,7 @@ function AbsForm() {
   return (
     <>
       {allowed ? <Card testID="form-abs">
-        <T v="h3">{t("pa_absQ")}</T>
+        <CardTitle title={t("pa_absQ")} />
         <ChoiceChips testID="abs-typ" value={typ} onChange={setTyp} options={types.map(k => ({ key: k, label: t("ab_" + k) }))} />
         <Row wrap gap={10}>
           <DateField testID="pabs-from" label={t("abs_from")} value={von} onChange={setVon} lang={E.tr.lang} style={{ flex: 1, minWidth: 140 }} />
@@ -196,7 +196,7 @@ function AbsForm() {
         }} style={{ alignSelf: "flex-start" }} />
       </Card> : <Banner>{t("pl_absOff")}</Banner>}
       <Card>
-        <T v="h3">{t("pa_mine")}</T>
+        <CardTitle title={t("pa_mine")} />
         {mine.length ? mine.map(x => <ListItem key={x.id} title={t("ab_" + x.typ)} sub={`${E.de(x.von)} – ${x.bis ? E.de(x.bis) : t("ongoing")}${x.notiz ? " · " + x.notiz : ""}`}
           right={x.by === "player" && allowed ? <Btn small kind="ghost" icon="trash" label="" a11y={t("del")} onPress={() => s.deleteAbsence(x.id)} /> : undefined} />) : <Muted>{t("abs_none")}</Muted>}
       </Card>

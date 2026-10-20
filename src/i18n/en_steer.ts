@@ -92,7 +92,7 @@ export const en_steer: Dict = {
   sf_account: "App account", sf_accountD: "Link the profile to the coach's account. They then see their blocks and tasks in their app.", sf_noAccount: "not linked",
   sf_accountNone: "No other coaches with an app account yet. Invite them via More → Access & codes.",
   demo_co: "Assistant",
-  td_dayLink: "Training day ›",
+  td_dayLink: "Open training day",
   tk_title2: "Tasks & duties", tk_menuSub: "To-dos, kit duty, fines catalogue", tk_tab: "Tasks", tk_all: "All",
   tk_info: "Tasks for your coaching staff (to-dos) and for players, duties such as kit duty in rotation and a fines catalogue – optionally automatic. Players only see their own tasks, duties and fines.",
   tk_staff: "Coaching staff", tk_players: "Player tasks", tk_playersInfo: "Tasks for single players, a group or everyone – e.g. “bring your ID” or “watch the video by Thursday”. Every player ticks off their task in the app.",

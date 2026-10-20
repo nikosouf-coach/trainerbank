@@ -4,15 +4,14 @@
 // Punkte: „Alles erledigt“.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
 import { addDays } from "../core/dates";
 import { myBlocks, myTask } from "../core/day";
 import { useEngine, useStore } from "../data/store";
-import { Icon, type IconName } from "./icons";
+import type { IconName } from "./icons";
 import { useInboxItems } from "./inbox";
-import { Card, CardTitle } from "./kit";
+import { IconTile, MoreRow, NavRow, Section } from "./kit";
 import { useMatchdayChecks } from "./matchday";
-import { radius, useTheme, withAlpha } from "./theme";
+import { useTheme } from "./theme";
 
 export interface FocusItem { k: string; icon: IconName; title: string; n?: number; color: string; go: string }
 
@@ -54,41 +53,20 @@ export function useFocusItems(): FocusItem[] {
   return [...base, ...rest];
 }
 
-/** Karte „Heute wichtig“: höchstens 4 Punkte, weitere aufklappbar */
+/** Bereich „Heute wichtig“: höchstens 4 Punkte als Zeilen, weitere aufklappbar */
 export function FocusCard() {
   const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
   const items = useFocusItems();
   const [all, setAll] = useState(false);
   const shown = all ? items : items.slice(0, 4);
   return (
-    <Card testID="today-focus">
-      <CardTitle title={t("fc_title")} />
-      {!items.length ? (
-        <View testID="focus-none" style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: withAlpha(c.ok, 0.14), alignItems: "center", justifyContent: "center" }}><Icon name="check" size={16} color={c.ok} strokeWidth={2.6} /></View>
-          <Text style={{ fontSize: 14.5, fontWeight: "600", color: c.ink }}>{t("fc_none")}</Text>
-        </View>
-      ) : (
-        <View>
-          {shown.map((x, i) => (
-            <Pressable key={x.k} testID={"focus-" + x.k} accessibilityRole="button" accessibilityLabel={x.title + (x.n ? `: ${x.n}` : "")} onPress={() => router.push(x.go)}
-              style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 46, paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: c.line, opacity: pressed ? 0.7 : 1 })}>
-              <View style={{ width: 30, height: 30, borderRadius: 9, backgroundColor: withAlpha(x.color.startsWith("#") ? x.color : "#888888", 0.13), alignItems: "center", justifyContent: "center" }}>
-                <Icon name={x.icon} size={17} color={x.color} strokeWidth={2} />
-              </View>
-              <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: "600", color: c.ink }}>{x.title}</Text>
-              {x.n ? <View style={{ minWidth: 24, height: 22, paddingHorizontal: 7, borderRadius: radius.pill, backgroundColor: c.sunk, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontSize: 12.5, fontWeight: "700", color: c.ink, fontVariant: ["tabular-nums"] }}>{x.n}</Text></View> : null}
-              <Icon name="chevron" size={16} color={c.muted} />
-            </Pressable>
-          ))}
-          {items.length > 4 ? (
-            <Pressable testID="focus-more" accessibilityRole="button" onPress={() => setAll(!all)} style={{ paddingTop: 10, borderTopWidth: 1, borderTopColor: c.line }}>
-              <Text style={{ fontSize: 13.5, fontWeight: "600", color: c.accentTx }}>{all ? t("fc_less") : tf("fc_more", { n: items.length - 4 })}</Text>
-            </Pressable>
-          ) : null}
-        </View>
-      )}
-    </Card>
+    <Section title={t("fc_title")} testID="today-focus">
+      {!items.length ? <NavRow testID="focus-none" left={<IconTile name="check" color={c.ok} />} title={t("fc_none")} /> : null}
+      {shown.map(x => (
+        <NavRow key={x.k} testID={"focus-" + x.k} icon={x.icon} iconColor={x.color} title={x.title} badge={x.n} onPress={() => router.push(x.go)}
+          a11y={x.title + (x.n ? `: ${x.n}` : "")} />
+      ))}
+      {items.length > 4 ? <MoreRow testID="focus-more" label={all ? t("fc_less") : tf("fc_more", { n: items.length - 4 })} onPress={() => setAll(!all)} /> : null}
+    </Section>
   );
 }

@@ -1,9 +1,10 @@
 // Anzeige der individuellen Vorgaben: Zusammenfassung je Einheit (Trainer) und „Für dich“ (Spieler).
 import React, { useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { indivFor, indivLabel, indivOf, type IndivKind, type IndivTarget } from "../core/indiv";
 import { useEngine } from "../data/store";
-import { Btn, Col, Info, Muted, Row, T } from "./kit";
+import { Icon } from "./icons";
+import { Col, Info, Muted, Row, T } from "./kit";
 import { radius, rpeColor, useTheme, withAlpha } from "./theme";
 
 export const INDIV_COLOR: Record<IndivKind, string> = {
@@ -32,9 +33,14 @@ export function IndivSummary({ date, testID }: { date: string; testID?: string }
   const by = ORDER.map(k => ({ k, L: list.filter(v => v.kind === k) })).filter(x => x.L.length);
   return (
     <Col gap={6} testID={testID}>
-      <Row gap={6} wrap>
-        <Btn small kind="ghost" testID={testID ? testID + "-toggle" : undefined} icon="people" label={`${tf("iv_sum", { n: list.length })} ${open ? "▴" : "▾"}`} onPress={() => setOpen(!open)} style={{ paddingHorizontal: 0 }} />
-        {!open ? by.slice(0, 4).map(x => <Text key={x.k} style={{ fontSize: 12, fontWeight: "700", color: INDIV_COLOR[x.k] }}>{x.L.length} {indivLabel(E, x.k)}</Text>) : null}
+      <Row gap={8} wrap>
+        <Pressable testID={testID ? testID + "-toggle" : undefined} accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)}
+          style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 6, opacity: pressed ? 0.7 : 1 })}>
+          <Icon name="people" size={16} color={c.accentTx} strokeWidth={2} />
+          <Text style={{ fontSize: 13.5, fontWeight: "600", color: c.ink }}>{tf("iv_sum", { n: list.length })}</Text>
+          <View style={{ transform: [{ rotate: open ? "-90deg" : "90deg" }] }}><Icon name="chevron" size={13} color={c.muted} strokeWidth={2.4} /></View>
+        </Pressable>
+        {!open ? by.slice(0, 4).map(x => <Text key={x.k} style={{ fontSize: 12.5, fontWeight: "600", color: INDIV_COLOR[x.k] }}>{x.L.length} {indivLabel(E, x.k)}</Text>) : null}
         <Info title={t("iv_title")} text={t("iv_info")} />
       </Row>
       {open ? by.map(x => {

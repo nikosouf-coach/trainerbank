@@ -65,7 +65,7 @@ export function PotCard({ p }: { p: Player }) {
       {L.length ? L.map(x => (
         <Row key={x.id} gap={8} align="flex-start" wrap>
           <Chip label={t("pc_" + x.cat)} color={potColor(c, x.cat)} />
-          <Text style={{ flex: 1, minWidth: 160, color: c.ink, fontSize: 14 }}>{x.text}{x.src !== "trainer" ? "  " : ""}{x.src !== "trainer" ? <Text style={{ color: c.muted, fontSize: 11, fontWeight: "700" }}>{t("pot_src_" + x.src).toUpperCase()}</Text> : null}</Text>
+          <Text style={{ flex: 1, minWidth: 160, color: c.ink, fontSize: 14 }}>{x.text}{x.src !== "trainer" ? "  " : ""}{x.src !== "trainer" ? <Text style={{ color: c.muted, fontSize: 12, fontWeight: "600" }}>{t("pot_src_" + x.src)}</Text> : null}</Text>
           <Btn small testID={"pot-vis-" + x.id} label={x.vis ? t("pot_vis") : t("pot_hidden")} kind={x.vis ? "primary" : "default"} onPress={() => s.savePotential(p.id, { ...x, vis: !x.vis })} />
           <Btn small kind="ghost" icon="trash" label="" a11y={t("del")} onPress={() => s.deletePotential(p.id, x.id)} />
         </Row>

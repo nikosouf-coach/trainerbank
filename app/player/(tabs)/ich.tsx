@@ -6,7 +6,7 @@ import { Pressable, Text } from "react-native";
 import { teamLabel, POS } from "../../../src/core/classes";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Icon } from "../../../src/ui/icons";
-import { Banner, Btn, Card, ChoiceChips, Col, DateField, Field, Header, ListItem, Muted, NumField, Row, Screen, T } from "../../../src/ui/kit";
+import { Banner, Btn, Card, CardTitle, ChoiceChips, Col, DateField, Field, Header, ListItem, Muted, NumField, Row, Screen, T } from "../../../src/ui/kit";
 import { playerHidden } from "../../../src/ui/dashboard";
 import { GOLD, Goals } from "../../../src/ui/player/parts";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
@@ -53,13 +53,13 @@ export default function Ich() {
         </Row>
       </Card>
       {myGroups.length ? <Card testID="me-groups">
-        <T v="h3">{t("my_groups")}</T>
+        <CardTitle title={t("my_groups")} />
         <Row wrap gap={6}>{myGroups.map(g => <GroupChip key={g.id} group={g} testID={"me-group-" + g.id} />)}</Row>
         <Muted small>{t("my_groupsD")}</Muted>
       </Card> : null}
       <MyKasseCard pid={p.id} onManage={() => router.push("/player/kasse")} />
       <Card testID="me-profile">
-        <T v="h3">{t("pl_profile")}</T>
+        <CardTitle title={t("pl_profile")} />
         <Row wrap gap={10}>
           <Field testID="me-vn" label={t("po_vn")} value={vn} onChangeText={setVn} style={{ flex: 1, minWidth: 140 }} />
           <Field testID="me-nn" label={t("po_nn")} value={nn} onChangeText={setNn} style={{ flex: 1, minWidth: 140 }} />

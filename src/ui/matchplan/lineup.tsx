@@ -193,7 +193,7 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
     const n = zone === "bench" ? c.bench.length : outList.length, hot = !!ghost || (!!sel && where(sel) !== zone);
     return (
       <View key={"z" + zone} style={{ position: "absolute", left: 0, right: 0, top: top - 6, height: h + 6, borderRadius: radius.l, borderWidth: hot ? 1.5 : 0, borderStyle: "dashed", borderColor: col.accent, backgroundColor: hot ? withAlpha(col.accent, 0.05) : "transparent" }}>
-        <Text style={{ position: "absolute", left: 4, top: 8, fontSize: 12, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase", color: col.muted }}>
+        <Text style={{ position: "absolute", left: 4, top: 8, fontSize: 12, fontWeight: "800", color: col.muted }}>
           {zone === "bench" ? tf("mp_bench", { n }) + (c.bench.length > BENCH_DEF[c.fmt] + 2 ? " ⚠" : "") : tf("mp_out", { n })}</Text>
       </View>
     );

@@ -1,7 +1,7 @@
 // Trainer – Kalender: Woche oder Monat mit Training, Spielen, Events; Tagesansicht, Termine, Spielplan-Import.
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
-import { Pressable, Text, View, useWindowDimensions } from "react-native";
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { addDays, iso, kwOf, monday, monthStart, parse } from "../../../src/core/dates";
 import type { PlanItem } from "../../../src/core/engine";
 import { phaseOn } from "../../../src/core/prep";
@@ -18,9 +18,9 @@ function Item({ kind, text, color, onPress, testID, off }: { kind: string; text:
   const { c } = useTheme();
   return (
     <Pressable testID={testID} accessibilityRole="button" onPress={onPress}
-      style={{ borderLeftWidth: 3, borderLeftColor: color, backgroundColor: withAlpha(color.startsWith("#") ? color : "#888888", 0.08), borderRadius: 8, paddingVertical: 7, paddingHorizontal: 10, gap: 1, opacity: off ? 0.6 : 1 }}>
-      <Text style={{ fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase", color }}>{kind}</Text>
-      <Text style={{ fontSize: 14, color: c.ink, textDecorationLine: off ? "line-through" : "none" }}>{text}</Text>
+      style={({ pressed }) => ({ borderLeftWidth: 3, borderLeftColor: color, backgroundColor: withAlpha(color.startsWith("#") ? color : "#888888", pressed ? 0.14 : 0.08), borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10, gap: 1, opacity: off ? 0.6 : 1 })}>
+      <Text style={{ fontSize: 12, fontWeight: "700", color }}>{kind}</Text>
+      <Text style={{ fontSize: 14.5, color: c.ink, textDecorationLine: off ? "line-through" : "none", fontVariant: ["tabular-nums"] }}>{text}</Text>
     </Pressable>
   );
 }
@@ -53,16 +53,16 @@ export default function Kalender() {
     if ((x.train || x.match) && ab.length) its.push(<Muted key="a" small>{ab.length} {t("absent")}: {ab.slice(0, 4).map(p => p.vn).join(", ")}{ab.length > 4 ? " …" : ""}</Muted>);
     const today = x.date === E.TODAY, flash = cal.flash === x.date;
     return (
-      <View key={x.date} testID={"cal-day-" + x.date} style={{ flexDirection: "row", gap: 10, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: c.line, backgroundColor: flash ? withAlpha(c.warn, 0.15) : today ? withAlpha(c.accent, 0.05) : "transparent", borderRadius: flash || today ? 8 : 0, paddingHorizontal: flash || today ? 6 : 0 }}>
-        <Pressable testID={"cal-dl-" + x.date} accessibilityRole="button" accessibilityLabel={`${E.wt(x.date)} ${E.de(x.date)}`} onPress={() => openDay(x.date)} style={{ width: 54, gap: 2 }}>
-          <Text style={{ fontWeight: "800", fontSize: 15, color: today ? c.accentTx : c.ink }}>{E.wt(x.date)}</Text>
-          <Text style={{ fontSize: 12, color: c.muted }}>{E.de(x.date)}</Text>
-          {x.md ? <Text style={{ fontSize: 10.5, fontWeight: "700", color: c.muted }}>{x.md}</Text> : null}
+      <View key={x.date} testID={"cal-day-" + x.date} style={{ flexDirection: "row", gap: 10, paddingVertical: 10, paddingHorizontal: 10, borderTopWidth: x.date === cal.week ? 0 : StyleSheet.hairlineWidth, borderTopColor: c.line, backgroundColor: flash ? withAlpha(c.warn, 0.15) : today ? withAlpha(c.accent, 0.05) : "transparent" }}>
+        <Pressable testID={"cal-dl-" + x.date} accessibilityRole="button" accessibilityLabel={`${E.wt(x.date)} ${E.de(x.date)}`} onPress={() => openDay(x.date)} style={{ width: 44, alignItems: "center" }}>
+          <Text style={{ fontWeight: "700", fontSize: 12.5, color: today ? c.accentTx : c.muted }}>{E.wt(x.date)}</Text>
+          <Text style={{ fontSize: 21, lineHeight: 25, fontWeight: "800", letterSpacing: -0.5, color: today ? c.accentTx : c.ink, fontVariant: ["tabular-nums"] }}>{parse(x.date).getDate()}</Text>
+          {x.md ? <Text style={{ fontSize: 10.5, fontWeight: "600", color: c.muted, fontVariant: ["tabular-nums"] }}>{x.md}</Text> : null}
         </Pressable>
         <View style={{ flex: 1, gap: 6, minWidth: 0 }}>{its.length ? its : <Muted small>{t("noTraining")}</Muted>}</View>
         <Pressable testID={"cal-plus-" + x.date} accessibilityRole="button" accessibilityLabel={t("addE")} onPress={() => sheets.open({ k: "add", date: x.date, type: "training" })}
-          style={{ width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: c.line, alignItems: "center", justifyContent: "center" }}>
-          <Icon name="plus" size={18} color={c.muted} />
+          style={({ pressed }) => ({ width: 34, height: 34, borderRadius: 17, backgroundColor: pressed ? c.line : c.sunk, alignItems: "center", justifyContent: "center" })}>
+          <Icon name="plus" size={17} color={c.muted} strokeWidth={2.2} />
         </Pressable>
       </View>
     );
@@ -151,16 +151,16 @@ export default function Kalender() {
   const ws = cal.week, we = addDays(ws, 6);
   return (
     <Screen testID="coach-kalender">
-      <Header eyebrow={t("cal_sub")} title={t("nav_kalender")} right={<Row gap={8}>
-        <Btn testID="cal-import" label={t("imp")} onPress={() => sheets.open({ k: "import" })} />
-        <Btn testID="cal-add" kind="primary" label={t("addE")} onPress={() => sheets.open({ k: "add", date: ws <= E.TODAY && E.TODAY <= we ? E.TODAY : ws, type: "training" })} />
+      <Header title={t("nav_kalender")} right={<Row gap={8}>
+        <Btn small testID="cal-import" label={t("imp")} onPress={() => sheets.open({ k: "import" })} />
+        <Btn small testID="cal-add" kind="primary" icon="plus" label={t("addE")} onPress={() => sheets.open({ k: "add", date: ws <= E.TODAY && E.TODAY <= we ? E.TODAY : ws, type: "training" })} />
       </Row>} />
       <Seg testID="cal-view" value={cal.view} onChange={v => v === "monat" ? setCal({ view: v, month: monthStart(cal.week) }) : setCal({ view: v, week: cal.month === monthStart(E.TODAY) ? monday(E.TODAY) : monday(cal.month) })}
         options={[{ key: "woche", label: t("cal_week") }, { key: "monat", label: t("cal_month") }]} />
       {cal.view === "monat" ? month() : <>
         <CalNav label={`${t("kw")} ${kwOf(ws)} · ${E.de(ws)}–${E.de(we)}`} todayLabel={t("thisW")}
           onPrev={() => setCal({ week: addDays(ws, -7) })} onNext={() => setCal({ week: addDays(ws, 7) })} onToday={() => setCal({ week: monday(E.TODAY) })} />
-        <Card style={{ paddingVertical: 4, gap: 0 }}>{wp.items.map(dayRow)}</Card>
+        <Card style={{ padding: 0, gap: 0, overflow: "hidden" }}>{wp.items.map(dayRow)}</Card>
       </>}
       <Card>
         <CardTitle title={t("upcoming")} />

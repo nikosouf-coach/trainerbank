@@ -13,7 +13,7 @@ import {
 import type { FreeKey, Phase, PhaseKind, ProgItem } from "../core/types";
 import { tmpId, useEngine, useStore } from "../data/store";
 import { Icon, type IconName } from "./icons";
-import { Btn, Card, Col, DateField, Field, Info, Muted, NumField, NumScale, Picker, Row, Seg, Sheet, T } from "./kit";
+import { Btn, Card, Col, DateField, Field, Group, Info, Muted, NavRow, NumField, NumScale, Picker, Row, Seg, Sheet, T } from "./kit";
 import { GOLD, HealthConsentGate } from "./player/parts";
 import { radius, rpeColor, useTheme, withAlpha } from "./theme";
 
@@ -102,7 +102,7 @@ export function ItemInfoSheet({ it, pid, onClose, onLog, locked }: { it: ProgIte
 
 /** Einheit eintragen: Datum, Minuten, RPE – wird als Zusatzbelastung mit Programm-Verweis gespeichert. */
 export function LogSheet({ it, ph, pid, onClose }: { it: ProgItem | null; ph: Phase | null; pid: string; onClose: () => void }) {
-  const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
+  const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme();
   const [date, setDate] = useState<string>(E.TODAY), [min, setMin] = useState<number | null>(null), [rpe, setRpe] = useState<number | null>(null);
   const [last, setLast] = useState<string | null>(null);
   if (it && it.id !== last) { setLast(it.id); setDate(E.TODAY); setMin(it.min); setRpe(it.rpe); }
@@ -142,7 +142,7 @@ export function PlayerProgramCard({ pid }: { pid: string }) {
   const pw = progWeek(E.D, pid, ph, ws, E.TODAY), allDone = started && pw.total > 0 && pw.done >= pw.total;
   const col = ph.kind === "break" ? "#16a3a3" : "#f0762b";
   return (
-    <Card testID="player-program" tone={allDone ? GOLD : col}>
+    <Card testID="player-program">
       <Pressable accessibilityRole="button" onPress={() => router.push("/player/programm")} style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
         <CountRing done={pw.done} total={pw.total} color={col} />
         <Col gap={3} style={{ flex: 1 }}>
@@ -178,8 +178,8 @@ export function PhaseSummary({ ph, onPress, testID }: { ph: Phase; onPress: () =
       <View style={{ width: 6, alignSelf: "stretch", borderRadius: 3, backgroundColor: col }} />
       <Col gap={3} style={{ flex: 1 }}>
         <Row gap={6} wrap>
-          <Text style={{ fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, color: col, textTransform: "uppercase" }}>{t("vb_kind_" + ph.kind)}</Text>
-          {running ? <Text style={{ fontSize: 10.5, fontWeight: "800", color: c.ok }}>● {tf(ph.kind === "break" ? "vb_nowBreak" : "vb_nowPrep", { i, n: W.length })}</Text> : null}
+          <Text style={{ fontSize: 12.5, fontWeight: "700", color: col }}>{t("vb_kind_" + ph.kind)}</Text>
+          {running ? <Text style={{ fontSize: 12.5, fontWeight: "700", color: c.ok }}>● {tf(ph.kind === "break" ? "vb_nowBreak" : "vb_nowPrep", { i, n: W.length })}</Text> : null}
         </Row>
         <Text style={{ fontWeight: "800", fontSize: 16, color: c.ink }}>{ph.title}</Text>
         <Text style={{ fontSize: 13, color: c.muted }}>{E.de(ph.from)} – {E.de(ph.to)} · {W.length === 1 ? t("vb_week1") : tf("vb_weeks", { n: W.length })}{ph.firstMatch ? ` · ${t("it_match")} ${E.de(ph.firstMatch)}` : ""}</Text>
@@ -192,15 +192,18 @@ export function PhaseSummary({ ph, onPress, testID }: { ph: Phase; onPress: () =
 
 /** Karte auf „Heute“ (Trainer): laufende oder bald beginnende Phase. */
 export function CoachPhaseCard() {
-  const E = useEngine(); const router = useRouter(); const { t } = E;
+  const E = useEngine(); const router = useRouter(); const { t, tf } = E; const { c } = useTheme();
   if (!E.mods.vorbereitung) return null;
   const ph = phaseOn(E.D, E.TODAY) || upcomingPhase(E.D, E.TODAY, 21);
   if (!ph) return null;
+  const W = phaseWeeks(ph.from, ph.to), running = ph.from <= E.TODAY && ph.to >= E.TODAY;
+  const sub = running ? tf(ph.kind === "break" ? "vb_nowBreak" : "vb_nowPrep", { i: weekIndex(ph, E.TODAY), n: W.length })
+    : `${t("vb_kind_" + ph.kind)}, ${E.de(ph.from)} – ${E.de(ph.to)}`;
   return (
-    <Card testID="coach-phase-card">
-      <Row between><T v="eyebrow">{t("vb_title")}</T></Row>
-      <PhaseSummary ph={ph} onPress={() => router.push("/coach/phase/" + ph.id)} />
-    </Card>
+    <Group testID="coach-phase-card">
+      <NavRow icon={ph.kind === "break" ? "sun" : "flame"} iconColor={ph.kind === "break" ? c.low : c.hot} title={ph.title} sub={sub}
+        value={W.length === 1 ? t("vb_week1") : tf("vb_weeks", { n: W.length })} onPress={() => router.push("/coach/phase/" + ph.id)} />
+    </Group>
   );
 }
 

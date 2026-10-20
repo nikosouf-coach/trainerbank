@@ -15,7 +15,7 @@ export function MyTasksCard() {
   const dates = [...new Set(mine.map(b => b.date))];
   return (
     <Card testID="today-tasks">
-      <CardTitle title={t("tk_mineCoach")} right={<Btn small kind="ghost" testID="today-tasks-all" label={t("tk_all") + " ›"} onPress={() => router.push("/coach/aufgaben")} />} />
+      <CardTitle title={t("tk_mineCoach")} right={<Btn small kind="ghost" testID="today-tasks-all" label={t("tk_all")} onPress={() => router.push("/coach/aufgaben")} />} />
       <MyTodos />
       {me ? <T v="eyebrow">{t("td_myBlocks")}</T> : null}
       {dates.length ? dates.map(d => {

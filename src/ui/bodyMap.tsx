@@ -47,7 +47,7 @@ function Figure({ kind, view, sel, color, onTap, testID }: { kind: FigureKind; v
             style={{ position: "absolute", left: pct(p.hit.x), top: pct((p.hit.y / FIG_H) * 100), width: pct(p.hit.w), height: pct((p.hit.h / FIG_H) * 100) }} />
         )) : null}
       </View>
-      <Text style={{ fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: c.muted, textTransform: "uppercase" }}>{t("bm_" + view)}</Text>
+      <Text style={{ fontSize: 12.5, fontWeight: "700", color: c.muted }}>{t("bm_" + view)}</Text>
     </Col>
   );
 }
@@ -113,7 +113,7 @@ export function BodyMap({ value, onChange, pain, onPain, level, color, testID = 
               style={{ borderWidth: 1, borderColor: c.line, borderRadius: radius.m, padding: 10, gap: 3, backgroundColor: c.surface }}>
               <Row between gap={8}>
                 <T bold style={{ flexShrink: 1 }}>{areaLabel(t, code)}</T>
-                <Text style={{ color: c.accentTx, fontWeight: "700", fontSize: 13 }}>{info ? t("bm_edit") : t("bm_addInfo")} ›</Text>
+                <Text style={{ color: c.accentTx, fontWeight: "700", fontSize: 13 }}>{info ? t("bm_edit") : t("bm_addInfo")}</Text>
               </Row>
               {info ? <Muted small>{painSummary(t, info)}</Muted> : <Muted small>{t("bm_noInfo")}</Muted>}
               {ef.flags.length ? <Text style={{ color: c.crit, fontSize: 12.5, fontWeight: "700" }}>⚠ {t(ef.flags[0] + "_s")}</Text> : null}

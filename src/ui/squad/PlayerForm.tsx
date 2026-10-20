@@ -29,7 +29,7 @@ export function PlayerForm({ player, onDone }: { player: Player | null; onDone: 
       // Gruppen getrennt speichern (eigene Tabelle): nur Änderungen
       const before = player?.groups || [];
       for (const g of own) { const on = groups.includes(g.id); if (on !== before.includes(g.id)) await s.setGroupMember(g.id, saved.id, on); }
-      s.toast(t("pf_saved")); onDone(saved);
+      s.toast(t("pf_playerSaved")); onDone(saved);
     } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
   return (

@@ -1,6 +1,6 @@
 // Kleine Diagramme (SVG): Wochenlast, Tageslast mit ACWR, Erholungsring, Wochenstreifen.
 import React from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import Svg, { Circle, Line, Polyline, Rect, Text as SvgText } from "react-native-svg";
 import { radius, rpeColor, useTheme } from "./theme";
 
@@ -54,20 +54,26 @@ export function Ring({ pct, color, size = 58 }: { pct: number; color: string; si
   );
 }
 
-/** Wochenstreifen: Höhe/Farbe = Intensität, Spiel in Vereinsfarbe. */
-export function WeekStrip({ days }: { days: { label: string; md: string; rpe: number; match: boolean; today: boolean }[] }) {
+/** Wochenstreifen: Höhe/Farbe = Intensität, Spiel in Vereinsfarbe, heute umrandet. onDay: Tag antippen (testID-i). */
+export function WeekStrip({ days, onDay, testID }: { days: { label: string; md: string; rpe: number; match: boolean; today: boolean }[]; onDay?: (i: number) => void; testID?: string }) {
   const { c } = useTheme();
   return (
     <View style={{ flexDirection: "row", gap: 6 }}>
-      {days.map((d, i) => (
-        <View key={i} style={{ flex: 1, alignItems: "center", gap: 3 }}>
-          <View style={{ width: "100%", height: 46, borderRadius: 7, backgroundColor: c.sunk, overflow: "hidden", justifyContent: "flex-end" }}>
-            <View style={{ height: d.match ? "100%" : d.rpe ? `${Math.max(15, d.rpe * 10)}%` : 0, backgroundColor: d.match ? c.accent : rpeColor(c, d.rpe), borderRadius: 7 }} />
-          </View>
-          <Text style={{ fontSize: 11, fontWeight: d.today ? "800" : "500", color: d.today ? c.ink : c.muted }}>{d.label}</Text>
-          <Text style={{ fontSize: 9.5, color: c.muted }}>{d.md || " "}</Text>
-        </View>
-      ))}
+      {days.map((d, i) => {
+        const body = (
+          <>
+            <View style={{ width: "100%", height: 48, borderRadius: 8, backgroundColor: c.sunk, overflow: "hidden", justifyContent: "flex-end", borderWidth: d.today ? 1.5 : 0, borderColor: c.ink }}>
+              <View style={{ height: d.match ? "100%" : d.rpe ? `${Math.max(15, d.rpe * 10)}%` : 0, backgroundColor: d.match ? c.accent : rpeColor(c, d.rpe), borderRadius: 6 }} />
+            </View>
+            <Text style={{ fontSize: 11.5, fontWeight: d.today ? "800" : "500", color: d.today ? c.ink : c.muted }}>{d.label}</Text>
+            <Text style={{ fontSize: 9.5, color: c.muted, fontVariant: ["tabular-nums"] }}>{d.md || " "}</Text>
+          </>
+        );
+        return onDay ? (
+          <Pressable key={i} testID={testID ? testID + "-" + i : undefined} accessibilityRole="button" accessibilityLabel={`${d.label} ${d.md}`} onPress={() => onDay(i)}
+            style={({ pressed }) => ({ flex: 1, alignItems: "center", gap: 3, opacity: pressed ? 0.7 : 1 })}>{body}</Pressable>
+        ) : <View key={i} style={{ flex: 1, alignItems: "center", gap: 3 }}>{body}</View>;
+      })}
     </View>
   );
 }

@@ -7,7 +7,7 @@ import { fmtOf } from "../../core/matchplan";
 import { cleanPlanContent, defaultSeason, makeResolver, planSeasons, seasonLabel, statsBy, type RefState } from "../../core/scout";
 import type { ScoutPrio, ScoutStatus, SpContent } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
-import { Seg, T } from "../kit";
+import { Seg, T, cap } from "../kit";
 import { radius, useTheme, withAlpha, type Colors } from "../theme";
 
 export const statusCol = (c: Colors, s: ScoutStatus): string =>
@@ -78,7 +78,7 @@ export function StateTag({ label, color, testID }: { label: string; color: strin
   return (
     <View testID={testID} style={{ flexDirection: "row", alignItems: "center", gap: 5, backgroundColor: withAlpha(color, 0.14), borderRadius: 99, paddingHorizontal: 8, paddingVertical: 2, alignSelf: "flex-start" }}>
       <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color }} />
-      <Text style={{ color, fontWeight: "800", fontSize: 11.5 }}>{label}</Text>
+      <Text style={{ color, fontWeight: "700", fontSize: 11.5 }}>{cap(label)}</Text>
     </View>
   );
 }

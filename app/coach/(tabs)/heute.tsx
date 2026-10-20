@@ -1,14 +1,16 @@
-// Trainer – Heute: aufs Wesentliche reduziert – nächster Termin, „Heute wichtig“ (alles Offene in je einer Zeile),
-// Belastung im Team, die Woche und der KI-Coach als Eintrag. Weitere Karten (Spieltag-Check, Aufgaben, Posteingang,
-// Braucht Aufmerksamkeit, Abwesende, Events, letzte Einheit, Team-Wochenlast) lassen sich dazuschalten.
+// Trainer – Heute: eine Frage – was ist jetzt wichtig? Oben die nächste Einheit (das eine kräftige Element der Seite),
+// darunter Bereiche als Gruppen: „Heute wichtig“ (alles Offene je eine Zeile), Belastung im Team (führt auf die
+// Detailseite mit Zonen, Vorschlägen und Hintergrund), die Woche, Vorbereitung und KI-Coach. Weitere Karten
+// (Spieltag-Check, Aufgaben, Posteingang, Braucht Aufmerksamkeit, Abwesende, Events, letzte Einheit, Team-Wochenlast)
+// lassen sich unter „Startseite anpassen“ dazuschalten.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { addDays, monday, sum } from "../../../src/core/dates";
 import { useEngine, useStore } from "../../../src/data/store";
 import { AiPanel } from "../../../src/ui/ai";
 import { WeekBars, WeekStrip } from "../../../src/ui/charts";
-import { Bar, Btn, Card, CardTitle, Chip, Col, Fold, Header, Info, ListItem, Muted, Row, Screen, Sheet, T } from "../../../src/ui/kit";
+import { Bar, Btn, Chip, Col, Fold, Group, Header, Info, ListItem, Muted, NavRow, Row, Screen, Section, Sheet, T } from "../../../src/ui/kit";
 import { CustomizeLinks, DashEditor, useDash } from "../../../src/ui/dashboard";
 import { FocusCard } from "../../../src/ui/focus";
 import { MenuEditor } from "../../../src/ui/navEditor";
@@ -23,16 +25,23 @@ import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
 import { InboxCard } from "../../../src/ui/inbox";
 import { ViaClubBanner } from "../../../src/ui/club";
-import { Icon } from "../../../src/ui/icons";
-import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
+import { Icon, type IconName } from "../../../src/ui/icons";
+import { longDate } from "../../../src/ui/insight";
+import { radius, statusColor, useTheme } from "../../../src/ui/theme";
 
-function HeroPill({ label, color }: { label: string; color: string }) {
-  return <View style={{ backgroundColor: withAlpha(color === "#111111" ? "#000000" : "#ffffff", 0.16), borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 }}><Text style={{ color, fontWeight: "600", fontSize: 12.5 }}>{label}</Text></View>;
+/** Eine Angabe im Hauptelement: Symbol und Wert (statt Kapseln mit Trennpunkten) */
+function Fact({ icon, label, color }: { icon: IconName; label: string; color: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+      <Icon name={icon} size={15} color={color} strokeWidth={2.1} />
+      <Text style={{ color, fontSize: 14.5, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{label}</Text>
+    </View>
+  );
 }
 
 export default function Heute() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
-  const sheets = usePlanSheets();
+  const sheets = usePlanSheets(); const { width } = useWindowDimensions();
   const dash = useDash(); const [editDash, setEditDash] = useState(false); const [editMenu, setEditMenu] = useState(false); const [aiOpen, setAiOpen] = useState(false);
   const mods = E.mods, kids = E.grp === "u11";
 
@@ -57,26 +66,33 @@ export default function Heute() {
   const nxTitle = nx ? (nx.match ? `${t("vs")} ${nx.match.gegner}` : E.kn(nx.train!.kind)) : "";
   const when = nx ? (nx.i === 0 ? t("today") : nx.i === 1 ? t("tomorrow") : E.wt(nx.date) + " " + E.de(nx.date)) : "";
 
-  // Nächster Termin: nur das Wichtigste auf einen Blick (Inhalt und Details auf der Tagesseite)
-  const ink = c.accentInk, sub = ink === "#ffffff" ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.62)";
+  // Nächste Einheit: Titel groß, darunter die vier wichtigsten Angaben (Inhalt und Details auf der Tagesseite)
+  const ink = c.accentInk, sub = ink === "#ffffff" ? "rgba(255,255,255,0.8)" : "rgba(0,0,0,0.64)";
   const hero = nx ? (
-    <Pressable testID="today-next" accessibilityRole="button" onPress={() => router.push("/coach/tag/" + nx.date)}
-      style={({ pressed }) => ({ backgroundColor: c.accent, borderRadius: radius.xl, padding: space.l + 2, gap: 10, opacity: pressed ? 0.92 : 1 })}>
+    <Pressable testID="today-next" accessibilityRole="button" accessibilityLabel={`${nx.match ? t("nextMatch") : t("next")}, ${when}: ${nxTitle}`} onPress={() => router.push("/coach/tag/" + nx.date)}
+      style={({ pressed }) => ({ backgroundColor: c.accent, borderRadius: radius.xl, paddingVertical: 18, paddingHorizontal: 20, gap: 10, opacity: pressed ? 0.92 : 1 })}>
       <Row between>
-        <Text style={{ color: sub, fontSize: 13, fontWeight: "600" }}>{nx.match ? t("nextMatch") : t("next")} · {when}</Text>
-        <Icon name="chevron" size={18} color={sub} />
+        <Text style={{ color: sub, fontSize: 14, fontWeight: "600" }}>{nx.match ? t("nextMatch") : t("next")} · {when}</Text>
+        <Icon name="chevron" size={18} color={sub} strokeWidth={2.2} />
       </Row>
-      <Text numberOfLines={2} style={{ color: ink, fontSize: 26, lineHeight: 31, fontWeight: "800", letterSpacing: -0.6 }}>{nxTitle}</Text>
-      <Row wrap gap={6}>
+      <Text numberOfLines={2} style={{ color: ink, fontSize: 30, lineHeight: 35, fontWeight: "800", letterSpacing: -0.9 }}>{nxTitle}</Text>
+      <Row wrap gap={16} style={{ rowGap: 6 }}>
         {nx.match ? <>
-          <HeroPill color={ink} label={`${nx.match.zeit} · ${nx.match.heim ? t("home") : t("away")}`} />
+          <Fact icon="clock" color={ink} label={nx.match.zeit} />
+          <Fact icon="home" color={ink} label={nx.match.heim ? t("home") : t("away")} />
         </> : <>
-          <HeroPill color={ink} label={`${E.zeitOf(nx.date)} · ${nx.train!.dauer} ${t("min")}`} />
-          {E.lvl(1) && !kids ? <HeroPill color={ink} label={`${E.intWord(nx.train!.rpe)} · RPE ${nx.train!.rpe}`} /> : null}
+          <Fact icon="clock" color={ink} label={E.zeitOf(nx.date)} />
+          <Fact icon="stopwatch" color={ink} label={`${nx.train!.dauer} ${t("min")}`} />
+          {E.lvl(1) && !kids ? <Fact icon="bolt" color={ink} label={`${E.intWord(nx.train!.rpe)} · RPE ${nx.train!.rpe}`} /> : null}
         </>}
-        <HeroPill color={ink} label={`${E.D.players.length - absN.length} ${t("avail")}`} />
-        {nx.train?.notReady.length ? <HeroPill color={ink} label={tf("notReadyN", { n: nx.train.notReady.length })} /> : null}
+        <Fact icon="people" color={ink} label={`${E.D.players.length - absN.length} ${t("avail")}`} />
       </Row>
+      {nx.train?.notReady.length ? (
+        <Row gap={7} style={{ marginTop: 2 }}>
+          <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: ink, opacity: 0.85 }} />
+          <Text style={{ color: sub, fontSize: 13.5, fontWeight: "600" }}>{tf(nx.train.notReady.length === 1 ? "notReady1" : "notReadyN", { n: nx.train.notReady.length })}</Text>
+        </Row>
+      ) : null}
     </Pressable>
   ) : null;
 
@@ -102,66 +118,71 @@ export default function Heute() {
   ) : null;
 
   const eventsCard = evUp.length ? (
-    <Card testID="today-events">
-      <CardTitle title={t("upEvents")} />
-      {evUp.map(e => <ListItem key={e.id} title={`${E.wt(e.date)} ${E.de(e.date)}${e.zeit ? " · " + e.zeit : ""}`} sub={e.titel} onPress={() => sheets.open({ k: "add", date: e.date, type: "event", obj: e })} />)}
-    </Card>
+    <Section title={t("upEvents")} testID="today-events">
+      {evUp.map(e => <NavRow key={e.id} icon="calendar" iconColor={c.event} title={e.titel} sub={`${E.wt(e.date)} ${E.de(e.date)}${e.zeit ? " · " + e.zeit : ""}`} onPress={() => sheets.open({ k: "add", date: e.date, type: "event", obj: e })} />)}
+    </Section>
   ) : null;
 
+  // Letzte Einheit: Titel über der Fläche wie alle Bereiche, Datum rechts daneben
   const lastCard = (
-    <Card testID="today-last">
-      {last ? <Col gap={10}>
-        <Row between wrap><T v="h3">{t("last")}</T><Muted small>{E.wt(last.date)} {E.de(last.date)} · {last.typ === "Spiel" ? t("it_match") : t("it_training")}</Muted></Row>
+    <Section testID="today-last" title={t("last")} pad
+      right={last ? <Muted small>{E.wt(last.date)} {E.de(last.date)} · {last.typ === "Spiel" ? t("it_match") : t("it_training")}</Muted> : undefined}>
+      {last ? <>
         {mods.beteiligung ? <Col gap={6}><Row between><T>{t("part")}</T><T bold>{da} / {avl}</T></Row><Bar value={avl ? da / avl : 0} color={c.ok} /></Col> : null}
         {mods.belastung ? <Col gap={4}>
           <Row between><T>{t("rpeSub")}</T><T bold>{da - missing.length} / {da}</T></Row>
           {missing.length ? <Muted small>{t("missing")}: {missing.map(p => p.vn + " " + (p.nn || " ")[0] + ".").join(", ")}</Muted> : null}
         </Col> : null}
         {mods.beteiligung ? <Btn testID="today-att" label={t("viewAtt")} onPress={() => router.push("/coach/einheit/" + last.date)} style={{ alignSelf: "flex-start" }} /> : null}
-      </Col> : <Muted>{t("noSession")}</Muted>}
-    </Card>
+      </> : <Muted>{t("noSession")}</Muted>}
+    </Section>
   );
 
   const loadCard = mods.belastung && E.lvl(2) ? (
-    <Card testID="today-load">
-      <Row between><T v="h3">{t("teamLoad")}</T><Info title={t("teamLoad")} text={t("teamLoadNote")} /></Row>
+    <Section title={t("teamLoad")} info={<Info title={t("teamLoad")} text={t("teamLoadNote")} />} testID="today-load" pad>
       <WeekBars data={team} label={t("teamLoad")} />
-    </Card>
+    </Section>
   ) : null;
 
   const weekCard = (
-    <Card testID="today-week">
-      <CardTitle title={t("thisWeek")} right={<Btn small kind="ghost" label={(mods.planung ? t("nav_plan") : t("nav_kalender")) + " ›"} onPress={() => router.push(mods.planung ? "/coach/plan" : "/coach/kalender")} />} />
-      <WeekStrip days={wp.items.map(x => ({ label: E.wt(x.date), md: x.md, rpe: x.match ? 8 : x.train ? x.train.rpe : 0, match: !!x.match, today: x.date === E.TODAY }))} />
-    </Card>
+    <Section testID="today-week" title={t("thisWeek")} pad
+      action={{ label: mods.planung ? t("nav_plan") : t("nav_kalender"), onPress: () => router.push(mods.planung ? "/coach/plan" : "/coach/kalender"), testID: "today-week-open" }}>
+      <WeekStrip testID="today-day" onDay={i => router.push("/coach/tag/" + wp.items[i].date)}
+        days={wp.items.map(x => ({ label: E.wt(x.date), md: x.md, rpe: x.match ? 8 : x.train ? x.train.rpe : 0, match: !!x.match, today: x.date === E.TODAY }))} />
+    </Section>
   );
 
   // KI-Coach: auf der Startseite nur ein Eintrag – das Gespräch öffnet sich als Blatt
   const aiCard = mods.ki ? (
-    <Pressable testID="ai-open" accessibilityRole="button" accessibilityLabel={t("ki_title")} onPress={() => setAiOpen(true)}>
-      <Card style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 14 }}>
-        <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: c.accentSoft, alignItems: "center", justifyContent: "center" }}><Icon name="spark" size={18} color={c.accentTx} /></View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{t("ki_title")}</Text>
-          <Text numberOfLines={1} style={{ fontSize: 12.5, color: c.muted }}>{t("fc_aiSub")}</Text>
-        </View>
-        <Icon name="chevron" size={16} color={c.muted} />
-      </Card>
-    </Pressable>
+    <Group>
+      <NavRow testID="ai-open" icon="spark" title={t("ki_title")} sub={t("fc_aiSub")} onPress={() => setAiOpen(true)} />
+    </Group>
   ) : null;
 
   const cards: Record<string, React.ReactNode> = {
     next: hero, focus: <FocusCard />, matchday: <MatchdayCard />, tasks: <MyTasksCard />, inbox: <InboxCard />, phase: <CoachPhaseCard />, status: mods.belastung ? <TeamStatusCard /> : null,
     attn: attnCard, absent: absentCard, week: weekCard, events: eventsCard, last: lastCard, load: loadCard, ai: aiCard,
   };
+  const wide = width >= 1000, rest = dash.order.filter(k => k !== "next" && !!cards[k]);
   const available = (k: string): boolean => ({ focus: true, matchday: true, inbox: !!mods.entwicklung || !!mods.chat, status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;
 
   return (
     <Screen testID="coach-heute">
-      <Header eyebrow={`${E.wt(E.TODAY)} ${E.de(E.TODAY)} · ${teamLabel(E.team)}`} title={myName ? `${gruss}, ${myName}` : gruss}
+      <Header eyebrow={`${longDate(E, E.TODAY)} · ${teamLabel(E.team)}`} title={myName ? `${gruss}, ${myName}` : gruss}
         aside={<TeamLogo size={46} />} />
       <ViaClubBanner />
-      {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
+      {/* Breiter Bildschirm (Tablet, Laptop): nächste Einheit über die ganze Breite, die übrigen Bereiche in zwei Spalten
+          (Reihenfolge bleibt zeilenweise erhalten) */}
+      {wide ? <>
+        {dash.order.includes("next") && hero ? hero : null}
+        <Row align="flex-start" gap={20}>
+          {[0, 1].map(col => (
+            <Col key={col} gap={20} style={{ flex: 1, minWidth: 0 }}>
+              {rest.filter((_, i) => i % 2 === col).map(k => <React.Fragment key={k}>{cards[k]}</React.Fragment>)}
+            </Col>
+          ))}
+        </Row>
+      </> : dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
       <CustomizeLinks onDash={() => setEditDash(true)} onBar={() => setEditMenu(true)} />
       <Sheet visible={aiOpen} onClose={() => setAiOpen(false)} title={t("ki_title")} testID="ai-sheet" closeLabel={t("close")}>
         {aiOpen ? <AiPanel mode="coach" testID="ai" context={() => E.aiContext(pid => s.aiPlayers.includes(pid))} quick={["ki_q1", "ki_q2", "ki_q3"]} placeholder={t("ki_ph")} note={t("ki_note")}

@@ -68,7 +68,7 @@ export default function Zugang() {
             {owner && x.role !== "owner" && !x.viaClub ? <Btn small testID={"perm-edit-" + x.userId} icon="key" label={t("pm_edit")} onPress={() => setEdit(x)} style={{ alignSelf: "flex-start" }} /> : null}
           </ListItem>
         ))}
-        {staff && team.length <= 1 && !pending.length ? <Muted small>{t("st_none")}</Muted> : null}
+        {staff && team.length <= 1 && !pending.length ? <Muted small>{t("sf_noStaff")}</Muted> : null}
       </Card>
       <PermSheet entry={edit} visible={!!edit} onClose={() => setEdit(null)} onSaved={() => { loadStaff(); if (s.isDemo) s.reload(); }} />
     </Screen>

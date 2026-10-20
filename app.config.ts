@@ -41,7 +41,7 @@ const config: ExpoConfig = {
     "expo-localization",
     "expo-sharing",
     "expo-status-bar",
-    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 96, resizeMode: "contain", backgroundColor: "#F5F6F8", dark: { image: "./assets/splash-icon.png", backgroundColor: "#0B0D10" } }],
+    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 96, resizeMode: "contain", backgroundColor: "#F2F4F3", dark: { image: "./assets/splash-icon.png", backgroundColor: "#0D1110" } }],
     ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#0D6B4B" }],
     ["expo-image-picker", {
       photosPermission: "Trainerbank greift auf deine Fotos zu, wenn du ein Profilbild oder einen Befund auswählst.",

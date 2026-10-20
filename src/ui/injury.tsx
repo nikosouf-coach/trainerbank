@@ -168,7 +168,7 @@ export function PlayerFindings({ pid }: { pid: string }) {
   if (!list.length) return null;
   return (
     <Card testID="player-findings">
-      <T v="h3">{t("bf_mine")}</T>
+      <CardTitle title={t("bf_mine")} />
       {list.map(f => (
         <Pressable key={f.id} accessibilityRole="button" onPress={() => setOpen(f)} style={{ flexDirection: "row", gap: 10, alignItems: "center", paddingVertical: 4 }}>
           <Text style={{ fontSize: 11, fontWeight: "800", color: c.inj, width: 34 }}>{f.mime === "application/pdf" ? "PDF" : "IMG"}</Text>

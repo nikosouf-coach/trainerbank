@@ -120,7 +120,7 @@ const SlideCard = React.memo(function SlideCard({ sl, n, look, info, width, onPr
           <View style={{ minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5, backgroundColor: withAlpha(sp ? col.event : col.accent, 0.15), alignItems: "center", justifyContent: "center" }}>
             <Text style={{ fontSize: 11, fontWeight: "900", color: sp ? col.event : col.accentTx }}>{n}</Text>
           </View>
-          <Text numberOfLines={1} style={{ flex: 1, fontSize: 11, fontWeight: "800", color: sp ? col.event : col.accentTx, textTransform: "uppercase", letterSpacing: 0.4 }}>{t("msc_" + sl.cat)}</Text>
+          <Text numberOfLines={1} style={{ flex: 1, fontSize: 12, fontWeight: "700", color: sp ? col.event : col.accentTx }}>{t("msc_" + sl.cat)}</Text>
         </Row>
         <Text numberOfLines={2} style={{ fontWeight: "800", fontSize: 14, color: col.ink }}>{slideLabel(t, sl)}</Text>
         <Text numberOfLines={1} style={{ fontSize: 11.5, color: col.muted }}>{frameLabel(t, sl)}{sl.note ? " · " + t("mp_noteShort") : ""}</Text>

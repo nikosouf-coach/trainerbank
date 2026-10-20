@@ -3,7 +3,7 @@
 // über „Ich“ erreichbar. Standard: Tipps ausgeblendet.
 import { Tabs } from "expo-router";
 import React from "react";
-import { View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { chatSettings } from "../../../src/core/chat";
 import { useStore } from "../../../src/data/store";
 import { useChatBadge } from "../../../src/ui/chat";
@@ -28,7 +28,7 @@ export default function PlayerTabs() {
   const hide = playerHidden(s.prefs);
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Tabs screenOptions={{ headerShown: false, freezeOnBlur: true, tabBarActiveTintColor: c.ink, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line, borderTopWidth: 1 }, tabBarLabelStyle: { fontWeight: "600", fontSize: 11, letterSpacing: -0.1 } }}>
+      <Tabs screenOptions={{ headerShown: false, freezeOnBlur: true, tabBarActiveTintColor: c.accentTx, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line, borderTopWidth: StyleSheet.hairlineWidth }, tabBarLabelStyle: { fontWeight: "600", fontSize: 10.5, letterSpacing: -0.1 } }}>
         {TABS.map(x => (
           <Tabs.Screen key={x.name} name={x.name} options={{
             title: t(x.label), tabBarButtonTestID: "tab-" + x.name, tabBarIcon: ({ color, focused }) => <Icon name={x.icon} color={color} strokeWidth={focused ? 2.2 : 1.8} />,

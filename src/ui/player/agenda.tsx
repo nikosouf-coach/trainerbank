@@ -60,7 +60,7 @@ export function AgendaDay({ pid, date, testID }: { pid: string; date: string; te
   const timed: [string, React.ReactNode][] = [], top: React.ReactNode[] = [];
   const row = (k: string, col: string, icon: IconName, kind: string, title: string, sub?: string, extra?: React.ReactNode, off?: boolean) => (
     <View key={k} testID={"pc-e-" + k} style={{ borderLeftWidth: 3, borderLeftColor: col, backgroundColor: withAlpha(col.startsWith("#") ? col : "#888888", 0.08), borderRadius: radius.s, paddingVertical: 7, paddingHorizontal: 10, gap: 2, opacity: off ? 0.65 : 1 }}>
-      <Row gap={5}><Icon name={icon} size={12} color={col} strokeWidth={2.2} /><Text style={{ fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, textTransform: "uppercase", color: col }}>{kind}</Text></Row>
+      <Row gap={5}><Icon name={icon} size={12} color={col} strokeWidth={2.2} /><Text style={{ fontSize: 12, fontWeight: "700", color: col }}>{kind}</Text></Row>
       <Text style={{ fontSize: 14.5, fontWeight: "700", color: c.ink, textDecorationLine: off ? "line-through" : "none" }}>{title}</Text>
       {sub ? <Text style={{ fontSize: 12.5, color: c.muted }}>{sub}</Text> : null}
       {extra}
@@ -70,7 +70,7 @@ export function AgendaDay({ pid, date, testID }: { pid: string; date: string; te
     const m = x.match, mp = s.myPlans.find(p => p.matchId === m.id);
     timed.push([m.zeit, row("m", c.accentTx, "ball", t("it_match"), `${t("vs")} ${m.gegner}`, `${m.zeit} · ${m.heim ? t("home") : t("away")} · ${t("comp_" + m.comp)}`,
       mp && E.mods.matchplan ? <Pressable testID={"pc-mp-" + mp.id} accessibilityRole="button" onPress={() => router.push("/player/matchplan/" + mp.id)} style={{ alignSelf: "flex-start", paddingTop: 4 }}>
-        <Row gap={5}><Icon name="board" size={14} color={c.accentTx} /><Text style={{ fontSize: 13, fontWeight: "700", color: c.accentTx }}>{t("pc_mpOpen")} ›</Text></Row>
+        <Row gap={5}><Icon name="board" size={14} color={c.accentTx} /><Text style={{ fontSize: 13, fontWeight: "700", color: c.accentTx }}>{t("pc_mpOpen")}</Text></Row>
       </Pressable> : null)]);
   }
   const tr = x.train;

@@ -4,12 +4,13 @@
 // dazuschalten.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
-import { View } from "react-native";
+import { Pressable, StyleSheet, Text } from "react-native";
 import { gameOf } from "../../../src/core/game";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Ring } from "../../../src/ui/charts";
 import { CustomizeLinks, DashEditor, PlayerTabsEditor, useDash } from "../../../src/ui/dashboard";
-import { Card, Col, Msg, Row, Screen, T } from "../../../src/ui/kit";
+import { Col, Msg, Row, Screen, T } from "../../../src/ui/kit";
+import { Icon } from "../../../src/ui/icons";
 import { PlayerQuick } from "../../../src/ui/player/quick";
 import { Badges, Goals, NewRating, NextDates, PlayerHero, TodoTile, WeekRings } from "../../../src/ui/player/parts";
 import { PlayerProgramCard } from "../../../src/ui/prep";
@@ -20,7 +21,7 @@ import { MyKasseCard } from "../../../src/ui/kasse";
 import { ChallengeCard } from "../../../src/ui/challenge";
 import { MyGoalsCard } from "../../../src/ui/dev";
 import { PlayerPlansCard } from "../../../src/ui/matchplan/cards";
-import { useTheme } from "../../../src/ui/theme";
+import { radius, useTheme } from "../../../src/ui/theme";
 
 export default function PlayerHeute() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
@@ -35,21 +36,22 @@ export default function PlayerHeute() {
 
   const cards: Record<string, React.ReactNode> = {
     todo: E.mods.belastung ? <Row wrap gap={10}>
-      <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} done={wellDone} color="#16a3a3" onPress={() => router.push("/player/eintragen?tab=well")} />
-      <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} done={!open} color="#f0762b" onPress={() => router.push("/player/eintragen?tab=rpe" + (open ? `&date=${open.date}&slot=${open.slot}` : ""))} />
+      <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} done={wellDone} onPress={() => router.push("/player/eintragen?tab=well")} />
+      <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} done={!open} onPress={() => router.push("/player/eintragen?tab=rpe" + (open ? `&date=${open.date}&slot=${open.slot}` : ""))} />
     </Row> : null,
-    // Körper heute: Zustand, Empfehlung und Grund in einer Zeile
-    body: seesLoad && (E.mods.belastung || E.mods.regeneration) ? <Card testID="player-body" tone={stCol}>
-      <Row gap={14}>
-        <View><Ring pct={st.k === "ready" ? 100 : st.k === "easy" ? 60 : 20} color={stCol} size={52} /></View>
+    // Körper heute: Zustand und Empfehlung in einer Zeile – die Seite dahinter erklärt Gründe, Tipps und Hintergrund
+    body: seesLoad && (E.mods.belastung || E.mods.regeneration) ? (
+      <Pressable testID="player-body" accessibilityRole="button" accessibilityLabel={`${t("ph_body")}: ${t("ph_" + st.k)}`} onPress={() => router.push("/player/koerper")}
+        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: radius.l, backgroundColor: pressed ? c.sunk : c.surface, borderWidth: StyleSheet.hairlineWidth, borderColor: c.line })}>
+        <Ring pct={st.k === "ready" ? 100 : st.k === "easy" ? 60 : 20} color={stCol} size={52} />
         <Col gap={2} style={{ flex: 1 }}>
           <T v="eyebrow">{t("ph_body")}</T>
-          <T v="h2" style={{ color: stCol }}>{t("ph_" + st.k)}</T>
-          <T v="small" numberOfLines={2}>{t("ph_" + st.k + "_t")}</T>
-          {st.why ? <T v="small" numberOfLines={1} color={c.muted}>{st.why}</T> : null}
+          <Text style={{ fontSize: 19, lineHeight: 24, fontWeight: "800", color: stCol, letterSpacing: -0.3 }}>{t("ph_" + st.k)}</Text>
+          <T v="small" numberOfLines={2} color={c.muted}>{t("ph_" + st.k + "_t")}</T>
         </Col>
-      </Row>
-    </Card> : null,
+        <Icon name="chevron" size={15} color={c.faint} strokeWidth={2.4} />
+      </Pressable>
+    ) : null,
     msgs: msgs.length ? <Col gap={10}>{msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}</Col> : null,
     reha: <PlayerRehaCard pid={p.id} />,
     plan: <PlayerPlansCard />,

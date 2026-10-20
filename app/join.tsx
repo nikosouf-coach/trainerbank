@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { teamLabel, POS } from "../src/core/classes";
 import { ageOn } from "../src/core/dates";
 import { useStore } from "../src/data/store";
-import { Banner, Btn, Card, Check, ChoiceChips, Col, DateField, Field, Header, Info, Muted, NumField, Row, Screen, T } from "../src/ui/kit";
+import { Banner, Btn, Card, CardTitle, Check, ChoiceChips, Col, DateField, Field, Header, Info, Muted, NumField, Row, Screen, T } from "../src/ui/kit";
 
 export default function Join() {
   const s = useStore(); const tr = s.tr; const { t } = tr; const router = useRouter();
@@ -63,16 +63,16 @@ export default function Join() {
           <Btn kind="ghost" small label={t("au_privacyLink")} onPress={() => router.push("/legal?doc=privacy")} style={{ alignSelf: "flex-start" }} />
         </Card>
         <Card>
-          <Row gap={8}><T v="h3">{t("cs_health")}</T><Info title={t("cs_health")} text={t("cs_health_l")} /></Row>
+          <CardTitle title={t("cs_health")} info={<Info title={t("cs_health")} text={t("cs_health_l")} />} />
           <Check testID="jn-c-health" value={cHealth} onChange={setCHealth} label={t("cs_health_s")} />
         </Card>
         {under16 ? <Card>
-          <Row gap={8}><T v="h3">{t("cs_parent")}</T><Info title={t("cs_parent")} text={t("cs_parent_l")} /></Row>
+          <CardTitle title={t("cs_parent")} info={<Info title={t("cs_parent")} text={t("cs_parent_l")} />} />
           <Check testID="jn-c-parent" value={cParent} onChange={setCParent} label={t("cs_parent_s")} />
           <Field testID="jn-parentmail" label={t("cs_parentMail")} value={parentMail} onChangeText={setParentMail} keyboardType="email-address" autoCapitalize="none" />
         </Card> : null}
         <Card>
-          <Row gap={8}><T v="h3">{t("cs_ai")}</T><Info title={t("cs_ai")} text={t("cs_ai_l")} /></Row>
+          <CardTitle title={t("cs_ai")} info={<Info title={t("cs_ai")} text={t("cs_ai_l")} />} />
           <Check testID="jn-c-ai" value={cAi} onChange={setCAi} label={t("cs_ai_s")} />
         </Card>
         {msg ? <Muted>{msg}</Muted> : null}

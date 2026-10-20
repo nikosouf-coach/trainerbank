@@ -3,7 +3,7 @@
 // ausgeblendet (href: null), aber über „Mehr“ und Links erreichbar – die Leiste bleibt dabei sichtbar.
 import { Tabs } from "expo-router";
 import React from "react";
-import { View, useWindowDimensions } from "react-native";
+import { StyleSheet, View, useWindowDimensions } from "react-native";
 import { useStore } from "../../../src/data/store";
 import { useChatBadge } from "../../../src/ui/chat";
 import { Icon } from "../../../src/ui/icons";
@@ -20,8 +20,8 @@ export default function CoachTabs() {
   const narrow = width < 380 && nav.bar.length >= 5;
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Tabs backBehavior="history" screenOptions={{ headerShown: false, freezeOnBlur: true, tabBarActiveTintColor: c.ink, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line, borderTopWidth: 1 },
-        tabBarLabelStyle: { fontWeight: "600", fontSize: narrow ? 10 : 11, letterSpacing: -0.1 } }}>
+      <Tabs backBehavior="history" screenOptions={{ headerShown: false, freezeOnBlur: true, tabBarActiveTintColor: c.accentTx, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line, borderTopWidth: StyleSheet.hairlineWidth },
+        tabBarLabelStyle: { fontWeight: "600", fontSize: narrow ? 10 : 10.5, letterSpacing: -0.1 } }}>
         {order.map(k => {
           if (k === "mehr") return (
             <Tabs.Screen key="mehr" name="mehr" options={{ title: t("nav_module"), tabBarButtonTestID: "tab-mehr", tabBarIcon: ({ color, focused }) => <Icon name="mehr" color={color} strokeWidth={focused ? 2.2 : 1.8} /> }} />

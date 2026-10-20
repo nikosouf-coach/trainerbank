@@ -28,7 +28,7 @@ export default function Wiki() {
           <Card key={e.k} testID={"wiki-" + e.k} style={{ gap: 8 }}>
             <Pressable accessibilityRole="button" accessibilityState={{ expanded: on }} onPress={() => setOpen(open === e.k ? null : e.k)} style={{ flexDirection: "row", gap: 10, alignItems: "flex-start" }}>
               <Col gap={4} style={{ flex: 1 }}>
-                <Text style={{ fontSize: 10.5, fontWeight: "800", letterSpacing: 0.8, color: c.accentTx, textTransform: "uppercase" }}>{t("wk_c_" + e.cat)}</Text>
+                <Text style={{ fontSize: 12.5, fontWeight: "700", color: c.accentTx }}>{t("wk_c_" + e.cat)}</Text>
                 <T v="h3">{x.t}</T>
                 <T v="small">{x.s}</T>
               </Col>

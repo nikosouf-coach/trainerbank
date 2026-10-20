@@ -32,7 +32,7 @@ export function BodyPicker({ value, onChange, color, testID = "body" }: { value:
     <Col gap={12} testID={testID}>
       {BODY_ZONES.map(z => (
         <Col key={z} gap={6}>
-          <Text style={{ fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: c.muted, textTransform: "uppercase" }}>{t("bd_zone_" + z)}</Text>
+          <Text style={{ fontSize: 12.5, fontWeight: "700", color: c.muted }}>{t("bd_zone_" + z)}</Text>
           <Row wrap gap={6}>{BODY.filter(b => b.zone === z).map(b => chip(b.k, t("bd_" + b.k)))}</Row>
         </Col>
       ))}

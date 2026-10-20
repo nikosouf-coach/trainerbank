@@ -19,6 +19,7 @@ import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { GroupChip } from "../../../src/ui/squad/Groups";
 import { DayUnitsCard } from "../../../src/ui/units";
 import { CoachPlanCard } from "../../../src/ui/matchplan/cards";
+import { Icon } from "../../../src/ui/icons";
 import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
 export default function Trainingstag() {
@@ -60,7 +61,7 @@ export default function Trainingstag() {
         right={<Btn small testID="td-edit-day" label={t("td_editDay")} onPress={() => sheets.open({ k: "day", date })} />} />
 
       {/* Einheit */}
-      {tr ? <Card testID="td-session" tone={showI ? rpeColor(c, tr.rpe) : undefined}>
+      {tr ? <Card testID="td-session">
         <Row wrap gap={8}>
           <Chip label={`${E.zeitOf(date)} · ${tr.dauer} ${t("min")}`} color={c.accentTx} />
           <Chip label={t("p_" + tr.platz)} color={c.muted} />
@@ -68,7 +69,10 @@ export default function Trainingstag() {
           {showI && past && E.sessAvg(date) != null ? <Chip label={tf("pl_avgRpe", { r: E.num(E.sessAvg(date)!, 1) })} color={rpeColor(c, Math.round(E.sessAvg(date)!))} /> : null}
         </Row>
         <T v="small">{tr.inhalt}</T>
-        {!past && showI && tr.notReady.length ? <T v="small" color={c.crit}>⚠ {tf("notReadyN", { n: tr.notReady.length })}: {tr.notReady.map(q => q.vn).join(", ")}</T> : null}
+        {!past && showI && tr.notReady.length ? <Row gap={8} align="flex-start">
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.crit, marginTop: 6 }} />
+          <T v="small" style={{ flex: 1 }}>{tf(tr.notReady.length === 1 ? "notReady1" : "notReadyN", { n: tr.notReady.length })}: {tr.notReady.map(q => q.vn).join(", ")}</T>
+        </Row> : null}
         <Row wrap gap={6}>
           {E.mods.planung && !past ? <Btn small testID="td-plan" label={t("day_plan")} onPress={() => router.push("/coach/plan?date=" + date)} /> : null}
           {E.mods.ki && !past ? <Btn small icon="spark" testID="td-ai" label={t("ki_session")} onPress={() => sheets.open({ k: "ai", date })} /> : null}
@@ -116,7 +120,7 @@ export default function Trainingstag() {
                 {/* Skizze als kleines Vorschaubild – sofort sichtbar, wo es eine gibt */}
                 {b.drawing && !o ? <View testID={"td-thumb-" + b.id} style={{ borderRadius: 6, overflow: "hidden" }}><SketchView value={b.drawing} width={46} mini /></View> : null}
                 <CrewDots b={b} />
-                <Text style={{ color: c.muted }}>{o ? "▴" : "▾"}</Text>
+                <View style={{ transform: [{ rotate: o ? "-90deg" : "90deg" }] }}><Icon name="chevron" size={14} color={c.faint} strokeWidth={2.4} /></View>
               </Pressable>
               {o ? <Col gap={8} testID={"td-block-open-" + b.id}>
                 {crew.some(x => x.task) ? <Col gap={4} testID={"td-crew-" + b.id}>{crew.map(x => (
