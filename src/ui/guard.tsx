@@ -3,6 +3,7 @@ import React from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useStore } from "../data/store";
+import { LogoMark } from "./brand";
 import { useTheme } from "./theme";
 
 export function targetPath(s: ReturnType<typeof useStore>): string {
@@ -14,7 +15,12 @@ export function targetPath(s: ReturnType<typeof useStore>): string {
 }
 export function Splash() {
   const { c } = useTheme();
-  return <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: c.bg }}><ActivityIndicator size="large" color={c.accent} /></View>;
+  return (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 22, backgroundColor: c.bg }}>
+      <LogoMark size={64} />
+      <ActivityIndicator size="small" color={c.muted} />
+    </View>
+  );
 }
 /** In Layouts: nur rendern, wenn der Bereich zur Rolle passt. */
 export function Guard({ area, children }: { area: "coach" | "player"; children: React.ReactNode }) {

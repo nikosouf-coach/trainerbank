@@ -89,7 +89,7 @@ export function BodyMap({ value, onChange, pain, onPain, level, color, testID = 
       <Muted small>{kid ? t("bm_hintKid") : t("bm_hint")}</Muted>
       {list ? <BodyPicker testID={testID + "-list"} value={sel} onChange={onChange} color={color} />
         : <Figures kind={kind} sel={sel} color={color} onTap={tap} testID={testID} />}
-      <Btn small kind="ghost" testID={testID + "-mode"} label={list ? "🧍 " + t("bm_asMap") : "☰ " + t("bm_asList")} onPress={() => setList(!list)} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} />
+      <Btn small kind="ghost" testID={testID + "-mode"} icon={list ? "person" : "checklist"} label={list ? t("bm_asMap") : t("bm_asList")} onPress={() => setList(!list)} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} />
       {!list ? <Col gap={6}>
         <T v="small" bold>{t("bm_ill")}</T>
         <Row wrap gap={6}>

@@ -5,12 +5,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { kwOf, monday } from "../../../src/core/dates";
-import { blocksTotal, dayBlocks, timeline } from "../../../src/core/day";
+import { blocksTotal, crewOf, dayBlocks, isMyBlock, myTask, timeline } from "../../../src/core/day";
 import type { DayBlock } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { TemplatePicker } from "../../../src/ui/archive";
 import { BoardView } from "../../../src/ui/board";
-import { BlockSheet, SketchImage, StaffDot } from "../../../src/ui/day/BlockSheet";
+import { BlockSheet, CrewDots, SketchImage, StaffDot } from "../../../src/ui/day/BlockSheet";
 import { IndivSummary } from "../../../src/ui/indiv";
 import { DayTasks } from "../../../src/ui/tasks/widgets";
 import { Banner, Btn, Card, CardTitle, Chip, Col, Header, Info, Muted, Row, Screen, Seg, T, Tag } from "../../../src/ui/kit";
@@ -43,7 +43,7 @@ export default function Trainingstag() {
   const slot = slot0 != null && slots.includes(slot0) ? slot0 : slots[0] ?? 0, unit = slot ? units.find(u => u.slot === slot) || null : null;
   const blocks = dayBlocks(E.D, date).filter(b => (b.slot || 0) === slot), timed = timeline(blocks, unit ? unit.zeit : E.zeitOf(date)), total = blocksTotal(blocks);
   const planned = unit ? unit.dauer : tr?.dauer ?? 0;
-  const shown = mine && me ? timed.filter(tb => tb.b.staffId === me.id) : timed;
+  const shown = mine && me ? timed.filter(tb => isMyBlock(tb.b, me.id)) : timed;
   const ab = E.absentOn(date), avail = E.D.players.filter(p => !ab.includes(p));
   const title = x.match ? `${t("it_match")} ${t("vs")} ${x.match.gegner}` : tr ? E.kn(tr.kind) : x.brk ? t("vb_breakDay") : x.cancelled ? `${t("it_training")} ${t("cancelled")}` : t("td_free");
   const nextSort = blocks.length ? Math.max(...blocks.map(b => b.sort)) + 1 : 0;
@@ -97,8 +97,9 @@ export default function Trainingstag() {
           options={slots.map(k => ({ key: String(k), label: k ? `${units.find(u => u.slot === k)!.zeit} ${E.unitTitle(units.find(u => u.slot === k)!)}` : `${E.zeitOf(date)} ${t("un_main")}` }))} /> : null}
         {coMode && me ? <Muted small>{tf("td_coHint", { n: me.name.split(" ")[0] })}</Muted> : null}
         {shown.length ? shown.map(({ b, from, to, parallel }) => {
-          const o = !!open[b.id], g = b.groupId ? E.D.groups.find(y => y.id === b.groupId) : null, st = b.staffId ? E.D.staff.find(y => y.id === b.staffId) : null;
-          const isMine = !!me && b.staffId === me.id;
+          const o = !!open[b.id], g = b.groupId ? E.D.groups.find(y => y.id === b.groupId) : null, crew = crewOf(b);
+          const isMine = !!me && isMyBlock(b, me.id), task = me ? myTask(b, me.id) : "";
+          const who = crew.map(x => E.D.staff.find(y => y.id === x.staffId)?.name.split(" ")[0]).filter(Boolean).join(" & ");
           return (
             <View key={b.id} testID={"td-block-" + b.id} style={{ borderLeftWidth: 4, borderLeftColor: isMine ? c.accent : parallel ? c.event : c.line, backgroundColor: isMine ? withAlpha(c.accent, 0.06) : "transparent", borderRadius: radius.s, paddingVertical: 8, paddingHorizontal: 10, gap: 6 }}>
               <Pressable accessibilityRole="button" accessibilityLabel={b.title} onPress={() => setOpen(v => ({ ...v, [b.id]: !o }))} style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -108,13 +109,18 @@ export default function Trainingstag() {
                 </Col>
                 <Col gap={3} style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={2} style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{b.title}</Text>
-                  <Text style={{ fontSize: 12, color: c.muted }}>{b.min} {t("min")}{st ? " · " + st.name : ""}{parallel ? " · " + t("td_parallel") : ""}{b.points.length ? " · " + tf("td_points", { n: b.points.length }) : ""}{b.drawing || b.photo ? " · ✎" : ""}</Text>
+                  <Text style={{ fontSize: 12, color: c.muted }}>{b.min} {t("min")}{who ? " · " + who : ""}{parallel ? " · " + t("td_parallel") : ""}{b.points.length ? " · " + tf("td_points", { n: b.points.length }) : ""}{b.drawing || b.photo ? " · ✎" : ""}</Text>
+                  {isMine && task ? <Text testID={"td-mytask-" + b.id} style={{ fontSize: 12.5, fontWeight: "800", color: c.accentTx }}>{t("td_myTask")}: {task}</Text> : null}
                   {g ? <View style={{ alignSelf: "flex-start" }}><GroupChip group={g} /></View> : null}
                 </Col>
-                <StaffDot staffId={b.staffId} />
+                <CrewDots b={b} />
                 <Text style={{ color: c.muted }}>{o ? "▴" : "▾"}</Text>
               </Pressable>
               {o ? <Col gap={8} testID={"td-block-open-" + b.id}>
+                {crew.some(x => x.task) ? <Col gap={4} testID={"td-crew-" + b.id}>{crew.map(x => (
+                  <Row key={x.staffId} gap={8}><StaffDot staffId={x.staffId} size={22} />
+                    <Text style={{ flex: 1, fontSize: 13.5, color: c.ink }}><Text style={{ fontWeight: "800" }}>{E.D.staff.find(y => y.id === x.staffId)?.name || "?"}</Text>{x.task ? ": " + x.task : ""}</Text></Row>
+                ))}</Col> : null}
                 {b.text ? <T v="small">{b.text}</T> : null}
                 {b.points.length ? <Col gap={3}>
                   <T v="eyebrow">{t("blk_points")}</T>

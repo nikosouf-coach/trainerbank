@@ -9,13 +9,14 @@ import type { Match } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
 import { Icon } from "../icons";
 import { Btn, Card, Chip, Col, Muted, Row, T } from "../kit";
-import { radius, useTheme } from "../theme";
+import { radius, useTheme, withAlpha } from "../theme";
 
 /** Spieler: freigegebene Matchpläne (neu = noch nicht angesehen) */
 export function PlayerPlansCard() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
   useEffect(() => { s.refreshMyPlans(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (!E.mods.matchplan || !s.myPlans.length) return null;
+  const ink = c.accentInk, sub = ink === "#ffffff" ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.62)";
   return (
     <Col gap={10}>
       {s.myPlans.map(p => {
@@ -23,16 +24,16 @@ export function PlayerPlansCard() {
         return (
           <Pressable key={p.id} testID={"pp-" + p.id} accessibilityRole="button" accessibilityLabel={p.title} onPress={() => router.push("/player/matchplan/" + p.id)}
             style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: radius.xl, backgroundColor: c.accent }}>
-            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.18)", alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontSize: 20 }}>📋</Text>
+            <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: withAlpha(ink === "#ffffff" ? "#ffffff" : "#000000", 0.16), alignItems: "center", justifyContent: "center" }}>
+              <Icon name="board" size={22} color={ink} />
             </View>
             <Col gap={2} style={{ flex: 1 }}>
-              <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 11, fontWeight: "800", letterSpacing: 1, textTransform: "uppercase" }}>
+              <Text style={{ color: sub, fontSize: 12.5, fontWeight: "600" }}>
                 {t("mp_title")}{m ? ` · ${E.wt(m.date)} ${E.de(m.date)}` : ""}{!p.seen ? " · " + t("pp_new") : ""}</Text>
-              <Text numberOfLines={2} style={{ color: "#fff", fontSize: 17, fontWeight: "800" }}>{p.title}</Text>
-              <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12.5 }}>{tf("pp_until", { d: `${E.wt(iso(new Date(p.until)))} ${new Date(p.until).toTimeString().slice(0, 5)}` })}</Text>
+              <Text numberOfLines={2} style={{ color: ink, fontSize: 17, fontWeight: "700", letterSpacing: -0.2 }}>{p.title}</Text>
+              <Text style={{ color: sub, fontSize: 12.5 }}>{tf("pp_until", { d: `${E.wt(iso(new Date(p.until)))} ${new Date(p.until).toTimeString().slice(0, 5)}` })}</Text>
             </Col>
-            {!p.seen ? <View testID={"pp-new-" + p.id} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: "#ffd43b" }} /> : <Icon name="chevron" size={20} color="#fff" />}
+            {!p.seen ? <View testID={"pp-new-" + p.id} style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: "#ffd43b" }} /> : <Icon name="chevron" size={20} color={ink} />}
           </Pressable>
         );
       })}
@@ -59,7 +60,7 @@ export function CoachPlanCard({ match, compact }: { match: Match; compact?: bool
   const col = st === "live" ? c.ok : st === "scheduled" ? c.warn : c.build;
   const body = (
     <Row gap={10} wrap>
-      <T bold>📋 {t("mp_title")}</T>
+      <Row gap={6}><Icon name="board" size={18} color={c.ink} /><T bold>{t("mp_title")}</T></Row>
       <Chip testID="mp-card-status" label={st === "live" ? t("mp_st_liveShort") : t("mp_st_" + st)} color={col} />
       {st === "live" || st === "ended" ? <Chip label={tf("mp_seen", { n: seen.seen.length, m: rec.length })} color={c.accentTx} /> : null}
       {seen.shots ? <Chip label={tf("mp_shots", { n: seen.shots })} color={c.crit} /> : null}
@@ -79,10 +80,10 @@ export function CoachPlanCard({ match, compact }: { match: Match; compact?: bool
 export function heroPlanLabel(E: ReturnType<typeof useEngine>, match: Match): string | null {
   if (!E.mods.matchplan) return null;
   const p = E.D.plans.find(x => x.matchId === match.id);
-  if (!p) return "📋 " + E.t("mp_heroNone");
+  if (!p) return E.t("mp_heroNone");
   const st = shareState(p, new Date());
-  if (st !== "live") return "📋 " + E.t("mp_st_" + st);
+  if (st !== "live") return E.t("mp_title") + ": " + E.t("mp_st_" + st);
   const rec = p.share?.squadOnly ? squadOf(p.c) : E.D.players.map(x => x.id);
   const n = seenStats((E.D.planLogs[p.id] || []).filter(l => !p.publishedAt || l.at >= p.publishedAt), rec).seen.length;
-  return "📋 " + E.tf("mp_seen", { n, m: rec.length });
+  return E.t("mp_title") + ": " + E.tf("mp_seen", { n, m: rec.length });
 }

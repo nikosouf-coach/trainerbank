@@ -20,18 +20,18 @@ export default function CoachTabs() {
   const narrow = width < 380 && nav.bar.length >= 5;
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Tabs backBehavior="history" screenOptions={{ headerShown: false, freezeOnBlur: true, tabBarActiveTintColor: c.accentTx, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line },
-        tabBarLabelStyle: { fontWeight: "700", fontSize: narrow ? 10 : 11 } }}>
+      <Tabs backBehavior="history" screenOptions={{ headerShown: false, freezeOnBlur: true, tabBarActiveTintColor: c.ink, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line, borderTopWidth: 1 },
+        tabBarLabelStyle: { fontWeight: "600", fontSize: narrow ? 10 : 11, letterSpacing: -0.1 } }}>
         {order.map(k => {
           if (k === "mehr") return (
-            <Tabs.Screen key="mehr" name="mehr" options={{ title: t("nav_module"), tabBarButtonTestID: "tab-mehr", tabBarIcon: ({ color }) => <Icon name="mehr" color={color} /> }} />
+            <Tabs.Screen key="mehr" name="mehr" options={{ title: t("nav_module"), tabBarButtonTestID: "tab-mehr", tabBarIcon: ({ color, focused }) => <Icon name="mehr" color={color} strokeWidth={focused ? 2.2 : 1.8} /> }} />
           );
           const n = NAV.find(x => x.k === k)!, inBar = nav.bar.includes(k), badge = k === "chat" ? unread : nav.badge(k);
           return (
             <Tabs.Screen key={k} name={k} options={{
               title: t(n.short), tabBarButtonTestID: "tab-" + k, href: inBar ? undefined : null,
-              tabBarBadge: inBar && badge ? (badge > 99 ? "99+" : badge) : undefined, tabBarBadgeStyle: { backgroundColor: c.accent, color: c.accentInk },
-              tabBarIcon: ({ color }) => <Icon name={n.icon} color={color} />,
+              tabBarBadge: inBar && badge ? (badge > 99 ? "99+" : badge) : undefined, tabBarBadgeStyle: { backgroundColor: c.crit, color: "#fff", fontSize: 11, fontWeight: "700" },
+              tabBarIcon: ({ color, focused }) => <Icon name={n.icon} color={color} strokeWidth={focused ? 2.2 : 1.8} />,
             }} />
           );
         })}

@@ -7,6 +7,7 @@ import { Pressable, Text, View } from "react-native";
 import type { Engine } from "../../core/engine";
 import type { DutyEntry, FineEntry, TeamTask } from "../../core/types";
 import { tmpId, useEngine, useStore } from "../../data/store";
+import { Icon } from "../icons";
 import { Btn, Card, CardTitle, Col, DateField, Field, Muted, Picker, Row, T } from "../kit";
 import { radius, useTheme, withAlpha } from "../theme";
 
@@ -147,7 +148,7 @@ export function PlayerTasksCard({ pid }: { pid: string }) {
       <CardTitle title={t("tk_mine")} />
       {duties.map(({ d, dates }) => (
         <Row key={d.id} gap={10} testID={"p-duty-" + d.id}>
-          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: withAlpha(d.source === "fine" ? c.crit : c.accentTx, 0.14), alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 13 }}>{d.source === "fine" ? "⚑" : "⚽"}</Text></View>
+          <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: withAlpha(d.source === "fine" ? c.crit : c.accentTx, 0.14), alignItems: "center", justifyContent: "center" }}><Icon name={d.source === "fine" ? "flag" : "checklist"} size={14} color={d.source === "fine" ? c.crit : c.accentTx} strokeWidth={2} /></View>
           <Col gap={1} style={{ flex: 1 }}>
             <Text style={{ fontSize: 14.5, fontWeight: "700", color: c.ink }}>{dutyName(E, d.duty)}</Text>
             <Text style={{ fontSize: 12, color: c.muted }}>{dates.map(x => whenLabel(E, x)).join(", ")}{d.source === "fine" ? " · " + t("dy_fromFine") : ""}</Text>

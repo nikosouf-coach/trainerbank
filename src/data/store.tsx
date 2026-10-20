@@ -24,12 +24,12 @@ import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, 
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
-import { ApiError, isOffline, isStaffRole, type Api, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type UserInfo, type UserPrefs } from "./api";
+import { ApiError, isOffline, isStaffRole, type Api, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type ThemeMode, type UserInfo, type UserPrefs } from "./api";
 import { DemoApi, type DemoSetup } from "./demoApi";
 import { hasSupabase } from "./supabase";
 import { forgetPhoto } from "../ui/playerAvatar";
 
-const K_TEAM = "tb.activeTeam", K_LANG = "tb.lang";
+const K_TEAM = "tb.activeTeam", K_LANG = "tb.lang", K_THEME = "tb.theme";
 /** Offline: wartende Einträge je Konto und letzter geladener Stand (für den Start ohne Netz) */
 const K_OUTBOX = (uid: string): string => "tb.outbox.v1." + uid, K_CACHE = "tb.cache.v1";
 /** Gerätespeicher: höchstens so groß (Zeichen) und so alt (Tage) */
@@ -48,6 +48,8 @@ interface State {
   D: TeamData | null;
   version: number;
   lang: Lang;
+  /** Darstellung auf diesem Gerät (bis ein Konto eine eigene Wahl hat) */
+  themeLocal: ThemeMode;
   consents: ConsentState | null;
   aiPlayers: string[];
   /** Spieler mit Einwilligung in Gesundheitsdaten (Automatik „RPE zu spät“ gilt nur für sie) */
@@ -87,7 +89,7 @@ function makeApi(): Api {
 
 function useStoreValue() {
   const [s, setS] = useState<State>(() => ({
-    phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(),
+    phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(), themeLocal: "system",
     consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
     outbox: [], offline: false, syncing: false, cachedAt: null, clubs: [], risers: {},
   }));
@@ -147,6 +149,7 @@ function useStoreValue() {
     const api = ref.current.api;
     let lang = ref.current.lang;
     try { const l = await AsyncStorage.getItem(K_LANG); if (l === "de" || l === "en") lang = l; } catch { /* optional */ }
+    try { const m = await AsyncStorage.getItem(K_THEME); if (m === "light" || m === "dark" || m === "system") set({ themeLocal: m }); } catch { /* optional */ }
     let user: UserInfo | null = null;
     try {
       user = await api.currentUser();
@@ -469,6 +472,13 @@ function useStoreValue() {
   const actions = {
     toast, errText, reload, boot,
     // Konto & Sitzung
+    /** Darstellung: sofort auf diesem Gerät, mit Konto auch auf allen anderen Geräten */
+    setTheme: async (m: ThemeMode) => {
+      set({ themeLocal: m }); try { await AsyncStorage.setItem(K_THEME, m); } catch { /* optional */ }
+      const u = ref.current.user; if (!u) return;
+      const prefs = { ...(u.prefs || {}), theme: m }; set({ user: { ...u, prefs } });
+      try { await ref.current.api.savePrefs(prefs); } catch { /* lokal reicht */ }
+    },
     setLang: async (lang: Lang) => { set({ lang }); try { await AsyncStorage.setItem(K_LANG, lang); } catch { /* optional */ } ref.current.api.setLanguage(lang).catch(() => undefined); },
     signIn: async (email: string, pw: string) => { const api = ref.current.api; await api.signIn(email, pw); await boot(); },
     signUp: (email: string, pw: string, name: string) => ref.current.api.signUp(email, pw, name, ref.current.lang),
@@ -1165,6 +1175,7 @@ function useStoreValue() {
   // Eigenes Trainerprofil (Staff mit verknüpftem Konto)
   const myStaff = !s.D ? null : isDemo && s.demoStaff ? s.D.staff.find(x => x.id === s.demoStaff) || null : s.user ? s.D.staff.find(x => x.userId === s.user!.id) || null : null;
   const prefs: UserPrefs = { info: true, ...(s.user?.prefs || {}) };
+  const themeMode: ThemeMode = prefs.theme || s.themeLocal;
 
   // Chat: wer bin ich, welche Chats sehe ich (Demo: wie die Zugriffsregeln; echt: liefert der Server nur Erlaubtes)
   const chatMeId = s.D ? (isDemo ? demoMe(s.D, s.demoView, s.demoPlayer, s.demoStaff, s.user?.id || "") : s.user?.id || "") : "";
@@ -1175,7 +1186,7 @@ function useStoreValue() {
   const myPlans: MpAvail[] = useMemo(() => !s.D || staffView ? [] : isDemo ? (mePid ? availFor(s.D.plans, s.D.planLogs, mePid, new Date()) : []) : s.D.myPlans,
     [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, perms, can, chats, chatMeId, chatMod, myPlans };
+  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, themeMode, perms, can, chats, chatMeId, chatMod, myPlans };
 }
 
 export type Store = ReturnType<typeof useStoreValue>;

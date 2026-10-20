@@ -18,7 +18,7 @@ export function RegionPicker({ value, onChange, testID = "region", map = true }:
   return (
     <Col gap={6}>
       {!list ? <RegionMap value={value} onChange={onChange} testID={testID + "-map"} /> : null}
-      {map ? <Btn small kind="ghost" testID={testID + "-mode"} label={list ? "🧍 " + t("bm_asMap") : "☰ " + t("bm_asList")} onPress={() => setList(!list)} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} /> : null}
+      {map ? <Btn small kind="ghost" testID={testID + "-mode"} icon={list ? "person" : "checklist"} label={list ? t("bm_asMap") : t("bm_asList")} onPress={() => setList(!list)} style={{ alignSelf: "flex-start", paddingHorizontal: 0 }} /> : null}
       {list ? <Picker testID={testID} label={t("rh_region")} value={a?.k || ""} options={opts}
         onChange={k => { const d = bodyDef(k); onChange(!k ? null : d?.side ? `${k}:${a?.side || "r"}` : k); }} /> : null}
       {list && a && def?.side ? <Seg testID={testID + "-side"} value={(a.side || "r") as Side} onChange={(sd: Side) => onChange(`${a.k}:${sd}`)}

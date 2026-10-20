@@ -19,17 +19,17 @@ export function TeamStatusCard() {
     return out;
   }, [E]);
   const total = ZONES.reduce((s, k) => s + n[k], 0);
-  // Was heißt das? (in der Reihenfolge der Dringlichkeit)
-  const advice: [Zone, string][] = [];
-  if (n.crit) advice.push(["crit", tf(n.crit === 1 ? "ts_crit1" : "ts_crit", { n: n.crit })]);
-  if (n.warn) advice.push(["warn", tf(n.warn === 1 ? "ts_warn1" : "ts_warn", { n: n.warn })]);
-  if (n.low) advice.push(["low", tf(n.low === 1 ? "ts_low1" : "ts_low", { n: n.low })]);
-  if (!advice.length && n.ok) advice.push(["ok", t("ts_allOk")]);
-  if (!advice.length && n.build) advice.push(["build", t("ts_build")]);
+  // Was heißt das? (Dringlichstes zuerst) – auf der Karte kurz, ausführlich im Info-Blatt
+  const advice: [Zone, string, string][] = [];
+  if (n.crit) advice.push(["crit", tf("ts_critS", { n: n.crit }), tf(n.crit === 1 ? "ts_crit1" : "ts_crit", { n: n.crit })]);
+  if (n.warn) advice.push(["warn", tf("ts_warnS", { n: n.warn }), tf(n.warn === 1 ? "ts_warn1" : "ts_warn", { n: n.warn })]);
+  if (n.low) advice.push(["low", tf("ts_lowS", { n: n.low }), tf(n.low === 1 ? "ts_low1" : "ts_low", { n: n.low })]);
+  if (!advice.length && n.ok) advice.push(["ok", t("ts_allOkS"), t("ts_allOk")]);
+  if (!advice.length && n.build) advice.push(["build", t("ts_buildS"), t("ts_build")]);
   const shown = ZONES.filter(k => k !== "build" || n.build);
   return (
     <Card testID="today-status">
-      <CardTitle title={t("ts_title")} info={<Info title={t("ts_title")} text={[t("ts_info1"), t("ts_info2"), t("ts_info3")]} />} />
+      <CardTitle title={t("ts_title")} info={<Info title={t("ts_title")} text={[...advice.map(x => x[2]), t("ts_info1"), t("ts_info2"), t("ts_info3")]} />} />
       {total ? (
         <View testID="ts-bar" accessibilityLabel={shown.map(k => `${t("st_" + k)}: ${n[k]}`).join(", ")}
           style={{ flexDirection: "row", height: 14, borderRadius: radius.pill, overflow: "hidden", gap: 2, backgroundColor: c.sunk }}>
@@ -53,9 +53,9 @@ export function TeamStatusCard() {
       {advice.length ? (
         <Col gap={6} testID="ts-advice">
           {advice.map(([k, txt]) => (
-            <Row key={k} gap={8} align="flex-start">
-              <View style={{ width: 4, alignSelf: "stretch", borderRadius: 2, backgroundColor: statusColor(c, k) }} />
-              <Text style={{ flex: 1, fontSize: 13, lineHeight: 18, color: c.ink }}>{txt}</Text>
+            <Row key={k} gap={8}>
+              <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: statusColor(c, k) }} />
+              <Text numberOfLines={1} style={{ flex: 1, fontSize: 13.5, fontWeight: "600", color: c.ink }}>{txt}</Text>
             </Row>
           ))}
         </Col>

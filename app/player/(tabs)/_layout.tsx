@@ -1,4 +1,5 @@
 // Untere Navigation der Spieler-App. "Chat" nur, wenn der Chat an ist (mit Zahl ungelesener Nachrichten).
+// Daten, Tipps und Chat kann jeder Spieler ausblenden (Startseite anpassen) – erreichbar bleiben sie über „Ich“.
 import { Tabs } from "expo-router";
 import React from "react";
 import { View } from "react-native";
@@ -21,14 +22,15 @@ export default function PlayerTabs() {
   const s = useStore(); const { t } = s.tr; const { c } = useTheme();
   const chatOn = !!s.D && s.D.team.modules.chat !== false && chatSettings(s.D.team).on;
   const unread = useChatBadge();
+  const hide = s.prefs.navPlayer?.hide || [];
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
-      <Tabs screenOptions={{ headerShown: false, freezeOnBlur: true, tabBarActiveTintColor: c.accentTx, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line }, tabBarLabelStyle: { fontWeight: "700", fontSize: 11 } }}>
+      <Tabs screenOptions={{ headerShown: false, freezeOnBlur: true, tabBarActiveTintColor: c.ink, tabBarInactiveTintColor: c.muted, tabBarStyle: { backgroundColor: c.surface, borderTopColor: c.line, borderTopWidth: 1 }, tabBarLabelStyle: { fontWeight: "600", fontSize: 11, letterSpacing: -0.1 } }}>
         {TABS.map(x => (
           <Tabs.Screen key={x.name} name={x.name} options={{
-            title: t(x.label), tabBarButtonTestID: "tab-" + x.name, tabBarIcon: ({ color }) => <Icon name={x.icon} color={color} />,
-            href: x.name === "chat" && !chatOn ? null : undefined,
-            tabBarBadge: x.name === "chat" && unread ? (unread > 99 ? "99+" : unread) : undefined, tabBarBadgeStyle: { backgroundColor: c.accent, color: c.accentInk },
+            title: t(x.label), tabBarButtonTestID: "tab-" + x.name, tabBarIcon: ({ color, focused }) => <Icon name={x.icon} color={color} strokeWidth={focused ? 2.2 : 1.8} />,
+            href: (x.name === "chat" && !chatOn) || hide.includes(x.name) ? null : undefined,
+            tabBarBadge: x.name === "chat" && unread ? (unread > 99 ? "99+" : unread) : undefined, tabBarBadgeStyle: { backgroundColor: c.crit, color: "#fff", fontSize: 11, fontWeight: "700" },
           }} />
         ))}
       </Tabs>

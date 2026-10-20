@@ -272,7 +272,11 @@ export interface DayBlock {
   groupId: string | null;
   /** Einheit des Tages (0 = Mannschaftstraining, 1–9 = weitere Einheit) */
   slot?: number;
+  /** Zuständigkeiten: mehrere Trainer mit eigener Aufgabe (erster = staffId, Hauptverantwortlicher) */
+  crew?: CrewRole[];
 }
+/** Trainer und seine Aufgabe in einem Block, z. B. „ballbesitzende Mannschaft“ */
+export interface CrewRole { staffId: string; task: string }
 /** Gespeicherte Einheit (Vorlage) aus Übungen oder freien Blöcken. */
 export interface SessionTemplate { id: string; title: string; theme: string; blocks: TemplateBlock[]; notes: string }
 /** Trainerprofil mit Aufgabenbereichen (auch für Personen ohne App-Konto). */

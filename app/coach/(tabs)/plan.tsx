@@ -130,7 +130,7 @@ export default function Plan() {
           {show && p.changes.length && wp.mode !== "normal" ? <Muted small>{p.changes.map(ch => ch.short || chgTxt(ch, "→")).join(" · ")}</Muted> : null}
           {E.lvl(1) ? <Info title={`${t("ib_why")} · ${E.wt(x.date)} ${E.de(x.date)}`} text={why(p)} testID={"plan-why-" + x.date} /> : null}
         </>)}
-        {!dr ? <T v="small">{p.inhalt}</T> : null}
+        {!dr ? <T v="small" numberOfLines={2}>{p.inhalt}</T> : null}
         <Muted small>{E.zeitOf(x.date)} · {p.dauer} {t("min")} · {t("p_" + p.platz)}{pro ? ` · ${E.int(p.dauer * p.rpe)} AU` : ""}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}{ab ? ` · ${ab} ${t("absent")}` : ""}</Muted>
         <UnitChips units={x.units} testID={"plan-units-" + x.date} />
         {!dr ? actual(x.date, p.rpe) : null}

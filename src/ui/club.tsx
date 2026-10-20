@@ -111,7 +111,7 @@ export function ViaClubBanner() {
 export function TeamSummaryCard({ x, current, onOpen, busy }: { x: TeamSummary; current: boolean; onOpen?: () => void; busy?: boolean }) {
   const s = useStore(); const tr = s.tr, { t, tf } = tr; const { c } = useTheme();
   const res = x.last ? (x.last.own > x.last.against ? c.ok : x.last.own < x.last.against ? c.crit : c.warn) : c.muted;
-  const plan = x.planState == null ? null : x.planState === "none" ? t("cl_planNone") : x.planState === "live" ? t("mp_st_liveShort") : t("mp_st_" + x.planState);
+  const plan = x.planState == null ? null : x.planState === "none" ? t("cl_planNone") : t("mp_title") + ": " + (x.planState === "live" ? t("mp_st_liveShort") : t("mp_st_" + x.planState));
   const planCol = x.planState === "live" ? c.ok : x.planState === "scheduled" ? c.warn : x.planState === "none" ? c.crit : c.build;
   return (
     <Card testID={"cl-team-" + x.teamId} style={current ? { borderWidth: 2, borderColor: c.accent } : undefined}>
@@ -133,7 +133,7 @@ export function TeamSummaryCard({ x, current, onOpen, busy }: { x: TeamSummary; 
         {x.absent ? <Chip label={tf("cl_absent", { n: x.absent })} color={c.low} /> : null}
         {x.attRate != null ? <Chip label={tf("cl_att", { p: Math.round(x.attRate * 100) })} color={x.attRate >= 0.8 ? c.ok : x.attRate >= 0.65 ? c.warn : c.crit} /> : null}
         <Chip label={tf("cl_sessions", { n: x.sessions28 })} color={c.build} />
-        {plan ? <Chip testID={"cl-plan-" + x.teamId} label={"📋 " + plan} color={planCol} /> : null}
+        {plan ? <Chip testID={"cl-plan-" + x.teamId} label={plan} color={planCol} /> : null}
       </Row>
     </Card>
   );

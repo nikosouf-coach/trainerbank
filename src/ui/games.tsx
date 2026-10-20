@@ -180,9 +180,9 @@ function VideoForm({ video, defaults, onDone }: { video: Video | null; defaults?
 export function StatTile({ label, value, color }: { label: string; value: string; color?: string }) {
   const { c } = useTheme();
   return (
-    <View style={{ flexGrow: 1, flexBasis: 90, backgroundColor: color ? withAlpha(color, 0.12) : c.sunk, borderRadius: radius.m, paddingVertical: 10, paddingHorizontal: 12, gap: 2 }}>
-      <Text style={{ fontSize: 24, fontWeight: "800", color: color || c.ink, fontVariant: ["tabular-nums"] }}>{value}</Text>
-      <Text numberOfLines={1} style={{ fontSize: 11, fontWeight: "700", letterSpacing: 0.6, color: c.muted, textTransform: "uppercase" }}>{label}</Text>
+    <View style={{ flexGrow: 1, flexBasis: 74, backgroundColor: color ? withAlpha(color, 0.1) : c.sunk, borderRadius: radius.m, paddingVertical: 10, paddingHorizontal: 11, gap: 1 }}>
+      <Text numberOfLines={1} style={{ fontSize: 22, lineHeight: 27, fontWeight: "800", letterSpacing: -0.4, color: color || c.ink, fontVariant: ["tabular-nums"] }}>{value}</Text>
+      <Text numberOfLines={1} style={{ fontSize: 12, fontWeight: "600", color: c.muted }}>{label}</Text>
     </View>
   );
 }

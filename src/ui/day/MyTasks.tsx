@@ -2,11 +2,11 @@
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, Text } from "react-native";
-import { dayBlocks, myBlocks, timeline } from "../../core/day";
+import { dayBlocks, isMyBlock, myBlocks, myTask, timeline } from "../../core/day";
 import { useEngine, useStore } from "../../data/store";
 import { Btn, Card, CardTitle, Col, Muted, Row, T } from "../kit";
 import { MyTodos } from "../tasks/widgets";
-import { radius, useTheme, withAlpha } from "../theme";
+import { radius, useTheme } from "../theme";
 
 export function MyTasksCard() {
   const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme(); const router = useRouter();
@@ -19,11 +19,11 @@ export function MyTasksCard() {
       <MyTodos />
       {me ? <T v="eyebrow">{t("td_myBlocks")}</T> : null}
       {dates.length ? dates.map(d => {
-        const tl = timeline(dayBlocks(E.D, d), E.zeitOf(d)).filter(x => x.b.staffId === me?.id);
+        const tl = timeline(dayBlocks(E.D, d), E.zeitOf(d)).filter(x => !!me && isMyBlock(x.b, me.id));
         return (
           <Pressable key={d} testID={"my-day-" + d} accessibilityRole="button" onPress={() => router.push("/coach/tag/" + d)}
-            style={{ borderLeftWidth: 4, borderLeftColor: c.accent, backgroundColor: withAlpha(c.accent, 0.06), borderRadius: radius.s, paddingVertical: 8, paddingHorizontal: 10, gap: 4 }}>
-            <Text style={{ fontSize: 11, fontWeight: "800", letterSpacing: 0.8, color: c.accentTx, textTransform: "uppercase" }}>
+            style={({ pressed }) => ({ backgroundColor: c.sunk, borderRadius: radius.m, paddingVertical: 10, paddingHorizontal: 12, gap: 6, opacity: pressed ? 0.85 : 1 })}>
+            <Text style={{ fontSize: 12.5, fontWeight: "700", color: c.accentTx }}>
               {d === E.TODAY ? t("today") : `${E.wt(d)} ${E.de(d)}`} · {E.zeitOf(d)}
             </Text>
             {tl.map(({ b, from }) => (
@@ -31,7 +31,7 @@ export function MyTasksCard() {
                 <Text style={{ width: 44, fontSize: 13, fontWeight: "700", color: c.muted, fontVariant: ["tabular-nums"] }}>{from}</Text>
                 <Col gap={1} style={{ flex: 1 }}>
                   <Text style={{ fontSize: 14.5, fontWeight: "700", color: c.ink }}>{b.title} <Text style={{ color: c.muted, fontWeight: "400" }}>· {b.min} {t("min")}</Text></Text>
-                  {b.points.length ? <Text numberOfLines={2} style={{ fontSize: 12.5, color: c.muted }}>{b.points.join(" · ")}</Text> : null}
+                  {me && myTask(b, me.id) ? <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: "700", color: c.accentTx }}>{myTask(b, me.id)}</Text> : null}
                 </Col>
               </Row>
             ))}

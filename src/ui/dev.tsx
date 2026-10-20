@@ -172,7 +172,7 @@ export function GoalProgress({ g, st }: { g: Goal; st: GoalState }) {
   );
 }
 /** Ziel als Karte: Titel, Bereich, Fortschritt, Frist, Schritte (abhakbar), Fortschritt eintragen */
-export function GoalCard({ g, onEdit, onEntry, canTick, testID }: { g: Goal; onEdit?: () => void; onEntry?: () => void; canTick?: boolean; testID?: string }) {
+export function GoalCard({ g, onEdit, onEntry, canTick, testID, compact }: { g: Goal; onEdit?: () => void; onEntry?: () => void; canTick?: boolean; testID?: string; compact?: boolean }) {
   const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme();
   const st = goalProgress(E.D, g, E.TODAY), col = areaColor(c, g.area);
   const tick = (i: number, v: boolean) => s.saveGoal({ ...g, steps: g.steps.map((x, j) => j === i ? { ...x, done: v } : x) });
@@ -186,12 +186,12 @@ export function GoalCard({ g, onEdit, onEntry, canTick, testID }: { g: Goal; onE
             {!g.vis ? <Chip label={t("hidden")} color={c.build} /> : null}
           </Row>
           <T bold>{g.title}</T>
-          {g.due ? <Muted small>{t("dv_due")} {E.de(g.due)}{g.why ? " · " + g.why : ""}</Muted> : g.why ? <Muted small>{g.why}</Muted> : null}
+          {compact ? null : g.due ? <Muted small>{t("dv_due")} {E.de(g.due)}{g.why ? " · " + g.why : ""}</Muted> : g.why ? <Muted small>{g.why}</Muted> : null}
         </Col>
         {onEdit ? <Btn small kind="ghost" icon="eintragen" label="" a11y={t("dv_goalEdit")} testID={(testID || "goal-" + g.id) + "-edit"} onPress={onEdit} /> : null}
       </Row>
       <GoalProgress g={g} st={st} />
-      {g.steps.length ? <Col gap={6}>
+      {g.steps.length && !compact ? <Col gap={6}>
         {g.steps.map((x, i) => canTick && g.status === "active"
           ? <Check key={i} testID={(testID || "goal-" + g.id) + "-step-" + i} label={x.text} value={x.done} onChange={v => tick(i, v)} />
           : <Row key={i} gap={8}><Icon name={x.done ? "check" : "chevron"} size={14} color={x.done ? c.ok : c.muted} /><T v="small" style={{ flex: 1, textDecorationLine: x.done ? "line-through" : "none" }}>{x.text}</T></Row>)}
@@ -507,14 +507,16 @@ export function DevSummaryCard({ p, onOpen }: { p: Player; onOpen: () => void })
 }
 
 /** Spieler-Startseite: aktive Ziele (höchstens 3) mit Fortschritt */
-export function MyGoalsCard({ p, onOpen }: { p: Player; onOpen: () => void }) {
+export function MyGoalsCard({ p, onOpen, compact }: { p: Player; onOpen: () => void; compact?: boolean }) {
   const E = useEngine(); const { t } = E;
   const [entry, setEntry] = useState<Goal | null>(null);
-  const L = goalsOf(E.D, p.id).filter(g => g.status === "active" && (g.vis || g.by === "player")).slice(0, 3);
+  const L = goalsOf(E.D, p.id).filter(g => g.status === "active" && (g.vis || g.by === "player")).slice(0, compact ? 2 : 3);
   return (
     <Card testID="player-devgoals">
       <CardTitle title={t("dv_myGoals")} right={<Btn small kind="ghost" testID="pgoals-open" label={t("dv_mine") + " ›"} onPress={onOpen} />} />
-      {L.length ? L.map(g => <GoalCard key={g.id} g={g} canTick onEntry={() => setEntry(g)} />) : <Muted small>{t("dv_myGoalHint")}</Muted>}
+      {L.length ? L.map(g => compact
+        ? <Pressable key={g.id} accessibilityRole="button" accessibilityLabel={g.title} onPress={onOpen}><GoalCard g={g} compact onEntry={() => setEntry(g)} /></Pressable>
+        : <GoalCard key={g.id} g={g} canTick onEntry={() => setEntry(g)} />) : <Muted small>{t("dv_myGoalHint")}</Muted>}
       {!L.length ? <Btn small testID="pgoals-new" icon="plus" label={t("dv_myGoalNew")} onPress={onOpen} style={{ alignSelf: "flex-start" }} /> : null}
       <EntrySheet goal={entry} onClose={() => setEntry(null)} />
     </Card>

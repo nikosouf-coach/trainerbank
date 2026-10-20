@@ -26,7 +26,7 @@ const config: ExpoConfig = {
   android: {
     package: BUNDLE_ID,
     versionCode: 1,
-    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#0B3D91" },
+    adaptiveIcon: { foregroundImage: "./assets/adaptive-icon.png", backgroundColor: "#0D6B4B" },
     permissions: ["android.permission.CAMERA", "android.permission.POST_NOTIFICATIONS"],
     blockedPermissions: ["android.permission.RECORD_AUDIO", "android.permission.ACCESS_FINE_LOCATION", "android.permission.ACCESS_COARSE_LOCATION"],
   },
@@ -41,8 +41,8 @@ const config: ExpoConfig = {
     "expo-localization",
     "expo-sharing",
     "expo-status-bar",
-    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 200, resizeMode: "contain", backgroundColor: "#0B3D91" }],
-    ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#0B3D91" }],
+    ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 96, resizeMode: "contain", backgroundColor: "#F5F6F8", dark: { image: "./assets/splash-icon.png", backgroundColor: "#0B0D10" } }],
+    ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#0D6B4B" }],
     ["expo-image-picker", {
       photosPermission: "Trainerbank greift auf deine Fotos zu, wenn du ein Profilbild oder einen Befund auswählst.",
       cameraPermission: "Trainerbank nutzt die Kamera, um Profilbilder und Befunde (z. B. Arztbriefe) zu fotografieren.",

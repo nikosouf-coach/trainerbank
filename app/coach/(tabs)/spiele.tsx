@@ -36,7 +36,7 @@ export default function Spiele() {
         <Seg testID="sp-sort" value={sort} onChange={setSort} options={[{ key: "goals", label: t("sp_goals") }, { key: "assists", label: t("sp_assists") }, { key: "min", label: t("sp_min") }, { key: "avg", label: t("sp_avg") }]} />
         <Row gap={6} style={{ paddingVertical: 4 }}>
           <Text style={{ flex: 1, fontSize: 11, fontWeight: "700", color: c.muted }}>{t("tab_spieler").toUpperCase()}</Text>
-          {[t("sp_games"), t("sp_min"), "⚽", "🅰"].map((h, i) => <Text key={i} style={{ width: i === 1 ? 52 : 34, textAlign: "right", fontSize: 11, fontWeight: "700", color: c.muted }}>{h}</Text>)}
+          {[t("sp_games"), t("sp_min"), t("sp_goalsS"), t("sp_assistsS")].map((h, i) => <Text key={i} style={{ width: i === 1 ? 52 : 34, textAlign: "right", fontSize: 11, fontWeight: "700", color: c.muted }}>{h}</Text>)}
           <View style={{ width: 40 }} />
         </Row>
         {sorted.map(({ p, ss }) => (

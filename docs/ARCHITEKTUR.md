@@ -93,6 +93,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `day_units` (…0021) | weitere Einheiten einzelner Tage: pk(`team_id`,`date`,`slot` 1–9), `art` (athletik/kraft/tw/technik/taktik/praev/reha/sonst), `title`, `time`, `duration`, `target_rpe`, `group_id` (ohne Fremdschlüssel: gelöschte Gruppe = niemand), `staff_id`, `content`, `themes`, `cancelled` | lesen Staff; Spieler Einheiten für alle und für freigegebene eigene Gruppen; schreiben `plan` |
 | `rpe_entries.slot`, `.dives` (…0021) | Einheit des Tages (0 = Mannschaftstraining/Spiel, 1–9 = weitere Einheit), Schlüssel (`player_id`,`date`,`slot`); Sprünge/Hechtsprünge der Torhüter (0–300). Anwesenheit „da“ setzt nur Einheit 0 | wie RPE |
 | `session_blocks.slot` (…0021) | Ablauf auch für weitere Einheiten (z. B. Torwarttraining) | nur Staff |
+| `session_blocks.crew` (…0028) | mehrere Zuständige je Block: Liste aus `{staff, task}` (höchstens 6, jeder Trainer einmal, Aufgabe ≤ 80 Zeichen, nur Trainerteam des Teams – sonst `invalid_crew`); `staff_id` = Hauptverantwortlicher (erster Eintrag) für ältere Stände | nur Staff |
 | `player_ratings.mark`, `.tags`, `.slot` (…0021) | Trainingseindruck: nur `good`/`poor` (Standard Durchschnitt = keine Zeile), bis 8 Gründe, Einheit | wie Bewertungen |
 | `match_stats.conceded`, `.saves` (…0021) | Torhüter: Gegentore in der eigenen Spielzeit, Paraden | wie Spieldaten |
 | `day_units.player_ids` (…0022) | Einheit nur für einzelne Spieler (Individualtraining, ≤ 30, gleiches Team per Trigger) | Spieler sehen sie nur, wenn sie dabei sind (`my_player_in`) |
@@ -185,9 +186,24 @@ Ziel, Symbol, Gruppe, Voraussetzung – Modul oder Recht), bis zu fünf Bereiche
 Seiten, die in die Leiste dürfen, liegen in `app/coach/(tabs)/` (Adressen bleiben gleich); `href: null` blendet die
 übrigen aus. „Mehr“ zeigt alle Bereiche nach Themen (Spieler & Entwicklung, Training & Belastung, Spiel & Analyse,
 Organisation, Verein & Einstellungen) mit Suche; ausgeblendete Menüpunkte stehen unten. Auswahl und Reihenfolge
-speichert jedes Konto in `profiles.prefs.nav` (`bar`, `hide`). Bereichsseiten zeigen „Zurück zu Mehr“ nur, wenn sie
+speichert jedes Konto in `profiles.prefs.nav` (`bar`, `hide`); Spieler blenden Bereiche ihrer Leiste über
+`prefs.navPlayer.hide` aus (Heute, Eintragen und Ich bleiben). Startseiten: `prefs.dash` (Trainer) und
+`prefs.dashPlayer` (Spieler), einmalige Hinweise in `prefs.seen`, Darstellung in `prefs.theme` (system/light/dark;
+zusätzlich auf dem Gerät gespeichert, damit sie schon vor der Anmeldung gilt). Bereichsseiten zeigen „Zurück zu Mehr“ nur, wenn sie
 nicht in der Leiste liegen (`useNavBack`). Bildschirme im Hintergrund werden eingefroren (`enableFreeze`,
 `freezeOnBlur`), damit Speichern im Hintergrund die sichtbare Seite nicht verlangsamt.
+
+### Erscheinungsbild
+
+`src/ui/theme.tsx` hält alle Farben als Tokens (`bg`, `surface`, `sunk`, `ink`, `muted`, `line`, Statusfarben,
+Akzent) für Hell und Dunkel – ruhige Neutraltöne, Farbe nur mit Bedeutung (Status, Akzent). Der Akzent ist die
+Vereinsfarbe; sehr dunkle Vereinsfarben werden im Dunkelmodus aufgehellt, sehr helle bekommen dunkle Schrift.
+Typografie in Satzschreibung (Überschriften kräftig mit leicht engem Spacing, kleine Kennzeichnungen in
+Großbuchstaben). Karten: feine Linie, Status nur leicht eingetönt; Hinweise ohne Seitenstreifen. Die Marke
+(`src/ui/brand.tsx`): Bildzeichen „b“ mit Mittelkreis und Anstoßpunkt in Markengrün `#0D6B4B`, Wortmarke
+„trainer**bank**“; daraus erzeugt sind App-Icon, adaptives Icon, Splash (hell `#F5F6F8`, dunkel `#0B0D10`),
+Benachrichtigungs-Icon und Favicon. Darstellung: `ThemeProvider` mit `mode` (wie System, hell, dunkel) aus
+`prefs.theme` bzw. dem Gerät; im Web folgt der Seitenhintergrund dem Modus.
 
 ### Verein
 

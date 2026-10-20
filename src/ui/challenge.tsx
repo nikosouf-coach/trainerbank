@@ -16,7 +16,7 @@ const KINDS: ChallengeKind[] = ["best", "count", "days", "check"];
 function useNum() { const E = useEngine(); return (v: number | null | undefined) => v == null ? "–" : E.tr.int(v); }
 
 /** Eine Challenge mit Eintragen (Spieler bzw. Trainerteam für einen Spieler) */
-export function ChallengeItem({ c: ch, p, testID }: { c: Challenge; p: Player; testID?: string }) {
+export function ChallengeItem({ c: ch, p, testID, compact }: { c: Challenge; p: Player; testID?: string; compact?: boolean }) {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const num = useNum();
   const e = entryOf(E.D, ch.id, p.id), done = isDone(ch, e), pr = progressOf(ch, e);
   const rank = !!E.team.settings.challengeRank, tot = totalsOf(E.D, ch, rank);
@@ -29,9 +29,9 @@ export function ChallengeItem({ c: ch, p, testID }: { c: Challenge; p: Player; t
       <Row between align="flex-start" gap={8}>
         <Col gap={3} style={{ flex: 1 }}>
           <T bold>{ch.title}</T>
-          {ch.text ? <Muted small>{ch.text}</Muted> : null}
+          {ch.text && !compact ? <Muted small>{ch.text}</Muted> : null}
         </Col>
-        {done ? <Text testID={id + "-done"} style={{ fontSize: 22 }}>🎉</Text> : null}
+        {done ? <View testID={id + "-done"} style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: c.ok, alignItems: "center", justifyContent: "center" }}><Icon name="check" size={15} color="#fff" strokeWidth={3} /></View> : null}
       </Row>
       {ch.kind !== "check" ? <Col gap={4}>
         <Bar value={pr} color={done ? c.ok : CH_COLOR} />
@@ -48,10 +48,10 @@ export function ChallengeItem({ c: ch, p, testID }: { c: Challenge; p: Player; t
         </Row> : null}
         {ch.kind === "count" ? <Col gap={8}>
           <Row gap={6} wrap>{[10, 25, 50, 100].map(n => <Btn key={n} small testID={`${id}-add-${n}`} label={"+" + n} onPress={() => s.saveChallengeEntry(ch, p.id, { value: n })} />)}</Row>
-          <Row gap={8} align="flex-end">
+          {compact ? null : <Row gap={8} align="flex-end">
             <NumField testID={id + "-val"} label={t("cg_addCount")} value={v} onChange={setV} min={0} max={10000} step={1} style={{ flex: 1 }} />
             <Btn testID={id + "-save"} label={t("save")} disabled={!v} onPress={() => { s.saveChallengeEntry(ch, p.id, { value: v }); setV(null); }} />
-          </Row>
+          </Row>}
         </Col> : null}
         {ch.kind === "days" ? <Row gap={6} wrap>
           {days.map(d => {
@@ -67,17 +67,17 @@ export function ChallengeItem({ c: ch, p, testID }: { c: Challenge; p: Player; t
         </Row> : null}
         {ch.kind === "check" ? <Check testID={id + "-check"} label={t("cg_doneCheck")} value={!!e?.done} onChange={x => s.saveChallengeEntry(ch, p.id, { done: x })} /> : null}
       </> : null}
-      <Col gap={4}>
+      {compact ? <Muted small>{tf("cg_team", { n: tot.players, d: tot.done })}</Muted> : <Col gap={4}>
         <Muted small>{tf("cg_team", { n: tot.players, d: tot.done })}</Muted>
         {ch.teamTarget ? <><Bar value={tot.sum / ch.teamTarget} color={c.ok} /><Muted small>{tf("cg_teamSum", { s: num(tot.sum), t: num(ch.teamTarget) })} {ch.unit}</Muted></> : null}
-        {rank && tot.top.length ? <Row gap={6} wrap>{tot.top.map((x, i) => <Text key={i} style={{ fontSize: 12.5, color: c.ink }}>{["🥇", "🥈", "🥉"][i]} {x.name} {num(x.value)}</Text>)}</Row> : null}
-      </Col>
+        {rank && tot.top.length ? <Row gap={6} wrap>{tot.top.map((x, i) => <Text key={i} style={{ fontSize: 12.5, color: c.ink }}><Text style={{ fontWeight: "800", color: i === 0 ? CH_COLOR : c.muted }}>{i + 1}.</Text> {x.name} {num(x.value)}</Text>)}</Row> : null}
+      </Col>}
     </View>
   );
 }
 
-/** Karte für die Spieler-App: Challenges dieser Woche, Serie */
-export function ChallengeCard({ pid }: { pid: string }) {
+/** Karte für die Spieler-App: Challenges dieser Woche, Serie; compact (Startseite): ohne Beschreibung, Eingabefeld und Bestenliste */
+export function ChallengeCard({ pid, compact }: { pid: string; compact?: boolean }) {
   const E = useEngine(); const { t, tf } = E;
   const p = E.P(pid); if (!p || !E.mods.challenge) return null;
   const list = weekChallenges(E.D, E.TODAY, p);
@@ -85,8 +85,8 @@ export function ChallengeCard({ pid }: { pid: string }) {
   const streak = challengeStreak(E.D, pid, E.TODAY);
   return (
     <Card testID="player-challenge" tone={CH_COLOR}>
-      <CardTitle title={t("cg_title")} info={<Info title={t("cg_title")} text={[t("cg_info"), t("cg_safety")]} />} right={streak >= 2 ? <Text style={{ fontSize: 12.5, fontWeight: "800", color: CH_COLOR }}>🔥 {tf("cg_streak", { n: streak })}</Text> : undefined} />
-      {list.map(ch => <ChallengeItem key={ch.id} c={ch} p={p} />)}
+      <CardTitle title={t("cg_title")} info={<Info title={t("cg_title")} text={[t("cg_info"), t("cg_safety")]} />} right={streak >= 2 ? <Row gap={4}><Icon name="flame" size={15} color={CH_COLOR} strokeWidth={2} /><Text style={{ fontSize: 12.5, fontWeight: "700", color: CH_COLOR }}>{tf("cg_streak", { n: streak })}</Text></Row> : undefined} />
+      {list.map(ch => <ChallengeItem key={ch.id} c={ch} p={p} compact={compact} />)}
     </Card>
   );
 }

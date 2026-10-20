@@ -21,33 +21,33 @@ export const GOLD = "#f2b705";
 
 /** Kopf mit Bild, Begrüßung, Serie und Zuverlässigkeit (Angaben der letzten 4 Wochen). */
 export function PlayerHero({ p, g }: { p: Player; g: GameState }) {
-  const E = useEngine(); const { t, tf } = E;
+  const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
+  const ink = c.accentInk, sub = ink === "#ffffff" ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.62)";
   const rel = g.reliability, pct = rel != null ? Math.round(rel * 100) : null;
   return (
-    <View testID="player-hero" style={{ backgroundColor: E.team.accent || "#0b3d91", borderRadius: radius.xl, padding: space.l + 2, gap: 14, overflow: "hidden" }}>
-      <View style={{ position: "absolute", right: -40, top: -40, width: 160, height: 160, borderRadius: 80, backgroundColor: "rgba(255,255,255,0.08)" }} />
+    <View testID="player-hero" style={{ backgroundColor: c.accent, borderRadius: radius.xl, padding: space.l + 2, gap: 14 }}>
       <Row gap={14}>
-        <View style={{ borderWidth: 2, borderColor: "rgba(255,255,255,0.7)", borderRadius: 40 }}><PlayerAvatar p={p} size={62} /></View>
-        <Col gap={3} style={{ flex: 1 }}>
-          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" }}>{E.wt(E.TODAY)} {E.de(E.TODAY)} · {E.team.name}</Text>
-          <Text numberOfLines={1} style={{ color: "#fff", fontSize: 26, fontWeight: "800", textTransform: "uppercase" }}>{tf("ph_hi", { n: p.vn })}</Text>
-          {p.nr != null || p.pos ? <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13, fontWeight: "700" }}>{[p.nr != null ? "#" + p.nr : "", p.pos].filter(Boolean).join(" · ")}</Text> : null}
+        <View style={{ borderWidth: 2, borderColor: withAlpha(ink, 0.55), borderRadius: 40 }}><PlayerAvatar p={p} size={56} /></View>
+        <Col gap={2} style={{ flex: 1 }}>
+          <Text style={{ color: sub, fontSize: 13, fontWeight: "600" }}>{E.wt(E.TODAY)} {E.de(E.TODAY)} · {E.team.name}</Text>
+          <Text numberOfLines={1} style={{ color: ink, fontSize: 25, lineHeight: 30, fontWeight: "800", letterSpacing: -0.6 }}>{tf("ph_hi", { n: p.vn })}</Text>
+          {p.nr != null || p.pos ? <Text style={{ color: sub, fontSize: 13, fontWeight: "600" }}>{[p.nr != null ? "#" + p.nr : "", p.pos].filter(Boolean).join(" · ")}</Text> : null}
         </Col>
-        <View testID="player-streak" accessibilityLabel={g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} style={{ alignItems: "center", backgroundColor: "rgba(255,255,255,0.14)", borderRadius: radius.l, paddingHorizontal: 10, paddingVertical: 8, minWidth: 62 }}>
-          <Icon name="flame" size={22} color={g.streak ? "#ffb703" : "rgba(255,255,255,0.6)"} strokeWidth={2} />
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 19, fontVariant: ["tabular-nums"] }}>{g.streak}</Text>
-          <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 10, fontWeight: "700" }}>{t("gm_days")}</Text>
+        <View testID="player-streak" accessibilityLabel={g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} style={{ alignItems: "center", backgroundColor: withAlpha(ink, 0.12), borderRadius: radius.l, paddingHorizontal: 10, paddingVertical: 8, minWidth: 58 }}>
+          <Icon name="flame" size={20} color={g.streak ? "#ffb703" : withAlpha(ink, 0.55)} strokeWidth={2} />
+          <Text style={{ color: ink, fontWeight: "800", fontSize: 18, fontVariant: ["tabular-nums"] }}>{g.streak}</Text>
+          <Text style={{ color: sub, fontSize: 10.5, fontWeight: "600" }}>{t("gm_days")}</Text>
         </View>
       </Row>
       {E.mods.belastung ? <Col gap={6} testID="player-reliability">
         <Row between>
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>{t("gm_rel")}</Text>
-          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13, fontVariant: ["tabular-nums"] }}>{pct != null ? pct + " %" : "–"}</Text>
+          <Text style={{ color: ink, fontWeight: "700", fontSize: 13 }}>{t("gm_rel")}</Text>
+          <Text style={{ color: ink, fontWeight: "700", fontSize: 13, fontVariant: ["tabular-nums"] }}>{pct != null ? pct + " %" : "–"}</Text>
         </Row>
-        <View style={{ height: 10, borderRadius: 99, backgroundColor: "rgba(255,255,255,0.2)", overflow: "hidden" }}>
-          <View style={{ width: `${Math.max(3, pct ?? 0)}%`, height: "100%", backgroundColor: pct != null && pct >= 90 ? GOLD : "#fff", borderRadius: 99 }} />
+        <View style={{ height: 6, borderRadius: 99, backgroundColor: withAlpha(ink, 0.2), overflow: "hidden" }}>
+          <View style={{ width: `${Math.max(3, pct ?? 0)}%`, height: "100%", backgroundColor: pct != null && pct >= 90 ? GOLD : ink, borderRadius: 99 }} />
         </View>
-        <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 12.5 }}>
+        <Text style={{ color: sub, fontSize: 12.5 }}>
           {pct == null ? t("gm_relFew") : tf("gm_relD", { c: g.rel.checkins.done, ct: g.rel.checkins.total, r: g.rel.rpe.done, rt: g.rel.rpe.total })}{pct != null && pct >= 90 ? " · " + t("gm_relTop") : ""}
         </Text>
       </Col> : null}
@@ -126,21 +126,23 @@ export function Badges({ g, compact }: { g: GameState; compact?: boolean }) {
   );
 }
 
-/** Große Aufgaben-Kachel (Morgen-Check, RPE). */
+/** Große Aufgaben-Kachel (Morgen-Check, RPE): offen = farbig, erledigt = ruhig mit Haken. */
 export function TodoTile({ icon, title, sub, done, onPress, testID, color }: { icon: IconName; title: string; sub?: string; done?: boolean; onPress: () => void; testID?: string; color: string }) {
   const { c } = useTheme();
-  const col = done ? c.ok : color;
+  const fg = done ? c.ink : "#ffffff";
   return (
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={title} onPress={onPress}
-      style={({ pressed }) => ({ flexGrow: 1, flexBasis: 160, flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: radius.l, backgroundColor: done ? withAlpha(c.ok, 0.12) : col, opacity: pressed ? 0.85 : 1, borderWidth: done ? 1 : 0, borderColor: withAlpha(c.ok, 0.4) })}>
-      <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: done ? c.ok : "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center" }}>
-        <Icon name={done ? "check" : icon} size={22} color="#fff" strokeWidth={2.4} />
-      </View>
-      <Col gap={2} style={{ flex: 1 }}>
-        <Text style={{ fontWeight: "800", fontSize: 16, color: done ? c.ink : "#fff" }}>{title}</Text>
+      style={({ pressed }) => ({ flexGrow: 1, flexBasis: 140, gap: 10, padding: 14, borderRadius: radius.l, backgroundColor: done ? c.surface : color, opacity: pressed ? 0.88 : 1, borderWidth: 1, borderColor: done ? c.line : color })}>
+      <Row between>
+        <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: done ? withAlpha(c.ok, 0.14) : "rgba(255,255,255,0.22)", alignItems: "center", justifyContent: "center" }}>
+          <Icon name={done ? "check" : icon} size={18} color={done ? c.ok : "#ffffff"} strokeWidth={2.4} />
+        </View>
+        {!done ? <Icon name="chevron" size={18} color="rgba(255,255,255,0.85)" /> : null}
+      </Row>
+      <Col gap={2}>
+        <Text numberOfLines={1} style={{ fontWeight: "700", fontSize: 15.5, letterSpacing: -0.2, color: fg }}>{title}</Text>
         {sub ? <Text numberOfLines={1} style={{ fontSize: 12.5, color: done ? c.muted : "rgba(255,255,255,0.85)" }}>{sub}</Text> : null}
       </Col>
-      {!done ? <Icon name="chevron" size={20} color="#fff" /> : null}
     </Pressable>
   );
 }

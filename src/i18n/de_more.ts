@@ -48,7 +48,7 @@ export const de_more: Dict = {
   pf_photo: "Foto", pf_role: "Deine Rolle", pf_license: "Trainerlizenz", pf_birth: "Geburtsdatum (optional)", pf_phone: "Telefon (optional)",
   pf_privacy: "Telefon und Foto sieht nur, wem du sie freigibst (Kontaktliste). Das Geburtsdatum sieht nur das Trainerteam.",
   pf_title: "Mein Trainerprofil", pf_saved: "Profil gespeichert",
-  ko_display: "Anzeige", sf_edit: "Bearbeiten",
+  ko_display: "Darstellung", sf_edit: "Bearbeiten",
   lic_none: "Keine / noch keine", lic_kinder: "Kindertrainer-Zertifikat", lic_c: "Trainer-C-Lizenz", lic_b: "Trainer-B-Lizenz", lic_bplus: "B+ / Elite-Jugend-Lizenz",
   lic_a: "Trainer-A-Lizenz", lic_pro: "Fußball-Lehrer / UEFA Pro", lic_tw: "Torwarttrainer-Lizenz", lic_athletik: "Athletiktrainer-Lizenz", lic_other: "Andere Qualifikation",
   ph_coachN: "Von {n}", pl_newRatingN: "Neue Bewertung von {n}",

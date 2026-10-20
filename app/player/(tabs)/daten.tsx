@@ -1,6 +1,7 @@
-// Spieler – Meine Daten: Abzeichen, Beteiligung, Belastung, Schlaf, Spielminuten, Zusatzsport, Abwesenheiten.
+// Spieler – Meine Daten: Überblick (Belastung, Beteiligung, Schlaf, Minuten), Saison & Rückmeldung, Belastung, Befunde,
+// Tests, Beteiligung, Spielminuten, Zusatzsport, Abwesenheiten, Meilensteine.
 import React, { useMemo } from "react";
-import { Text } from "react-native";
+import { View } from "react-native";
 import { addDays, diff, monday, sum } from "../../../src/core/dates";
 import { gameOf } from "../../../src/core/game";
 import { useEngine, useStore } from "../../../src/data/store";
@@ -9,7 +10,8 @@ import { Bar, Card, Chip, Col, Header, Info, ListItem, Muted, Row, Screen, Statu
 import { PlayerFindings } from "../../../src/ui/injury";
 import { PerfCard } from "../../../src/ui/perf";
 import { Badges, MySeason } from "../../../src/ui/player/parts";
-import { useTheme } from "../../../src/ui/theme";
+import { StatTile } from "../../../src/ui/games";
+import { statusColor, useTheme } from "../../../src/ui/theme";
 
 export default function Daten() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
@@ -25,42 +27,48 @@ export default function Daten() {
   const abs = E.D.absences.filter(a => a.pid === p.id).sort((a, b) => a.von < b.von ? 1 : -1).slice(0, 6);
   const stK = ["ok", "low", "warn", "crit", "build", "inj"].includes(pr.st) ? pr.st : "none";
   const showLoad = E.mods.belastung && E.playerSees("load");
+  const minAvg = mins.length ? Math.round(sum(mins.map(x => x.m)) / mins.length) : null;
+  const seesAtt = E.mods.beteiligung && E.playerSees("att");
+  const kpis: { k: string; label: string; value: string; color?: string }[] = [
+    ...(showLoad ? [{ k: "load", label: t("pd_loadS"), value: t("pd_loadW_" + stK), color: stK === "none" ? undefined : statusColor(c, stK) }] : []),
+    ...(seesAtt ? [{ k: "att", label: t("pd_attS"), value: att != null ? Math.round(att * 100) + " %" : "–", color: att != null && att >= 0.9 ? c.ok : undefined }] : []),
+    ...(E.mods.belastung ? [{ k: "sleep", label: t("pd_sleepS"), value: pr.sl != null ? E.num(pr.sl, 1) + " h" : "–", color: pr.sl != null && pr.sl < pr.tg[0] ? c.warn : undefined }] : []),
+    ...(E.mods.belastung ? [{ k: "mins", label: t("pd_minsS"), value: minAvg != null ? minAvg + "′" : "–" }] : []),
+  ];
+  // Reihenfolge nach Wichtigkeit: Überblick, Rückmeldung des Trainers (Saison, Bewertungen, Videos), Belastung,
+  // Befunde, Tests, Beteiligung, Spielminuten, Zusatzsport, Abwesenheiten – Meilensteine zuletzt.
   return (
     <Screen testID="player-daten">
       <Header title={t("pn_daten")} />
-      <Badges g={g} />
-      {E.playerSees("tests") ? <PerfCard p={p} /> : null}
+      {kpis.length ? <Row wrap gap={8} testID="pd-kpi">{kpis.map(x => <View key={x.k} style={{ flexGrow: 1, flexBasis: "40%", flexDirection: "row" }}><StatTile label={x.label} value={x.value} color={x.color} /></View>)}</Row> : null}
+      {E.mods.belastung && pr.sl != null && pr.sl < pr.tg[0] ? <Muted small testID="pd-sleep-hint">{t("pd_sleep")}: {tf("pd_goal", { a: pr.tg[0], b: pr.tg[1] })}</Muted> : null}
       {E.mods.spielanalyse || E.mods.videos ? <MySeason pid={p.id} /> : null}
-      {E.mods.beteiligung && E.playerSees("att") ? <Card testID="pd-att">
-        <Row between><T v="h3">{t("pd_att")}</T><Muted small>{t("pd_28")}</Muted></Row>
-        <Text style={{ fontSize: 40, fontWeight: "800", color: att != null && att >= 0.9 ? c.ok : c.ink, fontVariant: ["tabular-nums"] }}>{att != null ? Math.round(att * 100) + " %" : "–"}</Text>
-        <Bar value={att || 0} color={att != null && att >= 0.9 ? c.ok : c.accent} />
-        <Row wrap gap={6}><Chip label={`${cnt.da} ${t("at_da")}`} color={c.ok} /><Chip label={`${cnt.ent} ${t("at_ent")}`} color={c.warn} /><Chip label={`${cnt.unent} ${t("at_unent")}`} color={c.crit} /></Row>
-      </Card> : null}
       {showLoad ? <Card testID="pd-load">
         <Row between><T v="h3">{t("pd_load")}</T><Info title={t("pd_load")} text={t("tx_src")} /></Row>
         <StatusChip status={stK} label={t("pd_load_" + stK)} />
-        <T v="eyebrow">{t("pd_weeks")}</T>
-        <WeekBars data={wk} label={t("pd_weeks")} height={130} />
+        <WeekBars data={wk} label={t("pd_weeks")} height={120} />
+        <Muted small>{t("pd_weeks")}</Muted>
       </Card> : null}
-      {E.mods.belastung ? <Card>
-        <T v="h3">{t("pd_sleep")}</T>
-        <Row gap={8} align="flex-end"><Text style={{ fontSize: 34, fontWeight: "800", color: pr.sl != null && pr.sl < pr.tg[0] ? c.warn : c.ink }}>{pr.sl != null ? E.num(pr.sl, 1) + " h" : "–"}</Text><Muted>{t("pd_sleepAvg")}</Muted></Row>
-        <Muted small>{tf("pd_goal", { a: pr.tg[0], b: pr.tg[1] })}</Muted>
+      <PlayerFindings pid={p.id} />
+      {E.playerSees("tests") ? <PerfCard p={p} /> : null}
+      {seesAtt ? <Card testID="pd-att">
+        <Row between><T v="h3">{t("pd_att")}</T><Muted small>{t("pd_28")}</Muted></Row>
+        <Bar value={att || 0} color={att != null && att >= 0.9 ? c.ok : c.accent} />
+        <Row wrap gap={6}><Chip label={`${cnt.da} ${t("at_da")}`} color={c.ok} /><Chip label={`${cnt.ent} ${t("at_ent")}`} color={c.warn} /><Chip label={`${cnt.unent} ${t("at_unent")}`} color={c.crit} /></Row>
       </Card> : null}
-      {E.mods.belastung ? <Card>
+      {E.mods.belastung ? <Card testID="pd-mins">
         <T v="h3">{t("pd_mins")}</T>
         {mins.length ? mins.map(x => <Row key={x.d} between><T v="small">{E.wt(x.d)} {E.de(x.d)} · {x.opp}</T><T bold>{x.m}′</T></Row>) : <Muted>{t("pd_noMins")}</Muted>}
       </Card> : null}
-      {E.mods.belastung ? <Card>
+      {E.mods.belastung ? <Card testID="pd-extra">
         <T v="h3">{t("pd_extra")}</T>
         {ex.length ? ex.map(e => <Row key={e.id} between><T v="small">{E.wt(e.date)} {E.de(e.date)} · {e.label || t("px_" + e.art)}</T><T v="small" bold>{e.min}′ · RPE {e.rpe}</T></Row>) : <Muted>{t("px_none")}</Muted>}
       </Card> : null}
-      {E.mods.beteiligung ? <Card>
+      {E.mods.beteiligung ? <Card testID="pd-abs">
         <T v="h3">{t("pd_abs")}</T>
         {abs.length ? abs.map(a => <ListItem key={a.id} title={t("ab_" + a.typ) + (a.notiz ? " · " + a.notiz : "")} sub={`${E.de(a.von)} – ${a.bis ? E.de(a.bis) : t("ongoing")}`} />) : <Muted>{t("abs_none")}</Muted>}
       </Card> : null}
-      <PlayerFindings pid={p.id} />
+      <Badges g={g} />
       <Col />
     </Screen>
   );

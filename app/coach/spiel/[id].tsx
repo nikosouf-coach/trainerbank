@@ -5,6 +5,7 @@ import { Pressable, Text, View } from "react-native";
 import type { MatchStat, Video } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { RatingBadge, RatingInput, VideoList, VideoSheet } from "../../../src/ui/games";
+import { Icon } from "../../../src/ui/icons";
 import { Btn, Card, CardTitle, Check, Col, Field, Header, Muted, NumField, Row, Screen, Sheet, T, ToggleRow } from "../../../src/ui/kit";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { useTheme } from "../../../src/ui/theme";
@@ -51,7 +52,7 @@ export default function Spiel() {
           <Btn testID="sp-result-save" kind="primary" label={t("sp_resultSave")} disabled={own == null || opp == null}
             onPress={() => { s.saveMatch({ ...m, result: { own: own!, opp: opp! } }); s.toast(t("t_saved")); }} />
         </Row>
-        {goals.length ? <Muted small>⚽ {goals.join(", ")}</Muted> : null}
+        {goals.length ? <Muted small>{t("sp_goals")}: {goals.join(", ")}</Muted> : null}
       </Card>
       <Card testID="sp-players">
         <CardTitle title={t("tab_spieler")} right={<Btn small testID="sp-fill" label={t("sp_fill")} onPress={fillFromRpe} />} />
@@ -64,9 +65,9 @@ export default function Spiel() {
               <PlayerAvatar p={p} size={34} />
               <Col gap={1} style={{ flex: 1 }}>
                 <Text numberOfLines={1} style={{ fontWeight: "700", fontSize: 14.5, color: c.ink }}>{E.name(p)}</Text>
-                <Text style={{ fontSize: 12.5, color: c.muted }}>{x ? `${x.min}′${x.start ? " · " + t("sp_start") : ""}${x.goals ? " · ⚽ " + x.goals : ""}${x.assists ? " · 🅰 " + x.assists : ""}${x.conceded != null ? ` · ${t("sp_conceded")} ${x.conceded}` : ""}${x.saves ? ` · ${t("sp_saves")} ${x.saves}` : ""}` : ab ? t("ab_" + ab.typ) : t("sp_bench")}</Text>
+                <Text style={{ fontSize: 12.5, color: c.muted }}>{x ? `${x.min}′${x.start ? " · " + t("sp_start") : ""}${x.goals ? " · " + x.goals + " " + t("sp_goalsS") : ""}${x.assists ? " · " + x.assists + " " + t("sp_assistsS") : ""}${x.conceded != null ? ` · ${t("sp_conceded")} ${x.conceded}` : ""}${x.saves ? ` · ${t("sp_saves")} ${x.saves}` : ""}` : ab ? t("ab_" + ab.typ) : t("sp_bench")}</Text>
               </Col>
-              {r?.text ? <Text style={{ fontSize: 15 }}>💬</Text> : null}
+              {r?.text ? <Icon name="chat" size={16} color={c.muted} /> : null}
               <RatingBadge value={r?.rating ?? null} size="s" />
             </Pressable>
           );

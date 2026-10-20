@@ -7,6 +7,7 @@ import { GROUP_KINDS, kindDef, membersOf, suggestMembers } from "../../core/grou
 import type { GroupKind, MsgType, TeamGroup } from "../../core/types";
 import { tmpId, useEngine, useStore } from "../../data/store";
 import { VideoSheet } from "../games";
+import { Icon } from "../icons";
 import { Btn, Card, CardTitle, Check, Col, DateField, Field, Info, ListItem, Muted, Picker, Row, Sheet, T, Tag, ToggleRow } from "../kit";
 import { radius, useTheme, withAlpha } from "../theme";
 
@@ -59,7 +60,7 @@ export function GroupsTab({ onFilter }: { onFilter: (key: string) => void }) {
           return (
             <ListItem key={g.id} testID={"group-" + g.id} title={g.name} sub={`${t("gk_" + (g.kind || "custom"))}${kindDef(g.kind).steer ? " ⚙" : ""} · ${ps.map(p => p.vn).join(", ") || t("gr_empty")}`} onPress={() => setEditId(g.id)}
               left={<View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: KIND_COLOR[g.kind || "custom"] }} />}
-              right={<Row gap={6}><Tag label={tf("gr_members", { n: ps.length })} />{g.vis ? <Text accessibilityLabel={t("gr_vis")} style={{ color: c.muted }}>👁</Text> : null}</Row>} />
+              right={<Row gap={6}><Tag label={tf("gr_members", { n: ps.length })} />{g.vis ? <View accessibilityLabel={t("gr_vis")}><Icon name="eye" size={16} color={c.muted} /></View> : null}</Row>} />
           );
         }) : <Muted>{t("gr_none")}</Muted>}
         <Row gap={8} wrap align="flex-end">

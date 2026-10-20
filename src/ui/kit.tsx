@@ -21,7 +21,7 @@ export const Muted = ({ children, small, style, testID }: { children?: React.Rea
   const { c } = useTheme(); return <T v={small ? "small" : "body"} color={c.muted} style={style} testID={testID}>{children}</T>;
 };
 
-/** Länge des längsten Wortes (lange deutsche Wörter in Großbuchstaben brauchen eine kleinere Schrift). */
+/** Länge des längsten Wortes (sehr lange deutsche Wörter brauchen eine kleinere Schrift). */
 const longest = (s: string): number => Math.max(0, ...String(s).split(/\s+/).map(w => w.length));
 
 // ---------- Layout ----------
@@ -42,7 +42,7 @@ export function Screen({ children, scroll = true, testID }: { children?: React.R
   const [locked, setLocked] = useState(false);
   const lock = useCallback((on: boolean) => setLocked(on), []);
   const pad = width >= 900 ? 28 : space.l;
-  const inner = <View style={{ width: "100%", maxWidth: 1100, alignSelf: "center", gap: 18, paddingHorizontal: pad, paddingTop: ins.top + space.l, paddingBottom: space.xxl * 2 }}>{children}</View>;
+  const inner = <View style={{ width: "100%", maxWidth: 1100, alignSelf: "center", gap: 16, paddingHorizontal: pad, paddingTop: ins.top + space.l, paddingBottom: space.xxl * 2 }}>{children}</View>;
   if (!scroll) return <View testID={testID} style={{ flex: 1, backgroundColor: c.bg }}>{inner}</View>;
   return (
     <ScrollLockCtx.Provider value={lock}>
@@ -58,7 +58,7 @@ export function Header({ eyebrow, title, right, info, onBack, backLabel, aside }
       <Row between align={aside ? "center" : "flex-end"} wrap={!aside} gap={aside ? 12 : undefined}>
         <Col gap={4} style={aside ? { flex: 1, minWidth: 0 } : { flexShrink: 1 }}>
           {eyebrow ? <T v="eyebrow">{eyebrow}</T> : null}
-          <Row gap={8}><T v="h1" style={[{ flexShrink: 1 }, longest(title) > 13 ? { fontSize: longest(title) > 17 ? 21 : 25 } : null]}>{title}</T>{info}</Row>
+          <Row gap={8}><T v="h1" style={[{ flexShrink: 1 }, longest(title) > 15 ? { fontSize: longest(title) > 19 ? 21 : 24, lineHeight: longest(title) > 19 ? 27 : 30 } : null]}>{title}</T>{info}</Row>
         </Col>
         {right}
         {aside ? <View style={{ flexShrink: 0 }}>{aside}</View> : null}
@@ -66,12 +66,14 @@ export function Header({ eyebrow, title, right, info, onBack, backLabel, aside }
     </Col>
   );
 }
+/** Karte: ruhige Fläche mit feiner Linie; tone tönt sie nur leicht ein (Status), damit Farbe Bedeutung behält. */
 export function Card({ children, style, testID, tone }: { children?: React.ReactNode; style?: StyleProp<ViewStyle>; testID?: string; tone?: string }) {
-  const { c } = useTheme();
-  return <View testID={testID} style={[{ backgroundColor: tone ? withAlpha(tone, 0.1) : c.surface, borderWidth: 1, borderColor: tone ? withAlpha(tone, 0.35) : c.line, borderRadius: radius.l, padding: space.l, gap: space.m }, style]}>{children}</View>;
+  const { c, dark } = useTheme();
+  const tn = tone && tone.startsWith("#") ? tone : undefined;
+  return <View testID={testID} style={[{ backgroundColor: tn ? withAlpha(tn, dark ? 0.1 : 0.055) : c.surface, borderWidth: 1, borderColor: tn ? withAlpha(tn, dark ? 0.3 : 0.22) : c.line, borderRadius: radius.l, padding: space.l, gap: space.m }, style]}>{children}</View>;
 }
 export function CardTitle({ title, info, right }: { title: string; info?: React.ReactNode; right?: React.ReactNode }) {
-  return <Row between><Row gap={6} style={{ flexShrink: 1 }}><T v="h2" style={[{ flexShrink: 1 }, longest(title) > 14 ? { fontSize: longest(title) > 17 ? 15 : 17 } : null]}>{title}</T>{info}</Row>{right}</Row>;
+  return <Row between><Row gap={6} style={{ flexShrink: 1 }}><T v="h2" style={[{ flexShrink: 1 }, longest(title) > 18 ? { fontSize: 16 } : null]}>{title}</T>{info}</Row>{right}</Row>;
 }
 export const Divider = () => { const { c } = useTheme(); return <View style={{ height: 1, backgroundColor: c.line, marginVertical: 2 }} />; };
 
@@ -84,7 +86,7 @@ export function Btn({ label, onPress, kind = "default", small, disabled, icon, t
     <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={a11y || label} accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress}
       style={({ pressed }) => [{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: bg, borderWidth: kind === "ghost" ? 0 : 1, borderColor: kind === "default" ? c.line : bg, borderRadius: radius.m, paddingVertical: small ? 7 : 11, paddingHorizontal: small ? 11 : 16, opacity: disabled ? 0.5 : pressed ? 0.8 : 1, minHeight: small ? 34 : 44 }, style]}>
       {icon ? <Icon name={icon} size={small ? 15 : 18} color={fg} /> : null}
-      {label ? <Text style={{ color: fg, fontWeight: "700", fontSize: small ? 13 : 15 }}>{label}</Text> : null}
+      {label ? <Text style={{ color: fg, fontWeight: "600", fontSize: small ? 13.5 : 15, letterSpacing: -0.1 }}>{label}</Text> : null}
     </Pressable>
   );
 }
@@ -97,7 +99,7 @@ export function Seg<K extends string>({ options, value, onChange, testID, wrap }
         return (
           <Pressable key={o.key} testID={testID ? testID + "-" + o.key : undefined} accessibilityRole="tab" accessibilityState={{ selected: on }} onPress={() => onChange(o.key)}
             style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: radius.s, backgroundColor: on ? c.surface : "transparent", flexShrink: 1 }}>
-            <Text numberOfLines={1} style={{ fontWeight: "700", fontSize: 13, color: on ? c.ink : c.muted }}>{o.label}</Text>
+            <Text numberOfLines={1} style={{ fontWeight: on ? "700" : "600", fontSize: 13, color: on ? c.ink : c.muted }}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -112,8 +114,8 @@ export function ChoiceChips<K extends string>({ options, value, onChange, testID
         const on = o.key === value;
         return (
           <Pressable key={o.key} testID={testID ? testID + "-" + o.key : undefined} accessibilityRole="radio" accessibilityState={{ checked: on }} onPress={() => onChange(o.key)}
-            style={{ borderWidth: 1.5, borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accent : c.surface, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 13 }}>
-            <Text style={{ fontWeight: "700", fontSize: 14, color: on ? c.accentInk : c.ink }}>{o.label}</Text>
+            style={{ borderWidth: 1, borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accent : c.surface, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 13 }}>
+            <Text style={{ fontWeight: "600", fontSize: 14, color: on ? c.accentInk : c.ink }}>{o.label}</Text>
           </Pressable>
         );
       })}
@@ -123,9 +125,9 @@ export function ChoiceChips<K extends string>({ options, value, onChange, testID
 export function Chip({ label, color, testID }: { label: string; color?: string; testID?: string }) {
   const { c } = useTheme(); const col = color || c.build;
   return (
-    <View testID={testID} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: withAlpha(col.startsWith("#") ? col : "#888888", 0.15), borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 9, alignSelf: "flex-start" }}>
-      <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: col }} />
-      <Text style={{ color: col, fontWeight: "700", fontSize: 12 }}>{label}</Text>
+    <View testID={testID} style={{ flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: withAlpha(col.startsWith("#") ? col : "#888888", 0.12), borderRadius: radius.pill, paddingVertical: 3, paddingHorizontal: 9, alignSelf: "flex-start" }}>
+      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: col }} />
+      <Text style={{ color: col, fontWeight: "600", fontSize: 12 }}>{label}</Text>
     </View>
   );
 }
@@ -143,7 +145,7 @@ export function Field({ label, value, onChangeText, onBlur, placeholder, keyboar
   const { c } = useTheme();
   return (
     <View style={[{ gap: 4 }, style]}>
-      <Text style={{ fontSize: 13, fontWeight: "700", color: c.muted }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: c.muted }}>{label}</Text>
       <TextInput testID={testID} accessibilityLabel={label} value={value} onChangeText={onChangeText} onBlur={onBlur} placeholder={placeholder} placeholderTextColor={c.muted}
         keyboardType={keyboardType} multiline={multiline} numberOfLines={multiline ? 4 : undefined} secureTextEntry={secure} autoCapitalize={autoCapitalize} autoComplete={autoComplete} maxLength={maxLength}
         style={{ borderWidth: 1, borderColor: c.line, borderRadius: radius.m, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: c.bg, color: c.ink, fontSize: 16, minHeight: multiline ? 96 : 44, textAlignVertical: multiline ? "top" : "center" }} />
@@ -158,7 +160,7 @@ export function SearchField({ value, onChange, placeholder, testID, clearLabel }
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 12, borderRadius: radius.m, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface }}>
       <Icon name="search" size={18} color={c.muted} />
       <TextInput testID={testID} value={value} onChangeText={onChange} placeholder={placeholder} placeholderTextColor={c.muted} accessibilityLabel={placeholder}
-        style={{ flex: 1, paddingVertical: 11, fontSize: 15, color: c.ink, borderWidth: 0 }} />
+        style={{ flex: 1, paddingVertical: 11, fontSize: 15, color: c.ink, borderWidth: 0, backgroundColor: "transparent" }} />
       {value ? <Pressable accessibilityRole="button" accessibilityLabel={clearLabel} onPress={() => onChange("")} hitSlop={8}><Icon name="close" size={16} color={c.muted} /></Pressable> : null}
     </View>
   );
@@ -198,7 +200,7 @@ export function Picker<K extends string>({ label, value, options, onChange, test
   const cur = options.find(o => o.key === value);
   return (
     <View style={[{ gap: 4 }, style]}>
-      <Text style={{ fontSize: 13, fontWeight: "700", color: c.muted }}>{label}</Text>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: c.muted }}>{label}</Text>
       <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label + ": " + (cur?.label || "")} onPress={() => setOpen(true)}
         style={{ borderWidth: 1, borderColor: c.line, borderRadius: radius.m, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: c.bg, minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
         <Text numberOfLines={1} style={{ color: c.ink, fontSize: 16, flexShrink: 1 }}>{cur?.label || "–"}</Text>
@@ -251,7 +253,7 @@ export function NumScale({ value, onChange, min = 1, max = 10, color, testID, la
         return (
           <Pressable key={n} testID={testID ? testID + "-" + n : undefined} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={labels?.[n - min] ? `${n} ${labels[n - min]}` : String(n)} onPress={() => onChange(n)}
             style={{ minWidth: 40, height: 40, borderRadius: radius.m, borderWidth: 1.5, borderColor: on ? col : c.line, backgroundColor: on ? col : c.surface, alignItems: "center", justifyContent: "center", paddingHorizontal: 6 }}>
-            <Text style={{ fontWeight: "800", fontSize: 15, color: on ? "#fff" : c.ink }}>{n}</Text>
+            <Text style={{ fontWeight: "700", fontSize: 15, color: on ? "#fff" : c.ink }}>{n}</Text>
           </Pressable>
         );
       })}
@@ -267,7 +269,8 @@ export function Sheet({ visible, onClose, title, children, testID, closeLabel }:
       <View style={{ flex: 1, justifyContent: wide ? "center" : "flex-end", alignItems: "center", backgroundColor: c.overlay }}>
         <Pressable accessibilityLabel={closeLabel || "close"} onPress={onClose} style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} />
         <View testID={testID} style={{ width: "100%", maxWidth: 600, maxHeight: height * 0.9, backgroundColor: c.surface, borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, borderBottomLeftRadius: wide ? radius.xl : 0, borderBottomRightRadius: wide ? radius.xl : 0 }}>
-          <ScrollView contentContainerStyle={{ padding: space.l, paddingBottom: space.l + ins.bottom, gap: space.m }} keyboardShouldPersistTaps="handled">
+          {!wide ? <View style={{ alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: c.line, marginTop: 8 }} /> : null}
+          <ScrollView contentContainerStyle={{ padding: space.l, paddingTop: wide ? space.l : space.m, paddingBottom: space.l + ins.bottom, gap: space.m }} keyboardShouldPersistTaps="handled">
             {title ? <Row between align="flex-start"><T v="h2" style={{ flex: 1 }}>{title}</T><Pressable testID={testID ? testID + "-close" : "sheet-close"} accessibilityRole="button" accessibilityLabel={closeLabel || "close"} onPress={onClose} hitSlop={10}><Icon name="close" size={22} color={c.muted} /></Pressable></Row> : null}
             {children}
           </ScrollView>
@@ -298,9 +301,9 @@ export function Info({ title, text, children, testID }: { title: string; text?: 
   if (!on) return null;
   const body = children || (Array.isArray(text) ? <Col gap={10}>{text.filter(Boolean).map((x, i) => <T key={i}>{x}</T>)}</Col> : text);
   return (
-    <Pressable testID={testID || "info"} accessibilityRole="button" accessibilityLabel={"Info: " + title} onPress={() => show({ title, body })} hitSlop={8}
-      style={{ width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: withAlpha(c.accentTx, 0.6), alignItems: "center", justifyContent: "center", backgroundColor: c.surface }}>
-      <Text style={{ color: c.accentTx, fontStyle: "italic", fontWeight: "800", fontSize: 13, fontFamily: "Georgia" }}>i</Text>
+    <Pressable testID={testID || "info"} accessibilityRole="button" accessibilityLabel={"Info: " + title} onPress={() => show({ title, body })} hitSlop={10}
+      style={({ pressed }) => ({ width: 22, height: 22, alignItems: "center", justifyContent: "center", opacity: pressed ? 0.6 : 1 })}>
+      <Icon name="info" size={19} color={c.muted} strokeWidth={1.8} />
     </Pressable>
   );
 }
@@ -316,7 +319,7 @@ export function Fold({ title, count, countColor, right, summary, children, testI
         style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 32 }}>
         <T v="h2" style={{ flex: 1 }}>{title}</T>
         {count != null ? <View style={{ minWidth: 28, height: 24, borderRadius: 12, paddingHorizontal: 8, backgroundColor: count ? withAlpha(countColor || c.accentTx, 0.14) : c.sunk, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontWeight: "800", fontSize: 13, color: count ? (countColor || c.accentTx) : c.muted, fontVariant: ["tabular-nums"] }}>{count}</Text>
+          <Text style={{ fontWeight: "700", fontSize: 13, color: count ? (countColor || c.accentTx) : c.muted, fontVariant: ["tabular-nums"] }}>{count}</Text>
         </View> : null}
         {right}
         <View style={{ transform: [{ rotate: open ? "-90deg" : "90deg" }] }}><Icon name="chevron" size={16} color={c.muted} /></View>
@@ -344,13 +347,14 @@ export function ListItem({ left, title, sub, right, onPress, testID, children }:
   return onPress ? <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={title} onPress={onPress}>{body}</Pressable> : <View testID={testID}>{body}</View>;
 }
 export function Banner({ children, color, testID }: { children?: React.ReactNode; color?: string; testID?: string }) {
-  const { c } = useTheme(); const col = color || c.accent;
-  return <View testID={testID} style={{ borderLeftWidth: 3, borderLeftColor: col, backgroundColor: withAlpha(col, 0.08), paddingVertical: 8, paddingHorizontal: 12, borderTopRightRadius: radius.s, borderBottomRightRadius: radius.s }}>{typeof children === "string" ? <T v="small">{children}</T> : children}</View>;
+  const { c, dark } = useTheme(); const col = color && color.startsWith("#") ? color : c.accent;
+  return <View testID={testID} style={{ backgroundColor: withAlpha(col, dark ? 0.14 : 0.08), paddingVertical: 10, paddingHorizontal: 12, borderRadius: radius.m }}>{typeof children === "string" ? <T v="small">{children}</T> : children}</View>;
 }
 export function Msg({ eyebrow, text, color, testID }: { eyebrow: string; text: string; color: string; testID?: string }) {
+  const { dark } = useTheme(); const col = color.startsWith("#") ? color : "#888888";
   return (
-    <View testID={testID} style={{ borderLeftWidth: 4, borderLeftColor: color, backgroundColor: withAlpha(color, 0.09), paddingVertical: 10, paddingHorizontal: 12, borderTopRightRadius: radius.m, borderBottomRightRadius: radius.m, gap: 4 }}>
-      <T v="eyebrow">{eyebrow}</T><T>{text}</T>
+    <View testID={testID} style={{ backgroundColor: withAlpha(col, dark ? 0.14 : 0.08), paddingVertical: 12, paddingHorizontal: 14, borderRadius: radius.l, gap: 4 }}>
+      <Row gap={6}><View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: col }} /><T v="eyebrow" style={{ flex: 1 }}>{eyebrow}</T></Row><T>{text}</T>
     </View>
   );
 }
@@ -372,8 +376,8 @@ export function Avatar({ id, first, last, url, size = 44, status }: { id: string
   return (
     <View style={{ width: size, height: size }}>
       {url ? <Image accessibilityLabel={first} source={{ uri: url }} style={{ width: size, height: size, borderRadius: size / 2 }} />
-        : <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: `hsl(${hue(id)}, 42%, 42%)`, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: "#fff", fontWeight: "800", fontSize: size * 0.36 }}>{ini}</Text>
+        : <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: `hsl(${hue(id)}, 26%, 44%)`, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: "#fff", fontWeight: "700", fontSize: size * 0.36 }}>{ini}</Text>
           </View>}
       {status && status !== "none" ? <View style={{ position: "absolute", right: -1, bottom: -1, width: size * 0.3, height: size * 0.3, borderRadius: size, backgroundColor: statusColor(c, status), borderWidth: 2, borderColor: c.surface }} /> : null}
     </View>
@@ -386,8 +390,8 @@ export function Toast({ text }: { text: string | null }) {
   if (!text) return null;
   return (
     <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, bottom: ins.bottom + 84, alignItems: "center" }}>
-      <View accessibilityLiveRegion="polite" testID="toast" style={{ backgroundColor: c.ink, paddingVertical: 10, paddingHorizontal: 16, borderRadius: radius.m, maxWidth: 420, marginHorizontal: 16 }}>
-        <Text style={{ color: c.bg, fontWeight: "700" }}>{text}</Text>
+      <View accessibilityLiveRegion="polite" testID="toast" style={{ backgroundColor: c.ink, paddingVertical: 11, paddingHorizontal: 16, borderRadius: radius.l, maxWidth: 420, marginHorizontal: 16 }}>
+        <Text style={{ color: c.bg, fontWeight: "600" }}>{text}</Text>
       </View>
     </View>
   );

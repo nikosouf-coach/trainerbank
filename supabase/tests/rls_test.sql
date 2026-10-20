@@ -3030,6 +3030,43 @@ delete from public.staff_profiles where id in (tst.get('sp49c')::uuid, tst.get('
 update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
 
 -- =====================================================================
+-- T50 Trainingstag: mehrere Zuständigkeiten je Block (crew)
+-- =====================================================================
+with ins as (insert into public.staff_profiles (team_id, name, role) values (tst.get('team_a')::uuid, 'Trainer A', 'chef') returning id) select tst.put('sp50a', id::text) from ins;
+with ins as (insert into public.staff_profiles (team_id, name, role) values (tst.get('team_a')::uuid, 'Trainer B', 'co') returning id) select tst.put('sp50b', id::text) from ins;
+with ins as (insert into public.staff_profiles (team_id, name, role) values (tst.get('team_b')::uuid, 'Fremd', 'co') returning id) select tst.put('sp50x', id::text) from ins;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.session_blocks (team_id, date, title, minutes, staff_id, crew)
+             values (tst.get('team_a')::uuid, '2026-10-21', 'Spielform 8 gegen 8', 25, tst.get('sp50a')::uuid,
+                     jsonb_build_array(jsonb_build_object('staff', tst.get('sp50a'), 'task', 'ballbesitzende Mannschaft'),
+                                       jsonb_build_object('staff', tst.get('sp50b'), 'task', 'verteidigende Mannschaft'))) returning id)
+select tst.put('blk50', id::text) from ins;
+do $$ begin
+  perform tst.eq((select string_agg(e ->> 'task', ' | ') from public.session_blocks b, jsonb_array_elements(b.crew) e where b.id = tst.get('blk50')::uuid),
+                 'ballbesitzende Mannschaft | verteidigende Mannschaft', 'T50 zwei Trainer mit eigener Aufgabe');
+end $$;
+select tst.throws(format($q$update public.session_blocks set crew = jsonb_build_array(jsonb_build_object('staff', %L, 'task', 'x')) where id = %L$q$, tst.get('sp50x'), tst.get('blk50')),
+                  'T50 nur Trainer des eigenen Teams', 'invalid_crew');
+select tst.throws(format($q$update public.session_blocks set crew = jsonb_build_array(jsonb_build_object('staff', %L), jsonb_build_object('staff', %L)) where id = %L$q$, tst.get('sp50a'), tst.get('sp50a'), tst.get('blk50')),
+                  'T50 jeder Trainer nur einmal', 'invalid_crew');
+select tst.throws(format($q$update public.session_blocks set crew = jsonb_build_array(jsonb_build_object('staff', 'kein-uuid')) where id = %L$q$, tst.get('blk50')),
+                  'T50 ungültiger Verweis', 'invalid_crew');
+select tst.throws(format($q$update public.session_blocks set crew = jsonb_build_array(jsonb_build_object('staff', %L, 'task', repeat('x', 81))) where id = %L$q$, tst.get('sp50a'), tst.get('blk50')),
+                  'T50 Aufgabe höchstens 80 Zeichen', 'invalid_crew');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.session_blocks)::text, '0', 'T50 Spieler sehen den Ablauf nicht');
+end $$;
+commit;
+delete from public.session_blocks where id = tst.get('blk50')::uuid;
+delete from public.staff_profiles where id in (tst.get('sp50a')::uuid, tst.get('sp50b')::uuid, tst.get('sp50x')::uuid);
+
+-- =====================================================================
 -- T17 Einwilligungen
 -- =====================================================================
 begin;

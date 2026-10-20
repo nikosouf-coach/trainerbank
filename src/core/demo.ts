@@ -402,6 +402,9 @@ function demoBlocks(D: TeamData, lang: Lang, now: Date): void {
     free(days[0], 4, en ? "Final game 8 v 8" : "Abschlussspiel 8 gegen 8", 25, "s1", en ? "8 v 8 on two goals with keepers, 2 × 10 min." : "8 gegen 8 auf zwei Tore mit Torhütern, 2 × 10 Min.",
       en ? ["Win the ball back within 6 seconds", "Switch play after winning the ball"] : ["Ballgewinn innerhalb von 6 Sekunden", "Nach Ballgewinn schnell verlagern"]);
     fromEx(days[0], 5, "e7", "s4");
+    // mehrere Zuständigkeiten: Cheftrainer coacht die ballbesitzende, Co-Trainer die verteidigende Mannschaft
+    const fin = D.blocks[D.blocks.length - 2];
+    fin.crew = [{ staffId: "s1", task: en ? "team in possession" : "ballbesitzende Mannschaft" }, { staffId: "s2", task: en ? "defending team" : "verteidigende Mannschaft" }];
   }
   if (days[1]) {
     fromEx(days[1], 0, "e1", "s2", 10);

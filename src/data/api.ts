@@ -23,7 +23,17 @@ export interface UserPrefs {
   dash?: { k: string; on: boolean }[];
   /** Navigation (Trainer): Bereiche in der unteren Leiste (Reihenfolge) und im Menü ausgeblendete Bereiche */
   nav?: { bar?: string[]; hide?: string[] };
+  /** Spieler-Startseite: Reihenfolge und Sichtbarkeit der Karten */
+  dashPlayer?: { k: string; on: boolean }[];
+  /** Spieler-Leiste: ausgeblendete Bereiche (daten, tipps, chat) */
+  navPlayer?: { hide?: string[] };
+  /** schon gesehene Tipps (z. B. „Leiste anpassen“) */
+  seen?: string[];
+  /** Darstellung: wie das System, hell oder dunkel */
+  theme?: ThemeMode;
 }
+/** Darstellung: wie das System, immer hell oder immer dunkel */
+export type ThemeMode = "system" | "light" | "dark";
 export interface UserInfo { id: string; email: string; displayName: string; lang: Lang; prefs?: UserPrefs }
 export type ConsentKind = "privacy" | "health_data" | "parental" | "ai" | "staff_confidentiality" | "findings";
 export type ConsentState = Record<ConsentKind, boolean>;

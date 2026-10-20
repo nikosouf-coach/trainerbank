@@ -108,7 +108,7 @@ export function MatchdayCard() {
             {icon(x.state)}
             <View style={{ flex: 1, minWidth: 0, gap: 1 }}>
               <Text style={{ fontSize: 14.5, fontWeight: "700", color: c.ink }}>{x.title}</Text>
-              {x.sub ? <Text numberOfLines={2} style={{ fontSize: 12.5, color: c.muted }}>{x.sub}</Text> : null}
+              {x.sub ? <Text numberOfLines={1} style={{ fontSize: 12.5, color: c.muted }}>{x.sub}</Text> : null}
             </View>
             {x.href ? <Icon name="chevron" size={16} color={c.muted} /> : null}
           </Pressable>

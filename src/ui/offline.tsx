@@ -2,6 +2,7 @@
 import React from "react";
 import { Pressable, Text, View } from "react-native";
 import { useStore } from "../data/store";
+import { Icon } from "./icons";
 import { space, useTheme, withAlpha } from "./theme";
 
 type S = ReturnType<typeof useStore>;
@@ -22,7 +23,7 @@ export function OfflineBar() {
   return (
     <View testID="offline-bar" accessibilityRole="alert" style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: space.l, paddingVertical: 7,
       backgroundColor: withAlpha(col, 0.12), borderBottomWidth: 1, borderBottomColor: withAlpha(col, 0.35) }}>
-      <Text style={{ fontSize: 14 }}>{s.offline ? "📵" : "⏳"}</Text>
+      <Icon name={s.offline ? "mute" : "stopwatch"} size={16} color={col} />
       <Text testID="offline-msg" style={{ flex: 1, minWidth: 0, color: c.ink, fontSize: 13, fontWeight: "600", lineHeight: 18 }}>{msg}</Text>
       {!s.syncing ? (
         <Pressable testID="offline-retry" accessibilityRole="button" onPress={() => s.syncNow()} hitSlop={8}

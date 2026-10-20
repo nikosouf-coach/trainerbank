@@ -117,7 +117,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 
 | Nr. | Kategorie | Daten | Herkunft | Pflicht oder freiwillig |
 |---|---|---|---|---|
-| 4.1 | Kontodaten | E-Mail-Adresse, Passwort (nur als kryptografischer Hash gespeichert, wir kennen dein Passwort nicht), Anzeigename, App-Sprache, Zeitpunkte von Registrierung und Anmeldung | du | Pflicht für ein Konto |
+| 4.1 | Kontodaten | E-Mail-Adresse, Passwort (nur als kryptografischer Hash gespeichert, wir kennen dein Passwort nicht), Anzeigename, App-Sprache, persönliche Anzeige-Einstellungen (Startseite, untere Leiste, Hell/Dunkel, gesehene Hinweise), Zeitpunkte von Registrierung und Anmeldung | du | Pflicht für ein Konto |
 | 4.2 | Teamzugehörigkeit | Team, Rolle (Owner, Coach, Physio, Spieler), Zeitpunkt des Beitritts; Team-Code bzw. Staff-Code nur zur Prüfung beim Beitritt | du, Trainerteam | Pflicht für die Teamnutzung |
 | 4.3 | Spieler-Stammdaten | Vor- und Nachname, Geburtsdatum, Position, Rückennummer; optional Körpergewicht und Profilfoto | du oder das Trainerteam | Name und Geburtsdatum Pflicht; Gewicht und Foto freiwillig |
 | 4.4 | Team- und Kalenderdaten | Verein, Teamname, Altersklasse, Teameinstellungen und Spielprinzipien; Spiele (Datum, Uhrzeit, Gegner, Heim/Auswärts, Wettbewerb), Termine, Trainingszeiten, Absagen und Zusatztrainings, Wochenpläne, eigene Trainingsarten, durchgeführte Einheiten | Trainerteam | – |

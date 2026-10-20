@@ -9,7 +9,8 @@ import { useEngine, useStore } from "../../../src/data/store";
 import { AiPanel } from "../../../src/ui/ai";
 import { WeekBars, WeekStrip } from "../../../src/ui/charts";
 import { Bar, Btn, Card, CardTitle, Chip, Col, Fold, Header, Info, ListItem, Muted, Row, Screen, T } from "../../../src/ui/kit";
-import { DashEditor, useDash } from "../../../src/ui/dashboard";
+import { CustomizeTip, DashEditor, useDash } from "../../../src/ui/dashboard";
+import { MenuEditor } from "../../../src/ui/navEditor";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { teamLabel } from "../../../src/core/classes";
@@ -22,16 +23,17 @@ import { CoachPhaseCard } from "../../../src/ui/prep";
 import { InboxCard } from "../../../src/ui/inbox";
 import { heroPlanLabel } from "../../../src/ui/matchplan/cards";
 import { ViaClubBanner } from "../../../src/ui/club";
-import { radius, space, statusColor, useTheme } from "../../../src/ui/theme";
+import { Icon } from "../../../src/ui/icons";
+import { radius, space, statusColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
-function HeroPill({ label }: { label: string }) {
-  return <View style={{ backgroundColor: "rgba(255,255,255,0.18)", borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 }}><Text style={{ color: "#fff", fontWeight: "700", fontSize: 12.5 }}>{label}</Text></View>;
+function HeroPill({ label, color }: { label: string; color: string }) {
+  return <View style={{ backgroundColor: withAlpha(color === "#111111" ? "#000000" : "#ffffff", 0.16), borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 }}><Text style={{ color, fontWeight: "600", fontSize: 12.5 }}>{label}</Text></View>;
 }
 
 export default function Heute() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
   const sheets = usePlanSheets();
-  const dash = useDash(); const [editDash, setEditDash] = useState(false);
+  const dash = useDash(); const [editDash, setEditDash] = useState(false); const [editMenu, setEditMenu] = useState(false);
   const mods = E.mods, kids = E.grp === "u11";
 
   const data = useMemo(() => {
@@ -53,27 +55,30 @@ export default function Heute() {
   const gruss = t(greetKey(E.NOW.getHours())), myName = firstName(s.myStaff?.name || s.user?.displayName);
   const absN = nx ? E.absentOn(nx.date) : [];
   const nxTitle = nx ? (nx.match ? `${t("vs")} ${nx.match.gegner}` : E.kn(nx.train!.kind)) : "";
-  const nxSub = nx?.train ? nx.train.inhalt : "";
   const when = nx ? (nx.i === 0 ? t("today") : nx.i === 1 ? t("tomorrow") : E.wt(nx.date) + " " + E.de(nx.date)) : "";
 
+  // Nächster Termin: nur das Wichtigste auf einen Blick (Inhalt und Details auf der Tagesseite)
+  const ink = c.accentInk, sub = ink === "#ffffff" ? "rgba(255,255,255,0.78)" : "rgba(0,0,0,0.62)";
   const hero = nx ? (
     <Pressable testID="today-next" accessibilityRole="button" onPress={() => router.push("/coach/tag/" + nx.date)}
-      style={{ backgroundColor: c.accent, borderRadius: radius.xl, padding: space.l + 2, gap: 10 }}>
-      <Text style={{ color: "rgba(255,255,255,0.8)", fontSize: 11, fontWeight: "700", letterSpacing: 1.2, textTransform: "uppercase" }}>{nx.match ? t("nextMatch") : t("next")} · {when}</Text>
-      <Text numberOfLines={2} style={{ color: "#fff", fontSize: 26, fontWeight: "800", textTransform: "uppercase", letterSpacing: 0.3 }}>{nxTitle}</Text>
-      {nxSub ? <Text numberOfLines={3} style={{ color: "rgba(255,255,255,0.9)", fontSize: 14, lineHeight: 20 }}>{nxSub}</Text> : null}
+      style={({ pressed }) => ({ backgroundColor: c.accent, borderRadius: radius.xl, padding: space.l + 2, gap: 10, opacity: pressed ? 0.92 : 1 })}>
+      <Row between>
+        <Text style={{ color: sub, fontSize: 13, fontWeight: "600" }}>{nx.match ? t("nextMatch") : t("next")} · {when}</Text>
+        <Icon name="chevron" size={18} color={sub} />
+      </Row>
+      <Text numberOfLines={2} style={{ color: ink, fontSize: 26, lineHeight: 31, fontWeight: "800", letterSpacing: -0.6 }}>{nxTitle}</Text>
       <Row wrap gap={6}>
         {nx.match ? <>
-          <HeroPill label={nx.match.zeit} /><HeroPill label={nx.match.heim ? t("home") : t("away")} /><HeroPill label={t("comp_" + nx.match.comp)} />
-          {heroPlanLabel(E, nx.match) ? <HeroPill label={heroPlanLabel(E, nx.match)!} /> : null}
+          <HeroPill color={ink} label={nx.match.zeit} /><HeroPill color={ink} label={nx.match.heim ? t("home") : t("away")} /><HeroPill color={ink} label={t("comp_" + nx.match.comp)} />
+          {heroPlanLabel(E, nx.match) ? <HeroPill color={ink} label={heroPlanLabel(E, nx.match)!} /> : null}
         </> : <>
-          {nx.train!.md ? <HeroPill label={nx.train!.md} /> : null}
-          <HeroPill label={`${E.zeitOf(nx.date)} · ${nx.train!.dauer} ${t("min")}`} />
-          {E.lvl(1) && !kids ? <HeroPill label={`${t("intensity")}: ${E.intWord(nx.train!.rpe)} · RPE ${nx.train!.rpe}`} /> : null}
-          {nx.train!.notReady.length ? <HeroPill label={"⚠ " + tf("notReadyN", { n: nx.train!.notReady.length })} /> : null}
-          {E.unitsOn(nx.date).map(u => <HeroPill key={"u" + u.slot} label={`+ ${u.zeit} ${E.unitTitle(u)}`} />)}
+          {nx.train!.md ? <HeroPill color={ink} label={nx.train!.md} /> : null}
+          <HeroPill color={ink} label={`${E.zeitOf(nx.date)} · ${nx.train!.dauer} ${t("min")}`} />
+          {E.lvl(1) && !kids ? <HeroPill color={ink} label={`${E.intWord(nx.train!.rpe)} · RPE ${nx.train!.rpe}`} /> : null}
+          {nx.train!.notReady.length ? <HeroPill color={ink} label={tf("notReadyN", { n: nx.train!.notReady.length })} /> : null}
+          {E.unitsOn(nx.date).map(u => <HeroPill color={ink} key={"u" + u.slot} label={`+ ${u.zeit} ${E.unitTitle(u)}`} />)}
         </>}
-        <HeroPill label={`${E.D.players.length - absN.length} ${t("avail")}`} />
+        <HeroPill color={ink} label={`${E.D.players.length - absN.length} ${t("avail")}`} />
       </Row>
     </Pressable>
   ) : null;
@@ -148,9 +153,12 @@ export default function Heute() {
       <Header eyebrow={`${E.wt(E.TODAY)} ${E.de(E.TODAY)} · ${teamLabel(E.team)}`} title={myName ? `${gruss}, ${myName}` : gruss}
         aside={<TeamLogo size={46} />} />
       <ViaClubBanner />
+      <CustomizeTip id="coach-custom" onBar={() => setEditMenu(true)} onDash={() => setEditDash(true)} />
       {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
-      <Btn small kind="ghost" testID="dash-edit" label={"⚙ " + t("db_edit")} onPress={() => setEditDash(true)} style={{ alignSelf: "center" }} />
-      <DashEditor visible={editDash} onClose={() => setEditDash(false)} available={available} />
+      <Btn small kind="ghost" icon="sliders" testID="dash-edit" label={t("db_edit")} onPress={() => setEditDash(true)} style={{ alignSelf: "center" }} />
+      <DashEditor visible={editDash} onClose={() => setEditDash(false)} available={available}
+        extra={<Btn small testID="dash-to-menu" icon="grid" label={t("tip_bar")} onPress={() => { setEditDash(false); setEditMenu(true); }} style={{ alignSelf: "flex-start" }} />} />
+      <MenuEditor visible={editMenu} onClose={() => setEditMenu(false)} />
       {sheets.el}
     </Screen>
   );

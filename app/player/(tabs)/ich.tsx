@@ -75,6 +75,10 @@ export default function Ich() {
       </Card>
       {E.playerSees("goals") ? <Goals pid={p.id} /> : null}
       <Card style={{ paddingVertical: 4, gap: 0 }}>
+        {/* ausgeblendete Bereiche der Leiste bleiben hier erreichbar */}
+        {(s.prefs.navPlayer?.hide || []).map(k => (
+          <ListItem key={k} testID={"me-tab-" + k} title={t(k === "chat" ? "nav_chat" : "pn_" + k)} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/" + k)} />
+        ))}
         {E.playerSees("dev") ? <ListItem testID="me-dev" title={t("dv_mine")} sub={`${t("dv_myGoals")} · ${t("dv_profile")} · ${t("iq_title")}`} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/entwicklung")} /> : null}
         {E.mods.kontakte && E.playerSees("contacts") ? <ListItem testID="me-kontakte" title={t("ct_title")} sub={t("ct_sub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/kontakte")} /> : null}
         <ListItem testID="me-wiki" title={t("wk_menu")} sub={t("wk_menuSub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/wiki")} />

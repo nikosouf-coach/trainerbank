@@ -33,7 +33,7 @@ export function IndivSummary({ date, testID }: { date: string; testID?: string }
   return (
     <Col gap={6} testID={testID}>
       <Row gap={6} wrap>
-        <Btn small kind="ghost" testID={testID ? testID + "-toggle" : undefined} label={`👤 ${tf("iv_sum", { n: list.length })} ${open ? "▴" : "▾"}`} onPress={() => setOpen(!open)} style={{ paddingHorizontal: 0 }} />
+        <Btn small kind="ghost" testID={testID ? testID + "-toggle" : undefined} icon="people" label={`${tf("iv_sum", { n: list.length })} ${open ? "▴" : "▾"}`} onPress={() => setOpen(!open)} style={{ paddingHorizontal: 0 }} />
         {!open ? by.slice(0, 4).map(x => <Text key={x.k} style={{ fontSize: 12, fontWeight: "700", color: INDIV_COLOR[x.k] }}>{x.L.length} {indivLabel(E, x.k)}</Text>) : null}
         <Info title={t("iv_title")} text={t("iv_info")} />
       </Row>

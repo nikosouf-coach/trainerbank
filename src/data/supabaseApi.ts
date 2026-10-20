@@ -21,10 +21,11 @@ import {
 } from "./api";
 import { supabase } from "./supabase";
 import { cleanClubPerms, type ClubInfo, type ClubRole, type ClubStaffEntry, type ClubTeam, type TeamSummary } from "../core/club";
+import { cleanCrew } from "../core/day";
 
 type Row = Record<string, any>;
 const KNOWN_CODES = ["invalid_years", "managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
-  "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day"];
+  "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew"];
 /** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
 const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams"];
 
@@ -99,7 +100,8 @@ const mapTemplate = (r: Row): SessionTemplate => ({ id: r.id, title: r.title, th
 const mapStaff = (r: Row): StaffProfile => ({ id: r.id, name: r.name, role: r.role, areas: r.areas || [], phone: r.phone || "", email: r.email || "", note: r.note || "",
   userId: r.user_id || null, birth: r.birthdate || null, license: r.license || "", photo: r.photo_path || null });
 const mapBlock = (r: Row): DayBlock => ({ id: r.id, date: r.date, sort: r.sort ?? 0, title: r.title, min: r.minutes ?? 15, staffId: r.staff_id || null, exId: r.exercise_id || null,
-  text: r.text || "", points: Array.isArray(r.points) ? r.points.map(String) : [], drawing: (r.drawing as Drawing) || null, photo: r.photo_path || null, groupId: r.group_id || null, slot: r.slot ?? 0 });
+  text: r.text || "", points: Array.isArray(r.points) ? r.points.map(String) : [], drawing: (r.drawing as Drawing) || null, photo: r.photo_path || null, groupId: r.group_id || null, slot: r.slot ?? 0,
+  crew: Array.isArray(r.crew) ? r.crew.filter((x: Row) => x && x.staff).map((x: Row) => ({ staffId: String(x.staff), task: String(x.task || "") })) : [] });
 const mapCash = (r: Row): CashEntry => ({ id: r.id, date: r.date, amount: Number(r.amount), kind: r.kind, cat: r.cat, pid: r.player_id || null,
   feeId: r.fee_id || null, period: r.period || null, fineId: r.fine_id || null, note: r.note || "" });
 const mapFine = (r: Row): FineEntry => ({ id: r.id, pid: r.player_id, rule: r.rule, date: r.date, ref: r.ref_date || null, amount: r.amount != null ? Number(r.amount) : null, note: r.note || "",
@@ -691,7 +693,9 @@ export class SupabaseApi implements Api {
 
   // ---------- Trainingstag ----------
   async saveBlock(teamId: string, b: DayBlock) {
-    const row: Row = { team_id: teamId, date: b.date, sort: b.sort, title: b.title.trim().slice(0, 120) || "–", minutes: Math.max(1, Math.min(180, Math.round(b.min))), staff_id: b.staffId,
+    const crew = cleanCrew(b.crew || []).filter(x => !isTmp(x.staffId));
+    const row: Row = { team_id: teamId, date: b.date, sort: b.sort, title: b.title.trim().slice(0, 120) || "–", minutes: Math.max(1, Math.min(180, Math.round(b.min))), staff_id: crew[0]?.staffId ?? b.staffId,
+      crew: crew.map(x => ({ staff: x.staffId, task: x.task })),
       exercise_id: b.exId && !isTmp(b.exId) ? b.exId : null, text: b.text || null, points: b.points.filter(x => x.trim()).slice(0, 12), drawing: b.drawing, photo_path: b.photo, group_id: b.groupId, slot: b.slot ?? 0 };
     const r = isTmp(b.id) ? await q<Row>(this.sb.from("session_blocks").insert(row).select().single()) : await q<Row>(this.sb.from("session_blocks").update(row).eq("id", b.id).select().single());
     return mapBlock(r);

@@ -89,10 +89,10 @@ export default function Kalender() {
         if (past && sess) {
           const a = E.sessAvg(d), da = E.D.players.filter(p => E.attStatus(d, p.id) === "da").length;
           L.push(showI && a != null ? chip("r", "Ø " + E.num(a, 1), rpeColor(c, Math.round(a))) : chip("r", t("it_training"), c.build));
-          L.push(tx("k", E.kn(tr.kind), c.ink, true)); if (!narrow) L.push(tx("z", `${E.zeitOf(d)} · ${sess.dauer}′`)); L.push(tx("p", `👤 ${da}`));
+          L.push(tx("k", E.kn(tr.kind), c.ink, true)); if (!narrow) L.push(tx("z", `${E.zeitOf(d)} · ${sess.dauer}′`)); L.push(<Row key="p" gap={2}><Icon name="person" size={narrow ? 9 : 11} color={c.muted} strokeWidth={2.2} /><Text style={{ fontSize: narrow ? 9.5 : 11, color: c.muted, fontWeight: "500" }}>{da}</Text></Row>);
         } else {
           L.push(showI ? chip("r", "RPE " + tr.rpe, rpeColor(c, tr.rpe)) : chip("r", t("it_training"), c.low));
-          L.push(tx("k", E.kn(tr.kind), c.ink, true)); if (!narrow) L.push(tx("z", `${E.zeitOf(d)} · ${tr.dauer}′`)); L.push(tx("p", `👤 ${n - E.absentOn(d).length}`));
+          L.push(tx("k", E.kn(tr.kind), c.ink, true)); if (!narrow) L.push(tx("z", `${E.zeitOf(d)} · ${tr.dauer}′`)); L.push(<Row key="p" gap={2}><Icon name="person" size={narrow ? 9 : 11} color={c.muted} strokeWidth={2.2} /><Text style={{ fontSize: narrow ? 9.5 : 11, color: c.muted, fontWeight: "500" }}>{n - E.absentOn(d).length}</Text></Row>);
         }
       } else if (x.cancelled) L.push(<Text key="c" numberOfLines={1} style={{ fontSize: narrow ? 9.5 : 11, color: c.muted, textDecorationLine: "line-through" }}>{t("it_training")}</Text>);
       else if (x.brk && E.regularDay(d)) L.push(<Text key="b" numberOfLines={1} style={{ fontSize: narrow ? 9.5 : 11, color: "#16a3a3", fontWeight: "700" }}>{t("vb_breakDay")}</Text>);

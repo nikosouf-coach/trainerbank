@@ -219,7 +219,7 @@ export function FinesTab() {
         <CardTitle title={t("fn_catalog")} info={<Info title={t("fn_catalog")} text={t("fn_catalogInfo")} />} />
         {rules.length ? rules.map(r => (
           <ListItem key={r.id} testID={"fn-rule-" + r.id} title={r.name} onPress={() => setEdit(r)}
-            sub={[r.trigger !== "manual" ? "⚙ " + t("fn_trig_" + r.trigger) : t("fn_trig_manual"), r.duty ? dutyName(E, r.duty) : "", r.amount && k.money ? fmt(r.amount) : ""].filter(Boolean).join(" · ")}
+            sub={[r.trigger !== "manual" ? t("fn_trig_" + r.trigger) : t("fn_trig_manual"), r.duty ? dutyName(E, r.duty) : "", r.amount && k.money ? fmt(r.amount) : ""].filter(Boolean).join(" · ")}
             right={<Tag label={r.on ? t("tk_on") : t("tk_off")} />} />
         )) : <Banner><Col gap={8}><T v="small">{t("fn_suggestD")}</T>
           <Btn small kind="primary" testID="fn-suggest" label={t("fn_suggest")} onPress={() => { saveRules(fineSuggest(E.tr.lang, k.money)); if (!defs.length) s.saveDutyDefs(dutySuggest(E.tr.lang)); }} style={{ alignSelf: "flex-start" }} /></Col></Banner>}

@@ -276,12 +276,12 @@ export function MyKasseCard({ pid, compact, onManage }: { pid: string; compact?:
       {open.map(i => (
         <Row key={i.key} between gap={8}><T v="small" style={{ flexShrink: 1 }}>{i.label}</T><T v="small" bold>{fmt(i.amount)}</T></Row>
       ))}
-      {open.length && k.payInfo ? <Banner testID="my-kasse-pay"><T v="small">💶 {k.payInfo}</T></Banner> : null}
+      {open.length && k.payInfo ? <Banner testID="my-kasse-pay"><T v="small">{k.payInfo}</T></Banner> : null}
       {!compact && paid.length ? <Col gap={2}><T v="eyebrow">{t("ks_history")}</T>{paid.slice(0, 6).map(i => (
         <Row key={i.key} between gap={8}><Muted small style={{ flexShrink: 1 }}>✓ {i.label}</Muted><Muted small>{fmt(i.amount)}</Muted></Row>
       ))}</Col> : null}
       {E.D.cashBalance != null ? <Muted small testID="my-kasse-balance">{t("ks_balance")}: <Text style={{ fontWeight: "800", color: c.ink }}>{fmt(E.D.cashBalance)}</Text></Muted> : null}
-      {treasurer && onManage ? <Btn small kind="primary" testID="my-kasse-manage" label={"🗂 " + t("ks_manage")} onPress={onManage} style={{ alignSelf: "flex-start" }} /> : null}
+      {treasurer && onManage ? <Btn small kind="primary" testID="my-kasse-manage" icon="wallet" label={t("ks_manage")} onPress={onManage} style={{ alignSelf: "flex-start" }} /> : null}
     </Card>
   );
 }

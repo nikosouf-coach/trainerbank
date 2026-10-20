@@ -25,7 +25,7 @@ export function DemoBar() {
         <Row gap={8}>
           {/* Offline ausprobieren: Einträge landen in der Warteschlange und werden beim Wiedereinschalten gesendet */}
           <Seg testID="demo-net" value={s.offline ? "off" : "on"} onChange={v => s.setDemoOffline(v === "off")}
-            options={[{ key: "on", label: `📶 ${t("demo_netOn")}` }, { key: "off", label: `📵 ${t("demo_netOff")}` }]} />
+            options={[{ key: "on", label: t("demo_netOn") }, { key: "off", label: t("demo_netOff") }]} />
           <Btn testID="demo-leave" small kind="ghost" label={t("ko_demoLeave")} onPress={() => { s.leaveDemo(); router.replace("/"); }} />
         </Row>
       </Row>

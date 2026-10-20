@@ -1,11 +1,14 @@
-// Spieler – Heute: Zuverlässigkeit & Serie, Morgen-Check/RPE, Aufgaben, Trainer-Nachrichten, Körperstatus, Wochenziele, Termine, Ziele, Meilensteine.
+// Spieler – Heute: anpassbare Startseite (Karten an/aus, Reihenfolge; Standard nach Wichtigkeit): Einträge
+// (Morgen-Check, RPE), Körper heute, Trainer-Nachrichten, Reha, Matchplan, Termine, Aufgaben, Bewertung, Programm,
+// Challenge, Ziele, Wochenziele, Kasse – Meilensteine zuletzt (standardmäßig aus, unter „Meine Daten“).
 import { useRouter } from "expo-router";
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { View } from "react-native";
 import { gameOf } from "../../../src/core/game";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Ring } from "../../../src/ui/charts";
-import { Card, Col, Msg, Row, Screen, T } from "../../../src/ui/kit";
+import { CustomizeTip, DashEditor, PlayerTabsEditor, useDash } from "../../../src/ui/dashboard";
+import { Btn, Card, Col, Msg, Row, Screen, T } from "../../../src/ui/kit";
 import { Badges, Goals, NewRating, NextDates, PlayerHero, TodoTile, WeekRings } from "../../../src/ui/player/parts";
 import { PlayerProgramCard } from "../../../src/ui/prep";
 import { msgColor } from "../../../src/ui/squad/ProfileCards";
@@ -19,6 +22,7 @@ import { useTheme } from "../../../src/ui/theme";
 
 export default function PlayerHeute() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
+  const dash = useDash("player"); const [edit, setEdit] = useState(false);
   const p = E.P(s.mePid || "")!;
   const g = useMemo(() => gameOf(E, p.id), [s.version, E, p.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const st = E.playerState(p), msgs = E.activeMsgs(p.id);
@@ -27,37 +31,47 @@ export default function PlayerHeute() {
   const seesLoad = E.playerSees("load"), stCol = st.k === "ready" ? c.ok : st.k === "easy" ? c.warn : c.crit;
   const sessLabel = (x: { date: string; typ: string; slot: number; title: string }) => `${E.wt(x.date)} ${E.de(x.date)} · ${x.slot ? x.title : x.typ === "Spiel" ? t("it_match") : t("it_training")}`;
 
+  const cards: Record<string, React.ReactNode> = {
+    todo: E.mods.belastung ? <Row wrap gap={10}>
+      <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} done={wellDone} color="#16a3a3" onPress={() => router.push("/player/eintragen?tab=well")} />
+      <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} done={!open} color="#f0762b" onPress={() => router.push("/player/eintragen?tab=rpe" + (open ? `&date=${open.date}&slot=${open.slot}` : ""))} />
+    </Row> : null,
+    // Körper heute: Zustand, Empfehlung und Grund in einer Zeile
+    body: seesLoad && (E.mods.belastung || E.mods.regeneration) ? <Card testID="player-body" tone={stCol}>
+      <Row gap={14}>
+        <View><Ring pct={st.k === "ready" ? 100 : st.k === "easy" ? 60 : 20} color={stCol} size={52} /></View>
+        <Col gap={2} style={{ flex: 1 }}>
+          <T v="eyebrow">{t("ph_body")}</T>
+          <T v="h2" style={{ color: stCol }}>{t("ph_" + st.k)}</T>
+          <T v="small" numberOfLines={2}>{t("ph_" + st.k + "_t")}</T>
+          {st.why ? <T v="small" numberOfLines={1} color={c.muted}>{st.why}</T> : null}
+        </Col>
+      </Row>
+    </Card> : null,
+    msgs: msgs.length ? <Col gap={10}>{msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}</Col> : null,
+    reha: <PlayerRehaCard pid={p.id} />,
+    plan: <PlayerPlansCard />,
+    dates: <NextDates pid={p.id} max={4} />,
+    tasks: <PlayerTasksCard pid={p.id} />,
+    rating: <NewRating pid={p.id} />,
+    program: <PlayerProgramCard pid={p.id} />,
+    challenge: <ChallengeCard pid={p.id} compact />,
+    devgoals: E.playerSees("dev") ? <MyGoalsCard p={p} compact onOpen={() => router.push("/player/entwicklung")} /> : null,
+    pot: E.playerSees("goals") ? <Goals pid={p.id} /> : null,
+    rings: <WeekRings g={g} />,
+    kasse: <MyKasseCard pid={p.id} compact onManage={() => router.push("/player/kasse")} />,
+    badges: <Badges g={g} compact />,
+  };
+  const available = (k: string): boolean => ({ todo: !!E.mods.belastung, body: seesLoad && (!!E.mods.belastung || !!E.mods.regeneration), challenge: !!E.mods.challenge,
+    devgoals: E.playerSees("dev"), pot: E.playerSees("goals") } as Record<string, boolean>)[k] ?? true;
+
   return (
     <Screen testID="player-heute">
       <PlayerHero p={p} g={g} />
-      {E.mods.belastung ? <Row wrap gap={10}>
-        <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} done={wellDone} color="#16a3a3" onPress={() => router.push("/player/eintragen?tab=well")} />
-        <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} done={!open} color="#f0762b" onPress={() => router.push("/player/eintragen?tab=rpe" + (open ? `&date=${open.date}&slot=${open.slot}` : ""))} />
-      </Row> : null}
-      <PlayerPlansCard />
-      <PlayerTasksCard pid={p.id} />
-      <ChallengeCard pid={p.id} />
-      <PlayerRehaCard pid={p.id} />
-      <MyKasseCard pid={p.id} compact onManage={() => router.push("/player/kasse")} />
-      <PlayerProgramCard pid={p.id} />
-      <NewRating pid={p.id} />
-      {msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}
-      {seesLoad && (E.mods.belastung || E.mods.regeneration) ? <Card testID="player-body" tone={stCol}>
-        <Row gap={14}>
-          <View><Ring pct={st.k === "ready" ? 100 : st.k === "easy" ? 60 : 20} color={stCol} size={64} /></View>
-          <Col gap={3} style={{ flex: 1 }}>
-            <T v="eyebrow">{t("ph_body")}</T>
-            <T v="h2" style={{ color: stCol }}>{t("ph_" + st.k)}</T>
-            <T v="small">{t("ph_" + st.k + "_t")}</T>
-            {st.why ? <T v="small" color={c.muted}>{st.why}</T> : null}
-          </Col>
-        </Row>
-      </Card> : null}
-      <WeekRings g={g} />
-      <NextDates pid={p.id} />
-      {E.playerSees("dev") ? <MyGoalsCard p={p} onOpen={() => router.push("/player/entwicklung")} /> : null}
-      {E.playerSees("goals") ? <Goals pid={p.id} /> : null}
-      <Badges g={g} compact />
+      <CustomizeTip id="player-custom" onBar={() => setEdit(true)} onDash={() => setEdit(true)} />
+      {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
+      <Btn small kind="ghost" icon="sliders" testID="p-dash-edit" label={t("db_edit")} onPress={() => setEdit(true)} style={{ alignSelf: "center" }} />
+      <DashEditor visible={edit} onClose={() => setEdit(false)} available={available} who="player" extra={<PlayerTabsEditor />} />
     </Screen>
   );
 }

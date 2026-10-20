@@ -19,7 +19,8 @@ export default function Mehr() {
   const nav = useNav();
   const [q, setQ] = useState(""); const [edit, setEdit] = useState(false); const [showHidden, setShowHidden] = useState(false);
   const team = E.team, club = s.clubs.find(x => x.id === team.clubId) || null;
-  // Untertitel mit aktuellen Angaben
+  // Beschreibung (für die Suche) – sichtbar bleibt nur eine kurze Angabe rechts (Team, Verein, Konto)
+  const detailOf = (n: NavItem): string => n.k === "team" ? teamLabel(team) : n.k === "verein" ? (club ? club.name : "") : n.k === "konto" ? (s.myStaff?.name || "") : "";
   const subOf = (n: NavItem): string => {
     if (n.k === "team") return `${teamLabel(team)} · ${classLabel(classDef(team.cls), E.tr.lang)} · ${t("dp_" + team.depth)}`;
     if (n.k === "verein") return club ? tf("cl_menuSubLinked", { c: club.name, n: club.teams }) : team.clubId ? t("cl_open") : t("cl_menuSub");
@@ -36,17 +37,15 @@ export default function Mehr() {
     const col = groupCol(c, n.group), badge = nav.badge(n.k);
     return (
       <Pressable key={n.k} testID={"mehr-" + legacyId(n.k)} accessibilityRole="button" accessibilityLabel={t(n.title)} onPress={() => router.push(n.href)}
-        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 11, paddingHorizontal: 14, backgroundColor: pressed ? c.sunk : "transparent",
+        style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 14, minHeight: 52, backgroundColor: pressed ? c.sunk : "transparent",
           borderBottomWidth: last ? 0 : 1, borderBottomColor: c.line })}>
-        <View style={{ width: 38, height: 38, borderRadius: 11, backgroundColor: withAlpha(col, 0.14), alignItems: "center", justifyContent: "center" }}>
-          <Icon name={n.icon} size={21} color={col} />
+        <View style={{ width: 32, height: 32, borderRadius: 9, backgroundColor: withAlpha(col, 0.13), alignItems: "center", justifyContent: "center" }}>
+          <Icon name={n.icon} size={18} color={col} />
         </View>
-        <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Text numberOfLines={1} style={{ fontWeight: "800", fontSize: 15, color: c.ink }}>{t(n.title)}</Text>
-          <Text numberOfLines={2} style={{ fontSize: 12.5, lineHeight: 17, color: c.muted }}>{subOf(n)}</Text>
-        </View>
-        {badge ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: c.accent, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ color: c.accentInk, fontWeight: "900", fontSize: 12 }}>{badge}</Text></View> : null}
+        <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, fontWeight: "600", fontSize: 15.5, letterSpacing: -0.1, color: c.ink }}>{t(n.title)}</Text>
+        {detailOf(n) ? <Text numberOfLines={1} style={{ maxWidth: "42%", fontSize: 13.5, color: c.muted }}>{detailOf(n)}</Text> : null}
+        {badge ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: c.crit, alignItems: "center", justifyContent: "center" }}>
+          <Text style={{ color: "#ffffff", fontWeight: "700", fontSize: 12 }}>{badge}</Text></View> : null}
         <Icon name="chevron" size={18} color={c.muted} />
       </Pressable>
     );

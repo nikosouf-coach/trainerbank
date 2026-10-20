@@ -12,11 +12,12 @@ import { Banner, Btn, Card, CardTitle, Col, Divider, Header, Info, ListItem, Mut
 import { usePhotoUrl } from "../src/ui/playerAvatar";
 import { ProfileFields, emptyProfile, profileName, type ProfileDraft } from "../src/ui/setupParts";
 import { StaffAvatar } from "../src/ui/teamLogo";
-import { DashEditor } from "../src/ui/dashboard";
+import { DashEditor, PlayerTabsEditor } from "../src/ui/dashboard";
+import { useTheme } from "../src/ui/theme";
 import { tmpId } from "../src/data/store";
 
 export default function Konto() {
-  const s = useStore(); const { t } = s.tr; const router = useRouter();
+  const s = useStore(); const { t } = s.tr; const router = useRouter(); const { c } = useTheme();
   const [ask, setAsk] = useState<null | "delete" | ConsentKind>(null);
   const [busy, setBusy] = useState(false); const [dash, setDash] = useState(false);
   const [push, setPush] = useState<PushStatus | null>(null);
@@ -85,10 +86,14 @@ export default function Konto() {
 
       <Card testID="ko-display">
         <CardTitle title={t("ko_display")} />
+        <Col gap={6}>
+          <T v="small" bold color={c.muted}>{t("ko_theme")}</T>
+          <Seg testID="ko-theme" value={s.themeMode} onChange={m => s.setTheme(m)} options={[{ key: "system", label: t("th_system") }, { key: "light", label: t("th_light") }, { key: "dark", label: t("th_dark") }]} />
+        </Col>
         <ToggleRow testID="ko-info" label={t("su_infoT")} desc={t("su_infoD")} value={s.prefs.info !== false} onChange={v => s.setPrefs({ info: v })} />
-        {!isPlayer && s.D ? <Btn small testID="ko-dash" label={"⚙ " + t("db_edit")} onPress={() => setDash(true)} style={{ alignSelf: "flex-start" }} /> : null}
+        {s.D ? <Btn small testID="ko-dash" icon="sliders" label={t("db_edit")} onPress={() => setDash(true)} style={{ alignSelf: "flex-start" }} /> : null}
       </Card>
-      <DashEditor visible={dash} onClose={() => setDash(false)} available={() => true} />
+      <DashEditor visible={dash} onClose={() => setDash(false)} available={() => true} who={isPlayer ? "player" : "coach"} extra={isPlayer ? <PlayerTabsEditor /> : undefined} />
 
       {!s.isDemo ? <Card>
         <CardTitle title={t("ko_teams")} />
