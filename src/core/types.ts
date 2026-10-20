@@ -59,7 +59,7 @@ export interface TeamSettings {
   fines?: FineRule[];
   /** Push-Erinnerungen für Spieler (Server: supabase/functions/_shared/schedule.ts → reminderSettings). */
   reminders?: Reminders;
-  /** Testbatterie des Teams (Leistungsdiagnostik); leer/fehlend = alle für die Altersgruppe empfohlenen */
+  /** Tests der Leistungsdiagnostik des Teams; leer/fehlend = alle für die Altersgruppe empfohlenen */
   tests?: TestKey[];
   /** Platzierung in Tests für Spieler: aus, nur eigener Platz (Standard), Platz + Teambestwert (ohne Namen) */
   testRank?: "off" | "rank" | "best";
@@ -241,7 +241,9 @@ export interface TemplateBlock { exId: string | null; text: string; min: number;
 export interface TestRank { rank: number; n: number; best: number | null }
 /** Dienst (z. B. Materialdienst): wann und wie viele Spieler */
 export type DutyWhen = "training" | "match" | "both";
-export interface DutyDef { id: string; name: string; when: DutyWhen; count: number; on: boolean }
+/** Wechsel: jedes Mal neu, oder dieselben Spieler für alle Termine einer Woche / zwei Wochen / eines Monats */
+export type DutyEvery = "each" | "week" | "2weeks" | "month";
+export interface DutyDef { id: string; name: string; when: DutyWhen; count: number; on: boolean; /** fehlt = jedes Mal */ every?: DutyEvery }
 /** Strafe im Katalog. Automatik: RPE nicht binnen 24 h (nur mit Einwilligung) bzw. unentschuldigt gefehlt. */
 export type FineTrigger = "manual" | "late_rpe" | "unexcused";
 export interface FineRule { id: string; name: string; trigger: FineTrigger; duty: string | null; amount: number | null; note: string; on: boolean;
@@ -338,7 +340,8 @@ export type IndivTopic = "technik" | "schuss" | "kopf" | "schwach" | "athletik" 
 export interface IndivRequest {
   id: string; pid: string; topic: IndivTopic; note: string; wish: string;
   status: "open" | "accepted" | "declined" | "cancelled";
-  answer: string; date: string | null; slot: number | null; staffId: string | null; created: string;
+  /** staffId: wer die Einheit leitet (bei Zusage); ask: bei wem der Spieler angefragt hat (null = Trainerteam) */
+  answer: string; date: string | null; slot: number | null; staffId: string | null; created: string; ask?: string | null;
 }
 
 // ---------- Chat ----------

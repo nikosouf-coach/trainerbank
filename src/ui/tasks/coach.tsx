@@ -2,9 +2,9 @@
 import React, { useState } from "react";
 import { Text, View } from "react-native";
 import { addDays, diff } from "../../core/dates";
-import { dutySuggest, fineSuggest } from "../../core/duties";
+import { DUTY_EVERY, dutySuggest, fineSuggest } from "../../core/duties";
 import { kasseOf, money } from "../../core/kasse";
-import type { DutyDef, DutyEntry, DutyWhen, FineEntry, FineRule, FineTrigger } from "../../core/types";
+import type { DutyDef, DutyEntry, DutyEvery, DutyWhen, FineEntry, FineRule, FineTrigger } from "../../core/types";
 import { tmpId, useEngine, useStore } from "../../data/store";
 import { Banner, Btn, Card, CardTitle, Check, Col, DateField, Field, Info, ListItem, Muted, NumField, Picker, Row, Seg, Sheet, T, Tag, ToggleRow } from "../kit";
 import { useTheme } from "../theme";
@@ -108,12 +108,12 @@ export function DutiesTab() {
       <Card testID="dy-defs">
         <CardTitle title={t("dy_defs")} />
         {defs.length ? defs.map(d => (
-          <ListItem key={d.id} testID={"dy-def-" + d.id} title={d.name} sub={`${t("dy_when_" + d.when)} · ${tf("dy_count", { n: d.count })}`} onPress={() => setEdit(d)} right={<Tag label={d.on ? t("tk_on") : t("tk_off")} />} />
+          <ListItem key={d.id} testID={"dy-def-" + d.id} title={d.name} sub={`${t("dy_when_" + d.when)} · ${t("dy_everyS_" + (d.every || "each"))} · ${tf("dy_count", { n: d.count })}`} onPress={() => setEdit(d)} right={<Tag label={d.on ? t("tk_on") : t("tk_off")} />} />
         )) : <Banner>
           <Col gap={8}><T v="small">{t("dy_suggestD")}</T>
             <Btn small kind="primary" testID="dy-suggest" label={t("dy_suggest")} onPress={() => saveDefs(dutySuggest(E.tr.lang))} style={{ alignSelf: "flex-start" }} /></Col>
         </Banner>}
-        <Btn small icon="plus" testID="dy-add" label={t("dy_add")} onPress={() => setEdit({ id: "d" + tmpId().slice(4, 12), name: "", when: "training", count: 1, on: true })} style={{ alignSelf: "flex-start" }} />
+        <Btn small icon="plus" testID="dy-add" label={t("dy_add")} onPress={() => setEdit({ id: "d" + tmpId().slice(4, 12), name: "", when: "training", count: 1, on: true, every: "each" })} style={{ alignSelf: "flex-start" }} />
       </Card>
       {counts.some(x => x.n) ? <Card testID="dy-fair">
         <CardTitle title={t("dy_fair")} info={<Info title={t("dy_fair")} text={t("dy_fairInfo")} />} />
@@ -135,8 +135,14 @@ function DutyDefSheet({ def, onClose, onSave, onDelete }: { def: DutyDef | null;
   return (
     <Sheet visible onClose={onClose} title={isNew ? t("dy_add") : x.name || t("dy_defs")} testID="dy-def-sheet" closeLabel={t("cancel")}>
       <Field testID="dyd-name" label={t("dy_name")} value={x.name} onChangeText={v => setX({ ...x, name: v })} placeholder={t("dy_namePh")} maxLength={60} />
-      <Seg testID="dyd-when" value={x.when} onChange={(w: DutyWhen) => setX({ ...x, when: w })} options={(["training", "match", "both"] as DutyWhen[]).map(w => ({ key: w, label: t("dy_when_" + w) }))} />
-      <NumField testID="dyd-count" label={t("dy_countL")} value={x.count} min={1} max={6} step={1} onChange={v => setX({ ...x, count: v || 1 })} style={{ width: 140 }} />
+      <Col gap={4}><T v="small" bold>{t("dy_whenL")}</T>
+        <Seg testID="dyd-when" value={x.when} onChange={(w: DutyWhen) => setX({ ...x, when: w })} options={(["training", "match", "both"] as DutyWhen[]).map(w => ({ key: w, label: t("dy_when_" + w) }))} wrap />
+      </Col>
+      <Col gap={4}><T v="small" bold>{t("dy_every")}</T>
+        <Seg testID="dyd-every" value={x.every || "each"} onChange={(v: DutyEvery) => setX({ ...x, every: v })} options={DUTY_EVERY.map(v => ({ key: v, label: t("dy_every_" + v) }))} wrap />
+        <Muted small>{t("dy_everyD_" + (x.every || "each"))}</Muted>
+      </Col>
+      <NumField testID="dyd-count" label={t(x.every && x.every !== "each" ? "dy_countLP" : "dy_countL")} value={x.count} min={1} max={6} step={1} onChange={v => setX({ ...x, count: v || 1 })} style={{ width: 140 }} />
       <ToggleRow testID="dyd-on" label={t("dy_active")} desc={t("dy_activeD")} value={x.on} onChange={v => setX({ ...x, on: v })} />
       <Row gap={8} wrap>
         <Btn testID="dyd-save" kind="primary" label={t("save")} disabled={!x.name.trim()} onPress={() => onSave({ ...x, name: x.name.trim() })} />

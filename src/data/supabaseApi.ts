@@ -129,7 +129,7 @@ const mapChallenge = (r: Row): Challenge => ({ id: r.id, ws: r.week_start, title
   lower: !!r.lower_better, groupId: r.group_id || null, key: r.key || null });
 const mapChEntry = (r: Row): ChallengeEntry => ({ cid: r.challenge_id, pid: r.player_id, value: numOrNull(r.value), days: Array.isArray(r.days) ? r.days : [], done: !!r.done, at: r.updated_at || "" });
 const mapIndiv = (r: Row): IndivRequest => ({ id: r.id, pid: r.player_id, topic: r.topic, note: r.note || "", wish: r.wish || "", status: r.status, answer: r.answer || "",
-  date: r.unit_date || null, slot: r.unit_slot ?? null, staffId: r.staff_id || null, created: r.created_at });
+  date: r.unit_date || null, slot: r.unit_slot ?? null, staffId: r.staff_id || null, created: r.created_at, ask: r.ask_staff || null });
 // Chat
 const mapChat = (r: Row, members: string[], muted: boolean): Chat => ({ id: r.id, kind: r.kind as ChatKind, title: r.title || "", groupId: r.group_id || null, members,
   readOnly: !!r.read_only, transparent: !!r.transparent, createdBy: r.created_by || null, lastAt: r.last_at || null, muted });
@@ -906,8 +906,9 @@ export class SupabaseApi implements Api {
   // ---------- Individualtraining ----------
   async saveIndiv(teamId: string, x: IndivRequest) {
     const r = isTmp(x.id)
-      ? await q<Row>(this.sb.from("indiv_requests").insert({ player_id: x.pid, topic: x.topic, note: x.note.trim(), wish: x.wish.trim() }).select().single())
-      : await q<Row>(this.sb.from("indiv_requests").update({ status: x.status, answer: x.answer.trim(), unit_date: x.date, unit_slot: x.slot, staff_id: x.staffId && !isTmp(x.staffId) ? x.staffId : null }).eq("id", x.id).select().single());
+      ? await q<Row>(this.sb.from("indiv_requests").insert({ player_id: x.pid, topic: x.topic, note: x.note.trim(), wish: x.wish.trim(), ask_staff: x.ask && !isTmp(x.ask) ? x.ask : null }).select().single())
+      : await q<Row>(this.sb.from("indiv_requests").update({ status: x.status, answer: x.answer.trim(), unit_date: x.date, unit_slot: x.slot, staff_id: x.staffId && !isTmp(x.staffId) ? x.staffId : null,
+        ask_staff: x.ask && !isTmp(x.ask) ? x.ask : null }).eq("id", x.id).select().single());
     return mapIndiv(r);
   }
 

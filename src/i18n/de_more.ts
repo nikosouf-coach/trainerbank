@@ -39,7 +39,7 @@ export const de_more: Dict = {
   su_pvT: "Spieler-App", su_staffT: "Weitere Trainer", su_staffD: "Co-, Torwart- und Athletiktrainer, Physio. Sie bekommen später einen eigenen Zugang mit ihren Aufgaben.", su_addStaff: "Trainer hinzufügen",
   su_s_load: "Erinnerungen", su_s_loadB: "Push-Nachrichten, damit die Spieler ihre Daten eintragen.",
   su_s_science: "Sportwissenschaft", su_s_scienceB: "Wie genau die App rechnet und welche Tests dein Team macht.",
-  su_testsT: "Testbatterie", su_testsD: "Diese Tests erscheinen in der Leistungsdiagnostik. Empfohlen: zu Beginn und am Ende der Vorbereitung sowie in der Winterpause.",
+  su_testsT: "Leistungsdiagnostik: Tests", su_testsD: "Welche Tests nutzt ihr? Genau diese erscheinen später in der Leistungsdiagnostik (Ergebnisse, Bestwerte, Entwicklung). Empfohlen: zu Beginn und am Ende der Vorbereitung sowie in der Winterpause.",
   su_fixD: "Aus: Die App darf in Aufbau- und Entlastungswochen auch die Dauer anpassen, nicht nur die Intensität.",
   su_s_sum: "Alles bereit", su_meT: "Trainer", su_info: "Info-Buttons",
   su_demoNote: "Demo: Deine Angaben bleiben nur auf diesem Gerät und verschwinden beim Beenden der Demo.",

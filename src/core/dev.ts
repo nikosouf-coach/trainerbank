@@ -12,7 +12,7 @@ import { seasonStart } from "./kasse";
 import { TESTS, resultsOf, testDef } from "./perf";
 import { isGoalkeeper } from "./units";
 import type {
-  Agreement, Assessment, DayUnit, DevArea, DevTalk, Goal, GoalEntry, GoalStat, Group, IndivRequest, IndivTopic, Player, TeamData, TestKey, UnitArt,
+  Agreement, Assessment, DayUnit, DevArea, DevTalk, Goal, GoalEntry, GoalStat, Group, IndivRequest, IndivTopic, Player, StaffProfile, TeamData, TestKey, UnitArt,
 } from "./types";
 
 export const DEV_AREAS: DevArea[] = ["tech", "takt", "ath", "ment"];
@@ -235,6 +235,11 @@ export function indivUnit(r: IndivRequest, slot: number, zeit: string, dauer: nu
 export const openRequests = (D: Pick<TeamData, "indiv">): IndivRequest[] => D.indiv.filter(r => r.status === "open").sort((a, b) => a.created < b.created ? -1 : 1);
 /** Höchstens so viele offene Anfragen je Spieler */
 export const MAX_OPEN_REQUESTS = 2;
+/** Passender Trainer für ein Thema (Vorauswahl beim Anfragen): Torwart → TW-Trainer, Athletik → Athletiktrainer, Reha → Physio */
+export function suggestStaff(topic: IndivTopic, staff: Pick<StaffProfile, "id" | "role">[]): string | null {
+  const by = (...roles: string[]) => { for (const r of roles) { const s = staff.find(x => x.role === r); if (s) return s.id; } return null; };
+  return topic === "tw" ? by("tw") : topic === "athletik" ? by("athletik", "physio") : topic === "reha" ? by("physio", "athletik") : null;
+}
 
 /** Gültiges Ziel (Grenzen wie in der Datenbank) */
 export function cleanGoal(g: Goal): Goal {

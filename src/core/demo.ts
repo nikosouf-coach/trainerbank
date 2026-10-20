@@ -587,9 +587,9 @@ function demoDev(D: TeamData, lang: Lang, now: Date): void {
     focus: en ? "Defensive positioning" : "Defensives Stellungsspiel", agreements: [{ id: "ag4", text: en ? "Extra crossing session on Tuesdays" : "Dienstags Flanken-Zusatzschicht", who: "player", due: null, done: false }], notes: "" });
   // Individualtraining: zwei offene Anfragen, eine zugesagte mit Einheit nur für den Spieler
   D.indiv.push({ id: "di1", pid: "p8", topic: "schwach", note: en ? "I'd like to work on passing with my left foot." : "Ich möchte an meinen Pässen mit links arbeiten.", wish: en ? "Tue or Thu before training" : "Di oder Do vor dem Training",
-    status: "open", answer: "", date: null, slot: null, staffId: null, created: new Date(now.getTime() - 26 * 3600e3).toISOString() });
+    status: "open", answer: "", date: null, slot: null, staffId: null, created: new Date(now.getTime() - 26 * 3600e3).toISOString(), ask: D.staff.find(x => x.role === "co")?.id || null });
   if (P("p17")) D.indiv.push({ id: "di2", pid: "p17", topic: "schuss", note: en ? "Finishing with the first touch" : "Abschluss mit dem ersten Kontakt", wish: en ? "Any day from 4 pm" : "Ab 16 Uhr an jedem Tag",
-    status: "open", answer: "", date: null, slot: null, staffId: null, created: new Date(now.getTime() - 5 * 3600e3).toISOString() });
+    status: "open", answer: "", date: null, slot: null, staffId: null, created: new Date(now.getTime() - 5 * 3600e3).toISOString(), ask: D.staff.find(x => x.role === "chef")?.id || null });
   const d3 = addDays(TODAY, 3), slot = freeDateSlot(D, d3), s1 = D.staff.find(x => x.role === "co")?.id || D.staff[0]?.id || null;
   if (slot) {
     D.indiv.push({ id: "di3", pid: "p6", topic: "taktik", note: en ? "Positioning as a full-back" : "Stellungsspiel als Außenverteidiger", wish: "", status: "accepted",

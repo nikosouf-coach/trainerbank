@@ -133,18 +133,24 @@ export function MyTodos() {
 export function PlayerTasksCard({ pid }: { pid: string }) {
   const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme();
   const tasks = E.D.tasks.filter(x => x.pid === pid && (!x.done || (x.doneAt || "") >= E.TODAY));
-  const duties = E.D.duties.filter(d => d.pid === pid && d.date >= E.TODAY && d.status === "open").sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 4);
+  // derselbe Dienst an mehreren Terminen (z. B. wöchentlicher Wechsel) in einer Zeile
+  const upcoming = E.D.duties.filter(d => d.pid === pid && d.date >= E.TODAY && d.status === "open").sort((a, b) => a.date < b.date ? -1 : 1).slice(0, 8);
+  const duties = upcoming.reduce<{ d: DutyEntry; dates: string[] }[]>((L, d) => {
+    const g = L.find(x => x.d.duty === d.duty && (x.d.source === "fine") === (d.source === "fine"));
+    if (g) g.dates.push(d.date); else L.push({ d, dates: [d.date] });
+    return L;
+  }, []).slice(0, 4);
   const fines = E.D.fines.filter(f => f.pid === pid && f.status === "open");
   if (!tasks.length && !duties.length && !fines.length) return null;
   return (
     <Card testID="player-tasks">
       <CardTitle title={t("tk_mine")} />
-      {duties.map(d => (
+      {duties.map(({ d, dates }) => (
         <Row key={d.id} gap={10} testID={"p-duty-" + d.id}>
           <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: withAlpha(d.source === "fine" ? c.crit : c.accentTx, 0.14), alignItems: "center", justifyContent: "center" }}><Text style={{ fontSize: 13 }}>{d.source === "fine" ? "⚑" : "⚽"}</Text></View>
           <Col gap={1} style={{ flex: 1 }}>
             <Text style={{ fontSize: 14.5, fontWeight: "700", color: c.ink }}>{dutyName(E, d.duty)}</Text>
-            <Text style={{ fontSize: 12, color: c.muted }}>{whenLabel(E, d.date)}{d.source === "fine" ? " · " + t("dy_fromFine") : ""}</Text>
+            <Text style={{ fontSize: 12, color: c.muted }}>{dates.map(x => whenLabel(E, x)).join(", ")}{d.source === "fine" ? " · " + t("dy_fromFine") : ""}</Text>
           </Col>
         </Row>
       ))}

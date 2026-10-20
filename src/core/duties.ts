@@ -3,14 +3,24 @@
 // in Gesundheitsdaten (RPE), nur Einheiten ab dem Tag, an dem die Regel eingeschaltet wurde.
 import { addDays, at, diff, monday } from "./dates";
 import type { Engine } from "./engine";
-import type { DutyDef, DutyEntry, FineEntry, FineRule, Lang } from "./types";
+import type { DutyDef, DutyEntry, DutyEvery, FineEntry, FineRule, Lang } from "./types";
+
+/** Wechsel der Dienste (Reihenfolge in der Auswahl) */
+export const DUTY_EVERY: DutyEvery[] = ["each", "week", "2weeks", "month"];
+/** Abschnitt, in dem dieselben Spieler den Dienst haben: Termin, Woche (ab Montag), Doppelwoche, Monat */
+export function dutyPeriod(every: DutyEvery | undefined, d: string): string {
+  if (every === "week") return monday(d);
+  if (every === "2weeks") return "w2:" + Math.floor(diff("2024-01-01", monday(d)) / 14);
+  if (every === "month") return d.slice(0, 7);
+  return d;
+}
 
 /** Vorschläge für Dienste */
 export const dutySuggest = (lang: Lang): DutyDef[] => {
   const en = lang === "en";
   return [
     { id: "material", name: en ? "Kit duty (balls, cones, bibs)" : "Materialdienst (Bälle, Hütchen, Leibchen)", when: "training", count: 2, on: true },
-    { id: "bibs", name: en ? "Wash bibs" : "Leibchen waschen", when: "training", count: 1, on: true },
+    { id: "bibs", name: en ? "Wash bibs" : "Leibchen waschen", when: "training", count: 1, on: true, every: "week" },
     { id: "drinks", name: en ? "Drinks & first-aid bag" : "Getränke & Sanitasche", when: "match", count: 1, on: false },
     { id: "cabin", name: en ? "Tidy dressing room" : "Kabine aufräumen", when: "match", count: 2, on: false },
   ];
@@ -71,6 +81,8 @@ export interface RotationPlan { add: Omit<DutyEntry, "id">[]; remove: string[] }
  * Reihum verteilen: für jeden Termin der nächsten `days` Tage fehlende Plätze besetzen.
  * Fair: wer zuletzt seltener Dienst hatte (alle Dienste, dann dieser), ist zuerst dran; Abwesende und Spieler mit
  * einem anderen Dienst am selben Tag werden übersprungen. Eingeteilte, die inzwischen fehlen, werden ersetzt.
+ * Wechsel wöchentlich / alle 2 Wochen / monatlich: Wer den Dienst in diesem Abschnitt schon hat (eingeteilt oder von
+ * Hand), behält ihn für alle Termine des Abschnitts; fehlt er an einem Termin, springt für diesen Termin jemand ein.
  */
 export function planRotation(E: Engine, defs: DutyDef[], existing: DutyEntry[], days = 14): RotationPlan {
   const add: Omit<DutyEntry, "id">[] = [], remove: string[] = [], from = E.TODAY;
@@ -94,8 +106,15 @@ export function planRotation(E: Engine, defs: DutyDef[], existing: DutyEntry[], 
       // ausgetragene (erlassene) Spieler nicht erneut für diesen Termin einteilen
       const busy = new Set([...live.filter(e => e.date === d).map(e => e.pid), ...add.filter(e => e.date === d).map(e => e.pid), ...keep.map(e => e.pid),
         ...existing.filter(e => e.status === "waived" && e.date === d && e.duty === def.id).map(e => e.pid)]);
-      const cand = players.filter(p => !E.absenceOn(p.id, d) && !busy.has(p.id))
-        .sort((a, b) => total(a.id) - total(b.id) || count(a.id) - count(b.id) || (last(a.id) < last(b.id) ? -1 : last(a.id) > last(b.id) ? 1 : 0) || (a.nr ?? 99) - (b.nr ?? 99) || a.vn.localeCompare(b.vn));
+      // Inhaber des Abschnitts (bei „jedes Mal“ keiner): zuerst, auch wenn sie an dem Tag einen anderen Dienst haben
+      const per = dutyPeriod(def.every, d), same = (e: { date: string; duty: string; source: string; status: string }) =>
+        e.duty === def.id && e.source !== "fine" && e.status !== "waived" && e.date !== d && dutyPeriod(def.every, e.date) === per;
+      const held = def.every && def.every !== "each" ? [...live.filter(same), ...add.filter(same)].map(e => e.pid) : [];
+      const holders = [...new Set(held)].sort((a, b) => held.filter(x => x === b).length - held.filter(x => x === a).length)
+        .filter(pid => players.some(p => p.id === pid) && !E.absenceOn(pid, d) && !keep.some(e => e.pid === pid)
+          && !existing.some(e => e.status === "waived" && e.date === d && e.duty === def.id && e.pid === pid));
+      const cand = [...holders.map(pid => players.find(p => p.id === pid)!), ...players.filter(p => !holders.includes(p.id) && !E.absenceOn(p.id, d) && !busy.has(p.id))
+        .sort((a, b) => total(a.id) - total(b.id) || count(a.id) - count(b.id) || (last(a.id) < last(b.id) ? -1 : last(a.id) > last(b.id) ? 1 : 0) || (a.nr ?? 99) - (b.nr ?? 99) || a.vn.localeCompare(b.vn))];
       for (const p of cand) { if (need-- <= 0) break; add.push({ date: d, duty: def.id, pid: p.id, source: "rotation", fineId: null, status: "open" }); }
     }
   }

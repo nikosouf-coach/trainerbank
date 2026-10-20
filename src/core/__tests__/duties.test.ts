@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { addDays } from "../dates";
 import { buildDemo, demoTeam } from "../demo";
-import { dutySuggest, fineSuggest, fineViolations, nextDutyDate, planRotation } from "../duties";
+import { dutyPeriod, dutySuggest, fineSuggest, fineViolations, nextDutyDate, planRotation } from "../duties";
 import { createEngine } from "../engine";
 import type { DutyEntry, TeamData } from "../types";
 
@@ -18,7 +18,7 @@ function base(): TeamData {
 
 test("Dienste reihum: jeder kommt dran, keiner doppelt am Tag, Abwesende übersprungen und ersetzt", () => {
   const D = base();
-  const defs = dutySuggest("de").filter(d => d.when === "training"); // Material (2) + Leibchen (1)
+  const defs = dutySuggest("de").filter(d => d.when === "training").map(d => ({ ...d, every: "each" as const })); // Material (2) + Leibchen (1), jedes Mal neu
   const E = createEngine(D, { lang: "de", now: NOW });
   const p1 = planRotation(E, defs, []);
   const days = [...new Set(p1.add.map(x => x.date))];
@@ -41,6 +41,42 @@ test("Dienste reihum: jeder kommt dran, keiner doppelt am Tag, Abwesende übersp
   const p3 = planRotation(createEngine(base(), { lang: "de", now: NOW }), defs, rows3);
   const refill = p3.add.find(x => x.date === second.date && x.duty === second.duty)!;
   assert.ok(refill && refill.pid !== second.pid);
+});
+
+test("Dienste mit Wechsel: wöchentlich derselbe Spieler, nächste Woche ein anderer; Abwesende vertreten; monatlich", () => {
+  const D = base();
+  const bibs = { id: "bibs", name: "Leibchen waschen", when: "training" as const, count: 1, on: true, every: "week" as const };
+  assert.equal(dutySuggest("de").find(d => d.id === "bibs")?.every, "week", "Vorschlag: Leibchen wöchentlich");
+  assert.equal(dutyPeriod("week", "2026-10-14"), "2026-10-12"); assert.equal(dutyPeriod("month", "2026-10-14"), "2026-10");
+  const [q1, q2, q3] = ["2026-10-12", "2026-10-19", "2026-10-26"].map(d => dutyPeriod("2weeks", d));
+  assert.ok((q1 === q2) !== (q2 === q3), "je zwei Wochen am Stück"); assert.equal(dutyPeriod("2weeks", "2026-10-21"), q2, "ganze Woche im selben Abschnitt");
+  assert.equal(dutyPeriod(undefined, "2026-10-14"), "2026-10-14");
+  const E = createEngine(D, { lang: "de", now: NOW });
+  const p1 = planRotation(E, [bibs], [], 14);
+  const byWeek = new Map<string, Set<string>>();
+  for (const x of p1.add) { const w = dutyPeriod("week", x.date); byWeek.set(w, (byWeek.get(w) || new Set()).add(x.pid)); }
+  assert.ok(byWeek.size >= 2, "mindestens zwei Wochen geplant");
+  for (const [, s] of byWeek) assert.equal(s.size, 1, "eine Woche = ein Spieler");
+  const [w1, w2] = [...byWeek.values()].map(s => [...s][0]);
+  assert.notEqual(w1, w2, "nächste Woche ist ein anderer dran");
+  // Inhaber fehlt an einem Termin der Woche → nur dort springt jemand ein, danach wieder der Inhaber
+  const rows: DutyEntry[] = p1.add.map((x, i) => ({ ...x, id: "r" + i }));
+  const wk = rows.filter(r => r.pid === w1), miss = wk[1] || wk[0];
+  D.absences.push({ id: "a1", pid: w1, typ: "urlaub", von: miss.date, bis: miss.date, stufe: null, notiz: "" });
+  const p2 = planRotation(createEngine(D, { lang: "de", now: NOW }), [bibs], rows, 14);
+  assert.deepEqual(p2.remove, [miss.id]); assert.equal(p2.add.length, 1); assert.notEqual(p2.add[0].pid, w1);
+  // Inhaber von Hand eingetragen (Woche schon begonnen) → behält den Dienst für die übrigen Termine
+  const D3 = base(), E3 = createEngine(D3, { lang: "de", now: NOW });
+  const ds = planRotation(E3, [bibs], [], 14).add.map(x => x.date), pick = D3.players[5].id;
+  const firstDay = ds.find(d => ds.filter(x => dutyPeriod("week", x) === dutyPeriod("week", d)).length >= 2)!; // Woche mit mehreren Terminen
+  const p3 = planRotation(E3, [bibs], [{ id: "m", date: firstDay, duty: "bibs", pid: pick, source: "manual", fineId: null, status: "open" }], 14);
+  const sameWeek = p3.add.filter(x => dutyPeriod("week", x.date) === dutyPeriod("week", firstDay));
+  assert.ok(sameWeek.length >= 1 && sameWeek.every(x => x.pid === pick), "von Hand eingeteilter Spieler bleibt die Woche über");
+  // monatlich: alle Termine der nächsten 14 Tage im selben Monat → ein Spieler je Monat
+  const p4 = planRotation(createEngine(base(), { lang: "de", now: NOW }), [{ ...bibs, every: "month" }], [], 14);
+  const months = new Map<string, Set<string>>();
+  for (const x of p4.add) { const m = x.date.slice(0, 7); months.set(m, (months.get(m) || new Set()).add(x.pid)); }
+  for (const [, s] of months) assert.equal(s.size, 1);
 });
 
 test("Strafen-Automatik: RPE-Frist 24 Std., nur mit Einwilligung, nicht rückwirkend, keine Doppelungen", () => {

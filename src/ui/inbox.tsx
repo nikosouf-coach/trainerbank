@@ -16,7 +16,8 @@ export function InboxCard() {
   const items: { k: string; icon: IconName; title: string; sub?: string; color: string; go: string }[] = [];
   if (E.mods.entwicklung) {
     const iq = openRequests(E.D);
-    if (iq.length) items.push({ k: "iq", icon: "target", title: `${t("iq_open")}: ${iq.length}`, sub: iq.slice(0, 3).map(r => E.P(r.pid)?.vn).filter(Boolean).join(", "), color: c.warn, go: "/coach/individual" });
+    const toMe = iq.filter(r => !!s.myStaff && r.ask === s.myStaff.id).length;
+    if (iq.length) items.push({ k: "iq", icon: "target", title: `${t("iq_open")}: ${iq.length}${toMe ? ` (${toMe} ${t("iq_toMe")})` : ""}`, sub: iq.slice(0, 3).map(r => E.P(r.pid)?.vn).filter(Boolean).join(", "), color: c.warn, go: "/coach/individual" });
     const self = E.D.players.filter(p => { const sa = assessmentsOf(E.D, p.id, "self")[0], ca = assessmentsOf(E.D, p.id, "coach")[0]; return !!sa && sa.date >= addDays(E.TODAY, -14) && (!ca || sa.date > ca.date); });
     if (self.length) items.push({ k: "self", icon: "eintragen", title: `${t("dv_ovSelfNew")}: ${self.length}`, sub: self.slice(0, 4).map(p => p.vn).join(", "), color: c.low, go: "/coach/entwicklung" });
     const due = E.D.players.filter(p => { const x = E.D.talks.filter(y => y.pid === p.id).sort((a, b) => a.date < b.date ? 1 : -1)[0]; return !!x?.next && x.next <= addDays(E.TODAY, 7); });

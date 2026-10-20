@@ -2966,6 +2966,70 @@ delete from public.scout_lists where id = tst.get('sl_b')::uuid;
 update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
 
 -- =====================================================================
+-- T49 Individualtraining beim Wunsch-Trainer: Spieler wählt, angefragter Trainer sieht die Anfrage auch ohne
+--     Recht „Planung“ (antworten nur mit „Planung“), Trainerteam gibt weiter, Spieler ändert die Wahl nicht
+-- =====================================================================
+delete from public.indiv_requests where team_id = tst.get('team_a')::uuid;
+update public.teams set settings = settings - 'indivReq' where id = tst.get('team_a')::uuid;
+with ins as (insert into public.staff_profiles (team_id, name, role, user_id) values (tst.get('team_a')::uuid, 'Athletik Clara', 'athletik', :'coachC') returning id)
+select tst.put('sp49c', id::text) from ins;
+with ins as (insert into public.staff_profiles (team_id, name, role) values (tst.get('team_a')::uuid, 'TW-Trainer Tom', 'tw') returning id)
+select tst.put('sp49x', id::text) from ins;
+with ins as (insert into public.staff_profiles (team_id, name, role) values (tst.get('team_b')::uuid, 'Fremder Trainer', 'co') returning id)
+select tst.put('sp49b', id::text) from ins;
+-- Coach C ohne Recht „Planung“
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select string_agg(name, ',' order by name) from public.team_coaches(tst.get('team_a')::uuid) where name in ('Athletik Clara', 'TW-Trainer Tom')),
+                 'Athletik Clara,TW-Trainer Tom', 'T49 Spieler sieht das Trainerteam zur Auswahl');
+end $$;
+with ins as (insert into public.indiv_requests (player_id, topic, note, ask_staff) values (tst.get('max')::uuid, 'athletik', 'Sprints', tst.get('sp49c')::uuid) returning id)
+select tst.put('iq49', id::text) from ins;
+with ins as (insert into public.indiv_requests (player_id, topic, note) values (tst.get('max')::uuid, 'technik', 'Ballannahme') returning id)
+select tst.put('iq49b', id::text) from ins;
+do $$ begin
+  perform tst.eq((select status || '/' || (ask_staff = tst.get('sp49c')::uuid)::text from public.indiv_requests where id = tst.get('iq49')::uuid), 'open/true', 'T49 Anfrage beim gewählten Trainer');
+end $$;
+select tst.throws(format($q$update public.indiv_requests set ask_staff = %L where id = %L$q$, tst.get('sp49x'), tst.get('iq49')), 'T49 Spieler ändert den angefragten Trainer nicht', 'forbidden');
+select tst.affects(format($q$update public.indiv_requests set status = 'cancelled' where id = %L$q$, tst.get('iq49b')), 1, 'T49 Zurückziehen bleibt möglich');
+select tst.throws(format($q$insert into public.indiv_requests (player_id, topic, ask_staff) values (%L, 'kopf', %L)$q$, tst.get('max'), tst.get('sp49b')), 'T49 kein Trainer eines anderen Teams', 'different_teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select string_agg(topic, ',') from public.indiv_requests), 'athletik', 'T49 angefragter Trainer sieht nur die Anfrage an sich (ohne Recht „Planung“)');
+end $$;
+select tst.affects(format($q$update public.indiv_requests set status = 'accepted' where id = %L$q$, tst.get('iq49')), 0, 'T49 Zusagen nur mit Recht „Planung“');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select count(*) from public.indiv_requests where team_id = tst.get('team_a')::uuid)::text, '2', 'T49 Trainer mit „Planung“ sieht alle Anfragen');
+end $$;
+select tst.affects(format($q$update public.indiv_requests set ask_staff = %L where id = %L$q$, tst.get('sp49x'), tst.get('iq49')), 1, 'T49 Trainerteam gibt die Anfrage weiter');
+select tst.throws(format($q$update public.indiv_requests set ask_staff = %L where id = %L$q$, tst.get('sp49b'), tst.get('iq49')), 'T49 nicht an ein anderes Team', 'different_teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.indiv_requests)::text, '0', 'T49 nach dem Weitergeben sieht Coach C sie nicht mehr');
+end $$;
+commit;
+delete from public.indiv_requests where team_id = tst.get('team_a')::uuid;
+delete from public.staff_profiles where id in (tst.get('sp49c')::uuid, tst.get('sp49x')::uuid, tst.get('sp49b')::uuid);
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+-- =====================================================================
 -- T17 Einwilligungen
 -- =====================================================================
 begin;

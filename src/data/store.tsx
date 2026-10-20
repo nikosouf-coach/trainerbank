@@ -843,6 +843,8 @@ function useStoreValue() {
     // ---------- Individualtraining ----------
     requestIndiv: (r: IndivRequest) => upsert("indiv", r, (api, t) => api.saveIndiv(t, r), { ok: translator(ref.current.lang).t("iq_sent") }),
     cancelIndiv: (r: IndivRequest) => change(D => { const x = D.indiv.find(y => y.id === r.id); if (x) x.status = "cancelled"; }, (api, t) => api.saveIndiv(t, { ...r, status: "cancelled" })),
+    /** Anfrage an einen anderen Trainer weitergeben (null = ganzes Trainerteam) */
+    forwardIndiv: (r: IndivRequest, staffId: string | null) => change(D => { const x = D.indiv.find(y => y.id === r.id); if (x) x.ask = staffId; }, (api, t) => api.saveIndiv(t, { ...r, ask: staffId })),
     /** Zusagen (legt eine Einheit nur für den Spieler an) oder absagen */
     answerIndiv: async (r: IndivRequest, accept: boolean, answer: string, unit?: { date: string; zeit: string; dauer: number; staffId: string | null; title: string }): Promise<boolean> => {
       const { D, lang } = ref.current; if (!D) return false;
@@ -1120,7 +1122,7 @@ function useStoreValue() {
     savePlan: "plan", deletePlan: "plan",
     saveScout: "scout", deleteScout: "scout", saveScoutReport: "scout", deleteScoutReport: "scout", saveScoutList: "scout", deleteScoutList: "scout",
     saveSquadPlan: "scout", deleteSquadPlan: "scout", takeOverScout: ["scout"],
-    saveChallenge: "plan", deleteChallenge: "plan", saveChallengeEntry: "plan", answerIndiv: "plan", requestIndiv: "plan", cancelIndiv: "plan",
+    saveChallenge: "plan", deleteChallenge: "plan", saveChallengeEntry: "plan", answerIndiv: "plan", forwardIndiv: "plan", requestIndiv: "plan", cancelIndiv: "plan",
     chatSetReport: "messages", chatSetReadOnly: "messages",
   };
   const denied = (need: Perm[]): boolean => {

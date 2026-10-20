@@ -1,5 +1,5 @@
 // Bausteine der Einrichtung, die auch in den Einstellungen wiederverwendet werden:
-// Trainerprofil, Team (Logo, Farbe), Erinnerungen, Testbatterie, Trainerteam, Zusammenfassung.
+// Trainerprofil, Team (Logo, Farbe), Erinnerungen, Tests der Leistungsdiagnostik, Trainerteam, Zusammenfassung.
 import * as ImagePicker from "expo-image-picker";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
@@ -114,7 +114,7 @@ export function ReminderFields({ value, onChange, tr, load, prep }: { value: Rem
   );
 }
 
-/** Testbatterie: welche Leistungstests das Team nutzt. */
+/** Tests der Leistungsdiagnostik: welche Leistungstests das Team nutzt. */
 export function TestPicker({ value, onChange, grp, tr }: { value: TestKey[] | undefined; onChange: (v: TestKey[]) => void; grp: Group; tr: Translator }) {
   const { t } = tr; const all = testsFor(grp).map(x => x.key), cur = value && value.length ? value : all;
   return (

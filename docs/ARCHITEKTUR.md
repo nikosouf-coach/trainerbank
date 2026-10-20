@@ -103,7 +103,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `dev_talk_notes` (…0022) | interne Notiz zum Gespräch (eigene Tabelle, damit sie nie mit dem Protokoll an Spieler geht) | nur Staff mit `notes` |
 | `team_challenges` (…0022) | Wochenchallenge: `week_start` (Montag), `title`, `text`, `kind` (best/count/days/check), `unit`, `target`, `team_target`, `lower_better`, `group_id`, `key` | lesen Mitglieder (Gruppe: nur Mitglieder), schreiben `plan` |
 | `challenge_entries` (…0022) | pk(`challenge_id`,`player_id`), `value`, `days` (nur Tage der Woche), `done`; Spieler bis 13 Tage nach Wochenbeginn | Staff; Spieler nur eigene. Teamsumme für Spieler über `challenge_totals` |
-| `indiv_requests` (…0022) | Individualtraining: `topic`, `note`, `wish`, `status` (open/accepted/declined/cancelled), `answer`, `unit_date`, `unit_slot`, `staff_id`, `answered_by`; höchstens 2 offene je Spieler, `settings.indivReq` | Staff mit `plan`; Spieler eigene (anlegen, zurückziehen) |
+| `indiv_requests` (…0022, …0027) | Individualtraining: `topic`, `note`, `wish`, `ask_staff` (bei wem angefragt; Spieler wählt beim Anlegen, Trainerteam kann weitergeben), `status` (open/accepted/declined/cancelled), `answer`, `unit_date`, `unit_slot`, `staff_id`, `answered_by`; höchstens 2 offene je Spieler, `settings.indivReq` | Staff mit `plan`; der angefragte Trainer (eigenes Profil, `is_my_staff_profile`) lesend auch ohne `plan`; Spieler eigene (anlegen, zurückziehen) |
 | `chats` (…0023) | `kind` (team/staff/group/direct/custom), `title` (eigene Gruppen), `group_id`, `pair_key` (Einzelchat, eindeutig je Team), `read_only`, `transparent`, `last_at` | über `chat_can_read`; anlegen nur über `chat_ensure`/`chat_open`/`chat_save_custom` |
 | `chat_members` (…0023) | Mitglieder von Einzel- und eigenen Chats (Team-, Trainerteam- und Gruppen-Chats ergeben sich aus Kader und Gruppen) | lesen Teilnehmer |
 | `chat_messages` (…0023) | `user_id` (Konto gelöscht ⇒ Nachrichten gelöscht), `sender_name` (vom Server), `body` ≤ 4000, `reply_to`, `deleted_at`/`deleted_by` (Löschen leert den Text) | lesen `chat_can_read`, schreiben `chat_can_write`, löschen Absender bzw. Moderation (`messages`); höchstens 30 je Minute |
@@ -329,7 +329,8 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Spielersatz, Reha-/Rückkehrstufe, Aufbau, Torhüter, Wachstumsschub, Beschwerden).
 - `body.ts` – Körperregionen (Seite links/rechts) für Beschwerden und Verletzungen, regionsbezogene Steuerung.
 - `day.ts` – Trainingstag: verfügbare Spieler, Blöcke, Zuständigkeiten.
-- `duties.ts` – Dienste reihum (fair nach Gesamtzahl), Strafenkatalog mit Automatik (z. B. RPE zu spät → Dienst im
+- `duties.ts` – Dienste reihum (fair nach Gesamtzahl; Wechsel `every`: jedes Mal oder dieselben Spieler für alle
+  Termine einer Woche, zweier Wochen oder eines Monats – `dutyPeriod`, Vertretung nur am fehlenden Termin), Strafenkatalog mit Automatik (z. B. RPE zu spät → Dienst im
   nächsten Training), nur ab Startdatum der Regel.
 - `reha.ts` – Reha-Pläne nach Region und Rückkehrstufe (kriterienbasiert).
 - `outbox.ts` – Offline-Warteschlange (Ersetzen gleicher Datensätze, Reihenfolge, Verfall, erneutes Anwenden).

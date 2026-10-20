@@ -39,7 +39,7 @@ export const en_more: Dict = {
   su_pvT: "Player app", su_staffT: "More coaches", su_staffD: "Assistant, goalkeeper and fitness coaches, physio. They get their own access with their tasks later.", su_addStaff: "Add coach",
   su_s_load: "Reminders", su_s_loadB: "Push messages so players log their data.",
   su_s_science: "Sports science", su_s_scienceB: "How precisely the app calculates and which tests your team does.",
-  su_testsT: "Test battery", su_testsD: "These tests appear in performance testing. Recommended: at the start and end of pre-season and in the winter break.",
+  su_testsT: "Performance testing: tests", su_testsD: "Which tests do you use? Exactly these appear later in performance testing (results, personal bests, progress). Recommended: at the start and end of pre-season and in the winter break.",
   su_fixD: "Off: in build-up and deload weeks the app may also adjust duration, not only intensity.",
   su_s_sum: "All set", su_meT: "Coach", su_info: "Info buttons",
   su_demoNote: "Demo: your entries stay on this device only and disappear when you leave the demo.",
