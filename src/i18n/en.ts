@@ -389,7 +389,7 @@ export const en: Dict = {
   "f_kind": "Session type",
   "cal_week": "Week",
   "cal_month": "Month",
-  "cal_legend": "Colour = intensity: green easy, yellow medium, orange and red hard. The number with the person icon shows available players. Past days show real attendance and the players' average RPE. Tap a day for all details.",
+  "cal_legend": "Colour = intensity: green easy, yellow medium, orange and red hard. The number in the coloured box is the planned RPE, “Ø” the players' average RPE of a completed session. The number with the person icon shows available players, on past days those present. Tap a day for all details.",
   "months": ["January","February","March","April","May","June","July","August","September","October","November","December"],
   "day_avail": "{a} of {n} players available",
   "day_att": "{a} attended",

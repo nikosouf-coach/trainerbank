@@ -389,7 +389,7 @@ export const de: Dict = {
   "f_kind": "Trainingsart",
   "cal_week": "Woche",
   "cal_month": "Monat",
-  "cal_legend": "Farbe = Intensität: grün leicht, gelb mittel, orange und rot hart. Die Zahl mit dem Personen-Symbol zeigt die verfügbaren Spieler. Vergangene Tage zeigen die echte Beteiligung und die durchschnittliche RPE der Spieler. Tippe auf einen Tag für alle Details.",
+  "cal_legend": "Farbe = Intensität: grün leicht, gelb mittel, orange und rot hart. Die Zahl im Farbfeld ist der geplante RPE, „Ø“ die durchschnittliche RPE der Spieler einer gelaufenen Einheit. Die Zahl mit dem Personen-Symbol zeigt die verfügbaren Spieler, an vergangenen Tagen die anwesenden. Tippe auf einen Tag für alle Details.",
   "months": ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"],
   "day_avail": "{a} von {n} Spielern verfügbar",
   "day_att": "{a} waren da",

@@ -9,7 +9,7 @@ import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./date
 import { translator } from "./i18n";
 import { areaLabel, cleanAreas } from "./body";
 import { complaintEffect, type PainEffect } from "./pain";
-import { cmjDrop, fitnessIndex, testRank } from "./perf";
+import { cmjDrop, fitnessIndex, isCustomTest, testDef, testRank, testsFor, type TestDef } from "./perf";
 import { phaseOn } from "./prep";
 import { headCoach } from "./people";
 import { mdLabel } from "./principles";
@@ -780,6 +780,22 @@ Empfehlung des Trainers: ${activeMsgs(p.id).map(m => t("ry_" + m.typ) + ": " + m
     },
     /** Name des Cheftrainers (für die Spieler-App), leer wenn unbekannt */
     coachName: (): string => headCoach(D)?.name || "",
+    // ---------- Leistungstests (eingebaut + eigene des Teams) ----------
+    customTests: S.customTests || [],
+    testDef: (k: TestKey): TestDef => testDef(k, S.customTests),
+    /** Tests der Altersgruppe und eigene; mit Auswahl des Teams (settings.tests) */
+    testsFor: (onlySelected = false): TestDef[] => {
+      const all = testsFor(grp, S.customTests), sel = S.tests;
+      return onlySelected && sel && sel.length ? all.filter(x => sel.includes(x.key)) : all;
+    },
+    testName: (k: TestKey): string => isCustomTest(k) ? testDef(k, S.customTests).name || "?" : t("ts_" + k),
+    /** Kurzbeschreibung (eigener Test: Einheit und Richtung) */
+    testDesc: (k: TestKey): string => {
+      if (!isCustomTest(k)) return t("tsd_" + k);
+      const d = testDef(k, S.customTests); return [d.unit, t(d.lower ? "cto_lower" : "cto_higher")].filter(Boolean).join(" · ");
+    },
+    /** Durchführung (eigener Test: Text des Trainers, sonst Standard) */
+    testHow: (k: TestKey): string => isCustomTest(k) ? testDef(k, S.customTests).how || "" : t("tsp_" + k),
   };
 }
 

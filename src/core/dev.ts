@@ -9,7 +9,7 @@
 import { addDays, clamp, diff, sum } from "./dates";
 import type { Engine } from "./engine";
 import { seasonStart } from "./kasse";
-import { TESTS, resultsOf, testDef } from "./perf";
+import { allTests, customsOf, isCustomTest, resultsOf, testDef } from "./perf";
 import { isGoalkeeper } from "./units";
 import type {
   Agreement, Assessment, DayUnit, DevArea, DevTalk, Goal, GoalEntry, GoalStat, Group, IndivRequest, IndivTopic, Player, StaffProfile, TeamData, TestKey, UnitArt,
@@ -115,7 +115,7 @@ export function goalProgress(D: TeamData, g: Goal, today: string): GoalState {
     case "value": cur = entries.length ? entries[entries.length - 1].value : null; break;
     case "check": cur = g.steps.filter(s => s.done).length; start = 0; target = g.steps.length || 1; break;
   }
-  const lower = g.metric === "test" && g.test ? testDef(g.test).lower : g.lower;
+  const lower = g.metric === "test" && g.test ? testDef(g.test, customsOf(D)).lower : g.lower;
   let pct: number | null = null, reached = false;
   if (cur != null && target != null) {
     reached = lower ? cur <= target : cur >= target;
@@ -138,7 +138,8 @@ export const goalsOf = (D: Pick<TeamData, "goals">, pid: string, onlyVisible = f
   D.goals.filter(g => g.pid === pid && (!onlyVisible || g.vis)).sort((a, b) => (a.status === "active" ? 0 : 1) - (b.status === "active" ? 0 : 1) || (a.due || "9999") .localeCompare(b.due || "9999"));
 /** Einheit/Anzeige des Ziels: Test-Einheit, %, eigene Einheit */
 export function goalUnit(g: Goal): string {
-  if (g.metric === "test" && g.test) return testDef(g.test).unit;
+  // eigener Test: Einheit steht im Ziel (beim Anlegen übernommen)
+  if (g.metric === "test" && g.test) return isCustomTest(g.test) ? g.unit : testDef(g.test).unit;
   if (g.metric === "att") return "%";
   return g.unit;
 }
@@ -164,8 +165,8 @@ export function prepTalk(E: Engine, pid: string): TalkPrep {
     sc.filter(x => x.v >= 4).sort((a, b) => b.v - a.v).slice(0, 3).forEach(x => strengths.push(`dv_pComp|k=${x.key}|v=${x.v}`));
     sc.filter(x => x.v <= 2).sort((a, b) => a.v - b.v).slice(0, 3).forEach(x => focus.push(`dv_pComp|k=${x.key}|v=${x.v}`));
   }
-  for (const d of TESTS) {
-    const L = resultsOf(D, pid, d.key); if (L.length < 2) continue;
+  for (const d of allTests(D)) {
+    const L = resultsOf(D, pid, d.key); if (L.length < 2 || !L[L.length - 1].value) continue;
     const ch = (L[0].value - L[L.length - 1].value) / L[L.length - 1].value * (d.lower ? -1 : 1);
     if (ch >= 0.03) strengths.push(`dv_pTest|t=${d.key}|p=${Math.round(ch * 100)}`);
   }
@@ -199,8 +200,8 @@ export function seasonReview(E: Engine, pid: string, forPlayer = false): SeasonR
   const ss = D.sessions.filter(s => s.date >= from && s.date <= today);
   const attended = ss.filter(s => D.att[s.date]?.[pid] === "da").length;
   const marks = D.ratings.filter(r => r.pid === pid && r.kind === "training" && r.mark && r.date >= from && (!forPlayer || r.vis));
-  const tests = TESTS.map(d => {
-    const L = resultsOf(D, pid, d.key).filter(r => r.date >= from); if (L.length < 2) return null;
+  const tests = allTests(D).map(d => {
+    const L = resultsOf(D, pid, d.key).filter(r => r.date >= from); if (L.length < 2 || !L[L.length - 1].value) return null;
     const first = L[L.length - 1].value, last = L[0].value, better = d.lower ? last < first : last > first;
     return { key: d.key, first, last, better, pct: Math.round(Math.abs(last - first) / first * 1000) / 10 };
   }).filter((x): x is NonNullable<typeof x> => !!x);

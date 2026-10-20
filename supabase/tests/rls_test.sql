@@ -1400,6 +1400,39 @@ delete from public.performance_tests where date = '2026-10-01' and test in ('spr
 commit;
 
 -- =====================================================================
+-- T37b Eigene Tests: nur angelegte Tests, Werte ab 0, Richtung bei der Platzierung
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$insert into public.performance_tests (team_id, player_id, test, date, value) values (%L, %L, 'c:s20', '2026-10-01', 3)$q$,
+                  tst.get('team_a'), tst.get('max')), 'T37b Ergebnis für nicht angelegten eigenen Test abgelehnt', 'unknown_test');
+select tst.throws(format($q$insert into public.performance_tests (team_id, player_id, test, date, value) values (%L, %L, 'c:<b>', '2026-10-01', 3)$q$,
+                  tst.get('team_a'), tst.get('max')), 'T37b ungültiger Testschlüssel abgelehnt', 'unknown_test');
+select tst.affects(format($q$update public.teams set settings = settings || '{"customTests": [{"id": "s20", "name": "Sprint 20 m", "unit": "s", "lower": true, "dec": 2}, {"id": "jongl", "name": "Jonglieren", "unit": "x", "lower": false, "dec": 0}]}'::jsonb where id = %L$q$,
+                   tst.get('team_a')), 1, 'T37b eigene Tests anlegen');
+select tst.affects(format($q$insert into public.performance_tests (team_id, player_id, test, date, value) values
+  (%1$L, %2$L, 'c:s20', '2026-10-01', 3.00), (%1$L, %3$L, 'c:s20', '2026-10-01', 3.10), (%1$L, %4$L, 'c:s20', '2026-10-01', 3.20),
+  (%1$L, %5$L, 'c:s20', '2026-10-01', 2.95), (%1$L, %6$L, 'c:s20', '2026-10-01', 3.30), (%1$L, %2$L, 'c:jongl', '2026-10-01', 0)$q$,
+  tst.get('team_a'), tst.get('max'), tst.get('erik'), tst.get('tom'), tst.get('p2_player'), tst.get('p4_player')), 6, 'T37b Werte für eigene Tests (auch 0)');
+select tst.throws(format($q$update public.teams set settings = settings || '{"customTests": [1,2,3,4,5,6,7,8,9,10,11,12,13]}'::jsonb where id = %L$q$, tst.get('team_a')),
+                  'T37b höchstens 12 eigene Tests', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select rank || '/' || n from public.my_test_ranks(tst.get('max')::uuid) where test = 'c:s20'), '2/5', 'T37b Platz bei „kleiner ist besser“ (eigener Test)');
+end $$;
+commit;
+
+begin;
+delete from public.performance_tests where date = '2026-10-01' and test like 'c:%';
+update public.teams set settings = settings - 'customTests' where id = tst.get('team_a')::uuid;
+commit;
+
+-- =====================================================================
 -- T38 Region der Verletzung (Paket 9)
 -- =====================================================================
 begin;
@@ -1792,6 +1825,7 @@ select tst.affects($q$update public.team_tasks set done_at = now() where title =
 select tst.throws($q$update public.team_tasks set title = 'Y' where title = 'T40 Todo für alle Trainer'$q$, 'T40 … aber nicht umbenennen', 'forbidden');
 select tst.affects($q$update public.team_tasks set done_at = now() where title = 'T40 Spieleraufgabe'$q$, 0, 'T40 Spieleraufgaben nicht abhaken (ohne „tasks“)');
 select tst.throws(format($q$update public.teams set settings = jsonb_set(settings, '{days}', '{}') where id = %L$q$, tst.get('team_a')), 'T40 Trainingstage nur mit „plan“', 'forbidden');
+select tst.throws(format($q$update public.teams set settings = settings || '{"customTests": []}'::jsonb where id = %L$q$, tst.get('team_a')), 'T40 eigene Tests nur mit „perf“', 'forbidden');
 commit;
 
 begin;

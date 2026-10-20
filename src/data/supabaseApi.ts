@@ -3,6 +3,7 @@ import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classDef, defaultPrinciples, defaultSettings, groupOf, modsFor } from "../core/classes";
 import { cleanPrinciples } from "../core/principles";
+import { cleanCustomTests } from "../core/perf";
 import { cleanAreas } from "../core/body";
 import { isClientId, isNetworkMessage } from "../core/outbox";
 import { cleanPainMap } from "../core/pain";
@@ -69,7 +70,9 @@ function mapTeam(r: Row): Team {
   const base = defaultSettings();
   return {
     id: r.id, club: r.club, name: r.name, accent: r.accent || "#0b3d91", cls, depth,
-    settings: { ...base, ...(r.settings || {}), days: (r.settings && r.settings.days) || base.days },
+    settings: { ...base, ...(r.settings || {}), days: (r.settings && r.settings.days) || base.days,
+      // nur bereinigen, wenn vorhanden – ein neu hinzugefügter Schlüssel würde beim nächsten Speichern das Recht „Leistung“ verlangen
+      ...(r.settings?.customTests ? { customTests: cleanCustomTests(r.settings.customTests) } : {}) },
     principles: cleanPrinciples(r.principles, groupOf(cls)),
     modules: { ...modsFor(depth, cls), ...(r.modules || {}) },
     joinCode: r.join_code, staffCode: r.staff_code, timezone: r.timezone, logo: r.logo_path || null, clubId: r.club_id || null,

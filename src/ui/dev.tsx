@@ -7,7 +7,7 @@ import {
   COMPETENCIES, DEV_AREAS, MAX_ACTIVE_GOALS, agreementId, areaAvg, assessmentsOf, cleanGoal, cleanScores, compsOf, entriesOfGoal, gapsOf, goalProgress, goalUnit, goalsOf, posGroupOf, prepTalk,
   seasonReview, suggestStart, type GoalState, type PosGroup,
 } from "../core/dev";
-import { TESTS, testDef } from "../core/perf";
+import { isCustomTest } from "../core/perf";
 import type { Agreement, Assessment, DevArea, DevTalk, Goal, GoalKind, GoalMetric, GoalStat, Player, TestKey } from "../core/types";
 import { isGoalkeeper } from "../core/units";
 import { tmpId, useEngine, useStore } from "../data/store";
@@ -26,7 +26,7 @@ function useFmt() {
   const E = useEngine();
   return (v: number | null | undefined, g?: Goal): string => {
     if (v == null || !Number.isFinite(v)) return "–";
-    const dec = g?.metric === "test" && g.test ? testDef(g.test).dec : Number.isInteger(v) ? 0 : 1;
+    const dec = g?.metric === "test" && g.test ? E.testDef(g.test).dec : Number.isInteger(v) ? 0 : 1;
     return E.tr.num(v, dec);
   };
 }
@@ -35,7 +35,7 @@ export function usePrepText() {
   const E = useEngine();
   return (line: string): string => {
     const [key, ...ps] = line.split("|"), o: Record<string, string> = {};
-    for (const p of ps) { const i = p.indexOf("="); const k = p.slice(0, i), v = p.slice(i + 1); o[k] = k === "k" ? E.t("cp_" + v) : k === "t" && key === "dv_pTest" ? E.t("ts_" + v) : v; }
+    for (const p of ps) { const i = p.indexOf("="); const k = p.slice(0, i), v = p.slice(i + 1); o[k] = k === "k" ? E.t("cp_" + v) : k === "t" && key === "dv_pTest" ? E.testName(v as TestKey) : v; }
     return E.tf(key, o);
   };
 }
@@ -216,15 +216,16 @@ function GoalForm({ target, onClose }: { target: { p: Player; goal?: Goal; pre?:
   const [busy, setBusy] = useState(false);
   const set = (x: Partial<Goal>) => setG(prev => ({ ...prev, ...x }));
   const isNew = g.id.startsWith("tmp-");
-  const tests = TESTS.filter(d => d.groups.includes(E.grp) && (!d.gk || isGoalkeeper(E.D, p)));
+  const tests = E.testsFor().filter(d => !d.gk || isGoalkeeper(E.D, p));
   const active = goalsOf(E.D, p.id).filter(x => x.status === "active" && x.id !== g.id).length;
   const own = g.by === "player", canEdit = staff || own;
   const setMetric = (m: GoalMetric) => {
     const test: TestKey | null = m === "test" ? (g.test || tests[0]?.key || null) : null;
-    set({ metric: m, test, stat: m === "stat" ? (g.stat || "goals") : null, lower: m === "test" && test ? testDef(test).lower : m === "value" ? g.lower : false,
-      start: suggestStart(E.D, p.id, m, test, E.TODAY), unit: m === "count" || m === "value" ? g.unit : "", kind: m === "test" ? "perf" : m === "stat" ? "outcome" : g.kind });
+    set({ metric: m, test, stat: m === "stat" ? (g.stat || "goals") : null, lower: m === "test" && test ? E.testDef(test).lower : m === "value" ? g.lower : false,
+      start: suggestStart(E.D, p.id, m, test, E.TODAY), unit: m === "count" || m === "value" ? g.unit : m === "test" && test && isCustomTest(test) ? E.testDef(test).unit : "", kind: m === "test" ? "perf" : m === "stat" ? "outcome" : g.kind });
   };
-  const setTest = (k: TestKey) => set({ test: k, lower: testDef(k).lower, start: suggestStart(E.D, p.id, "test", k, E.TODAY) });
+  // eigener Test: Einheit ins Ziel übernehmen (eingebaute Tests: Einheit aus dem Katalog)
+  const setTest = (k: TestKey) => set({ test: k, lower: E.testDef(k).lower, unit: isCustomTest(k) ? E.testDef(k).unit : "", start: suggestStart(E.D, p.id, "test", k, E.TODAY) });
   const ok = g.title.trim().length > 0 && (g.metric === "check" ? g.steps.length > 0 : g.metric === "att" || g.target != null) && (!g.due || g.due >= g.from);
   const save = async (patch: Partial<Goal> = {}) => {
     setBusy(true);
@@ -245,7 +246,7 @@ function GoalForm({ target, onClose }: { target: { p: Player; goal?: Goal; pre?:
       <Picker testID="goal-metric" label={t("dv_metric")} value={g.metric} onChange={setMetric}
         options={METRICS.filter(m => (m !== "test" || (E.mods.leistung && tests.length)) && (m !== "stat" || E.mods.spielanalyse) && (m !== "att" || E.mods.beteiligung)).map(m => ({ key: m, label: t("dv_m_" + m) }))} />
       <Muted small>{t("dv_md_" + g.metric)}</Muted>
-      {g.metric === "test" ? <Picker testID="goal-test" label={t("dv_m_test")} value={(g.test || tests[0]?.key) as TestKey} onChange={setTest} options={tests.map(d => ({ key: d.key, label: `${t("ts_" + d.key)} (${d.unit})` }))} /> : null}
+      {g.metric === "test" ? <Picker testID="goal-test" label={t("dv_m_test")} value={(g.test || tests[0]?.key) as TestKey} onChange={setTest} options={tests.map(d => ({ key: d.key, label: E.testName(d.key) + (d.unit ? ` (${d.unit})` : "") }))} /> : null}
       {g.metric === "stat" ? <Picker testID="goal-stat" label={t("dv_m_stat")} value={(g.stat || "goals") as GoalStat} onChange={x => set({ stat: x })} options={STATS.filter(x => x !== "clean" || isGoalkeeper(E.D, p)).map(x => ({ key: x, label: t("dv_s_" + x) }))} /> : null}
       {g.metric !== "check" ? <Row wrap gap={10}>
         {g.metric !== "stat" && g.metric !== "count" ? <NumField testID="goal-start" label={t("dv_start")} value={g.start} onChange={v => set({ start: v })} style={{ flex: 1, minWidth: 110 }} /> : null}
@@ -471,8 +472,8 @@ export function ReviewView({ p, forPlayer }: { p: Player; forPlayer?: boolean })
       </Row>
       {E.mods.leistung ? <Col gap={4}>
         <T v="eyebrow">{t("dv_rTests")}</T>
-        {r.tests.length ? r.tests.map(x => <Row key={x.key} between><T v="small">{t("ts_" + x.key)}</T>
-          <T v="small" bold color={x.better ? c.ok : c.warn}>{E.tr.num(x.first, testDef(x.key).dec)} → {E.tr.num(x.last, testDef(x.key).dec)} {testDef(x.key).unit} ({x.better ? "▲" : "▼"} {E.tr.num(x.pct, 1)} %)</T></Row>) : <Muted small>{t("dv_rNoTests")}</Muted>}
+        {r.tests.length ? r.tests.map(x => <Row key={x.key} between><T v="small">{E.testName(x.key)}</T>
+          <T v="small" bold color={x.better ? c.ok : c.warn}>{E.tr.num(x.first, E.testDef(x.key).dec)} → {E.tr.num(x.last, E.testDef(x.key).dec)} {E.testDef(x.key).unit} ({x.better ? "▲" : "▼"} {E.tr.num(x.pct, 1)} %)</T></Row>) : <Muted small>{t("dv_rNoTests")}</Muted>}
       </Col> : null}
       {r.areas.some(a => a.last != null) ? <Col gap={4}>
         <T v="eyebrow">{t("dv_rAreas")} · {t("pgr_" + pg)}</T>

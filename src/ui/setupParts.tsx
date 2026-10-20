@@ -5,8 +5,8 @@ import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { classDef, classLabel, groupOf, PACKAGES, PLAYER_VIEW, teamLabel } from "../core/classes";
 import type { Translator } from "../core/i18n";
-import { testsFor } from "../core/perf";
-import type { ClassKey, Depth, Group, Modules, PlayerViewKey, Reminders, StaffRoleKey, TeamSettings, TestKey } from "../core/types";
+import { isCustomTest, testDef, testName, testsFor } from "../core/perf";
+import type { ClassKey, CustomTest, Depth, Group, Modules, PlayerViewKey, Reminders, StaffRoleKey, TeamSettings, TestKey } from "../core/types";
 import { ROLES } from "./archive";
 import { Icon } from "./icons";
 import { Btn, ChoiceChips, Col, DateField, Field, Muted, Picker, Row, Seg, T, TimeField, ToggleRow } from "./kit";
@@ -117,11 +117,12 @@ export function ReminderFields({ value, onChange, tr, load, prep }: { value: Rem
 }
 
 /** Tests der Leistungsdiagnostik: welche Leistungstests das Team nutzt. */
-export function TestPicker({ value, onChange, grp, tr }: { value: TestKey[] | undefined; onChange: (v: TestKey[]) => void; grp: Group; tr: Translator }) {
-  const { t } = tr; const all = testsFor(grp).map(x => x.key), cur = value && value.length ? value : all;
+export function TestPicker({ value, onChange, grp, tr, custom }: { value: TestKey[] | undefined; onChange: (v: TestKey[]) => void; grp: Group; tr: Translator; custom?: CustomTest[] }) {
+  const { t } = tr; const all = testsFor(grp, custom).map(x => x.key), cur = value && value.length ? value : all;
+  const desc = (k: TestKey) => { if (!isCustomTest(k)) return t("tsd_" + k); const d = testDef(k, custom); return [t("cto_own"), d.unit, t(d.lower ? "cto_lower" : "cto_higher")].filter(Boolean).join(" · "); };
   return (
     <Col gap={10}>
-      {all.map(k => <ToggleRow key={k} testID={"tb-" + k} label={t("ts_" + k)} desc={t("tsd_" + k)} value={cur.includes(k)}
+      {all.map(k => <ToggleRow key={k} testID={"tb-" + k} label={testName(k, t, custom)} desc={desc(k)} value={cur.includes(k)}
         onChange={v => { const n = v ? [...cur, k] : cur.filter(x => x !== k); if (n.length) onChange(all.filter(x => n.includes(x))); }} />)}
     </Col>
   );

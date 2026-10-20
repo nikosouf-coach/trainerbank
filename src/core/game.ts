@@ -3,7 +3,7 @@
 // Dabeisein – nicht hohe Belastung (keine Anreize zur Überlastung oder zum Schönen von Angaben).
 import { addDays, diff, monday } from "./dates";
 import type { Engine } from "./engine";
-import { testDef } from "./perf";
+import { customsOf, testDef } from "./perf";
 import { phaseWeeks, progWeek } from "./prep";
 
 export interface Badge { key: string; earned: boolean; progress: number }
@@ -85,7 +85,7 @@ export function gameOf(E: Engine, pid: string): GameState {
     // Neuer Bestwert in einem Test in den letzten 30 Tagen
     const mine = D.tests.filter(x => x.pid === pid), keys = [...new Set(mine.map(x => x.test))];
     const pb = keys.some(k => { const L = mine.filter(x => x.test === k).sort((a, b) => a.date < b.date ? -1 : 1); if (L.length < 2) return false;
-      const lo = testDef(k).lower, last = L[L.length - 1], prev = L.slice(0, -1); return diff(last.date, TODAY) <= 30 && prev.every(x => lo ? last.value < x.value : last.value > x.value); });
+      const lo = testDef(k, customsOf(D)).lower, last = L[L.length - 1], prev = L.slice(0, -1); return diff(last.date, TODAY) <= 30 && prev.every(x => lo ? last.value < x.value : last.value > x.value); });
     badges.push(b("pb", pb ? 1 : 0));
   }
   if (E.mods.spielanalyse) {

@@ -11,6 +11,7 @@ import { TemplatePicker, templateMin, templateRpe, templateText } from "../../..
 import { Dist, WeekStrip } from "../../../src/ui/charts";
 import { KindEditor, type KindEditorTarget } from "../../../src/ui/kindEditor";
 import { IndivSummary } from "../../../src/ui/indiv";
+import { DayFlowRow } from "../../../src/ui/day/FlowRow";
 import { Banner, Btn, Card, CardTitle, Chip, Col, Field, Header, Info, Muted, NumField, NumScale, Picker, Row, Screen, Seg, T, Tag } from "../../../src/ui/kit";
 import { CalNav } from "../../../src/ui/plan/CalNav";
 import { setCal, useCal } from "../../../src/ui/plan/calState";
@@ -133,6 +134,7 @@ export default function Plan() {
         {!dr ? <T v="small" numberOfLines={2}>{p.inhalt}</T> : null}
         <Muted small>{E.zeitOf(x.date)} · {p.dauer} {t("min")} · {t("p_" + p.platz)}{pro ? ` · ${E.int(p.dauer * p.rpe)} AU` : ""}{x.events.length ? " · " + x.events.map(e => e.titel).join(", ") : ""}{ab ? ` · ${ab} ${t("absent")}` : ""}</Muted>
         <UnitChips units={x.units} testID={"plan-units-" + x.date} />
+        <DayFlowRow date={x.date} testID={"plan-flow-" + x.date} />
         {!dr ? actual(x.date, p.rpe) : null}
         {show && !dr ? <IndivSummary date={x.date} testID={"plan-iv-" + x.date} /> : null}
         {p.notReady.length && show ? <Col gap={4}>

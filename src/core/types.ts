@@ -60,8 +60,10 @@ export interface TeamSettings {
   fines?: FineRule[];
   /** Push-Erinnerungen für Spieler (Server: supabase/functions/_shared/schedule.ts → reminderSettings). */
   reminders?: Reminders;
-  /** Tests der Leistungsdiagnostik des Teams; leer/fehlend = alle für die Altersgruppe empfohlenen */
+  /** Tests der Leistungsdiagnostik des Teams; leer/fehlend = alle für die Altersgruppe empfohlenen und alle eigenen */
   tests?: TestKey[];
+  /** Eigene Tests des Teams (Schlüssel im Ergebnis: "c:<id>") */
+  customTests?: CustomTest[];
   /** Platzierung in Tests für Spieler: aus, nur eigener Platz (Standard), Platz + Teambestwert (ohne Namen) */
   testRank?: "off" | "rank" | "best";
   /** Mannschaftskasse (Beiträge, Geldstrafen, Kassenbuch) */
@@ -299,8 +301,11 @@ export interface StaffProfile {
   license?: string;
   photo?: string | null;
 }
-/** Leistungstests (Katalog in perf.ts) */
-export type TestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit" | "tw_lateral" | "tw_kick";
+/** Leistungstests (Katalog in perf.ts); eigene Tests haben die Form "c:<id>" */
+export type BuiltinTestKey = "sprint10" | "sprint30" | "cmj" | "ift" | "yoyo" | "agility505" | "slalom" | "standweit" | "tw_lateral" | "tw_kick";
+export type TestKey = BuiltinTestKey | `c:${string}`;
+/** Eigener Test: Name, Einheit, Richtung (kleiner besser, z. B. Zeiten), Nachkommastellen, Durchführung, nur Torhüter */
+export interface CustomTest { id: string; name: string; unit: string; lower: boolean; dec: 0 | 1 | 2; how?: string; gk?: boolean }
 export interface TestResult { id: string; pid: string; test: TestKey; date: string; value: number; note?: string }
 // ---------- Spielerentwicklung (Paket C) ----------
 /** Kompetenzbereiche: Technik, Taktik, Athletik, Persönlichkeit (Mentales & Soziales) */

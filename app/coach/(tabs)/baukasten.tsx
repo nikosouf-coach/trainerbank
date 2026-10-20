@@ -40,7 +40,8 @@ export default function Baukasten() {
       </Card>
       {team.modules.leistung ? <Card testID="bk-tests">
         <CardTitle title={t("su_testsT")} info={<Info title={t("su_testsT")} text={t("su_testsD")} />} />
-        <TestPicker value={team.settings.tests} onChange={v => s.updateTeam({ settings: { ...team.settings, tests: v } })} grp={E.grp} tr={E.tr} />
+        <TestPicker value={team.settings.tests} onChange={v => s.updateTeam({ settings: { ...team.settings, tests: v } })} grp={E.grp} tr={E.tr} custom={team.settings.customTests} />
+        <Muted small>{t("cto_whereD")}</Muted>
         <Col gap={6} testID="bk-rank">
           <T v="small" bold>{t("lt_rankSet")}</T>
           <Seg testID="bk-rank-mode" value={team.settings.testRank || "rank"} onChange={(v: "off" | "rank" | "best") => s.updateTeam({ settings: { ...team.settings, testRank: v } })}

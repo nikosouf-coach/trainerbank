@@ -72,7 +72,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `match_stats` | pk(`match_id`,`player_id`), `minutes`, `goals`, `assists`, `started` | Staff; Spieler eigene, wenn `player_view(team,'stats')` |
 | `player_ratings` | `id`, `player_id`, `date`, `kind` (spiel/training), `rating` 1–10, `text`, `visible` | Staff; Spieler eigene freigegebene, wenn `player_view(team,'ratings')` |
 | `videos` | `id`, `title`, `url`, `date`, `match_id`, `player_ids` und `group_ids` (beide leer = ganzes Team), `note`, `visible` | Staff; Mitglieder freigegebene (für sie oder ihre Gruppe bestimmte) |
-| `performance_tests` | `id`, `player_id`, `test`, `date`, `value`, `note` | Staff; Spieler eigene, wenn `player_view(team,'tests')` |
+| `performance_tests` | `id`, `player_id`, `test` (eingebaut oder `c:<id>` eines eigenen Tests des Teams, …0029), `date`, `value` (0 … 99 999,99), `note` | Staff; Spieler eigene, wenn `player_view(team,'tests')` |
 | `findings` | `id`, `player_id`, `date`, `title`, `path` (Bucket `findings`), `mime`, `consent` (app/schriftlich), `ai_text`, `ai_at` | Staff und der Spieler selbst; KI nur mit Einwilligung `findings` |
 | `exercises`, `session_templates`, `staff_profiles` | Übungen mit Zeichnung (jsonb) und Coachingpunkten, Einheiten-Vorlagen, Trainerprofile | nur Staff |
 | `season_phases` | `kind` (prep/break), `date_from`, `date_to`, `first_match`, `weeks` jsonb, `program` jsonb, `visible` | lesen Mitglieder, schreiben Staff |
@@ -94,6 +94,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `rpe_entries.slot`, `.dives` (…0021) | Einheit des Tages (0 = Mannschaftstraining/Spiel, 1–9 = weitere Einheit), Schlüssel (`player_id`,`date`,`slot`); Sprünge/Hechtsprünge der Torhüter (0–300). Anwesenheit „da“ setzt nur Einheit 0 | wie RPE |
 | `session_blocks.slot` (…0021) | Ablauf auch für weitere Einheiten (z. B. Torwarttraining) | nur Staff |
 | `session_blocks.crew` (…0028) | mehrere Zuständige je Block: Liste aus `{staff, task}` (höchstens 6, jeder Trainer einmal, Aufgabe ≤ 80 Zeichen, nur Trainerteam des Teams – sonst `invalid_crew`); `staff_id` = Hauptverantwortlicher (erster Eintrag) für ältere Stände | nur Staff |
+| `teams.settings.customTests` (…0029) | eigene Tests des Teams: Liste aus `{id, name, unit, lower, dec, how?, gk?}` (höchstens 12, ≤ 8 KB); Ergebnisse in `performance_tests` nur für angelegte Tests (`team_has_test`, sonst `unknown_test`), auch Ziele (`player_goals.test`); `my_test_ranks` beachtet „kleiner ist besser“; Änderungen brauchen das Recht `perf` | wie `teams` |
 | `player_ratings.mark`, `.tags`, `.slot` (…0021) | Trainingseindruck: nur `good`/`poor` (Standard Durchschnitt = keine Zeile), bis 8 Gründe, Einheit | wie Bewertungen |
 | `match_stats.conceded`, `.saves` (…0021) | Torhüter: Gegentore in der eigenen Spielzeit, Paraden | wie Spieldaten |
 | `day_units.player_ids` (…0022) | Einheit nur für einzelne Spieler (Individualtraining, ≤ 30, gleiches Team per Trigger) | Spieler sehen sie nur, wenn sie dabei sind (`my_player_in`) |
@@ -360,7 +361,10 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Erholungsmodell (9 Altersstufen), Kennzahlen (ACWR rollend 7/28), Profile, Ampel, Empfehlungen,
   Datenhinweise für Potenziale, Spieler-Status und -Tipps.
 - `fixtures.ts` – Spielplan-Import (.ics und kopierter Text, z. B. fussball.de).
-- `perf.ts` – Leistungstests, Normwerte je Altersgruppe, CMJ-Ermüdungscheck, Fitnessindex, Laufvorgaben aus dem 30-15 IFT.
+- `perf.ts` – Leistungstests, Normwerte je Altersgruppe, CMJ-Ermüdungscheck, Fitnessindex, Laufvorgaben aus dem 30-15 IFT;
+  eigene Tests des Teams (`settings.customTests`: Name, Einheit, Richtung, Nachkommastellen, Durchführung, nur TW; höchstens
+  12, `cleanCustomTests`) – Schlüssel `c:<id>`, ohne Orientierungswerte, sonst wie eingebaute Tests (Bestwert, Trend, Platz,
+  Ziele, Rückblick). Löschen eines eigenen Tests löscht seine Ergebnisse.
 - `prep.ts` – Vorbereitung und Pausen: Wochenaufbau (Einstieg, Aufbau, 3:1-Entlastung, Taper), Spielerprogramm,
   angebrochene Wochen, Umsetzung.
 - `game.ts` – Zuverlässigkeit (Eintragsquote), Serie, Wochenringe, Meilensteine (belohnt Regelmäßigkeit, nicht

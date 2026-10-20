@@ -68,12 +68,6 @@ export default function Kalender() {
     );
   };
 
-  /** Intensität eines Tages: vergangen = Ø RPE der Einheit, sonst geplanter RPE */
-  const tr0 = (x: { train?: { rpe: number } | null }, past: boolean, sess: unknown): number | null => {
-    if (!x.train) return null;
-    if (past && sess) { const a = E.sessAvg((sess as { date: string }).date); return a ?? x.train.rpe; }
-    return x.train.rpe;
-  };
   const month = () => {
     const first = parse(cal.month), mo = first.getMonth(), y = first.getFullYear();
     const start = monday(cal.month), last = iso(new Date(y, mo + 1, 0)), end = addDays(monday(last), 6);
@@ -86,17 +80,29 @@ export default function Kalender() {
       const tx = (k: string, s2: string, col?: string, bold?: boolean) => <Text key={k} numberOfLines={2} style={{ fontSize: 11, lineHeight: 13.5, color: col || c.muted, fontWeight: bold ? "700" : "500" }}>{s2}</Text>;
       /** Balken je Termin: Farbe = Art bzw. Intensität; hohl = abgesagt */
       const bar = (k: string, col: string, hollow?: boolean) => <View key={k} style={{ height: 6, borderRadius: 3, backgroundColor: hollow ? "transparent" : col, borderWidth: hollow ? 1 : 0, borderColor: col }} />;
-      const rpeNow = tr0(x, past, sess);
+      /** RPE als Farbfeld mit Zahl: geplant (Zukunft) bzw. Ø der Spieler (gelaufene Einheit, „Ø“) */
+      const rpeChip = (k: string, v: number, avg: boolean) => (
+        <View key={k} testID={`mrpe-${d}`} style={{ height: words ? 17 : 15, borderRadius: 4, backgroundColor: rpeColor(c, Math.round(v)), alignItems: "center", justifyContent: "center", paddingHorizontal: 2 }}>
+          <Text numberOfLines={1} style={{ fontSize: words ? 10.5 : 9.5, fontWeight: "800", color: "#fff", fontVariant: ["tabular-nums"] }}>{avg ? "Ø " + E.num(v, 1) : (words ? "RPE " : "") + v}</Text>
+        </View>);
+      const avgNow = past && sess ? E.sessAvg(d) : null;
       if (x.match) {
         L.push(<Row key="m" gap={3}><Icon name="ball" size={words ? 13 : 12} color={c.accentTx} strokeWidth={2} />{words ? <Text numberOfLines={1} style={{ flex: 1, fontSize: 11, fontWeight: "700", color: c.ink }}>{x.match.zeit}</Text> : null}</Row>);
         if (words) L.push(tx("mg", (x.match.heim ? "" : "@ ") + x.match.gegner, c.ink, true));
+        if (showI && avgNow != null) L.push(rpeChip("ma", avgNow, true));
       }
       const tr = x.train;
       if (tr && tr.kind !== "frei") {
-        L.push(bar("r", rpeNow != null && showI ? rpeColor(c, Math.round(rpeNow)) : c.low));
+        const v = avgNow ?? (past && sess ? null : tr.rpe);
+        L.push(showI && v != null ? rpeChip("r", v, avgNow != null) : bar("r", past && sess ? c.build : c.low));
         if (words) {
           L.push(tx("k", E.kn(tr.kind), c.ink, true));
           L.push(tx("z", `${E.zeitOf(d)} · ${past && sess ? sess.dauer : tr.dauer}′`));
+        }
+        // Spieler: gelaufen = anwesend, sonst verfügbar (ohne Abwesende)
+        if (mods.beteiligung) {
+          const n = past && sess ? E.D.players.filter(p => E.attStatus(d, p.id) === "da").length : E.D.players.length - E.absentOn(d).length;
+          L.push(<Row key="p" gap={2}><Icon name="person" size={words ? 11 : 9} color={c.muted} strokeWidth={2.2} /><Text style={{ fontSize: words ? 11 : 9.5, color: c.muted, fontWeight: "600", fontVariant: ["tabular-nums"] }}>{n}</Text></Row>);
         }
       } else if (x.cancelled) L.push(bar("c", c.build, true));
       else if (x.brk && E.regularDay(d)) L.push(bar("b", "#16a3a3", true));
@@ -117,8 +123,12 @@ export default function Kalender() {
     }
     const legend = words ? null : (
       <Row wrap gap={12} testID="cal-legend" style={{ paddingHorizontal: 4, paddingTop: 8 }}>
-        <Row gap={5}><View style={{ width: 16, height: 6, borderRadius: 3, backgroundColor: showI ? rpeColor(c, 6) : c.low }} /><Text style={{ fontSize: 11.5, color: c.muted }}>{showI ? t("cal_lgTrainI") : t("it_training")}</Text></Row>
+        {showI ? <>
+          <Row gap={5}><View style={{ height: 15, minWidth: 18, borderRadius: 4, backgroundColor: rpeColor(c, 6), alignItems: "center", justifyContent: "center", paddingHorizontal: 3 }}><Text style={{ fontSize: 9.5, fontWeight: "800", color: "#fff" }}>6</Text></View><Text style={{ fontSize: 11.5, color: c.muted }}>{t("cal_lgPlan")}</Text></Row>
+          <Row gap={5}><View style={{ height: 15, borderRadius: 4, backgroundColor: rpeColor(c, 5), alignItems: "center", justifyContent: "center", paddingHorizontal: 3 }}><Text style={{ fontSize: 9.5, fontWeight: "800", color: "#fff" }}>Ø {E.num(5.4, 1)}</Text></View><Text style={{ fontSize: 11.5, color: c.muted }}>{t("cal_lgAvg")}</Text></Row>
+        </> : <Row gap={5}><View style={{ width: 16, height: 6, borderRadius: 3, backgroundColor: c.low }} /><Text style={{ fontSize: 11.5, color: c.muted }}>{t("it_training")}</Text></Row>}
         <Row gap={5}><Icon name="ball" size={12} color={c.accentTx} strokeWidth={2} /><Text style={{ fontSize: 11.5, color: c.muted }}>{t("it_match")}</Text></Row>
+        {mods.beteiligung ? <Row gap={5}><Icon name="person" size={11} color={c.muted} strokeWidth={2.2} /><Text style={{ fontSize: 11.5, color: c.muted }}>{t("cal_lgPlayers")}</Text></Row> : null}
         <Row gap={5}><View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: c.event }} /><Text style={{ fontSize: 11.5, color: c.muted }}>{t("it_event")}</Text></Row>
         <Row gap={5}><Text style={{ fontSize: 11, fontWeight: "700", color: c.ink }}>+1</Text><Text style={{ fontSize: 11.5, color: c.muted }}>{t("cal_lgUnit")}</Text></Row>
       </Row>

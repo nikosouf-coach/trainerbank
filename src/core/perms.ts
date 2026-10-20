@@ -77,7 +77,7 @@ export function teamPatchPerms(patch: Record<string, unknown>, before: Record<st
     const a = before.settings as Record<string, unknown>;
     for (const k of new Set([...Object.keys(a), ...Object.keys(ps)])) {
       if (same(a[k], ps[k])) continue;
-      need.add(["days", "dauer", "fix", "spieltag", "anstoss", "units", "indivReq", "challengeRank"].includes(k) ? "plan" : k === "duties" || k === "fines" ? "tasks" : k === "tests" || k === "testRank" ? "perf" : k === "kasse" ? "cash" : "admin");
+      need.add(["days", "dauer", "fix", "spieltag", "anstoss", "units", "indivReq", "challengeRank"].includes(k) ? "plan" : k === "duties" || k === "fines" ? "tasks" : k === "tests" || k === "testRank" || k === "customTests" ? "perf" : k === "kasse" ? "cash" : "admin");
     }
   }
   if ("principles" in patch && !same(patch.principles, before.principles)) need.add("plan");

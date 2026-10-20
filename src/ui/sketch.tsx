@@ -40,20 +40,34 @@ export function SketchView({ value, width, testID, mini }: { value: Drawing; wid
   );
 }
 
-/** Skizze im Formular: Vorschau (antippen = bearbeiten), Zeichnen/Bearbeiten, Entfernen */
-export function SketchField({ value, onChange, testID = "sketch", labels }: {
-  value: Drawing | null; onChange: (d: Sketch | null) => void; testID?: string; labels: { add: string; edit: string; del: string };
+/**
+ * Skizze im Formular: Vorschau (antippen = bearbeiten), Zeichnen/Bearbeiten, Entfernen.
+ * deferred: erst beim Schließen speichern (z. B. direkt am Block des Trainingstags) – eine leere neue Skizze wird
+ * dann gar nicht angelegt, eine geleerte entfernt.
+ */
+export function SketchField({ value, onChange, testID = "sketch", labels, deferred }: {
+  value: Drawing | null; onChange: (d: Sketch | null) => void; testID?: string; labels: { add: string; edit: string; del: string }; deferred?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<Sketch | null>(null);
   const sk = value ? toSketch(value) : null;
+  const draftRef = useRef(draft); draftRef.current = draft;
+  const start = () => { if (deferred) setDraft(sk || emptySketch()); else if (!sk) onChange(emptySketch()); setOpen(true); };
+  const close = () => {
+    setOpen(false);
+    const d = draftRef.current; if (!deferred || !d) return;
+    setDraft(null);
+    const next = d.items.length ? d : null;
+    if (JSON.stringify(next) !== JSON.stringify(sk)) onChange(next);
+  };
   return (
     <Col gap={8} testID={testID}>
-      {sk ? <Pressable testID={testID + "-preview"} accessibilityRole="button" accessibilityLabel={labels.edit} onPress={() => setOpen(true)}><SketchView value={sk} /></Pressable> : null}
+      {sk ? <Pressable testID={testID + "-preview"} accessibilityRole="button" accessibilityLabel={labels.edit} onPress={start}><SketchView value={sk} /></Pressable> : null}
       <Row gap={8} wrap>
-        <Btn small testID={testID + "-edit"} icon={sk ? "pen" : "plus"} label={sk ? labels.edit : labels.add} onPress={() => { if (!sk) onChange(emptySketch()); setOpen(true); }} />
+        <Btn small testID={testID + "-edit"} icon={sk ? "pen" : "plus"} label={sk ? labels.edit : labels.add} onPress={start} />
         {sk ? <Btn small kind="ghost" testID={testID + "-del"} label={labels.del} onPress={() => onChange(null)} /> : null}
       </Row>
-      {open ? <SketchEditor value={sk || emptySketch()} onChange={onChange} onClose={() => setOpen(false)} testID={testID} /> : null}
+      {open ? <SketchEditor value={(deferred ? draft : null) || sk || emptySketch()} onChange={deferred ? setDraft : onChange} onClose={close} testID={testID} /> : null}
     </Col>
   );
 }

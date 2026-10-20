@@ -9,7 +9,7 @@ import { blocksTotal, crewOf, dayBlocks, isMyBlock, myTask, timeline } from "../
 import type { DayBlock } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { TemplatePicker } from "../../../src/ui/archive";
-import { SketchView } from "../../../src/ui/sketch";
+import { SketchField, SketchView } from "../../../src/ui/sketch";
 import { BlockSheet, CrewDots, SketchImage, StaffDot } from "../../../src/ui/day/BlockSheet";
 import { IndivSummary } from "../../../src/ui/indiv";
 import { DayTasks } from "../../../src/ui/tasks/widgets";
@@ -109,10 +109,12 @@ export default function Trainingstag() {
                 </Col>
                 <Col gap={3} style={{ flex: 1, minWidth: 0 }}>
                   <Text numberOfLines={2} style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{b.title}</Text>
-                  <Text style={{ fontSize: 12, color: c.muted }}>{b.min} {t("min")}{who ? " · " + who : ""}{parallel ? " · " + t("td_parallel") : ""}{b.points.length ? " · " + tf("td_points", { n: b.points.length }) : ""}{b.drawing || b.photo ? " · ✎" : ""}</Text>
+                  <Text style={{ fontSize: 12, color: c.muted }}>{b.min} {t("min")}{who ? " · " + who : ""}{parallel ? " · " + t("td_parallel") : ""}{b.points.length ? " · " + tf("td_points", { n: b.points.length }) : ""}{!b.drawing && b.photo ? " · " + t("td_photo") : ""}</Text>
                   {isMine && task ? <Text testID={"td-mytask-" + b.id} style={{ fontSize: 12.5, fontWeight: "800", color: c.accentTx }}>{t("td_myTask")}: {task}</Text> : null}
                   {g ? <View style={{ alignSelf: "flex-start" }}><GroupChip group={g} /></View> : null}
                 </Col>
+                {/* Skizze als kleines Vorschaubild – sofort sichtbar, wo es eine gibt */}
+                {b.drawing && !o ? <View testID={"td-thumb-" + b.id} style={{ borderRadius: 6, overflow: "hidden" }}><SketchView value={b.drawing} width={46} mini /></View> : null}
                 <CrewDots b={b} />
                 <Text style={{ color: c.muted }}>{o ? "▴" : "▾"}</Text>
               </Pressable>
@@ -126,7 +128,9 @@ export default function Trainingstag() {
                   <T v="eyebrow">{t("blk_points")}</T>
                   {b.points.map((p, i) => <Row key={i} gap={6} align="flex-start"><Text style={{ color: c.accentTx, fontWeight: "800" }}>•</Text><Text style={{ flex: 1, color: c.ink, fontSize: 14 }}>{p}</Text></Row>)}
                 </Col> : null}
-                {b.drawing ? <SketchView value={b.drawing} /> : null}
+                {/* Skizze direkt hier zeichnen oder bearbeiten – gespeichert beim Schließen des Zeichentools */}
+                <SketchField deferred testID={"td-sketch-" + b.id} value={b.drawing} labels={{ add: t("blk_draw"), edit: t("blk_drawEdit"), del: t("blk_drawDel") }}
+                  onChange={d => { s.saveBlock({ ...b, drawing: d }).then(() => s.toast(t("t_saved"))).catch(e => s.toast(s.errText(e))); }} />
                 {b.photo ? <SketchImage path={b.photo} /> : null}
                 <Row gap={6} wrap>
                   <Btn small testID={"td-block-edit-" + b.id} label={t("edit")} onPress={() => setEdit(b)} />
