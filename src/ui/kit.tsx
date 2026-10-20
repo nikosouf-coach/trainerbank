@@ -453,7 +453,8 @@ export function Pill({ label, color }: { label: string; color: string }) {
 
 // ---------- Eingaben ----------
 /** Füllung und Rand eines Eingabefelds (getönt; beim Tippen Rand in Vereinsfarbe) */
-function useInputStyle(focused: boolean): ViewStyle {
+// Bewusst ohne ViewStyle-Typ: dieselben Werte gehen an View, Pressable und TextInput (TextStyle).
+function useInputStyle(focused: boolean): { backgroundColor: string; borderWidth: number; borderColor: string; borderRadius: number } {
   const { c } = useTheme(); const surf = useSurface();
   const fill = surf === "surface" ? c.sunk : surf === "sunk" ? c.surface : c.surface;
   return { backgroundColor: fill, borderWidth: 1, borderColor: focused ? c.accent : surf === "bg" ? c.line : fill, borderRadius: radius.m };
@@ -465,7 +466,7 @@ export function Field({ label, value, onChangeText, onBlur, placeholder, keyboar
       <Text style={{ fontSize: 13, fontWeight: "600", color: c.muted }}>{cap(label)}</Text>
       <TextInput testID={testID} accessibilityLabel={label} value={value} onChangeText={onChangeText} onFocus={() => setFocus(true)} onBlur={() => { setFocus(false); onBlur?.(); }} placeholder={placeholder} placeholderTextColor={c.faint}
         keyboardType={keyboardType} multiline={multiline} numberOfLines={multiline ? 4 : undefined} secureTextEntry={secure} autoCapitalize={autoCapitalize} autoComplete={autoComplete} maxLength={maxLength}
-        style={[box, { paddingHorizontal: 12, paddingVertical: 11, color: c.ink, fontSize: 16, minHeight: multiline ? 96 : 46, textAlignVertical: multiline ? "top" : "center" }]} />
+        style={{ ...box, paddingHorizontal: 12, paddingVertical: 11, color: c.ink, fontSize: 16, minHeight: multiline ? 96 : 46, textAlignVertical: multiline ? "top" : "center" }} />
       {hint ? <Text style={{ fontSize: 12.5, lineHeight: 17, color: c.muted }}>{hint}</Text> : null}
     </View>
   );
