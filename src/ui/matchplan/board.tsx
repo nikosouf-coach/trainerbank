@@ -1,36 +1,121 @@
-// Matchplan: Taktiktafel einer Folie – Spielfeld mit Bedienung. Werkzeuge: Auswählen, eigene Spieler, Gegner, Ball,
-// Hütchen, Text, Löschen sowie Pass, Laufweg, Dribbling, Linie, Freihand, Zone und Kreis. Ausgewählte Elemente zeigen
-// Griffe (Start, Ziel, Bogen, Ecken, Radius) und eine Leiste mit schnellen Aktionen (Art, Farbe, Bogen, Schritt,
-// Kopieren, Löschen). Pfeile rasten an Spielern ein. Gezogen wird lokal (flüssig, ohne die ganze Seite neu zu zeichnen);
-// übernommen wird beim Loslassen – ein Schritt im Verlauf je Bewegung. Im Ausschnitt-Modus verschiebt Ziehen den
-// Ausschnitt, zwei Finger zoomen. Auf einer scrollbaren Seite (hold) startet Ziehen erst nach kurzem Halten oder
-// waagerecht – senkrechtes Wischen scrollt die Seite.
+// Matchplan und Übungsskizzen: Taktiktafel – Spielfeld mit Bedienung und Zustand der Werkzeuge.
+// Werkzeuge in zwei Ebenen (Leiste: tools.tsx): erst die Art (Auswahl, Spieler, Pfeile, Linien, Formen, Material,
+// Text), dann ihre Optionen (Linie durchgezogen/gestrichelt/gepunktet/Welle, Verlauf gerade/gebogen/frei, Stärke,
+// Farbe, Füllung). Gezeichnete Elemente bleiben nicht ausgewählt – so gelten Optionen immer für das nächste Element;
+// Antippen eines Elements wählt es aus (Griffe für Start, Ziel, Bogen, Ecken, Radius). Mit Spieler-, Material- und
+// Textwerkzeug wird ein vorhandenes Element (statt ein neues darauf) verschoben. Pfeile rasten an Spielern ein.
+// Gezogen wird lokal (flüssig), übernommen beim Loslassen – ein Schritt im Verlauf je Bewegung. Radierer: antippen oder
+// darüberwischen. Im Ausschnitt-Modus verschiebt Ziehen den Ausschnitt, zwei Finger zoomen.
+// Touch: im Vollbild scrollt nichts; auf einer scrollbaren Seite (hold) scrollt Wischen über freie Fläche die Seite,
+// Ziehen beginnt nur auf einem Element (App: nach kurzem Halten).
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Platform, Pressable, ScrollView, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
+import { Platform, Pressable, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
-import { MP_COLORS, MP_DASHES, MP_LIMITS, MP_WIDTHS, bendCtrl, bendThrough, clampX, clampY, dashOf, frameOf, isArea, isArrow, isLine, isMaterial, isRotatable, linePoint, mpId, panFrame, shiftItem, thinPoints, withFrame, zoomFrame } from "../../core/matchplan";
+import { MP_LIMITS, bendCtrl, bendThrough, clampX, clampY, dashOf, frameOf, isArea, isArrow, isLine, isMaterial, linePoint, mpId, panFrame, shiftItem, textScale, thinPoints, withFrame, zoomFrame } from "../../core/matchplan";
 import type { MpColor, MpContent, MpDash, MpFrame, MpItem, MpSlide, MpTool } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
-import { Icon, type IconName } from "../icons";
-import { Btn, Col, Field, Muted, NumField, Picker, Row, Seg, useScrollLock } from "../kit";
-import { radius, useTheme, withAlpha } from "../theme";
+import { Btn, Col, Field, useScrollLock } from "../kit";
+import { radius, useTheme } from "../theme";
+import { useTouchSurface } from "../touch";
 import { useTokenInfo } from "./common";
-import { NEU_COL, OPP_COL, Pitch, capOf, decoScale, geom, lineCol, materialR, tokenPx, usePitchWidth } from "./pitch";
+import { NEU_COL, OPP_COL, Pitch, decoScale, geom, materialR, tokenPx, usePitchWidth } from "./pitch";
 
+// ---------- Werkzeuge: Arten und Optionen ----------
+/** Wirksames Werkzeug auf der Tafel */
 export type Tool = "move" | MpTool | "del";
-/** Werkzeuge in drei Reihen: Figuren und Bearbeiten, Linien und Flächen, Joker und Trainingsmaterial */
-export const TOOL_ROWS: Tool[][] = [["move", "own", "opp", "ball", "cone", "text", "del"], ["pass", "run", "drib", "line", "free", "zone", "circle"],
-  ["neu", "goal", "mgoal", "pole", "dummy", "ladder", "hurdle", "ring"]];
+/** Erste Ebene: Art */
+export type Cat = "select" | "players" | "arrows" | "lines" | "shapes" | "material" | "text";
+export const CATS: Cat[] = ["select", "players", "arrows", "lines", "shapes", "material", "text"];
+/** Linie: durchgezogen, gestrichelt, gepunktet, Welle (nur Pfeile, gerade/gebogen: Dribbling) */
+export type Dash = "solid" | "dash" | "dot" | "wave";
+/** Verlauf: gerade, gebogen (Bogen nach links), frei gemalt */
+export type PathKind = "straight" | "curve" | "free";
+export type Width = 1 | 2 | 3;
+export interface LineStyle { path: PathKind; dash: Dash; w: Width; col: MpColor | null }
+export interface ShapeStyle { dash: Exclude<Dash, "wave">; w: Width; fill: boolean; col: MpColor | null }
+/** Zustand der Werkzeugleiste: gewählte Art und je Art die Optionen (bleiben beim Wechsel erhalten) */
+export interface Tools {
+  cat: Cat; selMode: "move" | "del"; player: "own" | "opp" | "neu"; mat: MpTool; shape: "zone" | "circle";
+  arrows: LineStyle; lines: LineStyle; shapes: ShapeStyle; textCol: MpColor | null; textW: Width;
+}
+export const MATERIAL_TOOLS: MpTool[] = ["ball", "cone", "goal", "mgoal", "pole", "dummy", "ladder", "hurdle", "ring"];
+export const DEF_TOOLS: Tools = {
+  cat: "select", selMode: "move", player: "own", mat: "cone", shape: "zone",
+  arrows: { path: "straight", dash: "solid", w: 2, col: null }, lines: { path: "straight", dash: "solid", w: 2, col: null },
+  shapes: { dash: "dash", w: 2, fill: true, col: null }, textCol: null, textW: 2,
+};
+/** Bogen, mit dem „gebogen“ zeichnet (nach links in Laufrichtung; umdrehen am gelben Griff) */
+export const CURVE = 1.5;
+
 /** Element an einem Punkt (Spieler, Ball, Hütchen, Material) */
 const pointTool = (t: MpTool): boolean => t === "own" || t === "opp" || t === "neu" || t === "ball" || t === "cone" || isMaterial(t);
-/** Werkzeuge bzw. Elemente mit Farbe */
-export const hasColor = (t: Tool): boolean => isLine(t as MpTool) || t === "free" || t === "text";
-/** Werkzeuge bzw. Elemente mit Linienstil und Strichstärke */
-export const hasStroke = (t: Tool): boolean => isLine(t as MpTool) || t === "free";
 /** Elemente mit Schrittnummer (Ablauf 1, 2, 3 …) */
-const stepped = (t: MpTool): boolean => isArrow(t) || t === "free";
+export const stepped = (t: MpTool): boolean => isArrow(t) || t === "free";
 /** Standardfarbe einer Art (Laufwege und Flächen gelb) */
 export const defCol = (t: MpTool): MpColor => t === "run" || isArea(t) ? "y" : "w";
+/** Linienstil der Oberfläche → gespeicherter Stil */
+const lsOf = (d: Dash): MpDash => d === "dash" ? "short" : d === "dot" ? "dot" : "solid";
+/** Pfeil nach Linie: durchgezogen = Pass, Welle = Dribbling, sonst Laufweg */
+export const arrowKind = (d: Dash): MpTool => d === "wave" ? "drib" : d === "solid" ? "pass" : "run";
+
+/** Wirksames Werkzeug der gewählten Art */
+export function toolOf(ts: Tools): Tool {
+  switch (ts.cat) {
+    case "select": return ts.selMode;
+    case "players": return ts.player;
+    case "arrows": return ts.arrows.path === "free" ? "free" : arrowKind(ts.arrows.dash);
+    case "lines": return ts.lines.path === "free" ? "free" : "line";
+    case "shapes": return ts.shape;
+    case "material": return ts.mat;
+    default: return "text";
+  }
+}
+/** Art eines Elements (für die Optionen beim Auswählen) */
+export const catOf = (it: Pick<MpItem, "t" | "nh">): Cat => it.t === "own" || it.t === "opp" || it.t === "neu" ? "players" : it.t === "text" ? "text"
+  : isArea(it.t) ? "shapes" : it.t === "line" || (it.t === "free" && it.nh) ? "lines" : isLine(it.t) || it.t === "free" ? "arrows" : "material";
+
+/** Stil für ein neues Element (Standardwerte werden nicht gespeichert) */
+export function styleProps(ts: Tools, t: MpTool): Partial<MpItem> {
+  if (t === "text") return ts.textW !== 2 ? { col: ts.textCol || "w", w: ts.textW } : { col: ts.textCol || "w" };
+  if (isArea(t)) {
+    const s = ts.shapes, o: Partial<MpItem> = { col: s.col || defCol(t) }, ls = lsOf(s.dash);
+    if (ls !== dashOf({ t })) o.ls = ls;
+    if (s.w !== 2) o.w = s.w;
+    if (!s.fill) o.nf = true;
+    return o;
+  }
+  if (!isLine(t) && t !== "free") return {};
+  const lines = ts.cat === "lines", s = lines ? ts.lines : ts.arrows, o: Partial<MpItem> = { col: s.col || defCol(t) };
+  if (t !== "drib") { const ls = lsOf(s.dash); if (ls !== dashOf({ t })) o.ls = ls; }
+  if (s.w !== 2) o.w = s.w;
+  if (s.path === "curve" && isArrow(t)) o.bend = CURVE;
+  if (t === "free" && lines) o.nh = true;
+  return o;
+}
+/** Optionen, die ein Element zeigt (für die Leiste beim Auswählen) */
+export function styleOfItem(it: MpItem): { dash: Dash; w: Width; col: MpColor; fill: boolean; path: PathKind } {
+  const ls = dashOf(it);
+  return {
+    dash: it.t === "drib" ? "wave" : ls === "solid" ? "solid" : ls === "dot" ? "dot" : "dash", w: it.w || 2, col: it.col || defCol(it.t),
+    fill: !it.nf, path: it.t === "free" ? "free" : it.bend ? "curve" : "straight",
+  };
+}
+/** Stil eines Elements ändern (Linie, Stärke, Farbe, Füllung, Bogen, Spitze) */
+export function restyle(it: MpItem, ch: { dash?: Dash; w?: Width; col?: MpColor; fill?: boolean; bend?: number; head?: boolean }): MpItem {
+  const n: MpItem = { ...it };
+  if (ch.dash) {
+    // Pfeile wechseln dabei die Art (Pass, Laufweg, Dribbling); die sichtbare Farbe bleibt
+    if (it.t === "pass" || it.t === "run" || it.t === "drib") { const t = arrowKind(ch.dash); if (t !== it.t) { n.t = t; n.col = it.col || defCol(it.t); } }
+    delete n.ls; delete n.solid;
+    if (n.t !== "drib") { const ls = lsOf(ch.dash); if (ls !== dashOf({ t: n.t })) n.ls = ls; }
+  }
+  if (ch.w) { delete n.w; if (ch.w !== 2) n.w = ch.w; }
+  if (ch.col) n.col = ch.col;
+  if (ch.fill != null && isArea(it.t)) { delete n.nf; if (!ch.fill) n.nf = true; }
+  if (ch.bend != null && isArrow(it.t)) { delete n.bend; if (ch.bend) n.bend = ch.bend; }
+  if (ch.head != null && it.t === "free") { delete n.nh; if (!ch.head) n.nh = true; }
+  return n;
+}
 
 type Pt = { x: number; y: number };
 const headPts = (x1: number, y1: number, x2: number, y2: number, L = 6.4, a = 0.5): string => {
@@ -45,8 +130,8 @@ const zig = (() => {
   return d;
 })();
 
-/** Symbol eines Werkzeugs bzw. einer Elementart (24 × 24) */
-export function ToolIcon({ k, size = 24, color, accent }: { k: Tool; size?: number; color: string; accent: string }) {
+/** Symbol eines Werkzeugs bzw. einer Elementart (24 × 24); head: Freihand mit Spitze */
+export function ToolIcon({ k, size = 24, color, accent, head = true }: { k: Tool; size?: number; color: string; accent: string; head?: boolean }) {
   const st = { stroke: color, strokeWidth: 2.1, fill: "none", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
   let body: React.ReactNode = null;
   if (k === "move") body = <Path d="M6.5 3.5 V18.6 L10.3 14.9 L12.9 20.6 L15.4 19.5 L12.8 13.9 H18.2 Z" fill={color} stroke={color} strokeWidth={1.1} strokeLinejoin="round" />;
@@ -55,11 +140,12 @@ export function ToolIcon({ k, size = 24, color, accent }: { k: Tool; size?: numb
   else if (k === "ball") body = <><Circle cx={12} cy={12} r={7.6} fill="#ffffff" stroke={color} strokeWidth={1.6} /><Path d="M12 8.7 L15.1 10.9 L13.9 14.6 L10.1 14.6 L8.9 10.9 Z" fill={color} /></>;
   else if (k === "cone") body = <Path d="M12 3.8 L19.4 19 H4.6 Z" fill="#ff922b" stroke="#ffffff" strokeWidth={1.3} strokeLinejoin="round" />;
   else if (k === "text") body = <Path d="M5.5 6 H18.5 M12 6 V19 M9.2 19 H14.8" {...st} strokeWidth={2.4} />;
-  else if (k === "del") body = <Path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5" {...st} />;
+  else if (k === "del") body = <><Path d="M8.5 19.5H20" {...st} /><Path d="M4.6 14.6l9.2-9.2a2 2 0 0 1 2.8 0l2.4 2.4a2 2 0 0 1 0 2.8L12 17.6a4.8 4.8 0 0 1-6.8 0l-.6-.6a1.7 1.7 0 0 1 0-2.4z" {...st} /><Path d="M9.4 9.8l4.8 4.8" {...st} /></>;
   else if (k === "pass" || k === "run") body = <><Path d="M4 20 L15.6 8.4" {...st} strokeWidth={2.3} strokeDasharray={k === "run" ? "3.2 2.6" : undefined} strokeLinecap={k === "run" ? "butt" : "round"} /><Polyline points={headPts(4, 20, 19.8, 4.2)} fill={color} /></>;
   else if (k === "drib") body = <><Path d={zig} {...st} strokeWidth={2} /><Polyline points={headPts(12, 12, 19.8, 4.2)} fill={color} /></>;
   else if (k === "line") body = <Path d="M3.5 18 L20.5 6" {...st} strokeWidth={3.2} />;
-  else if (k === "free") body = <><Path d="M3.5 18.5 C 6.5 9, 10 22.5, 12.6 13.4 C 13.8 9.3, 15.4 8, 16.6 7.4" {...st} strokeWidth={2.1} /><Polyline points={headPts(13.2, 9.6, 20.2, 5.2)} fill={color} /></>;
+  else if (k === "free") body = head ? <><Path d="M3.5 18.5 C 6.5 9, 10 22.5, 12.6 13.4 C 13.8 9.3, 15.4 8, 16.6 7.4" {...st} strokeWidth={2.1} /><Polyline points={headPts(13.2, 9.6, 20.2, 5.2)} fill={color} /></>
+    : <Path d="M3.5 18.5 C 6.5 9, 10 22.5, 12.6 13.4 C 13.8 9.3, 16.4 6.5, 20.5 5.5" {...st} strokeWidth={2.4} />;
   else if (k === "zone") body = <Rect x={3.8} y={6} width={16.4} height={12} rx={1.6} fill={color} fillOpacity={0.16} stroke={color} strokeWidth={1.8} strokeDasharray="2.8 2" />;
   else if (k === "circle") body = <Circle cx={12} cy={12} r={8.2} fill={color} fillOpacity={0.16} stroke={color} strokeWidth={1.8} strokeDasharray="2.8 2" />;
   else if (k === "neu") body = <Circle cx={12} cy={12} r={7.6} fill={NEU_COL} stroke="#ffffff" strokeWidth={2} />;
@@ -77,13 +163,10 @@ export function ToolIcon({ k, size = 24, color, accent }: { k: Tool; size?: numb
 type Snap = Pick<MpSlide, "items" | "view" | "frame">;
 const snapOf = (s: MpSlide): Snap => ({ items: s.items, view: s.view, frame: s.frame ?? null });
 
-/** Verlauf, Werkzeug, Farbe, Auswahl und Ausschnitt-Modus einer Tafel */
+/** Verlauf, Werkzeuge (Art und Optionen), Auswahl und Ausschnitt-Modus einer Tafel */
 export function useBoard(slide: MpSlide, onChange: (s: MpSlide) => void) {
   const undo = useRef<Snap[]>([]), redo = useRef<Snap[]>([]);
-  const [tool, setToolRaw] = useState<Tool>("move");
-  const [color, setColor] = useState<MpColor | null>(null);
-  /** Stil für neue Linien (fehlt = Standard der Art) */
-  const [stroke, setStroke] = useState<{ ls?: MpDash; w?: 1 | 2 | 3 }>({});
+  const [ts, setTs] = useState<Tools>(DEF_TOOLS);
   const [framing, setFramingRaw] = useState(false);
   const [sel, setSel] = useState<string | null>(null);
   const [, bump] = useState(0);
@@ -99,8 +182,15 @@ export function useBoard(slide: MpSlide, onChange: (s: MpSlide) => void) {
     onChange({ ...cur.current, ...s }); bump(x => x + 1);
   };
   return {
-    tool, color, setColor, stroke, setStroke, framing, sel, setSel, commit,
-    setTool: (k: Tool) => { setToolRaw(k); if (k !== "move") setSel(null); },
+    tools: ts, tool: toolOf(ts), framing, sel, setSel, commit,
+    /** Art wählen (Auswahl aufheben, Ausschnitt beenden) */
+    setCat: (k: Cat) => { setTs(x => ({ ...x, cat: k })); setSel(null); setFramingRaw(false); },
+    /** Optionen ändern (gelten für die nächsten Elemente) */
+    setTools: (p: Partial<Tools>) => setTs(x => ({ ...x, ...p })),
+    /** Auswählen bzw. Radierer */
+    setTool: (k: "move" | "del") => { setTs(x => ({ ...x, cat: "select", selMode: k })); if (k !== "move") setSel(null); },
+    /** Stil für ein neues Element dieser Art */
+    newProps: (t: MpTool) => styleProps(ts, t),
     setFraming: (on: boolean) => { setFramingRaw(on); if (on) setSel(null); },
     canUndo: undo.current.length > 0, canRedo: redo.current.length > 0,
     undo: () => step(undo, redo), redo: () => step(redo, undo),
@@ -112,12 +202,14 @@ export type BoardState = ReturnType<typeof useBoard>;
 
 type Handle = "p1" | "p2" | "bend" | "c3" | "c4" | "r";
 type Act =
-  | { k: "move"; id: string; p0: Pt; it0: MpItem; isNew: boolean; wasSel: boolean }
+  | { k: "move"; id: string; p0: Pt; it0: MpItem; isNew: boolean; wasSel: boolean; sel: boolean }
   | { k: "handle"; id: string; h: Handle; it0: MpItem }
   | { k: "new"; it: MpItem; p0: Pt }
   | { k: "free"; it: MpItem; pts: Pt[]; p0: Pt }
+  | { k: "erase"; ids: Set<string>; p0: Pt; last: Pt; tap: string | null }
   | { k: "tap"; p0: Pt };
-type Cur = { act: Act; x0: number; y0: number; moved: boolean; armed: boolean; timer: ReturnType<typeof setTimeout> | null };
+/** hold: Ziehen erst nach kurzem Halten oder waagerecht (Tafel auf einer scrollbaren Seite, Finger) */
+type Cur = { act: Act; x0: number; y0: number; moved: boolean; armed: boolean; hold: boolean; timer: ReturnType<typeof setTimeout> | null };
 type Gesture = { kind: "pan"; x0: number; y0: number; f0: MpFrame; moved: boolean } | { kind: "pinch"; d0: number; mx0: number; my0: number; m0: Pt; f0: MpFrame; moved: boolean };
 type Touch = { pageX: number; pageY: number };
 
@@ -166,7 +258,7 @@ export function dupItem(it: MpItem, by?: string | null): MpItem {
 /**
  * Spielfeld einer Folie mit Bedienung (ohne Werkzeugleiste). maxH/maxW begrenzen die Größe; der Ausschnitt füllt die
  * verfügbare Breite. onEdit: ausgewähltes Element erneut antippen (Formular), onText: Stelle für einen neuen Text.
- * hold: Tafel liegt auf einer scrollbaren Seite (Ziehen erst nach kurzem Halten bzw. waagerecht).
+ * hold: Tafel liegt auf einer scrollbaren Seite (Wischen über freie Fläche scrollt; App: Ziehen nach kurzem Halten).
  */
 export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW = 560, onEdit, onText, hold, sketch, plain }: {
   slide: MpSlide; c: Pick<MpContent, "mode" | "size" | "captain" | "look">; B: BoardState; ro?: boolean; testID?: string; maxH?: number; maxW?: number;
@@ -177,13 +269,19 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
   const { c: col } = useTheme(); const info = useTokenInfo(); const lock = useScrollLock(); const st = useStore();
   const [W, setW] = useState(0);
   const [live, setLive] = useState<MpItem | null>(null);
+  const [gone, setGone] = useState<Set<string> | null>(null);
   const [liveFrame, setLiveFrame] = useState<MpFrame | null>(null);
   const f = liveFrame || frameOf(slide);
   const pw = usePitchWidth(f, W, maxH, maxW), g = geom(f, pw), ox = Math.max(0, (W - pw) / 2), size = slide.size || c.size, d = tokenPx(pw, size, f), s = decoScale(g.k);
   const cur = useRef<Cur | null>(null), gest = useRef<Gesture | null>(null), off = useRef({ x: 0, y: 0 });
   const tool = B.tool;
-  const items = useMemo(() => !live ? slide.items : slide.items.some(x => x.id === live.id) ? slide.items.map(x => x.id === live.id ? live : x) : [...slide.items, live], [slide.items, live]);
+  const items = useMemo(() => {
+    const L = gone ? slide.items.filter(x => !gone.has(x.id)) : slide.items;
+    return !live ? L : L.some(x => x.id === live.id) ? L.map(x => x.id === live.id ? live : x) : [...L, live];
+  }, [slide.items, live, gone]);
   useEffect(() => () => { if (cur.current?.timer) clearTimeout(cur.current.timer); }, []);
+  // Browser: im Vollbild nie scrollen; auf einer Seite nur blockieren, solange ein Element gezogen wird
+  const surf = useTouchSurface(!hold, () => (!!cur.current && cur.current.armed && cur.current.act.k !== "tap") || !!gest.current);
 
   const toM = (lx: number, ly: number): Pt => { const m = g.m(lx - ox, ly); return { x: clampX(m.x), y: clampY(m.y) }; };
   const inside = (e: GestureResponderEvent) => { const x = e.nativeEvent.locationX - ox, y = e.nativeEvent.locationY; return x >= 0 && x <= pw && y >= 0 && y <= g.h; };
@@ -194,7 +292,7 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
   /** Abstand zum Element im Verhältnis zur Trefferweite (< 1 = getroffen); Flächen nachrangig */
   const near = (it: MpItem, p: Pt): number => {
     if (pointTool(it.t)) return Math.hypot(it.x - p.x, it.y - p.y) / (tokR(it) + 6 / g.k);
-    if (it.t === "text") { const hw = Math.max(2.6, (it.label || "").length * 1.05 * s), hh = 2.4 * s + 4 / g.k; return Math.max(Math.abs(p.x - it.x) / hw, Math.abs(p.y - it.y) / hh); }
+    if (it.t === "text") { const z = textScale(it) * s, hw = Math.max(2.6, (it.label || "").length * 1.05 * z), hh = 2.4 * z + 4 / g.k; return Math.max(Math.abs(p.x - it.x) / hw, Math.abs(p.y - it.y) / hh); }
     const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y;
     if (it.t === "zone") {
       const inX = p.x >= Math.min(it.x, x2) && p.x <= Math.max(it.x, x2), inY = p.y >= Math.min(it.y, y2) && p.y <= Math.max(it.y, y2);
@@ -208,6 +306,23 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     for (let i = L.length - 1; i >= 0; i--) { const v = near(L[i], p); if (v < bd) { bd = v; best = L[i]; } }
     return best;
   };
+  /**
+   * Radierer beim Wischen: Flächen zählen nur an ihrem Rand – so lassen sich Pfeile in einer Zone wegwischen, ohne die
+   * Zone mit zu löschen (antippen löscht auch Flächen).
+   */
+  const nearWipe = (it: MpItem, p: Pt): number => {
+    if (!isArea(it.t)) return near(it, p);
+    const x2 = it.x2 ?? it.x, y2 = it.y2 ?? it.y;
+    if (it.t === "circle") return Math.abs(Math.hypot(p.x - it.x, p.y - it.y) - Math.hypot(x2 - it.x, y2 - it.y)) / tol;
+    return distPoly(p, [{ x: it.x, y: it.y }, { x: x2, y: it.y }, { x: x2, y: y2 }, { x: it.x, y: y2 }, { x: it.x, y: it.y }]) / tol;
+  };
+  const wipeHit = (p: Pt, ids: Set<string>): MpItem | null => {
+    let best: MpItem | null = null, bd = 1;
+    for (let i = slide.items.length - 1; i >= 0; i--) { const it = slide.items[i]; if (ids.has(it.id)) continue; const v = nearWipe(it, p); if (v < bd) { bd = v; best = it; } }
+    return best;
+  };
+  /** Spieler, Material oder Text unter dem Finger (Flächen und Linien zählen nicht – darauf wird gesetzt) */
+  const hitPoint = (p: Pt): MpItem | null => hit(p, slide.items.filter(x => pointTool(x.t) || x.t === "text"));
   const selIt = B.sel ? items.find(x => x.id === B.sel) || null : null;
   const handleAt = (p: Pt): Handle | null => {
     if (!selIt || ro) return null;
@@ -247,6 +362,8 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     // neu: „hinzugefügt von“ (eigenes Trainerprofil)
     const x = !known && me && !it.by ? { ...it, by: me } : it;
     B.commit({ ...slide, items: known ? slide.items.map(y => y.id === x.id ? x : y) : [...slide.items, x] });
+    // neu gezeichnet: eine bestehende Auswahl endet (unten stehen wieder die Optionen des Werkzeugs)
+    if (!known && B.sel) B.setSel(null);
     return true;
   };
 
@@ -278,44 +395,59 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
   };
   const frameEnd = () => { gest.current = null; if (liveFrame) B.commit(withFrame(slide, liveFrame)); setLiveFrame(null); };
 
-  // ---------- Zeichnen, Auswählen, Bewegen ----------
-  const holdMode = !!hold && Platform.OS !== "web";
+  // ---------- Zeichnen, Auswählen, Bewegen, Radieren ----------
+  // App: Seite sperren, solange gezogen wird (Browser: die Fläche blockiert das Scrollen selbst)
+  const native = Platform.OS !== "web";
   const arm = () => {
     const C = cur.current; if (!C || C.armed || C.act.k === "tap") return;
-    C.armed = true; if (holdMode) lock(true);
-    if (C.act.k === "move") B.setSel(C.act.id);
+    C.armed = true; if (C.hold && native) lock(true);
+    if (C.act.k === "move" && C.act.sel) B.setSel(C.act.id);
   };
-  const end = () => { const C = cur.current; if (C?.timer) clearTimeout(C.timer); if (C?.armed && holdMode) lock(false); cur.current = null; setLive(null); };
+  const end = () => { const C = cur.current; if (C?.timer) clearTimeout(C.timer); if (C?.armed && C.hold && native) lock(false); cur.current = null; setLive(null); setGone(null); };
   const start = (e: GestureResponderEvent): boolean => {
     if (ro || !inside(e)) return false;
     if (B.framing) return true;
     const p = toM(e.nativeEvent.locationX, e.nativeEvent.locationY);
-    if (tool === "move" || tool === "del") return !!handleAt(p) || !!hit(p) || (tool === "move" && !!B.sel);
+    if (tool === "del") return true;
+    if (tool === "move") return !!handleAt(p) || !!hit(p) || !!B.sel;
     return true;
   };
   const grant = (e: GestureResponderEvent) => {
     if (B.framing) { frameStart(e); return; }
     const x0 = e.nativeEvent.locationX, y0 = e.nativeEvent.locationY, p = toM(x0, y0);
+    // auf einer Seite: in der App immer, im Browser bei Fingereingabe erst halten (sonst scrollt Wischen nicht)
+    const holdIt = !!hold && (native || surf.isTouch());
     const begin = (act: Act) => {
-      cur.current = { act, x0, y0, moved: false, armed: !holdMode, timer: null };
-      if (holdMode) cur.current.timer = setTimeout(() => { if (cur.current && !cur.current.moved) arm(); }, 170);
-      else if (act.k === "move" && !act.isNew) B.setSel(act.id);
+      cur.current = { act, x0, y0, moved: false, armed: !holdIt, hold: holdIt, timer: null };
+      if (holdIt) cur.current.timer = setTimeout(() => { if (cur.current && !cur.current.moved) arm(); }, 170);
+      else if (act.k === "move" && act.sel) B.setSel(act.id);
     };
-    const h = tool !== "del" ? handleAt(p) : null;
+    // Radierer: Element unter dem Finger und alles, worüber gewischt wird (ein Schritt im Verlauf)
+    if (tool === "del") {
+      // sofort weg, was am Startpunkt liegt (Flächen erst beim Loslassen ohne Wischen – Antippen)
+      const ids = new Set<string>(), x = wipeHit(p, ids), tp = hit(p);
+      if (x) ids.add(x.id);
+      begin({ k: "erase", ids, p0: p, last: p, tap: tp ? tp.id : null }); setGone(new Set(ids)); return;
+    }
+    const h = handleAt(p);
     if (h && selIt) { begin({ k: "handle", id: selIt.id, h, it0: selIt }); return; }
-    if (tool === "del") { const x = hit(p); if (x) { B.commit({ ...slide, items: slide.items.filter(y => y.id !== x.id) }); if (B.sel === x.id) B.setSel(null); } return; }
-    if (tool === "move") { const x = hit(p); begin(x ? { k: "move", id: x.id, p0: p, it0: x, isNew: false, wasSel: B.sel === x.id } : { k: "tap", p0: p }); return; }
-    if (tool === "text") { onText?.(p); return; }
+    if (tool === "move") { const x = hit(p); begin(x ? { k: "move", id: x.id, p0: p, it0: x, isNew: false, wasSel: B.sel === x.id, sel: true } : { k: "tap", p0: p }); return; }
     const t = tool as MpTool;
+    // Spieler, Material, Text: auf einem vorhandenen Element antippen = auswählen, ziehen = verschieben
+    if (pointTool(t) || t === "text") {
+      const x = hitPoint(p);
+      if (x) { begin({ k: "move", id: x.id, p0: p, it0: x, isNew: false, wasSel: B.sel === x.id, sel: false }); return; }
+    }
+    if (t === "text") { onText?.(p); return; }
     if (pointTool(t)) {
       const it: MpItem = { id: mpId("i"), t, x: p.x, y: p.y };
       if (sketch && (t === "own" || t === "opp" || t === "neu")) { const n = nextNo(t); if (n) it.n = n; }
-      begin({ k: "move", id: it.id, p0: p, it0: it, isNew: true, wasSel: false }); setLive(it); return;
+      begin({ k: "move", id: it.id, p0: p, it0: it, isNew: true, wasSel: false, sel: false }); setLive(it); return;
     }
-    const colr = B.color || defCol(t), sty = { ...(B.stroke.ls ? { ls: B.stroke.ls } : {}), ...(B.stroke.w && B.stroke.w !== 2 ? { w: B.stroke.w } : {}) };
-    if (t === "free") { const it: MpItem = { id: mpId("i"), t, x: p.x, y: p.y, x2: p.x, y2: p.y, col: colr, pts: [p.x, p.y], ...sty }; begin({ k: "free", it, pts: [p], p0: p }); return; }
+    const props = B.newProps(t);
+    if (t === "free") { const it: MpItem = { id: mpId("i"), t, x: p.x, y: p.y, x2: p.x, y2: p.y, pts: [p.x, p.y], ...props }; begin({ k: "free", it, pts: [p], p0: p }); return; }
     const s0 = isArrow(t) ? snapStart(p) : p;
-    begin({ k: "new", it: { id: mpId("i"), t, x: s0.x, y: s0.y, x2: s0.x, y2: s0.y, col: colr, ...sty }, p0: p });
+    begin({ k: "new", it: { id: mpId("i"), t, x: s0.x, y: s0.y, x2: s0.x, y2: s0.y, ...props }, p0: p });
   };
   const move = (e: GestureResponderEvent) => {
     if (B.framing) { frameMove(e); return; }
@@ -326,13 +458,20 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
       // Wischen über freie Fläche: nichts tun (auf einer Seite scrollt sie)
       if (C.act.k === "tap") { end(); return; }
       if (!C.armed) {
-        // Seite scrollt (senkrecht, ohne Halten): Ziehen abbrechen
+        // App, Seite scrollt (senkrecht, ohne Halten): Ziehen abbrechen
         if (Math.abs(dx) > Math.abs(dy) * 1.2) arm(); else { end(); return; }
       }
       C.moved = true;
     }
     const p = toM(lx, ly), A = C.act;
-    if (A.k === "move") setLive(shiftItem(A.it0, p.x - A.p0.x, p.y - A.p0.y));
+    if (A.k === "erase") {
+      // auch zwischen zwei Fingerpositionen prüfen (schnelles Wischen überspringt sonst dünne Linien)
+      const n = Math.max(1, Math.ceil(Math.hypot(p.x - A.last.x, p.y - A.last.y) / (tol * 0.6))), before = A.ids.size;
+      for (let i = 1; i <= n; i++) { const x = wipeHit({ x: A.last.x + (p.x - A.last.x) * i / n, y: A.last.y + (p.y - A.last.y) * i / n }, A.ids); if (x) A.ids.add(x.id); }
+      A.last = p;
+      if (A.ids.size !== before) setGone(new Set(A.ids));
+    }
+    else if (A.k === "move") setLive(shiftItem(A.it0, p.x - A.p0.x, p.y - A.p0.y));
     else if (A.k === "handle") setLive(dragHandle(A.it0, A.h, p));
     else if (A.k === "new") setLive({ ...A.it, x2: p.x, y2: p.y });
     else if (A.k === "free") {
@@ -349,10 +488,17 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     end();
     /** Antippen mit einem Zeichenwerkzeug: Element darunter auswählen */
     const tapSelect = (p: Pt) => { const x = hit(p); B.setSel(x ? x.id : null); };
+    if (A.k === "erase") {
+      // Antippen: das Element unter dem Finger (auch eine Fläche)
+      const ids = C.moved ? A.ids : new Set(A.tap ? [A.tap] : []);
+      if (ids.size) { B.commit({ ...slide, items: slide.items.filter(y => !ids.has(y.id)) }); if (B.sel && ids.has(B.sel)) B.setSel(null); }
+      return;
+    }
     if (A.k === "tap") { if (!C.moved) B.setSel(null); return; }
     if (A.k === "move") {
-      if (A.isNew) { const it = L || A.it0; if (upsert(it)) B.setSel(it.id); return; }
-      if (C.moved && L) { upsert(L); B.setSel(L.id); return; }
+      // neu gesetzt: bleibt nicht ausgewählt (die Optionen gelten fürs nächste Element)
+      if (A.isNew) { upsert(L || A.it0); return; }
+      if (C.moved && L) { upsert(L); if (A.sel) B.setSel(L.id); return; }
       // Antippen: auswählen; ein ausgewähltes Element erneut antippen öffnet das Formular
       if (!C.moved) { if (A.wasSel) onEdit?.(A.it0); else B.setSel(A.id); }
       return;
@@ -362,16 +508,17 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
       const it = L; if (!C.moved || !it) { tapSelect(A.p0); return; }
       const len = Math.hypot((it.x2 ?? it.x) - it.x, (it.y2 ?? it.y) - it.y);
       if (len < (it.t === "circle" ? 1.2 : 2)) { tapSelect(A.p0); return; }
-      const n = stepped(it.t) ? nextStep() : null, fin = snapEnd(n ? { ...it, n } : it);
-      if (upsert(fin)) B.setSel(fin.id); return;
+      // Schritt im Ablauf weiterzählen – nur Pfeile (eine Linie, z. B. Abwehrlinie, bleibt immer sichtbar)
+      const n = stepped(it.t) && it.t !== "line" ? nextStep() : null;
+      upsert(snapEnd(n ? { ...it, n } : it)); return;
     }
     if (A.k === "free") {
       const P = L?.pts ? ptsOf(L) : A.pts;
       if (!C.moved || pathLen(P) < 2.5) { tapSelect(A.p0); return; }
-      const pts = thinPoints(P, Math.max(0.6, 9 / g.k)), n = nextStep();
+      const pts = thinPoints(P, Math.max(0.6, 9 / g.k)), n = A.it.nh ? null : nextStep();
       const it: MpItem = { ...A.it, pts, x: pts[0], y: pts[1], x2: pts[pts.length - 2], y2: pts[pts.length - 1] };
       if (n) it.n = n;
-      if (upsert(it)) B.setSel(it.id);
+      upsert(it);
     }
   };
 
@@ -389,176 +536,14 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
               backgroundColor: bend ? "#ffe066" : "#ffffff", borderWidth: 2.5, borderColor: bend ? "#7a5c00" : col.accent }} />;
           })}
         </View>
-        <View testID={testID + "-surface"} style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
+        <View ref={surf.ref} testID={testID + "-surface"} style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
           onStartShouldSetResponder={start} onMoveShouldSetResponder={() => !!cur.current || !!gest.current}
-          onResponderTerminationRequest={() => !!holdMode && !cur.current?.armed}
+          onResponderTerminationRequest={() => !!cur.current?.hold && !cur.current?.armed}
           onResponderGrant={grant} onResponderMove={move} onResponderRelease={release} onResponderTerminate={() => { end(); gest.current = null; setLiveFrame(null); }} />
       </> : null}
     </View>
   );
 }
-
-/** Werkzeuge (Reihen); schmal nur Symbole – der Name steht in der Hinweiszeile. material = dritte Reihe (Joker, Material) */
-export function ToolGrid({ B, testID = "mp-board", only, labels, material }: { B: BoardState; testID?: string; only?: Tool[]; labels?: boolean; material?: boolean }) {
-  const E = useEngine(); const { t } = E; const { c: col } = useTheme();
-  return (
-    <Col gap={6} testID={testID + "-tools"}>
-      {TOOL_ROWS.filter((_, r) => r < 2 || material).map((row, r) => (
-        <View key={r} style={{ flexDirection: "row", gap: 5 }}>
-          {row.filter(k => !only || only.includes(k)).map(k => {
-            const on = B.tool === k && !B.framing;
-            return (
-              <Pressable key={k} testID={testID + "-tool-" + k} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={t("mpt_" + k)} onPress={() => { B.setFraming(false); B.setTool(k); }}
-                style={({ pressed }) => ({ flex: 1, minWidth: 0, height: labels ? 52 : 44, borderRadius: radius.m, borderWidth: 1.5, borderColor: on ? col.accent : col.line,
-                  backgroundColor: on ? col.accentSoft : pressed ? col.sunk : col.surface, alignItems: "center", justifyContent: "center", gap: 1 })}>
-                <ToolIcon k={k} size={labels ? 22 : 24} color={k === "del" ? col.crit : on ? col.accentTx : col.ink} accent={col.accent} />
-                {labels ? <Text numberOfLines={1} style={{ fontSize: 10.5, fontWeight: "700", color: on ? col.accentTx : col.muted }}>{t("mpts_" + k)}</Text> : null}
-              </Pressable>
-            );
-          })}
-        </View>
-      ))}
-    </Col>
-  );
-}
-
-/** Linienfarben (passend zum Spielfeld-Design) */
-export function ColorRow({ value, onChange, look, testID, small }: { value: MpColor; onChange: (k: MpColor) => void; look?: MpContent["look"]; testID: string; small?: boolean }) {
-  const E = useEngine(); const { c } = useTheme(); const z = small ? 26 : 30;
-  return (
-    <Row gap={small ? 6 : 8} testID={testID}>
-      {MP_COLORS.filter(k => !(look === "white" && k === "k")).map(k => <Pressable key={k} testID={testID + "-" + k} accessibilityRole="radio" accessibilityState={{ checked: value === k }} accessibilityLabel={E.t(k === "w" && look === "white" ? "mpc_wd" : "mpc_" + k)} onPress={() => onChange(k)} hitSlop={4}
-        style={{ width: z, height: z, borderRadius: z / 2, backgroundColor: lineCol(look, k), borderWidth: value === k ? 3 : 1, borderColor: value === k ? c.accent : c.line }} />)}
-    </Row>
-  );
-}
-
-/** Symbol eines Linienstils bzw. einer Strichstärke */
-function StrokeIcon({ ls = "solid", w = 2, color }: { ls?: MpDash; w?: 1 | 2 | 3; color: string }) {
-  const sw = w === 1 ? 1.4 : w === 3 ? 3.6 : 2.4, dash = ls === "solid" ? undefined : ls === "dot" ? `0.01 ${sw * 2.2}` : ls === "long" ? "6 3" : "3 2.6";
-  return <Svg width={24} height={24} viewBox="0 0 24 24"><Path d="M3 12 H21" stroke={color} strokeWidth={sw} strokeDasharray={dash} strokeLinecap={capOf(ls)} /></Svg>;
-}
-/** Linienstil (durchgezogen, lang/kurz gestrichelt, gepunktet) und Strichstärke wählen */
-export function StrokeRow({ ls, w, onChange, testID }: { ls: MpDash; w: 1 | 2 | 3; onChange: (x: { ls: MpDash; w: 1 | 2 | 3 }) => void; testID: string }) {
-  const E = useEngine(); const { c } = useTheme();
-  const box = (on: boolean) => ({ width: 34, height: 32, borderRadius: radius.s, borderWidth: on ? 2 : 1, borderColor: on ? c.accent : c.line, backgroundColor: on ? c.accentSoft : c.surface, alignItems: "center" as const, justifyContent: "center" as const });
-  return (
-    <Row gap={4} testID={testID}>
-      {MP_DASHES.map(k => <Pressable key={k} testID={testID + "-" + k} accessibilityRole="radio" accessibilityState={{ checked: ls === k }} accessibilityLabel={E.t("mpd_" + k)} onPress={() => onChange({ ls: k, w })} hitSlop={2} style={box(ls === k)}>
-        <StrokeIcon ls={k} color={c.ink} /></Pressable>)}
-      <View style={{ width: 6 }} />
-      {MP_WIDTHS.map(k => <Pressable key={k} testID={testID + "-w" + k} accessibilityRole="radio" accessibilityState={{ checked: w === k }} accessibilityLabel={E.t("mpw_" + k)} onPress={() => onChange({ ls, w: k })} hitSlop={2} style={box(w === k)}>
-        <StrokeIcon w={k} color={c.ink} /></Pressable>)}
-    </Row>
-  );
-}
-/** Stil übernehmen (Standardwerte werden nicht gespeichert) */
-export function withStroke(it: MpItem, x: { ls: MpDash; w: 1 | 2 | 3 }): MpItem {
-  const n = { ...it }; delete n.ls; delete n.w; delete n.solid;
-  const def = dashOf({ t: it.t });
-  if (x.ls !== def) n.ls = x.ls;
-  if (x.w !== 2) n.w = x.w;
-  return n;
-}
-
-function SelBtn({ testID, label, icon, tool, onPress, on, disabled, danger, primary, wide }: {
-  testID: string; label: string; icon?: IconName; tool?: Tool; onPress: () => void; on?: boolean; disabled?: boolean; danger?: boolean; primary?: boolean; wide?: string;
-}) {
-  const { c } = useTheme();
-  const fg = primary ? c.accentInk : danger ? c.crit : on ? c.accentTx : c.ink;
-  return (
-    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: !!on, disabled: !!disabled }} disabled={disabled} onPress={onPress} hitSlop={3}
-      style={({ pressed }) => ({ height: 38, minWidth: 38, paddingHorizontal: wide ? 11 : 0, flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", borderRadius: radius.m,
-        borderWidth: 1.5, borderColor: primary ? c.accent : on ? c.accent : c.line, backgroundColor: primary ? c.accent : on ? c.accentSoft : pressed ? c.sunk : c.surface, opacity: disabled ? 0.4 : 1 })}>
-      {tool ? <ToolIcon k={tool} size={22} color={fg} accent={c.accent} /> : icon ? <Icon name={icon} size={18} color={fg} /> : null}
-      {wide ? <Text numberOfLines={1} style={{ fontWeight: "800", fontSize: 13, color: fg, maxWidth: 150 }}>{wide}</Text> : null}
-    </Pressable>
-  );
-}
-const Sep = () => { const { c } = useTheme(); return <View style={{ width: 1, height: 26, backgroundColor: c.line, marginHorizontal: 2 }} />; };
-
-/**
- * Leiste für das ausgewählte Element: Spieler wählen, bearbeiten, Art, Farbe, Bogen, Schritt, Kopieren, Löschen.
- * onPick: Spieler zuweisen (eigene Spieler); onEdit: Formular (Nummer, Text, Kürzel).
- */
-export function SelBar({ it, look, onUpdate, onDelete, onDup, onEdit, onPick, onClose, testID = "mp-sel" }: {
-  it: MpItem; look?: MpContent["look"]; onUpdate: (x: MpItem) => void; onDelete: () => void; onDup?: () => void; onEdit?: () => void; onPick?: () => void; onClose: () => void; testID?: string;
-}) {
-  const E = useEngine(); const { t } = E; const { c: col } = useTheme(); const info = useTokenInfo();
-  const by = it.by ? E.D.staff.find(x => x.id === it.by)?.name.split(" ")[0] || null : null;
-  const inf = it.t === "own" && it.pid ? info(it.pid) : null;
-  const colr = it.col || defCol(it.t);
-  const setN = (n: number) => { const x = { ...it }; delete x.n; onUpdate(n > 0 ? { ...x, n: Math.min(20, n) } : x); };
-  return (
-    <View testID={testID + "-bar"} style={{ height: 50, borderRadius: radius.l, borderWidth: 1, borderColor: withAlpha(col.accent, 0.45), backgroundColor: withAlpha(col.accent, 0.07) }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: "center", gap: 6, paddingHorizontal: 6, height: 48 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 5, paddingRight: 2 }}>
-          <ToolIcon k={it.t} size={20} color={col.accentTx} accent={col.accent} />
-          <View>
-            <Text testID={testID + "-kind"} numberOfLines={1} style={{ fontWeight: "800", fontSize: 12.5, color: col.accentTx }}>{t("mpts_" + it.t)}</Text>
-            {by ? <Text testID={testID + "-by"} numberOfLines={1} style={{ fontSize: 10.5, color: col.muted }}>{E.tf("mp_by", { n: by })}</Text> : null}
-          </View>
-        </View>
-        {it.t === "own" && onPick ? <SelBtn testID={testID + "-player"} primary={!it.pid} icon="person" label={t("mp_pick")} wide={inf?.p ? `${inf.nr != null ? inf.nr + " " : ""}${inf.label}` : t("mp_pick")} onPress={onPick} /> : null}
-        {onEdit && (it.t === "own" || it.t === "opp" || it.t === "neu" || it.t === "text") ? <SelBtn testID={testID + "-edit"} icon="pen" label={t("mp_itemEdit")} onPress={onEdit} /> : null}
-        {isRotatable(it.t) ? <><Sep /><SelBtn testID={testID + "-rot"} icon="redo" label={t("mp_itemRot")} wide={t("mp_itemRot")} onPress={() => { const r = ((it.rot || 0) + 45) % 360, x = { ...it }; delete x.rot; onUpdate(r ? { ...x, rot: r } : x); }} /></> : null}
-        {isArrow(it.t) ? <><Sep />{(["pass", "run", "drib", "line"] as const).map(k => <SelBtn key={k} testID={testID + "-kind-" + k} tool={k} label={t("mpt_" + k)} on={it.t === k}
-          onPress={() => onUpdate({ ...it, t: k, col: it.col || (k === "run" ? "y" : "w") })} />)}</> : null}
-        {hasColor(it.t) ? <><Sep /><ColorRow small testID={testID + "-col"} value={colr} onChange={k => onUpdate({ ...it, col: k })} look={look} /></> : null}
-        {hasStroke(it.t) ? <><Sep /><StrokeRow testID={testID + "-stroke"} ls={dashOf(it)} w={it.w || 2} onChange={x => onUpdate(withStroke(it, x))} /></> : null}
-        {isArrow(it.t) ? <><Sep />{it.bend ? <SelBtn testID={testID + "-straight"} icon="minus" label={t("mp_straight")} wide={t("mp_straight")} onPress={() => { const x = { ...it }; delete x.bend; onUpdate(x); }} />
-          : <SelBtn testID={testID + "-curve"} icon="curve" label={t("mp_bend")} wide={t("mp_bend")} onPress={() => onUpdate({ ...it, bend: 1.5 })} />}</> : null}
-        {stepped(it.t) ? <><Sep />
-          <SelBtn testID={testID + "-step-minus"} icon="minus" label={t("mp_stepLess")} disabled={!it.n} onPress={() => setN((it.n || 0) - 1)} />
-          <View testID={testID + "-step"} accessibilityLabel={t("mp_step")} style={{ minWidth: 30, height: 30, borderRadius: 15, paddingHorizontal: 6, alignItems: "center", justifyContent: "center", backgroundColor: it.n ? col.ink : "transparent", borderWidth: it.n ? 0 : 1.5, borderColor: col.line, borderStyle: "dashed" }}>
-            <Text style={{ fontWeight: "900", fontSize: 13, color: it.n ? col.bg : col.muted }}>{it.n ? String(it.n) : "#"}</Text>
-          </View>
-          <SelBtn testID={testID + "-step-plus"} icon="plus" label={t("mp_stepMore")} disabled={(it.n || 0) >= 20} onPress={() => setN((it.n || 0) + 1)} />
-        </> : null}
-        <Sep />
-        {onDup ? <SelBtn testID={testID + "-dup"} icon="copy" label={t("mp_itemDup")} onPress={onDup} /> : null}
-        <SelBtn testID={testID + "-del"} icon="trash" danger label={t("mp_itemDel")} onPress={onDelete} />
-        <SelBtn testID={testID + "-x"} icon="close" label={t("mp_selDone")} onPress={onClose} />
-      </ScrollView>
-    </View>
-  );
-}
-
-/** Element bearbeiten: Spieler, Rückennummer, Text, Art, Bogen, Schritt und Farbe */
-export function ItemForm({ it, squad, look, onSave, onDelete, sketch }: { it: MpItem; squad: string[]; look?: MpContent["look"]; onSave: (x: MpItem) => void; onDelete: () => void; sketch?: boolean }) {
-  const E = useEngine(); const { t } = E; const info = useTokenInfo();
-  const [x, setX] = useState<MpItem>(it);
-  const bendKey = String(Math.max(-2, Math.min(2, Math.round(x.bend || 0))));
-  const by = it.by ? E.D.staff.find(y => y.id === it.by)?.name || null : null;
-  return (
-    <Col gap={12}>
-      {by ? <Muted small testID="mp-item-by">{E.tf("mp_byLong", { n: by })}</Muted> : null}
-      {it.t === "own" && !sketch ? <Picker testID="mp-item-player" label={t("mp_player")} value={x.pid || ""} onChange={k => setX({ ...x, pid: k || null })}
-        options={[{ key: "", label: t("mp_noPlayer") }, ...[...new Set([...squad, ...E.D.players.map(p => p.id)])].map(pid => ({ key: pid, label: (info(pid)?.nr != null ? info(pid)!.nr + " " : "") + (info(pid)?.p ? E.name(info(pid)!.p!) : "?") }))]} /> : null}
-      {it.t === "own" && !x.pid && !sketch ? <Field testID="mp-item-pos" label={t("mp_posShort")} value={x.label || ""} onChangeText={v => setX({ ...x, label: v.slice(0, 4) })} maxLength={4} style={{ width: 110 }} /> : null}
-      {it.t === "opp" || it.t === "neu" || (it.t === "own" && sketch) ? <Row gap={10} wrap>
-        <NumField testID="mp-item-n" label={t("mp_oppNr")} value={x.n ?? null} min={0} max={99} onChange={n => setX({ ...x, n })} style={{ width: 110 }} />
-        <Field testID="mp-item-label" label={t("mp_posShort")} value={x.label || ""} onChangeText={v => setX({ ...x, label: v.slice(0, 4) })} maxLength={4} style={{ width: 110 }} />
-      </Row> : null}
-      {it.t === "text" ? <Field testID="mp-item-text" label={t("mpt_text")} value={x.label || ""} onChangeText={v => setX({ ...x, label: v.slice(0, 40) })} maxLength={40} /> : null}
-      {isArrow(it.t) ? <Seg testID="mp-item-kind" value={x.t} onChange={k => setX({ ...x, t: k })} options={(["pass", "run", "drib", "line"] as const).map(k => ({ key: k, label: t("mpt_" + k) }))} wrap /> : null}
-      {isArrow(it.t) ? <Col gap={4}><T2 text={t("mp_bend")} />
-        <Seg testID="mp-item-bend" value={bendKey} onChange={k => { const v = Number(k), y = { ...x }; delete y.bend; setX(v ? { ...y, bend: v } : y); }}
-          options={BENDS.map(b => ({ key: b.k, label: b.icon }))} />
-      </Col> : null}
-      {hasStroke(it.t) ? <Col gap={4}><T2 text={t("mp_stroke")} /><StrokeRow testID="mp-item-stroke" ls={dashOf(x)} w={x.w || 2} onChange={v => setX(withStroke(x, v))} /></Col> : null}
-      {stepped(it.t) ? <NumField testID="mp-item-step" label={t("mp_step")} value={x.n ?? null} min={1} max={20} onChange={n => { const y = { ...x }; delete y.n; setX(n ? { ...y, n } : y); }} style={{ width: 130 }} /> : null}
-      {hasColor(it.t) ? <ColorRow testID="mp-item-col" value={x.col || defCol(x.t)} onChange={k => setX({ ...x, col: k })} look={look} /> : null}
-      <Row gap={8} wrap>
-        {it.t !== "ball" && it.t !== "cone" && !isMaterial(it.t) ? <Btn testID="mp-item-save" kind="primary" label={t("save")} onPress={() => onSave(x)} /> : null}
-        <Btn testID="mp-item-del" kind="danger" label={t("mp_itemDel")} onPress={onDelete} />
-      </Row>
-    </Col>
-  );
-}
-/** Bogen einer Linie: stark links … stark rechts (in Laufrichtung) */
-export const BENDS: { k: string; v: number; icon: string }[] = [{ k: "2", v: 2, icon: "↶↶" }, { k: "1", v: 1, icon: "↶" }, { k: "0", v: 0, icon: "—" }, { k: "-1", v: -1, icon: "↷" }, { k: "-2", v: -2, icon: "↷↷" }];
-function T2({ text }: { text: string }) { const { c } = useTheme(); return <Text style={{ fontSize: 12.5, fontWeight: "700", color: c.muted }}>{text}</Text>; }
 
 export function TextForm({ onSave, initial = "" }: { onSave: (t: string) => void; initial?: string }) {
   const E = useEngine(); const [txt, setTxt] = useState(initial);

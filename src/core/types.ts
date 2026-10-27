@@ -438,8 +438,12 @@ export interface MpItem {
   solid?: boolean;
   /** Linien, Pfeile, Freihand, Flächen: Linienstil (fehlt = Standard der Art, z. B. Laufweg kurz gestrichelt) */
   ls?: MpDash;
-  /** Strichstärke 1 (dünn) … 3 (dick); fehlt = 2 */
+  /** Strichstärke 1 (dünn) … 3 (dick) bzw. Textgröße (klein … groß); fehlt = 2 */
   w?: 1 | 2 | 3;
+  /** Freihand: ohne Pfeilspitze (Strich statt Pfeil) */
+  nh?: true;
+  /** Zone, Kreis: ohne Füllung (nur Rand) */
+  nf?: true;
   /** Trainingsmaterial: Drehung in Grad (0 = quer) */
   rot?: number;
   /** hinzugefügt von (Trainerprofil-ID); wird Spielern nicht übermittelt */

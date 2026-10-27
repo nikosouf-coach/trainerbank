@@ -104,6 +104,31 @@ Kader-Linien (ab 900 px). Detailseiten behalten eine Lesebreite von etwa 780 px.
 Datumsspalte (Planung, Kalender): Wochentag klein, Tag groß, Spieltags-Abstand (MD-4 … MD) darunter – auf einen Blick
 scanbar wie in Kalender-Apps.
 
+## Zeichentool (Matchplan-Folien, Übungsskizzen)
+
+```
+┌────────────────────────────┐
+│ [Fertig] Titel    ↶  ↷  ⋯ │  Kopf: Mehr = Präsentieren, Folie wechseln, Ausschnitt, Notizen, Einstellungen
+│ ┌────────────────────────┐ │
+│ │                        │ │
+│ │     Tafel (so groß     │ │  nichts scrollt – Zeichnen und Ziehen gehören dem Finger
+│ │      wie möglich)      │ │
+│ └────────────────────────┘ │
+│ ↗ Pass  Vom Start zum Ziel │  Ebene 2: was gezeichnet wird, Hinweis
+│ [→][⇢][⋯][〰] │ [↗][↷][∿]  │  Optionen als Muster (Linie | Verlauf)
+│ [─][━][▬] │ ○ ● ● ● ● ● ●  │  (Stärke | Farbe) – feste Höhe, die Tafel springt nie
+│ ───────────────────────────│
+│ ↖  ●●  ↗  ╱  ▢  ▲  T       │  Ebene 1: Auswahl, Spieler, Pfeile, Linien, Formen, Material, Text
+└────────────────────────────┘
+```
+
+Erst die Art, dann ihre Optionen – nie mehr als zwei Ebenen. Optionen zeigen, wie das Ergebnis aussieht (Linienmuster,
+Stärke, Farbpunkt), statt es zu beschreiben; die gewählte hat den Rahmen in Vereinsfarbe, die Zeile darüber nennt sie
+in Worten („Laufweg · gestrichelt“). Arten mit nur einer Reihe Optionen (Auswahl, Spieler) zeigen große Kacheln.
+Alles passt in die Breite (ab 320 pt, die Schrift der Arten passt sich an), nichts scrollt waagerecht. Ist ein
+Element ausgewählt, zeigt Ebene 2 seine Optionen samt Mehr, Kopieren, Löschen und Fertig. Tablet hochkant: Leiste
+mittig, höchstens 480 breit; ab 900 px rechts eine Seitenleiste mit Überschriften je Gruppe („Linie · gepunktet“).
+
 ## Bausteine (`src/ui/kit.tsx`)
 
 - `Screen` – Seite; `narrow` für Detailseiten (Lesebreite auf Tablet/Laptop).

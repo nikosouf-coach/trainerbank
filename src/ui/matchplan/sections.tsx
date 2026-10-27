@@ -52,7 +52,7 @@ export function OppEditor({ c, onChange, ro }: { c: MpContent; onChange: (c: MpC
         <Picker testID="mp-opp-formation" label={t("mp_oppFormation")} value={o.formation || ""} onChange={k => set({ formation: k || null, items: k ? oppLineup(c.fmt, k) : [] })}
           options={[{ key: "", label: t("mp_oppNone") }, ...formationsOf(c.fmt).map(k => ({ key: k, label: k }))]} style={{ maxWidth: 260 }} />
         {o.formation ? <>
-          <SlideBoard slide={{ id: "opp", cat: "grund", title: "", view: "full", items: o.items, note: "", vis: true }} c={{ ...c, lineup: [] }} only={["move"]}
+          <SlideBoard slide={{ id: "opp", cat: "grund", title: "", view: "full", items: o.items, note: "", vis: true }} c={{ ...c, lineup: [] }}
             onChange={x => set({ items: x.items.filter(i => i.t === "opp") })} ro={ro} testID="mp-oppboard" />
           <Muted small>{t("mp_oppBoardHint")}</Muted>
         </> : null}

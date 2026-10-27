@@ -173,6 +173,8 @@ export const ARROW_TOOLS: MpTool[] = ["pass", "run", "drib", "line"];
 export const isArrow = (t: MpTool): boolean => ARROW_TOOLS.includes(t);
 /** Flächen (Zone, Kreis) */
 export const isArea = (t: MpTool): boolean => t === "zone" || t === "circle";
+/** Textgröße als Faktor (klein, mittel, groß) */
+export const textScale = (it: Pick<MpItem, "w">): number => it.w === 1 ? 0.72 : it.w === 3 ? 1.45 : 1;
 /** Größte Zahl an Punkten einer Freihandlinie */
 export const FREE_MAX = 40;
 export const MP_COLORS: MpColor[] = ["w", "y", "r", "b", "g", "o", "k"];
@@ -547,12 +549,14 @@ function cleanItem(v: Partial<MpItem>, only?: MpTool): MpItem | null {
     if (pts.length < 4) return null;
     it.pts = pts; it.x = pts[0]; it.y = pts[1]; it.x2 = pts[pts.length - 2]; it.y2 = pts[pts.length - 1];
     if (v.solid) it.solid = true;
+    if (v.nh) it.nh = true;
   }
   if (v.label) it.label = str(v.label, t === "text" ? 40 : 4);
   if (v.col && MP_COLORS.includes(v.col)) it.col = v.col;
   if (isArrow(t)) { const b = Math.round((Number(v.bend) || 0) * 10) / 10; if (b) it.bend = Math.max(-3, Math.min(3, b)); }
   if ((isLine(t) || t === "free") && v.ls && MP_DASHES.includes(v.ls)) it.ls = v.ls;
-  if ((isLine(t) || t === "free") && (v.w === 1 || v.w === 3)) it.w = v.w;
+  if ((isLine(t) || t === "free" || t === "text") && (v.w === 1 || v.w === 3)) it.w = v.w;
+  if (isArea(t) && v.nf) it.nf = true;
   if (isRotatable(t)) { const r = ((Math.round((Number(v.rot) || 0) / 15) * 15) % 360 + 360) % 360; if (r) it.rot = r; }
   if (v.by && /^[A-Za-z0-9_-]{1,40}$/.test(String(v.by))) it.by = String(v.by);
   return it;

@@ -11,12 +11,14 @@ import { useEngine, useStore } from "../../data/store";
 import { Banner, Btn, Col, Muted, Picker, Row, Seg, T, useScrollLock } from "../kit";
 import { PlayerAvatar } from "../playerAvatar";
 import { radius, useTheme, withAlpha } from "../theme";
+import { useTouchSurface } from "../touch";
 import { useAvail, useTokenInfo } from "./common";
 import { FULL, LOOKS, Pitch, TokenGhost, geom, tokenPx, usePitchWidth, type TokenInfo } from "./pitch";
 
 const CHIP_H = 42, GAP = 6, HEAD = 28;
 type Hit = { k: "token"; it: MpItem } | { k: "chip"; pid: string; zone: "bench" | "out" } | { k: "pitch"; x: number; y: number } | { k: "zone"; zone: "bench" | "out" };
-type Drag = { what: { k: "pid"; pid: string } | { k: "slot"; id: string }; x0: number; y0: number; moved: boolean; armed: boolean; timer: ReturnType<typeof setTimeout> | null };
+/** hold: erst nach kurzem Halten oder waagerecht ziehen (App, Finger im Browser) – senkrechtes Wischen scrollt die Seite */
+type Drag = { what: { k: "pid"; pid: string } | { k: "slot"; id: string }; x0: number; y0: number; moved: boolean; armed: boolean; hold: boolean; timer: ReturnType<typeof setTimeout> | null };
 type Pos = { x: number; y: number };
 
 /** Icon am Finger: eigener Zustand, damit beim Ziehen nicht die ganze Aufstellung neu gezeichnet wird */
@@ -73,7 +75,9 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
   /** gerade gezogen (Spieler bzw. leere Position) – die Position am Finger kennt nur das Icon (Ghost) */
   const [ghost, setGhost] = useState<{ pid: string | null; id?: string } | null>(null);
   const drag = useRef<Drag | null>(null), ghostAt = useRef<((p: Pos | null) => void) | null>(null);
-  const lock = useScrollLock(), hold = Platform.OS !== "web";
+  const lock = useScrollLock(), native = Platform.OS !== "web";
+  // Browser: Wischen über freie Fläche scrollt die Seite; nur während ein Spieler gezogen wird, ist sie gesperrt
+  const surf = useTouchSurface(false, () => !!drag.current?.armed);
   useEffect(() => () => { if (drag.current?.timer) clearTimeout(drag.current.timer); }, []);
 
   const pw = usePitchWidth(FULL, W), g = geom(FULL, pw), ox = Math.max(0, (W - pw) / 2), d = tokenPx(pw, c.size);
@@ -127,16 +131,17 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
   };
   /** Ziehen beginnt: Icon anheben (Original ausblenden), Seite nicht mehr scrollen */
   const lift = (dr: Drag, p: Pos) => {
-    if (!dr.armed) { dr.armed = true; if (hold) lock(true); }
+    if (!dr.armed) { dr.armed = true; if (dr.hold && native) lock(true); }
     setGhost({ pid: dr.what.k === "pid" ? dr.what.pid : null, id: dr.what.k === "slot" ? dr.what.id : c.lineup.find(z => dr.what.k === "pid" && z.pid === dr.what.pid)?.id });
     ghostAt.current?.(p);
   };
-  const stop = () => { const dr = drag.current; if (dr?.timer) clearTimeout(dr.timer); if (dr?.armed && hold) lock(false); drag.current = null; setGhost(null); ghostAt.current?.(null); };
+  const stop = () => { const dr = drag.current; if (dr?.timer) clearTimeout(dr.timer); if (dr?.armed && dr.hold && native) lock(false); drag.current = null; setGhost(null); ghostAt.current?.(null); };
   const grant = (e: GestureResponderEvent) => {
     const { x, y } = pt(e), h = hit(x, y);
     const what: Drag["what"] | null = h?.k === "token" ? (h.it.pid ? { k: "pid", pid: h.it.pid } : { k: "slot", id: h.it.id }) : h?.k === "chip" ? { k: "pid", pid: h.pid } : null;
-    drag.current = what ? { what, x0: x, y0: y, moved: false, armed: !hold, timer: null } : null;
-    // Handy: kurz halten hebt das Icon an
+    const hold = native || surf.isTouch();
+    drag.current = what ? { what, x0: x, y0: y, moved: false, armed: !hold, hold, timer: null } : null;
+    // Finger: kurz halten hebt das Icon an
     if (drag.current && hold) { const dr = drag.current; dr.timer = setTimeout(() => { if (drag.current === dr && !dr.moved) lift(dr, { x: dr.x0, y: dr.y0 }); }, 170); }
   };
   const move = (e: GestureResponderEvent) => {
@@ -216,7 +221,7 @@ export function LineupEditor({ c, onChange, date, ro }: { c: MpContent; onChange
             {outList.map((pid, i) => chip(pid, "out", i))}
             {!c.bench.length ? <Text style={{ position: "absolute", left: 4, top: benchTop + HEAD + 10, fontSize: 12.5, color: col.muted }}>{t("mp_benchEmpty")}</Text> : null}
           </View>
-          <View testID="mp-lineup-surface" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
+          <View ref={surf.ref} testID="mp-lineup-surface" style={{ position: "absolute", left: 0, top: 0, right: 0, bottom: 0 }}
             onStartShouldSetResponder={start} onMoveShouldSetResponder={() => !!drag.current} onResponderTerminationRequest={() => !drag.current?.armed}
             onResponderGrant={grant} onResponderMove={move} onResponderRelease={release} onResponderTerminate={stop} />
           <Ghost bind={ghostAt} d={d} info={ghostInfo} mode={c.mode} accent={col.club} accentInk={col.clubInk} />

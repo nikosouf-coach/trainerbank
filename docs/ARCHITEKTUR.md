@@ -169,7 +169,8 @@ so, dass der Scheitel am Griff liegt) und Schrittnummer (`n` 1 … 20 – die Pr
 Schritt); Freihand (`pts` [x, y, …], höchstens 40 Punkte, ausgedünnt mit `thinPoints`, höchstens 8 je Folie – damit
 der Plan klein bleibt); Zone (zwei Ecken) und Kreis (Mitte, Rand). Linien, Freihand und Flächen haben Farbe (7, `col`),
 Linienstil (`ls`: durchgezogen, lang/kurz gestrichelt, gepunktet; ohne Angabe wie bisher – Laufweg, Freihand und
-Flächen gestrichelt, `dashOf`) und Stärke (`w` 1–3, Standard 2). „Hinzugefügt von“: `by` (Trainerprofil) an Elementen
+Flächen gestrichelt, `dashOf`) und Stärke (`w` 1–3, Standard 2); Freihand ohne Spitze (`nh`, Strich statt Pfeil), Zone
+und Kreis nur mit Rand (`nf`), Text in drei Größen (`w`, `textScale`). „Hinzugefügt von“: `by` (Trainerprofil) an Elementen
 und Folien – nur im Trainerteam sichtbar, `publishedOf` entfernt es. Je Plan das Spielfeld-Design (`look`: Rasen =
 Standard, nicht gespeichert; Taktiktafel; weiß).
 
@@ -187,14 +188,28 @@ Spielende + 30 Minuten), bei „nur Kader“ im `squad`; Aufgaben standardmäßi
 protokolliert. In der App: Wasserzeichen (Name, Uhrzeit), Bildschirmschutz über `expo-screen-capture` (Android
 FLAG_SECURE, iOS schwärzt Aufnahmen; erkannte Screenshots → `match_plan_event`), im Browser nur Wasserzeichen.
 
-Bedienung der Tafel (`src/ui/matchplan/board.tsx`): Antippen wählt aus (Griffe für Start/Ziel/Bogen, vier Ecken,
-Radius; Leiste mit Schnellaktionen), erneut antippen öffnet das Formular. Pfeile rasten an Spielern ein (Start in der
-Mitte, Spitze am Rand des Empfängers). Gezogen wird lokal in der Tafel; übernommen wird erst beim Loslassen – ein
-Schritt im Verlauf, und die Seite wird nicht bei jeder Bewegung neu gezeichnet (Spielfeld, Linien und Icons sind
-memoisiert). Der Folien-Editor scrollt nicht (Tafel oben, Werkzeuge unten, Notizen und Einstellungen als Blätter),
-damit Zeichnen und Scrollen nie konkurrieren. Liegt eine Tafel oder die Aufstellung auf einer scrollbaren Seite,
-startet Ziehen am Handy erst nach kurzem Halten (oder waagerecht); senkrechtes Wischen scrollt. Während des Ziehens
-sperrt `useScrollLock` (aus `Screen`) die Seite.
+Bedienung der Tafel (`src/ui/matchplan/board.tsx`, Werkzeugleiste `tools.tsx`): Werkzeuge in zwei Ebenen – unten die
+Art (Auswahl mit Radierer und Ausschnitt, Spieler, Pfeile, Linien, Formen, Material, Text), darüber ihre Optionen
+(Linie durchgezogen/gestrichelt/gepunktet/Welle, Verlauf gerade/gebogen/frei gemalt, Stärke, Farbe, Füllung, Größe).
+Der Zustand (`Tools`) merkt sich die Optionen je Art; `toolOf` macht daraus das Werkzeug (z. B. Pfeil durchgezogen =
+Pass, gestrichelt/gepunktet = Laufweg, Welle = Dribbling), `styleProps` den gespeicherten Stil (Standardwerte werden
+nicht gespeichert). Gezeichnete Elemente bleiben nicht ausgewählt, damit die Optionen für das nächste gelten.
+Antippen wählt aus (Griffe für Start/Ziel/Bogen, vier Ecken, Radius; die zweite Ebene zeigt dann die Optionen des
+Elements – Änderungen übernimmt auch das Werkzeug derselben Art), erneut antippen öffnet das Formular. Mit Spieler-,
+Material- und Textwerkzeug wird ein vorhandenes Element verschoben statt ein neues daraufgesetzt. Der Radierer löscht
+alles, worüber gewischt wird, in einem Schritt. Pfeile rasten an Spielern ein (Start in der Mitte, Spitze am Rand des
+Empfängers). Gezogen wird lokal in der Tafel; übernommen wird erst beim Loslassen – ein Schritt im Verlauf, und die
+Seite wird nicht bei jeder Bewegung neu gezeichnet (Spielfeld, Linien und Icons sind memoisiert).
+
+Scrollen und Touch (`src/ui/touch.ts`): Der Folien- und Skizzen-Editor ist fest (Kopf, Tafel, Leiste ohne
+ScrollView; Leiste mit fester Höhe, nichts scrollt waagerecht), Notizen und Einstellungen sind Blätter. Im Browser
+setzt `useTouchSurface(true)` auf diesen Flächen `touch-action: none` und blockiert `touchmove` – weder die Seite
+dahinter noch der Browser (Zoom, Zurück-Wischen) übernehmen die Fingerbewegung. Liegt eine Tafel oder die Aufstellung
+auf einer scrollbaren Seite, gilt `useTouchSurface(false, aktiv)`: `touch-action: pan-y`, senkrechtes Wischen scrollt
+die Seite (auch über Spielern); gezogen wird mit dem Finger erst nach kurzem Halten (170 ms) oder bei waagerechter
+Bewegung, mit der Maus sofort – ab dann blockiert die Fläche das Scrollen. In der App (iOS/Android) gibt die Fläche
+den Finger vor dem Halten an die ScrollView ab (`onResponderTerminationRequest`), während des Ziehens sperrt
+`useScrollLock` (aus `Screen`) die Seite.
 
 ### Navigation
 

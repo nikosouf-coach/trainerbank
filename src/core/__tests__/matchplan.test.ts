@@ -5,7 +5,7 @@ import { buildDemo, demoExtras, demoTeam } from "../demo";
 import {
   DEFAULT_SECTIONS, FORMATIONS, FRAME_MAX, FRAME_MIN_W, FREE_MAX, MP_DASHES, MP_LIMITS, MP_VIEWS, MP_VIEW_KEYS, MP_WIDTHS, availFor, dashOf, isMaterial, bendCtrl, bendThrough, changedSincePublish, clampFrame, cleanContent, copyPlan, copySlide,
   defaultUntil, emptyContent, fitToView, fmtOf, formatFrame, formatOf, forPlayer, frameOf, inFrame, isArea, isArrow, itemMid, linePoint, moveItem, lineupFor, newPlan, newSlide, oppLineup, outsideFrame,
-  panFrame, placePlayer, plannedMinutes, presetOf, publishedOf, seenStats, separate, shareState, shiftItem, slotsOf, squadOf, stableJson, suggestLineup, thinPoints, visibleTo, withFrame, zoomFrame, zoomOf,
+  panFrame, placePlayer, plannedMinutes, presetOf, publishedOf, seenStats, separate, shareState, shiftItem, slotsOf, squadOf, stableJson, suggestLineup, textScale, thinPoints, visibleTo, withFrame, zoomFrame, zoomOf,
 } from "../matchplan";
 import type { MatchPlan, MpContent, Player } from "../types";
 
@@ -363,9 +363,19 @@ test("Zeichentool: Linienstil, Stärke, Drehung, Material und „hinzugefügt vo
     { id: "d", t: "neu", x: 5, y: 5, n: 7, label: "TW12345" },
     { id: "e", t: "ladder", x: 40, y: 60, rot: -90 },
     { id: "f", t: "zone", x: 1, y: 1, x2: 20, y2: 20, ls: "long", col: "k" },
+    // Strich ohne Spitze (Freihand), Form nur mit Rand; an anderen Arten fallen die Angaben weg
+    { id: "g", t: "free", x: 1, y: 1, pts: [1, 1, 5, 5, 9, 2], nh: true },
+    { id: "h", t: "circle", x: 30, y: 30, x2: 35, y2: 30, nf: true },
+    { id: "i", t: "pass", x: 1, y: 1, x2: 9, y2: 9, nh: true, nf: true },
+    // Textgröße (klein/groß; mittel = ohne Angabe)
+    { id: "j", t: "text", x: 10, y: 10, label: "Pressing!", w: 3 },
+    { id: "k", t: "text", x: 12, y: 12, label: "x", w: 2 },
   ];
   const L = cleanContent({ ...c, slides: [{ ...newSlide(c, "grund", "A", false), items: raw as never, by: "st-1" }] }, "u19").slides[0];
-  const [a, b, mg, nu, la, zo] = L.items;
+  const [a, b, mg, nu, la, zo, fr, ci, pa, tx, tx2] = L.items;
+  assert.deepEqual([fr.nh, ci.nf, pa.nh, pa.nf], [true, true, undefined, undefined]);
+  assert.deepEqual([tx.w, tx.label, tx2.w], [3, "Pressing!", undefined]);
+  assert.deepEqual([textScale(tx) > 1, textScale({ w: 1 }) < 1, textScale({})], [true, true, 1]);
   assert.deepEqual([a.ls, a.w, a.col, a.bend, a.by], ["dot", 3, "o", 1.3, "st-1"]);
   assert.equal(b.ls, undefined, "unbekannter Stil fällt weg"); assert.equal(b.w, undefined); assert.equal(b.by, undefined, "ungültige Kennung fällt weg");
   assert.equal(dashOf(b), "short", "Laufweg ohne Stil: gestrichelt wie bisher"); assert.equal(dashOf(a), "dot"); assert.equal(dashOf({ t: "pass" }), "solid");

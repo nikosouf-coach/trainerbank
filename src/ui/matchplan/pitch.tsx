@@ -6,7 +6,7 @@
 import React from "react";
 import { Image, Text, View, useWindowDimensions } from "react-native";
 import Svg, { Circle, G, Line, Path, Polyline, Rect, Text as SvgText } from "react-native-svg";
-import { FRAME_MAX, MP_VIEWS, PL, PW, bendCtrl, dashOf, isArea, isLine, isMaterial, linePoint } from "../../core/matchplan";
+import { FRAME_MAX, MP_VIEWS, PL, PW, bendCtrl, dashOf, isArea, isLine, isMaterial, linePoint, textScale } from "../../core/matchplan";
 import type { MpColor, MpDash, MpFrame, MpItem, MpLook, MpMode, Player } from "../../core/types";
 import { usePhotoUrl } from "../playerAvatar";
 import { isLight } from "../theme";
@@ -183,6 +183,9 @@ function arrowGeo(it: MpItem, s: number, wk = 1): { d: string; head: string | nu
   const withHead = it.t !== "line";
   if (it.t === "free" && it.pts && it.pts.length >= 4) {
     const P = it.pts, n = P.length / 2, e = { x: P[(n - 1) * 2], y: P[(n - 1) * 2 + 1] };
+    const mi0 = Math.floor((n - 1) / 2);
+    // Strich ohne Spitze: Weg bis zum letzten Punkt
+    if (it.nh) return { d: freePath(P, e), head: null, mid: { x: P[mi0 * 2], y: P[mi0 * 2 + 1] } };
     // Richtung: Punkt etwa eine Spitzenlänge vor dem Ende
     let back = { x: P[0], y: P[1] }, i = n - 2;
     for (; i >= 0; i--) { const q = { x: P[i * 2], y: P[i * 2 + 1] }; if (Math.hypot(e.x - q.x, e.y - q.y) >= hs * 1.2) { back = q; break; } }
@@ -266,7 +269,7 @@ const Drawn = React.memo(function Drawn({ it, sel, s, look, rot, tok }: { it: Mp
     return (
       <G>
         {sel ? shape({ fill: "none", stroke: halo, strokeOpacity: 0.55, strokeWidth: sw * 3.4 }) : null}
-        {shape({ fill: zc, fillOpacity: 0.22, stroke: zc, strokeWidth: sw * wk, strokeDasharray: dash, strokeLinecap: capOf(ls) })}
+        {shape({ fill: it.nf ? "none" : zc, fillOpacity: it.nf ? 0 : 0.22, stroke: zc, strokeWidth: sw * wk, strokeDasharray: dash, strokeLinecap: capOf(ls) })}
       </G>
     );
   }
@@ -290,10 +293,13 @@ const Drawn = React.memo(function Drawn({ it, sel, s, look, rot, tok }: { it: Mp
   if (it.t === "ball") return <G>{sel ? <Circle cx={it.x} cy={it.y} r={1.7 * s} fill={halo} fillOpacity={0.5} /> : null}<Circle cx={it.x} cy={it.y} r={0.95 * s} fill="#ffffff" stroke="#111" strokeWidth={0.3 * s} /><Circle cx={it.x} cy={it.y} r={0.35 * s} fill="#111" /></G>;
   if (it.t === "cone") return <G>{sel ? <Circle cx={it.x} cy={it.y} r={1.9 * s} fill={halo} fillOpacity={0.5} /> : null}<Path d={`M ${it.x} ${it.y - 1.3 * s} L ${it.x + 1.1 * s} ${it.y + 0.9 * s} L ${it.x - 1.1 * s} ${it.y + 0.9 * s} Z`} fill="#ff922b" stroke="#fff" strokeWidth={0.2 * s} /></G>;
   if (isMaterial(it.t)) return <Material it={it} sel={sel} tok={tok} halo={halo} />;
-  if (it.t === "text") return (
-    <SvgText x={it.x} y={it.y + 1 * s} fontSize={3.2 * s} fontWeight="bold" fill={look.lines[it.col || "w"]} stroke={sel ? halo : look.halo} strokeWidth={(sel ? 0.5 : 0.25) * s} textAnchor="middle"
-      transform={rot ? `rotate(-90 ${it.x} ${it.y})` : undefined}>{it.label || ""}</SvgText>
-  );
+  if (it.t === "text") {
+    const z = textScale(it) * s;
+    return (
+      <SvgText x={it.x} y={it.y + 1 * z} fontSize={3.2 * z} fontWeight="bold" fill={look.lines[it.col || "w"]} stroke={sel ? halo : look.halo} strokeWidth={(sel ? 0.5 : 0.25) * z} textAnchor="middle"
+        transform={rot ? `rotate(-90 ${it.x} ${it.y})` : undefined}>{it.label || ""}</SvgText>
+    );
+  }
   return null;
 });
 

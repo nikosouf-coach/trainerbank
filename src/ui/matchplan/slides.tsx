@@ -6,14 +6,17 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Modal, Platform, Pressable, ScrollView, Text, View, useWindowDimensions, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
-  FRAME_FORMATS, FRAME_MIN_W, MP_LIMITS, MP_VIEWS, MP_VIEW_KEYS, SLIDE_CATS, catView, copySlide, dashOf, fitToView, formatFrame, formatOf, frameOf, isArrow, isLine, isSetPiece, mpId,
+  FRAME_FORMATS, FRAME_MIN_W, MP_LIMITS, MP_VIEWS, MP_VIEW_KEYS, SLIDE_CATS, catView, copySlide, fitToView, formatFrame, formatOf, frameOf, isArrow, isLine, isSetPiece, mpId,
   newSlide, outsideFrame, squadOf, withFrame, zoomFrame, zoomOf,
 } from "../../core/matchplan";
-import type { MpContent, MpItem, MpMode, MpSlide, MpSlideCat, MpTool, MpView } from "../../core/types";
+import type { MpContent, MpItem, MpMode, MpSlide, MpSlideCat, MpView } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
-import { Banner, Btn, Card, CardTitle, Check, Col, Field, Muted, Picker, Row, Seg, Sheet, T, ToggleRow } from "../kit";
+import { Icon, type IconName } from "../icons";
+import { Banner, Btn, Card, CardTitle, Check, Col, Field, Group, Muted, NavRow, Picker, Row, Seg, Sheet, T, ToggleRow } from "../kit";
 import { radius, useTheme, withAlpha } from "../theme";
-import { BoardCanvas, ColorRow, ItemForm, PlayerPick, SelBar, StrokeRow, TextForm, ToolGrid, addBlock, defCol, dupItem, hasColor, hasStroke, useBoard, type BoardState, type Tool } from "./board";
+import { useTouchSurface } from "../touch";
+import { BoardCanvas, PlayerPick, TextForm, addBlock, dupItem, useBoard, type BoardState } from "./board";
+import { EditorPanel, ItemForm, OPT_H, SelOptions } from "./tools";
 import { useTokenInfo } from "./common";
 import { DisplayControls, SIZES, sizeKey } from "./lineup";
 import { FrameThumb, Pitch } from "./pitch";
@@ -27,21 +30,19 @@ const isStepped = (x: MpItem): boolean => !!x.n && (isArrow(x.t) || x.t === "fre
 const frameLabel = (t: (k: string) => string, x: MpSlide): string => x.frame ? `${t("mpv_custom")} · ${Math.round(zoomOf(x.frame) * 100)} %` : t("mpv_" + x.view);
 
 // ---------- Einfache Tafel (z. B. Gegner verschieben) ----------
-/** Tafel mit eigener Werkzeugleiste auf einer scrollbaren Seite (z. B. Gegneranalyse: only = ["move"]) */
-export function SlideBoard({ slide, c, onChange, ro, testID = "mp-board", only }: { slide: MpSlide; c: MpContent; onChange: (s: MpSlide) => void; ro?: boolean; testID?: string; only?: Tool[] }) {
+/** Tafel auf einer scrollbaren Seite zum Verschieben (z. B. Gegneranalyse): Antippen wählt aus, Ziehen verschiebt */
+export function SlideBoard({ slide, c, onChange, ro, testID = "mp-board" }: { slide: MpSlide; c: MpContent; onChange: (s: MpSlide) => void; ro?: boolean; testID?: string }) {
   const E = useEngine(); const { t } = E;
   const B = useBoard(slide, onChange);
   const [edit, setEdit] = useState<MpItem | null>(null);
-  useEffect(() => { if (only?.length) B.setTool(only[0]); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const selIt = B.sel ? slide.items.find(x => x.id === B.sel) || null : null;
   const setItem = (it: MpItem | null, id: string) => { B.commit({ ...slide, items: it ? slide.items.map(x => x.id === id ? it : x) : slide.items.filter(x => x.id !== id) }); if (!it) B.setSel(null); };
   const upd = (it: MpItem | null) => { if (!edit) return; setItem(it, edit.id); setEdit(null); };
   return (
     <Col gap={10}>
-      {!ro && (!only || only.length > 1) ? <ToolGrid B={B} testID={testID} only={only} labels /> : null}
       <BoardCanvas slide={slide} c={c} B={B} ro={ro} testID={testID} onEdit={setEdit} hold />
-      {!ro && selIt ? <SelBar it={selIt} look={c.look} testID={testID + "-sel"} onUpdate={x => setItem(x, selIt.id)} onDelete={() => setItem(null, selIt.id)}
-        onEdit={() => setEdit(selIt)} onClose={() => B.setSel(null)} /> : null}
+      {!ro && selIt ? <SelOptions it={selIt} B={B} look={c.look} testID={testID + "-sel"} onUpdate={x => setItem(x, selIt.id)} onDelete={() => setItem(null, selIt.id)}
+        onEdit={() => setEdit(selIt)} /> : null}
       {!ro ? <Row gap={8}><Btn small testID={testID + "-undo"} icon="undo" label={t("bd_undo")} disabled={!B.canUndo} onPress={B.undo} /></Row> : null}
       <Sheet visible={!!edit} onClose={() => setEdit(null)} title={edit ? t("mpt_" + edit.t) : ""} testID="mp-item-sheet" closeLabel={t("cancel")}>
         {edit ? <ItemForm key={edit.id} it={edit} squad={squadOf(c)} look={c.look} onSave={upd} onDelete={() => upd(null)} /> : null}
@@ -174,38 +175,24 @@ function NewSlideForm({ c, planId, onCreate }: { c: MpContent; planId?: string; 
 }
 
 // ---------- Editor ----------
-/**
- * Zeile über den Werkzeugen ohne Auswahl: Name und Hinweis des Werkzeugs; bei Linien und Flächen Farbe, Linienstil
- * und Strichstärke für neue Elemente (waagerecht scrollbar).
- */
-export function BoardCtx({ B, look }: { B: BoardState; look?: MpContent["look"] }) {
-  const E = useEngine(); const { t } = E; const { c: col } = useTheme();
-  const colr = hasColor(B.tool), str = hasStroke(B.tool);
-  const head = (
-    <View style={{ minWidth: 0, flexShrink: 1 }}>
-      <Text numberOfLines={1} style={{ fontWeight: "800", fontSize: 13, color: col.ink }}>{t("mpt_" + B.tool)}</Text>
-      <Text testID="mp-board-hint" numberOfLines={colr ? 1 : 2} style={{ fontSize: 11.5, lineHeight: 15, color: col.muted }}>{t("mpt_" + B.tool + "_h")}</Text>
-    </View>
-  );
-  // gleiche Struktur mit und ohne Farbleiste (sonst wechseln Stile beim Werkzeugwechsel)
-  return (
-    <View testID="mp-board-ctx" style={{ minHeight: 50, justifyContent: "center", gap: 4 }}>
-      {colr ? <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ alignItems: "center", gap: 10, minHeight: 36 }}>
-        <ColorRow small testID="mp-board-colors" value={B.color || (B.tool === "text" ? "w" : defCol(B.tool as MpTool))} onChange={B.setColor} look={look} />
-        {str ? <StrokeRow testID="mp-board-stroke" ls={B.stroke.ls || dashOfTool(B.tool as MpTool)} w={B.stroke.w || 2} onChange={x => B.setStroke(x)} /> : null}
-      </ScrollView> : null}
-      {head}
-    </View>
-  );
-}
-/** Standard-Linienstil eines Werkzeugs */
-const dashOfTool = (t: MpTool) => dashOf({ t });
 const EMPTY: MpSlide = { id: "-", cat: "sonst", title: "", view: "full", items: [], note: "", vis: true };
 
+/** Runder Knopf im Kopf des Editors (Rückgängig, Wiederholen, Mehr) */
+export function HeadBtn({ icon, a11y, onPress, disabled, testID }: { icon: IconName; a11y: string; onPress: () => void; disabled?: boolean; testID?: string }) {
+  const { c } = useTheme();
+  return (
+    <Pressable testID={testID} accessibilityRole="button" accessibilityLabel={a11y} accessibilityState={{ disabled: !!disabled }} disabled={disabled} onPress={onPress} hitSlop={4}
+      style={({ pressed }) => ({ width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: pressed ? c.line : c.sunk, opacity: disabled ? 0.35 : 1 })}>
+      <Icon name={icon} size={19} color={c.ink} strokeWidth={2.1} />
+    </Pressable>
+  );
+}
+
 /**
- * Folie bearbeiten im Vollbild. Schmal: oben die Tafel (so groß wie möglich, nichts scrollt – Zeichnen und Ziehen
- * bleiben flüssig), darunter die Leiste des ausgewählten Elements bzw. Farbe und Hinweis, die Werkzeuge und
- * Rückgängig/Wiederholen, Ausschnitt, Notizen und Folien-Einstellungen (als Blätter). Breit: Tafel links, rechts alles.
+ * Folie bearbeiten im Vollbild. Kopf: Fertig, Titel, Rückgängig/Wiederholen, Mehr (Präsentieren, Folie wechseln,
+ * Notizen, Einstellungen). Schmal: oben die Tafel (so groß wie möglich, nichts scrollt – Zeichnen und Ziehen bleiben
+ * flüssig), darunter die Werkzeugleiste in zwei Ebenen (tools.tsx). Breit: Tafel links, rechts Werkzeuge, Notizen und
+ * Einstellungen.
  */
 function SlideEditor({ c, onChange, id, onOpen, onClose, onPresent }: { c: MpContent; onChange: (c: MpContent) => void; id: string; onOpen: (id: string) => void; onClose: () => void; onPresent: (i: number) => void }) {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c: col } = useTheme(); const ins = useSafeAreaInsets(); const { width: SW } = useWindowDimensions();
@@ -216,10 +203,10 @@ function SlideEditor({ c, onChange, id, onOpen, onClose, onPresent }: { c: MpCon
   const [edit, setEdit] = useState<MpItem | null>(null);
   const [textAt, setTextAt] = useState<{ x: number; y: number; id?: string; init?: string } | null>(null);
   const [pick, setPick] = useState<string | null>(null);
-  const [sheet, setSheet] = useState<"note" | "settings" | null>(null);
+  const [sheet, setSheet] = useState<"note" | "settings" | "menu" | null>(null);
   const [area, setArea] = useState({ w: 0, h: 0 });
-  /** dritte Werkzeugreihe (Joker, Trainingsmaterial) */
-  const [mat, setMat] = useState(false);
+  // Browser: Kopf, Rand der Tafel und Leiste scrollen nie (sonst rutscht auf dem Handy die Seite dahinter mit)
+  const headRef = useTouchSurface(true).ref, areaRef = useTouchSurface(true).ref, panelRef = useTouchSurface(true).ref;
   useEffect(() => { B.reset(); B.setFraming(false); setEdit(null); setPick(null); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (i < 0) onClose(); }, [i]); // eslint-disable-line react-hooks/exhaustive-deps
   const selIt = B.sel ? sl.items.find(x => x.id === B.sel) || null : null;
@@ -242,59 +229,43 @@ function SlideEditor({ c, onChange, id, onOpen, onClose, onPresent }: { c: MpCon
   if (i < 0) return null;
   const wide = SW >= 900, side = 380;
   const upd = (it: MpItem | null) => { if (!edit) return; setItem(it, edit.id); setEdit(null); };
-  /** Formular je Art: Text → Textfeld, sonst Element-Formular */
+  /** Formular je Art: Text → Textfeld, eigener Spieler → Spieler wählen, sonst Element-Formular */
   const openForm = (it: MpItem) => it.t === "text" ? setTextAt({ x: it.x, y: it.y, id: it.id, init: it.label || "" }) : setEdit(it);
   const board = area.w ? <BoardCanvas slide={sl} c={c} B={B} testID="mp-board" maxW={Math.min(area.w - 12, wide ? 1100 : 900)} maxH={Math.max(200, area.h - 12)}
     onEdit={it => it.t === "own" ? setPick(it.id) : openForm(it)} onText={p => setTextAt(p)} /> : null;
-  const ctx = selIt ? <SelBar it={selIt} look={c.look} onUpdate={x => setItem(x, selIt.id)} onDelete={() => setItem(null, selIt.id)}
-    onDup={() => { const bl = addBlock(sl, selIt.t); if (bl) { s.toast(tf(bl.k, { n: bl.n })); return; } const cp = dupItem(selIt, s.myStaff?.id); B.commit({ ...sl, items: [...sl.items, cp] }); B.setSel(cp.id); }}
-    onEdit={() => openForm(selIt)} onPick={() => setPick(selIt.id)} onClose={() => B.setSel(null)} /> : (
-    <BoardCtx B={B} look={c.look} />
-  );
-  const actions = (
-    <Row gap={6}>
-      <Btn small testID="mp-board-undo" icon="undo" label="" a11y={t("bd_undo")} disabled={!B.canUndo} onPress={B.undo} style={{ minWidth: 40 }} />
-      <Btn small testID="mp-board-redo" icon="redo" label="" a11y={t("mp_redo")} disabled={!B.canRedo} onPress={B.redo} style={{ minWidth: 40 }} />
-      <View style={{ flex: 1 }} />
-      <Btn small testID="mp-mat" icon="grid" label={wide ? t("mp_material") : ""} a11y={t("mp_material")} kind={mat ? "primary" : "default"} onPress={() => setMat(!mat)} style={{ minWidth: 40 }} />
-      <Btn small testID="mp-frame" icon="frame" label={t("mp_frame")} onPress={() => B.setFraming(true)} />
-      {!wide ? <Btn small testID="mp-ed-note" icon="note" label={t("mp_noteShort") + (sl.note.trim() ? " •" : "")} onPress={() => setSheet("note")} /> : null}
-      {!wide ? <Btn small testID="mp-ed-settings" icon="sliders" label="" a11y={t("mp_slideSettings")} onPress={() => setSheet("settings")} style={{ minWidth: 40 }} /> : null}
-    </Row>
-  );
-  const tools = B.framing ? <FramePanel sl={sl} c={c} B={B} compact={!wide} /> : (
-    <Col gap={8}>
-      {ctx}
-      <ToolGrid B={B} labels={wide} material={mat || /^(neu|goal|mgoal|pole|dummy|ladder|hurdle|ring)$/.test(B.tool)} />
-      {actions}
-    </Col>
-  );
+  const selProps = selIt ? {
+    it: selIt, onUpdate: (x: MpItem) => setItem(x, selIt.id), onDelete: () => setItem(null, selIt.id),
+    onDup: () => { const bl = addBlock(sl, selIt.t); if (bl) { s.toast(tf(bl.k, { n: bl.n })); return; } const cp = dupItem(selIt, s.myStaff?.id); B.commit({ ...sl, items: [...sl.items, cp] }); B.setSel(cp.id); },
+    onEdit: () => openForm(selIt), onPick: () => setPick(selIt.id),
+  } : null;
+  const panel = <EditorPanel B={B} look={c.look} sel={selProps} wide={wide} frame={<FramePanel sl={sl} c={c} B={B} compact={!wide} />} />;
   const note = <Field testID="mp-slide-note" label={t("mp_slideNote")} value={sl.note} onChangeText={v => setSlide({ ...sl, note: v.slice(0, MP_LIMITS.text) })} multiline maxLength={MP_LIMITS.text} placeholder={t("mp_slideNotePh")} />;
   const settings = <SlideSettings c={c} sl={sl} i={i} onChange={onChange} setSlide={setSlide} onOpen={x => { setSheet(null); onOpen(x); }} bare={!wide} />;
   const boardArea = (
-    <View testID="mp-board-area" style={{ flex: 1, justifyContent: "center", padding: 6 }}
+    <View ref={areaRef} testID="mp-board-area" style={{ flex: 1, justifyContent: "center", padding: 6 }}
       onLayout={(e: LayoutChangeEvent) => { const { width: w, height: h } = e.nativeEvent.layout; if (Math.abs(w - area.w) > 1 || Math.abs(h - area.h) > 1) setArea({ w: Math.floor(w), h: Math.floor(h) }); }}>
       {board}
     </View>
   );
+  const go = (fn: () => void) => () => { setSheet(null); fn(); };
   return (
     <Modal visible animationType="slide" presentationStyle="fullScreen" onRequestClose={() => back.current()} supportedOrientations={["portrait", "landscape"]}>
       <View testID="mp-editor" style={{ flex: 1, backgroundColor: col.bg, paddingTop: ins.top }}>
-        <View style={{ height: 54, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: col.line, backgroundColor: col.surface }}>
+        <View ref={headRef} style={{ height: 56, flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: col.line, backgroundColor: col.surface }}>
           <Btn small kind="primary" testID="mp-ed-close" label={t("done")} onPress={onClose} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Text testID="mp-ed-title" numberOfLines={1} style={{ fontWeight: "800", fontSize: 15, color: col.ink }}>{slideLabel(t, sl)}</Text>
-            <Text numberOfLines={1} style={{ fontSize: 11.5, color: col.muted }}><Text testID="mp-ed-pos" style={{ fontWeight: "800" }}>{i + 1}/{c.slides.length}</Text> · {t("msc_" + sl.cat)} · {frameLabel(t, sl)}{!sl.vis ? " · 🔒" : ""}</Text>
-          </View>
-          <NavBtn testID="mp-ed-present" label="▶" a11y={t("mp_present")} onPress={() => onPresent(i)} />
-          <NavBtn testID="mp-ed-prev" label="‹" a11y={t("mp_prev")} disabled={i === 0} onPress={() => onOpen(c.slides[i - 1].id)} />
-          <NavBtn testID="mp-ed-next" label="›" a11y={t("mp_next")} disabled={i >= c.slides.length - 1} onPress={() => onOpen(c.slides[i + 1].id)} />
+          <Pressable accessibilityRole="button" accessibilityLabel={t("mp_more")} onPress={() => setSheet("menu")} style={{ flex: 1, minWidth: 0, paddingHorizontal: 4 }}>
+            <Text testID="mp-ed-title" numberOfLines={1} style={{ fontWeight: "700", fontSize: 15, color: col.ink }}>{slideLabel(t, sl)}</Text>
+            <Text numberOfLines={1} style={{ fontSize: 12, color: col.muted }}><Text testID="mp-ed-pos" style={{ fontWeight: "700" }}>{i + 1}/{c.slides.length}</Text> · {t("msc_" + sl.cat)}{!sl.vis ? " · " + t("mp_staffOnly") : ""}</Text>
+          </Pressable>
+          <HeadBtn testID="mp-board-undo" icon="undo" a11y={t("bd_undo")} disabled={!B.canUndo} onPress={B.undo} />
+          <HeadBtn testID="mp-board-redo" icon="redo" a11y={t("mp_redo")} disabled={!B.canRedo} onPress={B.redo} />
+          <HeadBtn testID="mp-ed-more" icon="mehr" a11y={t("mp_more")} onPress={() => setSheet("menu")} />
         </View>
         {wide ? (
           <View style={{ flex: 1, flexDirection: "row" }}>
             {boardArea}
             <ScrollView style={{ width: side, flexGrow: 0, borderLeftWidth: 1, borderLeftColor: col.line }} contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 + ins.bottom }} keyboardShouldPersistTaps="handled">
-              {tools}
+              {panel}
               <Card>{note}</Card>
               {settings}
             </ScrollView>
@@ -302,9 +273,21 @@ function SlideEditor({ c, onChange, id, onOpen, onClose, onPresent }: { c: MpCon
         ) : (
           <>
             {boardArea}
-            <View testID="mp-ed-panel" style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 8 + ins.bottom, borderTopWidth: 1, borderTopColor: col.line, backgroundColor: col.surface }}>{tools}</View>
+            <View ref={panelRef} testID="mp-ed-panel" style={{ paddingHorizontal: 10, paddingTop: 8, paddingBottom: 4 + ins.bottom, borderTopWidth: 1, borderTopColor: col.line, backgroundColor: col.surface }}>{panel}</View>
           </>
         )}
+        <Sheet visible={sheet === "menu"} onClose={() => setSheet(null)} title={slideLabel(t, sl)} testID="mp-menu-sheet" closeLabel={t("close")}>
+          <Group>
+            <NavRow testID="mp-ed-present" icon="board" title={t("mp_present")} onPress={go(() => onPresent(i))} />
+            {i > 0 ? <NavRow testID="mp-ed-prev" icon="back" title={t("mp_prev")} sub={slideLabel(t, c.slides[i - 1])} onPress={go(() => onOpen(c.slides[i - 1].id))} /> : null}
+            {i < c.slides.length - 1 ? <NavRow testID="mp-ed-next" icon="chevron" title={t("mp_next")} sub={slideLabel(t, c.slides[i + 1])} onPress={go(() => onOpen(c.slides[i + 1].id))} /> : null}
+          </Group>
+          <Group>
+            <NavRow testID="mp-ed-frame" icon="frame" title={t("mp_frame")} sub={frameLabel(t, sl)} onPress={go(() => { B.setCat("select"); B.setFraming(true); })} />
+            {!wide ? <NavRow testID="mp-ed-note" icon="note" title={t("mp_slideNote")} sub={sl.note.trim() ? sl.note.trim().split("\n")[0] : t("mp_noteNone")} onPress={() => setSheet("note")} /> : null}
+            {!wide ? <NavRow testID="mp-ed-settings" icon="sliders" title={t("mp_slideSettings")} sub={t("mp_slideSettingsSub")} onPress={() => setSheet("settings")} /> : null}
+          </Group>
+        </Sheet>
         <Sheet visible={!!edit} onClose={() => setEdit(null)} title={edit ? t("mpt_" + edit.t) : ""} testID="mp-item-sheet" closeLabel={t("cancel")}>
           {edit ? <ItemForm key={edit.id} it={edit} squad={squadOf(c)} look={c.look} onSave={upd} onDelete={() => upd(null)} /> : null}
         </Sheet>
@@ -314,8 +297,9 @@ function SlideEditor({ c, onChange, id, onOpen, onClose, onPresent }: { c: MpCon
             const old = at.id ? sl.items.find(x => x.id === at.id) : null;
             if (old) { setItem({ ...old, label: txt.slice(0, 40) }, old.id); return; }
             const bl = addBlock(sl, "text"); if (bl) { s.toast(tf(bl.k, { n: bl.n })); return; }
-            const it: MpItem = { id: mpId("i"), t: "text", x: at.x, y: at.y, label: txt.slice(0, 40), col: B.color || "w" };
-            B.commit({ ...sl, items: [...sl.items, it] }); B.setSel(it.id);
+            const it: MpItem = { id: mpId("i"), t: "text", x: at.x, y: at.y, label: txt.slice(0, 40), ...B.newProps("text") };
+            if (s.myStaff?.id) it.by = s.myStaff.id;
+            B.commit({ ...sl, items: [...sl.items, it] });
           }} /> : null}
         </Sheet>
         <Sheet visible={!!pick} onClose={() => setPick(null)} title={t("mp_pickT")} testID="mp-pick-sheet" closeLabel={t("cancel")}>
@@ -374,19 +358,36 @@ export function FramePanel({ sl, c, B, compact }: { sl: MpSlide; c: Disp; B: Boa
   const fmt = <Seg testID="mp-frame-format" value={formatOf(f)} onChange={k => apply(formatFrame(f, FRAME_FORMATS.find(x => x.k === k)!.r))} options={FRAME_FORMATS.map(x => ({ key: x.k, label: t("mpf_" + x.k) }))} />;
   const outBanner = out.length ? <Banner color={col.warn} testID="mp-frame-out"><Row gap={8} wrap><T v="small" style={{ flex: 1, minWidth: 160 }}>{out.length === 1 ? t("mp_frameOut1") : tf("mp_frameOut", { n: out.length })}</T>
     <Btn small testID="mp-frame-fit" label={t("mp_frameFit")} onPress={() => B.commit({ ...sl, items: fitToView(sl.items, f) })} /></Row></Banner> : null;
+  // Handy: so hoch wie die übrigen Optionen (die Tafel springt nicht) – oben Name/Zoom/Fertig, dann Zoom und Format,
+  // dann alle Voreinstellungen als kleine Felder in einer Reihe (Name in der Zeile oben)
   if (compact) return (
-    <Col gap={8} testID="mp-frame-panel">
-      <Row gap={8}>
-        <FrameThumb frame={f} width={26} look={c.look} accent="#ffd43b" testID="mp-frame-map" />
-        {zoom}
-        <View style={{ flex: 1 }} />
+    <View testID="mp-frame-panel" style={{ minHeight: OPT_H, gap: 6 }}>
+      <View style={{ height: 28, flexDirection: "row", alignItems: "center", gap: 8 }}>
+        <FrameThumb frame={f} width={14} look={c.look} accent="#ffd43b" testID="mp-frame-map" />
+        <Text numberOfLines={1} style={{ fontSize: 14, fontWeight: "700", color: col.ink }}>{t("mp_frame")}</Text>
+        <Text testID="mp-frame-zoom" style={{ fontSize: 13, fontWeight: "700", color: col.muted, fontVariant: ["tabular-nums"] }}>{Math.round(zoomOf(f) * 100)} %</Text>
+        {out.length ? <Pressable testID="mp-frame-out" accessibilityRole="button" onPress={() => B.commit({ ...sl, items: fitToView(sl.items, f) })} style={{ flex: 1, minWidth: 0 }}>
+          <Text testID="mp-frame-fit" numberOfLines={1} style={{ fontSize: 12.5, fontWeight: "700", color: col.warn }}>{(out.length === 1 ? t("mp_frameOut1") : tf("mp_frameOut", { n: out.length })) + " · " + t("mp_frameFit")}</Text>
+        </Pressable> : <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: col.muted }}>{preset ? t("mpv_" + preset) : t("mp_frameHintS")}</Text>}
         <Btn small kind="primary" testID="mp-frame-done" label={t("done")} onPress={() => B.setFraming(false)} />
-      </Row>
-      {fmt}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>{MP_VIEW_KEYS.map(thumb)}</ScrollView>
-      {outBanner}
-      <Muted small>{t("mp_frameHint")}</Muted>
-    </Col>
+      </View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 40 }}>
+        <Btn small testID="mp-frame-zoomout" label="−" a11y={t("mp_zoomOut")} disabled={same(zout, f)} onPress={() => apply(zout)} style={{ minWidth: 42 }} />
+        <Btn small testID="mp-frame-zoomin" label="+" a11y={t("mp_zoomIn")} disabled={f.w <= FRAME_MIN_W + 0.05 || same(zin, f)} onPress={() => apply(zin)} style={{ minWidth: 42 }} />
+        <View style={{ flex: 1, alignItems: "flex-end" }}>{fmt}</View>
+      </View>
+      <View style={{ flexDirection: "row", gap: 3, height: 40 }}>
+        {MP_VIEW_KEYS.map(k => {
+          const on = preset === k;
+          return (
+            <Pressable key={k} testID={"mp-frame-" + k} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={t("mpv_" + k)} onPress={() => apply(MP_VIEWS[k])}
+              style={{ flex: 1, minWidth: 0, maxWidth: 48, alignItems: "center", justifyContent: "center", borderRadius: radius.s, borderWidth: on ? 2 : 1, borderColor: on ? col.accent : col.line, backgroundColor: on ? col.accentSoft : col.surface }}>
+              <FrameThumb frame={MP_VIEWS[k]} width={18} look={c.look} accent="#ffd43b" />
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
   );
   return (
     <Col gap={12} testID="mp-frame-panel">
@@ -472,6 +473,8 @@ export function Presenter({ slides, start, c, onClose, watermark, showHidden, te
   /** Ablauf Schritt für Schritt: nur Pfeile bis zu diesem Schritt (null = alles) */
   const [stp, setStp] = useState<number | null>(null);
   const sw = useRef<{ x: number; y: number } | null>(null);
+  // Browser: Wischen blättert – die Seite dahinter darf nicht mitscrollen
+  const swRef = useTouchSurface(true).ref;
   const n = slides.length;
   const cur = slides[Math.min(i, n - 1)], maxStep = cur ? Math.max(0, ...cur.items.filter(x => isStepped(x)).map(x => x.n || 0)) : 0;
   const stepRef = useRef({ stp, maxStep }); stepRef.current = { stp, maxStep };
@@ -516,7 +519,7 @@ export function Presenter({ slides, start, c, onClose, watermark, showHidden, te
           onPress={() => { if (portrait) { setTurn(!turn); setRotPref(null); } else setRotPref(!rot); }} />
         <NavBtn dark testID={testID + "-close"} label="✕" a11y={t("close")} onPress={onClose} />
       </View>
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
+      <View ref={swRef} style={{ flex: 1, alignItems: "center", justifyContent: "center" }}
         onStartShouldSetResponder={() => true} onResponderTerminationRequest={() => true}
         onResponderGrant={(e: GestureResponderEvent) => { sw.current = { x: e.nativeEvent.pageX, y: e.nativeEvent.pageY }; }}
         onResponderRelease={(e: GestureResponderEvent) => {
