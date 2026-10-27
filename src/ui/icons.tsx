@@ -10,7 +10,7 @@ export type IconName =
   | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people" | "scout" | "search" | "filter" | "up" | "down"
   | "board" | "ball" | "video" | "stopwatch" | "trend" | "whistle" | "sun" | "book" | "checklist" | "wallet" | "phone" | "shield" | "club"
   | "grid" | "key" | "sliders" | "help" | "pen" | "undo" | "redo" | "copy" | "layers" | "minus" | "curve" | "frame" | "note"
-  | "clock" | "heart" | "pulse" | "home";
+  | "clock" | "heart" | "pulse" | "home" | "chart" | "export";
 
 const P: Record<IconName, React.ReactNode> = {
   heute: <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -81,6 +81,8 @@ const P: Record<IconName, React.ReactNode> = {
   heart: <Path d="M12 20.5s-7.4-4.5-9.1-9.3C1.7 7.8 3.9 4.5 7.3 4.5c2 0 3.5 1.1 4.7 2.8 1.2-1.7 2.7-2.8 4.7-2.8 3.4 0 5.6 3.3 4.4 6.7-1.7 4.8-9.1 9.3-9.1 9.3z" />,
   pulse: <Path d="M2.5 12h4l2.5-6 4.5 12 2.5-6h5.5" />,
   home: <><Path d="M4 11l8-6.5 8 6.5" /><Path d="M6 9.5V20h12V9.5" /><Path d="M10 20v-5h4v5" /></>,
+  chart: <><Path d="M4 4v16h16" /><Path d="M8.5 16.5v-4M12.5 16.5V8M16.5 16.5v-6" /></>,
+  export: <><Path d="M12 3.5v11" /><Path d="M7.5 10l4.5 4.5 4.5-4.5" /><Path d="M4.5 16.5V20h15v-3.5" /></>,
 };
 
 export function Icon({ name, size = 22, color = "#000", strokeWidth = 1.8 }: { name: IconName; size?: number; color?: ColorValue; strokeWidth?: number }) {

@@ -12,7 +12,6 @@ export const en_design: Dict = {
   tl_toPlan: "Adjust the week in planning", tl_showAll: "Show all {n}", tl_week: "7 days {a} AU, average {b} AU",
   tl_off: "The load module is switched off.",
   // Squad
-  kd_valAcwr: "ACWR", kd_valAtt: "Attendance (28 days)",
   yrs: "yrs", sts_crit: "Overloaded", sts_warn: "At the limit", sts_low: "Underloaded", sts_inj: "Out",
   // Player profile: areas
   ps_areas: "Areas", ps_load: "Load & recovery", ps_health: "Health", ps_lastTest: "Last test on {d}", ps_noTests: "No tests yet",

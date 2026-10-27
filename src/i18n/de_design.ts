@@ -12,7 +12,6 @@ export const de_design: Dict = {
   tl_toPlan: "Woche in der Planung anpassen", tl_showAll: "Alle {n} anzeigen", tl_week: "7 Tage {a} AU, Schnitt {b} AU",
   tl_off: "Das Modul Belastung ist ausgeschaltet.",
   // Kader
-  kd_valAcwr: "ACWR", kd_valAtt: "Beteiligung (28 Tage)",
   yrs: "J.", sts_crit: "Überlastet", sts_warn: "An der Grenze", sts_low: "Unterbelastet", sts_inj: "Ausfall",
   // Spielerprofil: Bereiche
   ps_areas: "Bereiche", ps_load: "Belastung & Erholung", ps_health: "Gesundheit", ps_lastTest: "Letzter Test am {d}", ps_noTests: "Noch keine Tests",

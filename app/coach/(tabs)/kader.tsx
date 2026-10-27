@@ -3,17 +3,20 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
 import { posGroup } from "../../../src/core/classes";
+import { statValue } from "../../../src/core/stats";
 import type { Player } from "../../../src/core/types";
 import { useEngine, useStore } from "../../../src/data/store";
 import { TeamHotspots } from "../../../src/ui/bodyMap";
+import { Icon } from "../../../src/ui/icons";
 import { TeamMarksCard } from "../../../src/ui/marks";
-import { Banner, Bar, Btn, Card, CardTitle, Chip, Col, Group, Header, Info, ListItem, Muted, Row, Screen, SearchField, Section, Seg, T } from "../../../src/ui/kit";
+import { Banner, Bar, Btn, Card, CardTitle, Chip, Col, Group, Header, Info, ListItem, Muted, NavRow, Row, Screen, SearchField, Section, Seg, T } from "../../../src/ui/kit";
 import { TermInfo } from "../../../src/ui/termInfo";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { GroupsTab } from "../../../src/ui/squad/Groups";
 import { PlayerRow } from "../../../src/ui/squad/PlayerRow";
 import { MergeSheet, PlayerSheet } from "../../../src/ui/squad/PlayerForm";
+import { SquadValueSheet, useSquadValue, useStatCatalog } from "../../../src/ui/stats";
 import { radius, statusColor, useTheme } from "../../../src/ui/theme";
 
 type Tab = "spieler" | "abw" | "gruppen";
@@ -32,7 +35,9 @@ export default function Kader() {
   const [merge, setMerge] = useState<Player | null>(null);
   const [showPast, setShowPast] = useState(false);
   const [showInactive, setShowInactive] = useState(false);
+  const [valOpen, setValOpen] = useState(false);
   const sheets = usePlanSheets();
+  const cat = useStatCatalog(); const sq = useSquadValue(cat);
   useEffect(() => { if (params.filter) { setFilter(params.filter); setTab("spieler"); } if (params.tab === "abw" || params.tab === "gruppen") setTab(params.tab); }, [params.filter, params.tab]);
 
   const mods = E.mods, groups = E.D.groups;
@@ -46,18 +51,22 @@ export default function Kader() {
     .filter(x => !q || E.name(x.p).toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => (a.p.active === false ? 1 : 0) - (b.p.active === false ? 1 : 0) || (a.p.nr ?? 99) - (b.p.nr ?? 99));
 
-  // Wert rechts in der Zeile: ACWR (ab Infotiefe 2), sonst Beteiligung der letzten 28 Tage
-  const showAcwr = !!mods.belastung && E.lvl(2);
+  // Wert rechts in der Zeile: vom Trainer gewählt (Standard: ACWR ab Infotiefe 2, sonst Trainingsbeteiligung 4 Wochen)
+  const vals = useMemo(() => {
+    const m = new Map<string, ReturnType<typeof statValue>>(); if (!sq.def) return m;
+    for (const p of E.D.players) m.set(p.id, statValue(E, p.id, sq.def, sq.range));
+    return m;
+  }, [E, s.version, sq.def?.key, sq.period]); // eslint-disable-line react-hooks/exhaustive-deps
   const row = (x: typeof prs[number]) => {
     const stOn = (mods.belastung || x.st === "inj") && x.st !== "none";
-    const val = showAcwr ? (x.m && x.m.acwr != null && x.st !== "inj" ? E.num(x.m.acwr, 2) : "–") : mods.beteiligung ? (x.att != null ? Math.round(x.att * 100) + " %" : "–") : null;
+    const v = sq.def ? vals.get(x.p.id) : null;
     // Nur Auffälliges benennen (Sweet Spot und Datenaufbau zeigt der Punkt am Bild); bei Ausfall den Grund („Krank“, „Verletzung“)
     const loud = stOn && x.st !== "ok" && x.st !== "build";
     const flag = loud ? (x.st === "inj" && x.ab ? t("ab_" + x.ab.typ) : t("sts_" + x.st)) : x.ab ? t("ab_" + x.ab.typ) : x.p.neu ? t("newP") : x.p.origin ? E.tf("cl_from", { t: x.p.origin }) : x.p.active === false ? t("kd_inactive") : undefined;
     return (
       <PlayerRow key={x.p.id} testID={"pcard-" + x.p.id} p={x.p} name={E.name(x.p)} status={mods.belastung || x.st === "inj" ? x.st : null}
         sub={`${x.p.pos}, ${E.age(x.p)} ${t("yrs")}`} flag={flag} flagColor={loud ? statusColor(c, x.st) : x.p.neu ? c.low : c.muted}
-        value={val} valueColor={showAcwr && stOn && x.st !== "ok" ? statusColor(c, x.st) : undefined}
+        value={sq.def ? cat.fmt(sq.def, v) : null} valueColor={sq.def ? cat.color(sq.def, v) : undefined} valueSub={sq.def ? cat.sub(sq.def, v) || undefined : undefined}
         dim={x.p.active === false} onPress={() => router.push("/coach/spieler/" + x.p.id)} />
     );
   };
@@ -74,6 +83,7 @@ export default function Kader() {
     </Row> : <>{sections.map(x => <Section key={x.g} testID={"kader-line-" + x.g} title={`${t("f_" + x.g)} (${x.L.length})`}>{x.L.map(row)}</Section>)}</>
   ) : <Group testID="kader-list">{list.map(row)}</Group>;
 
+  const valLabel = sq.def ? `${cat.short(sq.def)} · ${sq.def.now ? t("sx_now") : cat.periodLabel(sq.period)}` : t("sx_valNone");
   const spieler = (
     <>
       {neu.length ? <Banner color={c.low} testID="kader-new">
@@ -101,11 +111,19 @@ export default function Kader() {
         </ScrollView>
         <Row between gap={8} style={{ paddingHorizontal: 2 }}>
           {filter !== "alle" || q ? <Muted small testID="kader-count">{tf("kd_shown", { n: list.length, m: prs.length })}</Muted> : <View />}
-          {showAcwr ? <Row gap={4}><Muted small>{t("kd_valAcwr")}</Muted><TermInfo k="acwr" testID="term-acwr-kader" /></Row>
-            : mods.beteiligung ? <Muted small>{t("kd_valAtt")}</Muted> : null}
+          <Row gap={4}>
+            {sq.def?.key === "acwr" ? <TermInfo k="acwr" testID="term-acwr-kader" /> : null}
+            <Pressable testID="kader-val" accessibilityRole="button" accessibilityLabel={t("sx_val") + ": " + valLabel} onPress={() => setValOpen(true)}
+              style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 5, paddingVertical: 5, paddingHorizontal: 10, borderRadius: radius.pill, borderWidth: 1, borderColor: c.line, backgroundColor: pressed ? c.sunk : c.surface })}>
+              <Icon name="sliders" size={13} color={c.muted} strokeWidth={2.2} />
+              <Text numberOfLines={1} style={{ fontSize: 12.5, fontWeight: "600", color: c.ink, maxWidth: width < 380 ? 170 : 260 }}>{valLabel}</Text>
+              <View style={{ transform: [{ rotate: "90deg" }] }}><Icon name="chevron" size={11} color={c.muted} strokeWidth={2.6} /></View>
+            </Pressable>
+          </Row>
         </Row>
       </Col>
       {listEl}
+      <Group testID="kader-stats-card"><NavRow testID="kader-stats" icon="chart" title={t("sx_all")} sub={t("sx_allSub")} onPress={() => router.push("/coach/statistik?from=kader")} /></Group>
       {E.D.inactive.length ? <Section testID="kader-inactive" plain={!showInactive} title={tf("in_title", { n: E.D.inactive.length })} info={<Info title={tf("in_title", { n: E.D.inactive.length })} text={t("in_info")} />}
         action={{ label: showInactive ? t("in_hide") : t("in_show"), onPress: () => setShowInactive(!showInactive), testID: "kader-inactive-toggle" }}>
         {showInactive ? E.D.inactive.map(p => <PlayerRow key={p.id} testID={"inactive-" + p.id} p={p} name={E.name(p)} sub={p.pos} dim
@@ -147,6 +165,7 @@ export default function Kader() {
       {tab === "spieler" ? spieler : tab === "abw" ? abw() : <GroupsTab onFilter={g => { setFilter(g); setTab("spieler"); }} />}
       <PlayerSheet player={edit} onClose={() => setEdit(undefined)} />
       <MergeSheet newPlayer={merge} onClose={() => setMerge(null)} />
+      <SquadValueSheet visible={valOpen} onClose={() => setValOpen(false)} cat={cat} />
       {sheets.el}
     </Screen>
   );

@@ -130,6 +130,31 @@ Alles passt in die Breite (ab 320 pt, die Schrift der Arten passt sich an), nich
 Element ausgewählt, zeigt Ebene 2 seine Optionen samt Mehr, Kopieren, Löschen und Fertig. Tablet hochkant: Leiste
 mittig, höchstens 480 breit; ab 900 px rechts eine Seitenleiste mit Überschriften je Gruppe („Linie · gepunktet“).
 
+## Statistik (Tabelle)
+
+```
+┌────────────────────────────────────┐
+│ Statistik ⓘ            [Exportieren]│
+│ 23 Spieler · 4 Wochen (19.09.–16.10.)│
+│ (7 Tage)(4 Wochen)(Saison)          │  Zeitraum
+│ (Alle)(Tor 2)(Abwehr 7)(Mittelfeld… │  Spieler: Mannschaftsteile, Gruppen
+│ (Überblick)(Training)(Bel… [Anpassen]│  Ansicht bzw. eigene Kennzahlen
+│ ┌──────────┬───────────────────────┐│
+│ │Spieler   │Beteiligung  Ø RPE  Sp…││  Kopf antippen: sortieren (▼/▲)
+│ │Team      │      89 %    5,9   7,…││  Teamzeile: Ø bzw. Σ
+│ │1 Brenner │      93 %    5,7   7,…││  Name bleibt stehen,
+│ │  Luca·TW │  14 von 15            ││  Kennzahlen scrollen seitlich
+│ └──────────┴───────────────────────┘│
+└────────────────────────────────────┘
+```
+
+Zahlen rechtsbündig mit gleich breiten Ziffern, darunter klein, worauf sie beruhen („14 von 15“, Veränderung zum
+letzten Test, Datum). Farbe nur für Auffälliges – dieselben Statusfarben wie in der Belastung (Rot kritisch, Orange
+auffällig, Blau niedrig, Grün gut), Spielnoten in ihren Notenfarben; die sortierte Spalte ist leicht hinterlegt. Am
+Handy steht der Nachname oben, Vorname und Position darunter; am Laptop füllt die Tabelle die Breite. „–“ heißt
+„keine Daten“, nie 0. Im Kader steht rechts der gewählte Wert; der Knopf neben den Filtern nennt ihn
+(„ACWR · aktuell“, „Beteiligung · Saison“) und öffnet die Auswahl mit Zeitraum.
+
 ## Bausteine (`src/ui/kit.tsx`)
 
 - `Screen` – Seite; `narrow` für Detailseiten (Lesebreite auf Tablet/Laptop).

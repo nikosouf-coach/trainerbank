@@ -31,6 +31,7 @@ export const NAV: NavItem[] = [
   { k: "plan", href: "/coach/plan", icon: "plan", short: "nav_plan", title: "nvt_plan", sub: "nvs_plan", group: "training", tab: true, need: x => !!x.mods.planung },
   { k: "belastung", href: "/coach/belastung?from=mehr", icon: "pulse", short: "ts_title", title: "ts_title", sub: "nvs_belastung", group: "training", tab: false, need: x => !!x.mods.belastung },
   { k: "kader", href: "/coach/kader", icon: "kader", short: "nav_kader", title: "nav_kader", sub: "nvs_kader", group: "team", tab: true },
+  { k: "statistik", href: "/coach/statistik", icon: "chart", short: "nvb_statistik", title: "sx_title", sub: "sx_menuSub", group: "team", tab: true },
   { k: "chat", href: "/coach/chat", icon: "chat", short: "nav_chat", title: "nav_chat", sub: "nvs_chat", group: "orga", tab: true, need: x => x.chatOn },
   { k: "entwicklung", href: "/coach/entwicklung", icon: "trend", short: "nvb_entwicklung", title: "dv_overview", sub: "dv_menuSub", group: "team", tab: true, need: x => !!x.mods.entwicklung },
   { k: "individual", href: "/coach/individual", icon: "target", short: "nvb_individual", title: "iq_title", sub: "iq_menuSub", group: "team", tab: true, need: x => !!x.mods.entwicklung },

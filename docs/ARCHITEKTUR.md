@@ -250,6 +250,12 @@ Karte allein auf ihrer Bereichsseite steht. Knöpfe, Chips und Felder passen ihr
 (Seitengrund, Gruppe, Kachel). Detailseiten haben auf großen Bildschirmen eine Lesebreite (`Screen narrow`), „Heute“,
 Planung, Kader und Spielerprofil nutzen dort zwei Spalten.
 
+Statistik (`/coach/statistik`, `src/ui/stats.tsx`): Tabelle mit fester Namensspalte und seitlich scrollbaren
+Kennzahlen (am Laptop über die ganze Breite; Spaltenbreite nach dem längsten Wort im Kopf), Teamzeile, Sortieren je
+Spalte; Zeitraum, Ansicht und eigene Kennzahlen (höchstens 8) speichert jedes Konto in `prefs.stats`, den Wert neben dem
+Namen im Kader (`useSquadValue`, `SquadValueSheet`) in `prefs.squadValue` (`k` = Kennzahl oder „none“, `period`).
+Export als CSV über `shareTextFile` (Deutsch: Semikolon und Dezimalkomma, BOM für Excel).
+
 Neue Seiten: `/coach/belastung` (Belastung im Team), `/coach/spieler/[id]/[sec]` (Bereiche des Spielerprofils:
 `load`, `health`, `rec`, `perf`, `games`, `pot`, `abs`, `notes`; Entwicklung bleibt `/coach/entwicklung/[id]`),
 `/player/koerper` (Dein Körper heute) und `/player/daten/[sec]` (`load`, `week`, `season`, `tests`, `att`, `health`).
@@ -418,6 +424,15 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `kasse.ts` – Beiträge (fällige Zeiträume), offene Beträge je Spieler, Kassenstand, Formatierung.
 - `figure.ts` – Körperfigur (Kind/Jugend/Erwachsene, vorne/hinten) mit Trefferflächen.
 - `pain.ts` – Angaben zum Schmerz, Warnzeichen und Steuerung, Häufungen im Team mit Prävention.
+- `stats.ts` – Statistik: Kennzahlen je Spieler im Zeitraum (`periodRange`: 7 Tage, 4 Wochen, Saison ab 1. Juli,
+  Hinrunde bis 31. Dezember, Rückrunde ab 1. Januar), verfügbare Kennzahlen nach Modulen, Infotiefe und Recht
+  „Gesundheit“ (`statsFor`; Leistungstests des Teams als `t:<test>`), Werte (`statValue` mit `v`, n von m, Trend,
+  Datum, Bewertung `tone`), Teamwert (Ø bzw. Σ) und Sortierung (beste zuerst, fehlende Werte am Ende). Regeln:
+  Trainingsbeteiligung zählt Mannschaftstrainings mit erfasster Anwesenheit ab dem ersten Eintrag des Spielers, ohne
+  Tage mit Verletzung/Krankheit (außer „da“); Spielwerte nur, wenn Spiele im Zeitraum Spieldaten haben (sonst „–“
+  statt 0); „aktuell“-Kennzahlen (ACWR, letzter Test bis zum Ende des Zeitraums, letzte Einschätzung) – ACWR nur für
+  Zeiträume bis heute; Morgen-Check-Quote ab dem ersten Check-in. Anzeige (Format, Farben, Texte) in
+  `src/ui/stats.tsx`.
 - `units.ts` – mehrere Einheiten am Tag (wiederkehrend/Tageseinträge, Ausfall, Mitglieder), RPE je Einheit,
   Torwarttraining (Schwerpunkte, Periodisierung nach Spieltag, Sprünge), Trainingseindruck (nur Ausreißer).
   Die Engine rechnet weitere Einheiten in Tageslast, ACWR, Erholung und den Abgleich der Wochenlast ein
