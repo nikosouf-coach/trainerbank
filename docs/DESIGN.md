@@ -73,7 +73,9 @@ Charakter entsteht über Größe, Gewicht und gleich breite Ziffern.
 - Kacheln (Kennzahlen): Radius 14.
 - Knöpfe und Auswahl-Chips: Kapselform; Hauptaktion in Vereinsfarbe, sonst getönt (auf Flächen) bzw. hell mit Rand
   (auf dem Seitengrund). Gewählte Filter in Tintenfarbe statt Vereinsfarbe.
-- Eingabefelder: getönt, Radius 12, beim Tippen Rand in Vereinsfarbe.
+- Eingabefelder: getönt, Radius 12, beim Tippen Rand in Vereinsfarbe. Uhrzeiten (`TimeField`): zwei Ziffernfelder,
+  der Doppelpunkt steht fest dazwischen – auf dem Handy reicht die Zifferntastatur; nach der Stunde geht es von selbst
+  zu den Minuten, „19“ wird beim Verlassen zu 19:00.
 - Blätter (Dialoge): Radius 24 oben, runder Schließen-Knopf.
 
 ## Seiten

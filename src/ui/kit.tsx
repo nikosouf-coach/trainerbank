@@ -2,9 +2,10 @@
 // Aufbau einer Seite: Header (Titel) → Bereiche (Section: Titel über einer Gruppe mit Zeilen) → Zeilen führen per
 // NavRow auf Detailseiten (Befund, Daten, Vorschläge, Hintergrund & Quellen). Knöpfe und Chips passen ihre Füllung der
 // Fläche an, auf der sie liegen (Seitengrund, Gruppe, Kachel).
-import React, { createContext, useCallback, useContext, useState } from "react";
-import { Image, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View, useWindowDimensions, type StyleProp, type TextInputProps, type TextStyle, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { completeTime, timeParts, typeHours, typeMinutes } from "../core/dates";
 import { Icon, type IconName } from "./icons";
 import { font, radius, space, statusColor, useTheme, withAlpha, type Colors } from "./theme";
 
@@ -498,12 +499,79 @@ export function DateField({ label, value, onChange, lang, testID, style }: { lab
   return <Field style={style} testID={testID} label={label} value={txt} placeholder={lang === "en" ? "DD/MM/YYYY" : "TT.MM.JJJJ"} keyboardType="numbers-and-punctuation"
     onChangeText={s => { setTxt(s); const p = parseIn(s); if (p) { setLast(p); onChange(p); } else if (!s.trim()) { setLast(null); onChange(null); } }} />;
 }
-export function TimeField({ label, value, onChange, testID, style }: { label: string; value: string; onChange: (hhmm: string) => void; testID?: string; style?: StyleProp<ViewStyle> }) {
-  const [txt, setTxt] = useState(value);
+/**
+ * Uhrzeit eingeben: zwei Ziffernfelder, der Doppelpunkt steht fest dazwischen – auf dem Handy reicht die
+ * Zifferntastatur. Nach der Stunde (zwei Ziffern oder 3–9) geht es von selbst zu den Minuten, die Rücktaste im leeren
+ * Minutenfeld springt zurück; „1930“, „19:30“ oder „7.30“ (auch eingefügt) werden aufgeteilt. Gemeldet werden nur
+ * gültige Zeiten – vollständige sofort, eine angefangene (19 → 19:00, 19:3 → 19:03) nach kurzer Pause und beim
+ * Verlassen. Ohne Stunde erscheint beim Verlassen wieder die letzte gültige Zeit.
+ */
+export function TimeField({ label, value, onChange, testID, style, lang = "de" }: { label: string; value: string; onChange: (hhmm: string) => void; testID?: string; style?: StyleProp<ViewStyle>; lang?: "de" | "en" }) {
+  const { c } = useTheme();
+  const [hm, setHmState] = useState<[string, string]>(() => timeParts(value));
   const [last, setLast] = useState(value);
-  if (value !== last) { setLast(value); setTxt(value); }
-  return <Field style={style} testID={testID} label={label} value={txt} placeholder="19:30" keyboardType="numeric" maxLength={5}
-    onChangeText={s => { setTxt(s); const m = s.match(/^(\d{1,2})[:.](\d{2})$/); if (m && +m[1] < 24 && +m[2] < 60) { const v = m[1].padStart(2, "0") + ":" + m[2]; setLast(v); onChange(v); } }} />;
+  // aktueller Stand für Rückrufe nach einer Pause; zuletzt gültige (bekannte) Zeit; neueste onChange-Funktion
+  const cur = useRef(hm), known = useRef(value), cb = useRef(onChange), inside = useRef(""), alive = useRef(true), jumping = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  cb.current = onChange;
+  const setHm = (x: [string, string]) => { cur.current = x; setHmState(x); };
+  // neuer Wert von außen (z. B. anderer Tag gewählt)
+  if (value !== last) { setLast(value); known.current = value; cur.current = timeParts(value); setHmState(cur.current); }
+  useEffect(() => { alive.current = true; return () => { alive.current = false; if (timer.current) clearTimeout(timer.current); }; }, []);
+  const [focus, setFocus] = useState(false); const box = useInputStyle(focus);
+  const hRef = useRef<TextInput>(null), mRef = useRef<TextInput>(null);
+  const [h, m] = hm;
+  const stop = () => { if (timer.current) { clearTimeout(timer.current); timer.current = null; } };
+  const emit = (hh: string, mm: string) => {
+    stop();
+    if (hh.length !== 2 || mm.length !== 2 || +hh > 23 || +mm > 59) return;
+    const v = hh + ":" + mm; if (v === known.current) return;
+    known.current = v; setLast(v); cb.current(v);
+  };
+  /** anzeigen; vollständig sofort melden, angefangen (Stunde da, Minuten fehlen) nach kurzer Pause */
+  const put = (hh: string, mm: string) => {
+    setHm([hh, mm]); stop();
+    if (hh.length === 2 && mm.length === 2) { emit(hh, mm); return; }
+    const v = hh.length === 2 ? completeTime(hh, mm) : null;
+    if (v) timer.current = setTimeout(() => { timer.current = null; if (alive.current) emit(v.slice(0, 2), v.slice(3)); }, 700);
+  };
+  /** selbst zum anderen Feld springen (zählt nicht als Verlassen) */
+  const go = (r: typeof hRef) => { jumping.current = true; r.current?.focus(); jumping.current = false; };
+  const onH = (s: string) => { const r = typeHours(s, cur.current[1]); if (!r) return; put(r.h, r.m); if (r.next) go(mRef); };
+  const onM = (s: string) => { const r = typeMinutes(s, cur.current[0]); if (r) put(r.h, r.m); };
+  /** Feld verlassen: angefangene Zeit ergänzen, ohne Stunde die letzte gültige zeigen */
+  const finish = () => {
+    stop();
+    const v = completeTime(cur.current[0], cur.current[1]);
+    if (!v) { setHm(timeParts(known.current)); return; }
+    setHm([v.slice(0, 2), v.slice(3)]); emit(v.slice(0, 2), v.slice(3));
+  };
+  const onFocus = (k: string) => () => { inside.current = k; setFocus(true); };
+  const onBlur = () => {
+    inside.current = "";
+    // Web: Fokus ging woandershin (z. B. auf „Speichern“) – sofort ergänzen, damit der Klick schon die fertige Zeit hat
+    if (Platform.OS === "web" && !jumping.current) { setFocus(false); finish(); return; }
+    // sonst kurz warten: beim Sprung zwischen Stunde und Minuten ist das Feld nicht verlassen
+    setTimeout(() => { if (!alive.current || inside.current) return; setFocus(false); finish(); }, 80);
+  };
+  const seg = { paddingVertical: 0, paddingHorizontal: 0, margin: 0, borderWidth: 0, backgroundColor: "transparent", color: c.ink, fontSize: 16, minHeight: 44, fontVariant: ["tabular-nums" as const] };
+  // Web: kein Fokusrahmen um die Ziffern – den Fokus zeigt der Rahmen des ganzen Felds
+  const noRing = Platform.OS === "web" ? ({ outlineWidth: 0 } as unknown as TextStyle) : null;
+  return (
+    <View style={[{ gap: 5 }, style]}>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: c.muted }}>{cap(label)}</Text>
+      <View testID={testID ? testID + "-box" : undefined} style={{ ...box, flexDirection: "row", alignItems: "center", paddingHorizontal: 12, minHeight: 46 }}>
+        <TextInput ref={hRef} testID={testID} accessibilityLabel={label + ": " + (lang === "en" ? "hours" : "Stunden")} value={h} onChangeText={onH}
+          placeholder="--" placeholderTextColor={c.faint} keyboardType="number-pad" selectTextOnFocus returnKeyType="next" onSubmitEditing={() => go(mRef)}
+          onFocus={onFocus("h")} onBlur={onBlur} style={[seg, noRing, { width: 24, textAlign: "right" }]} />
+        <Text style={{ fontSize: 16, color: h || m ? c.ink : c.faint, paddingHorizontal: 2 }}>:</Text>
+        <TextInput ref={mRef} testID={testID ? testID + "-m" : undefined} accessibilityLabel={label + ": " + (lang === "en" ? "minutes" : "Minuten")} value={m} onChangeText={onM}
+          onKeyPress={e => { if (e.nativeEvent.key === "Backspace" && !cur.current[1]) { e.preventDefault?.(); go(hRef); } }}
+          placeholder="--" placeholderTextColor={c.faint} keyboardType="number-pad" selectTextOnFocus returnKeyType="done"
+          onFocus={onFocus("m")} onBlur={onBlur} style={[seg, noRing, { flex: 1, minWidth: 24, textAlign: "left" }]} />
+      </View>
+    </View>
+  );
 }
 export function NumField({ label, value, onChange, min, max, testID, style, step }: { label: string; value: number | null; onChange: (n: number | null) => void; min?: number; max?: number; testID?: string; style?: StyleProp<ViewStyle>; step?: number }) {
   const [txt, setTxt] = useState(value == null ? "" : String(value));

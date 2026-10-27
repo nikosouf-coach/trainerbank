@@ -129,7 +129,7 @@ export function DaysEditor({ value, onChange, tr }: { value: TeamSettings; onCha
         return (
           <Row key={d} gap={8} align="flex-end" wrap>
             <T bold style={{ width: 34, paddingBottom: 12 }}>{wd[d]}</T>
-            <TimeField testID={"tday-" + d + "-zeit"} label={tr.t("f_time")} value={cfg.zeit} onChange={z => setDay(d, { zeit: z })} style={{ width: 90 }} />
+            <TimeField testID={"tday-" + d + "-zeit"} label={tr.t("f_time")} value={cfg.zeit} onChange={z => setDay(d, { zeit: z })} lang={tr.lang} style={{ width: 90 }} />
             <MinutesField testID={"tday-" + d + "-dauer"} label={tr.t("minutes")} value={cfg.dauer || value.dauer} onChange={m => setDay(d, { dauer: m })} />
             <Picker testID={"tday-" + d + "-platz"} label={tr.t("pitch")} value={cfg.platz} options={PITCH.map(p => ({ key: p, label: tr.t("p_" + p) }))} onChange={p => setDay(d, { platz: p })} style={{ flex: 1, minWidth: 140 }} />
           </Row>
@@ -137,7 +137,7 @@ export function DaysEditor({ value, onChange, tr }: { value: TeamSettings; onCha
       })}
       <Row gap={10} wrap align="flex-end">
         <Picker testID="s-spieltag" label={tr.t("mday")} value={String(value.spieltag)} options={[6, 0, 5, 3].map(d => ({ key: String(d), label: wd[d] }))} onChange={v => onChange({ ...value, spieltag: Number(v) })} style={{ width: 150 }} />
-        <TimeField testID="s-anstoss" label={tr.t("mtime")} value={value.anstoss} onChange={z => onChange({ ...value, anstoss: z })} style={{ width: 110 }} />
+        <TimeField testID="s-anstoss" label={tr.t("mtime")} value={value.anstoss} onChange={z => onChange({ ...value, anstoss: z })} lang={tr.lang} style={{ width: 110 }} />
       </Row>
       <ToggleRow testID="s-fix" label={tr.t("fixDur")} value={value.fix} onChange={v => onChange({ ...value, fix: v })} />
     </Col>
@@ -190,7 +190,7 @@ export function SetupUnitsEditor({ value, onChange, tr }: { value: TeamSettings;
                   <Btn small kind="ghost" icon="trash" label="" testID={`su-u-${d}-${u.slot}-del`} a11y={tr.t("un_del")} onPress={() => put(d, L.filter(x => x.slot !== u.slot))} />
                 </Row>
                 <Row gap={8} align="flex-end" wrap>
-                  <TimeField testID={`su-u-${d}-${u.slot}-zeit`} label={tr.t("un_time")} value={u.zeit} onChange={z => patch(d, u.slot, { zeit: z })} style={{ width: 96 }} />
+                  <TimeField testID={`su-u-${d}-${u.slot}-zeit`} label={tr.t("un_time")} value={u.zeit} onChange={z => patch(d, u.slot, { zeit: z })} lang={tr.lang} style={{ width: 96 }} />
                   <NumField testID={`su-u-${d}-${u.slot}-dauer`} label={tr.t("minutes")} value={u.dauer} min={5} max={240} onChange={m => setDur(d, u, m ?? UNIT_DEF[u.art].dauer)} style={{ width: 96 }} />
                   <Muted small style={{ paddingBottom: 13 }}>{tr.tf("su_unitUntil", { t: shiftTime(u.zeit, u.dauer) })}</Muted>
                 </Row>
@@ -214,17 +214,12 @@ export function SetupUnitsEditor({ value, onChange, tr }: { value: TeamSettings;
 }
 
 function MinutesField({ label, value, onChange, testID }: { label: string; value: number; onChange: (m: number) => void; testID?: string }) {
-  const { c } = useTheme(); const [txt, setTxt] = useState(String(value)); const [last, setLast] = useState(value);
+  const [txt, setTxt] = useState(String(value)); const [last, setLast] = useState(value);
   if (value !== last) { setLast(value); setTxt(String(value)); }
-  return (
-    <View style={{ gap: 4, width: 76 }}>
-      <Text style={{ fontSize: 13, fontWeight: "700", color: c.muted }}>{label}</Text>
-      <TextInput testID={testID} accessibilityLabel={label} value={txt} keyboardType="number-pad" maxLength={3}
-        onChangeText={s => { setTxt(s); const n = Number(s); if (n >= 20 && n <= 180) onChange(n); }}
-        onBlur={() => { const n = Number(txt); if (!(n >= 20 && n <= 180)) setTxt(String(value)); }}
-        style={{ borderWidth: 1, borderColor: c.line, borderRadius: radius.m, paddingHorizontal: 10, paddingVertical: 10, backgroundColor: c.bg, color: c.ink, fontSize: 16, minHeight: 44 }} />
-    </View>
-  );
+  // gleiches Feld wie überall (Höhe, Füllung, Beschriftung) – steht neben der Uhrzeit
+  return <Field testID={testID} label={label} value={txt} keyboardType="number-pad" maxLength={3} style={{ width: 76 }}
+    onChangeText={s => { const d = s.replace(/\D/g, ""); setTxt(d); const n = Number(d); if (n >= 20 && n <= 180) onChange(n); }}
+    onBlur={() => { const n = Number(txt); if (!(n >= 20 && n <= 180)) setTxt(String(value)); }} />;
 }
 
 export interface PrinciplesFeedback { list: { md: string; text: string }[] }

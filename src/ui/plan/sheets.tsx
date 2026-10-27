@@ -138,7 +138,7 @@ function AddBody({ st, close }: { st: Extract<SheetState, { k: "add" }>; close: 
       {type === "match" ? <Col gap={10}>
         <Field testID="add-opp" label={t("f_opp")} value={opp} onChangeText={setOpp} />
         <Row wrap gap={10} align="flex-start">
-          <TimeField testID="add-time" label={t("f_time")} value={zeit} onChange={setZeit} style={{ width: 120 }} />
+          <TimeField testID="add-time" label={t("f_time")} value={zeit} onChange={setZeit} lang={E.tr.lang} style={{ width: 120 }} />
           <Col gap={4} style={{ flex: 1, minWidth: 200 }}><T v="small" bold color={c.muted}>{t("f_comp")}</T>
             <ChoiceChips testID="add-comp" value={comp} onChange={setComp} options={(["liga", "pokal", "test"] as const).map(k => ({ key: k, label: t("comp_" + k) }))} /></Col>
         </Row>
@@ -168,7 +168,7 @@ function AddBody({ st, close }: { st: Extract<SheetState, { k: "add" }>; close: 
       {type === "event" ? <Col gap={10}>
         <Field testID="add-title" label={t("f_title")} value={titel} onChangeText={setTitel} />
         <Row wrap gap={10} align="flex-start">
-          <TimeField label={t("f_time")} value={zeit} onChange={setZeit} style={{ width: 120 }} />
+          <TimeField testID="add-etime" label={t("f_time")} value={zeit} onChange={setZeit} lang={E.tr.lang} style={{ width: 120 }} />
           <Picker testID="add-etype" label={t("f_etype")} value={etyp} onChange={setEtyp} options={["abend", "foto", "meeting", "lager", "frei", "sonst"].map(k => ({ key: k, label: t("et_" + k) }))} style={{ flex: 1, minWidth: 180 }} />
         </Row>
         <Check label={t("f_replace")} value={ersetzt} onChange={setErsetzt} />

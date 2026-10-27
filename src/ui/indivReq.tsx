@@ -146,7 +146,7 @@ function AnswerForm({ target, onClose }: { target: { r: IndivRequest; accept: bo
       {accept ? <>
         <Row wrap gap={10}>
           <DateField testID="iq-date" label={t("iq_when")} value={date} onChange={setDate} lang={E.tr.lang} style={{ flex: 1, minWidth: 130 }} />
-          <TimeField testID="iq-time" label={t("un_time")} value={zeit} onChange={setZeit} style={{ width: 110 }} />
+          <TimeField testID="iq-time" label={t("un_time")} value={zeit} onChange={setZeit} lang={E.tr.lang} style={{ width: 110 }} />
           <NumField testID="iq-dur" label={t("min")} value={dauer} onChange={setDauer} min={10} max={180} step={5} style={{ width: 100 }} />
         </Row>
         <Field testID="iq-title" label={t("cg_titleF")} value={title} onChangeText={setTitle} maxLength={60} />

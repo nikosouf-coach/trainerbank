@@ -225,13 +225,13 @@ export function SharePanel({ plan, onBefore }: { plan: MatchPlan; onBefore?: () 
         <CardTitle title={t("mp_shareWhen")} />
         <Row wrap gap={10} align="flex-end">
           <DateField testID="mp-until-date" label={t("mp_until")} value={uDate} onChange={setUDate} lang={E.tr.lang} style={{ flex: 1, minWidth: 140 }} />
-          <TimeField testID="mp-until-time" label={t("f_time")} value={uTime} onChange={setUTime} style={{ width: 100 }} />
+          <TimeField testID="mp-until-time" label={t("f_time")} value={uTime} onChange={setUTime} lang={E.tr.lang} style={{ width: 100 }} />
         </Row>
         <Muted small>{m ? t("mp_untilD") : t("mp_untilFree")}</Muted>
         <ToggleRow testID="mp-later" label={t("mp_later")} desc={t("mp_laterD")} value={later} onChange={setLater} />
         {later ? <Row wrap gap={10} align="flex-end">
           <DateField testID="mp-from-date" label={t("mp_from")} value={fDate} onChange={setFDate} lang={E.tr.lang} style={{ flex: 1, minWidth: 140 }} />
-          <TimeField testID="mp-from-time" label={t("f_time")} value={fTime} onChange={setFTime} style={{ width: 100 }} />
+          <TimeField testID="mp-from-time" label={t("f_time")} value={fTime} onChange={setFTime} lang={E.tr.lang} style={{ width: 100 }} />
         </Row> : null}
         {E.mods.chat !== false ? <Check testID="mp-announce" label={t("mp_announce")} value={announce} onChange={setAnnounce} /> : null}
         <Banner testID="mp-protect"><Col gap={4}><T v="small" bold>{t("mp_protectT")}</T><T v="small">{t("mp_protect")}</T></Col></Banner>

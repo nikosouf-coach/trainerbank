@@ -105,7 +105,7 @@ export function ReminderFields({ value, onChange, tr, load, prep }: { value: Rem
   return (
     <Col gap={14}>
       <ToggleRow testID="rm-well" label={t("rm_well")} desc={load ? t("rm_wellD") : tf("rm_needs", { m: t("pk_belastung") })} value={load && value.well !== false} disabled={!load} onChange={v => set({ well: v })} />
-      {load && value.well !== false ? <TimeField testID="rm-wellAt" label={t("rm_wellAt")} value={value.wellAt || "08:00"} onChange={v => set({ wellAt: v })} style={{ width: 120, marginLeft: 62 }} /> : null}
+      {load && value.well !== false ? <TimeField testID="rm-wellAt" label={t("rm_wellAt")} value={value.wellAt || "08:00"} onChange={v => set({ wellAt: v })} lang={tr.lang} style={{ width: 120, marginLeft: 62 }} /> : null}
       <ToggleRow testID="rm-rpe" label={t("rm_rpe")} desc={load ? t("rm_rpeD") : tf("rm_needs", { m: t("pk_belastung") })} value={load && value.rpe !== false} disabled={!load} onChange={v => set({ rpe: v })} />
       {load && value.rpe !== false ? <Row gap={10} wrap style={{ marginLeft: 62 }}>
         <Muted small>{t("rm_rpeDelay")}</Muted>

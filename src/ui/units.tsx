@@ -72,7 +72,7 @@ function UnitForm({ target, onDone }: { target: UnitTarget; onDone: () => void }
       <Muted small>{t("uad_" + u.art)}</Muted>
       <Field testID="unit-title" label={t("un_name")} value={u.title} onChangeText={v => set({ title: v })} placeholder={t("un_namePh")} maxLength={60} />
       <Row gap={10} wrap>
-        <TimeField testID="unit-time" label={t("un_time")} value={u.zeit} onChange={v => set({ zeit: v })} style={{ width: 120 }} />
+        <TimeField testID="unit-time" label={t("un_time")} value={u.zeit} onChange={v => set({ zeit: v })} lang={E.tr.lang} style={{ width: 120 }} />
         <NumField testID="unit-dur" label={t("un_dur")} value={u.dauer} min={5} max={240} onChange={v => set({ dauer: v ?? UNIT_DEF[u.art].dauer })} style={{ width: 130 }} />
       </Row>
       {showRpe ? <Col gap={6}>
