@@ -115,14 +115,15 @@ scanbar wie in Kalender-Apps.
 │ │      wie möglich)      │ │
 │ └────────────────────────┘ │
 │ ↗ Pass  Vom Start zum Ziel │  Ebene 2: was gezeichnet wird, Hinweis
-│ [→][⇢][⋯][〰] │ [↗][↷][∿]  │  Optionen als Muster (Linie | Verlauf)
+│ [→][⇢][⋯][〰] │ [↷✦][∿]    │  Optionen als Muster (Linie | Verlauf automatisch/frei)
 │ [─][━][▬] │ ○ ● ● ● ● ● ●  │  (Stärke | Farbe) – feste Höhe, die Tafel springt nie
 │ ───────────────────────────│
 │ ↖  ●●  ↗  ╱  ▢  ▲  T       │  Ebene 1: Auswahl, Spieler, Pfeile, Linien, Formen, Material, Text
 └────────────────────────────┘
 ```
 
-Erst die Art, dann ihre Optionen – nie mehr als zwei Ebenen. Optionen zeigen, wie das Ergebnis aussieht (Linienmuster,
+Erst die Art, dann ihre Optionen – nie mehr als zwei Ebenen. Pfeile malt man mit dem Finger, die App macht daraus
+eine saubere Form (gerade oder gleichmäßiger Bogen) – zeichnen soll sich anfühlen wie auf der Taktiktafel, nur ordentlicher. Optionen zeigen, wie das Ergebnis aussieht (Linienmuster,
 Stärke, Farbpunkt), statt es zu beschreiben; die gewählte hat den Rahmen in Vereinsfarbe, die Zeile darüber nennt sie
 in Worten („Laufweg · gestrichelt“). Arten mit nur einer Reihe Optionen (Auswahl, Spieler) zeigen große Kacheln.
 Alles passt in die Breite (ab 320 pt, die Schrift der Arten passt sich an), nichts scrollt waagerecht. Ist ein

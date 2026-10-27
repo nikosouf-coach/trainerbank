@@ -37,11 +37,22 @@ function LineSample({ dash, w = 2, color, head }: { dash: Dash; w?: Width; color
     </Svg>
   );
 }
+/** Verlauf: automatisch (sauberer Bogen mit Funkeln – wird gerade oder Bogen) bzw. frei gemalt */
 function PathSample({ k, color, head }: { k: PathKind; color: string; head: boolean }) {
   const st = { stroke: color, strokeWidth: 2.3, fill: "none", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
-  const d = k === "straight" ? "M5 19 L19 7" : k === "curve" ? "M4 19 Q 5 6 19 6" : "M4 19 C 7 10, 10 22, 13 13 C 14.5 9, 16.5 7, 19.5 6.5";
-  const tip = k === "straight" ? "21.5,5 14.6,7.4 18.4,11.6" : k === "curve" ? "22,6 15.5,2.6 15.5,9.4" : "22,6 15.2,4.6 17.2,10.6";
-  return <Svg width={26} height={24} viewBox="0 0 26 24"><Path d={d} {...st} />{head ? <Polyline points={tip} fill={color} stroke={color} strokeWidth={0.8} /> : null}</Svg>;
+  if (k === "auto") return (
+    <Svg width={26} height={24} viewBox="0 0 26 24">
+      <Path d={head ? "M4 20 Q 5 7 17.5 6.5" : "M4 20 Q 5 6.5 21 6.2"} {...st} />
+      {head ? <Polyline points="22,6.3 15.8,3 15.8,9.6" fill={color} stroke={color} strokeWidth={0.8} strokeLinejoin="round" /> : null}
+      <Path d="M18.5 13.2 L19.5 16 L22.3 17 L19.5 18 L18.5 20.8 L17.5 18 L14.7 17 L17.5 16 Z" fill={color} />
+    </Svg>
+  );
+  return (
+    <Svg width={26} height={24} viewBox="0 0 26 24">
+      <Path d={head ? "M4 19 C 7 10, 10 22, 13 13 C 14.5 9, 16.5 7, 19.5 6.5" : "M4 19 C 7 10, 10 22, 13 13 C 14.5 9, 17.5 6.5, 22 6"} {...st} />
+      {head ? <Polyline points="22,6 15.2,4.6 17.2,10.6" fill={color} stroke={color} strokeWidth={0.8} /> : null}
+    </Svg>
+  );
 }
 function FillSample({ fill, color }: { fill: boolean; color: string }) {
   return <Svg width={26} height={20} viewBox="0 0 26 20"><Rect x={3} y={3} width={20} height={14} rx={2} fill={fill ? color : "none"} fillOpacity={0.3} stroke={color} strokeWidth={1.8} strokeDasharray="3 2.2" /></Svg>;
@@ -193,11 +204,11 @@ function toolText(B: BoardState, t: (k: string) => string, sketch?: boolean): { 
     case "players": return { title: t(sketch && ts.player !== "neu" ? "zt_p_" + ts.player + "S" : "mpt_" + ts.player), hint: t("zt_h_player") };
     case "arrows": {
       const a = ts.arrows, name = a.path === "free" ? t("zt_freeArrow") : t("mpt_" + B.tool);
-      return { title: a.dash === "wave" || a.dash === "solid" && a.path !== "free" ? name : `${name} · ${t("zt_d_" + a.dash)}`, hint: t("zt_h_" + a.path) };
+      return { title: a.dash === "wave" || a.dash === "solid" && a.path !== "free" ? name : `${name} · ${t("zt_d_" + a.dash)}`, hint: t(a.path === "free" ? "zt_h_free" : "zt_h_auto") };
     }
     case "lines": {
       const l = ts.lines, name = l.path === "free" ? t("zt_freeLine") : t("mpt_line");
-      return { title: l.dash === "solid" ? name : `${name} · ${t("zt_d_" + l.dash)}`, hint: l.path === "free" ? t("zt_h_free") : t(l.path === "curve" ? "zt_h_curve" : "zt_h_line") };
+      return { title: l.dash === "solid" ? name : `${name} · ${t("zt_d_" + l.dash)}`, hint: t(l.path === "free" ? "zt_h_free" : "zt_h_lineAuto") };
     }
     case "shapes": return { title: `${t("mpt_" + ts.shape)}${ts.shapes.fill ? "" : " · " + t("zt_fill_off")}`, hint: t("mpt_" + ts.shape + "_h") };
     case "material": return { title: t("mpt_" + ts.mat), hint: t("zt_h_place") };
@@ -220,7 +231,7 @@ export function ToolOptions({ B, look, sketch, wide, testID = "mp-board" }: { B:
     const s = ts[k], tool = B.tool as MpTool, head = k === "arrows", colr = s.col || defCol(tool);
     const upd = (p: Partial<typeof s>) => set({ [k]: { ...s, ...p } } as Partial<typeof ts>);
     const dash = <DashOpts testID={id} value={s.dash} wave={head} head={head} wide={wide} waveOff={s.path === "free"} onChange={d => upd({ dash: d })} />;
-    const path = (["straight", "curve", "free"] as PathKind[]).map(p => (
+    const path = (["auto", "free"] as PathKind[]).map(p => (
       <Opt key={p} testID={id + "-path-" + p} on={s.path === p} a11y={t("zt_path_" + p)} label={wide ? t("zt_path_" + p) : undefined}
         onPress={() => upd({ path: p, ...(p === "free" && s.dash === "wave" ? { dash: "solid" as Dash } : {}) })}>
         <PathSample k={p} head={head} color={s.path === p ? c.accentTx : c.ink} />
@@ -230,7 +241,7 @@ export function ToolOptions({ B, look, sketch, wide, testID = "mp-board" }: { B:
     const colors = <Colors testID={id + "-col"} value={colr} look={look} wide={wide} onChange={col => upd({ col })} />;
     return wide
       ? rows(<><Grp wide title={dashTitle(t, "line", s.dash)}>{dash}</Grp><Grp wide title={t("zt_g_path")}>{path}</Grp></>, <><Grp wide title={t("zt_g_width")}>{width}</Grp><Grp wide title={t("zt_g_color")}>{colors}</Grp></>)
-      : rows(<OptRow><Grp title={t("zt_g_line")} flex={head ? 4 : 3}>{dash}</Grp><Sep /><Grp title={t("zt_g_path")} flex={3}>{path}</Grp></OptRow>,
+      : rows(<OptRow><Grp title={t("zt_g_line")} flex={head ? 4 : 3}>{dash}</Grp><Sep /><Grp title={t("zt_g_path")} flex={2}>{path}</Grp></OptRow>,
         <OptRow><Grp title={t("zt_g_width")} flex={3}>{width}</Grp><Sep /><Grp title={t("zt_g_color")} flex={6}>{colors}</Grp></OptRow>);
   };
   const ic = wide ? 20 : 24;

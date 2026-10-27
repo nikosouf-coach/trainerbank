@@ -5,7 +5,7 @@ import { buildDemo, demoExtras, demoTeam } from "../demo";
 import {
   DEFAULT_SECTIONS, FORMATIONS, FRAME_MAX, FRAME_MIN_W, FREE_MAX, MP_DASHES, MP_LIMITS, MP_VIEWS, MP_VIEW_KEYS, MP_WIDTHS, availFor, dashOf, isMaterial, bendCtrl, bendThrough, changedSincePublish, clampFrame, cleanContent, copyPlan, copySlide,
   defaultUntil, emptyContent, fitToView, fmtOf, formatFrame, formatOf, forPlayer, frameOf, inFrame, isArea, isArrow, itemMid, linePoint, moveItem, lineupFor, newPlan, newSlide, oppLineup, outsideFrame,
-  panFrame, placePlayer, plannedMinutes, presetOf, publishedOf, seenStats, separate, shareState, shiftItem, slotsOf, squadOf, stableJson, suggestLineup, textScale, thinPoints, visibleTo, withFrame, zoomFrame, zoomOf,
+  panFrame, placePlayer, plannedMinutes, presetOf, publishedOf, seenStats, separate, shareState, shiftItem, slotsOf, squadOf, stableJson, strokeBend, suggestLineup, textScale, thinPoints, visibleTo, withFrame, zoomFrame, zoomOf,
 } from "../matchplan";
 import type { MatchPlan, MpContent, Player } from "../types";
 
@@ -389,4 +389,30 @@ test("Zeichentool: Linienstil, Stärke, Drehung, Material und „hinzugefügt vo
   const pub = publishedOf({ ...c, slides: [L], lineup: c.lineup.map(x => ({ ...x, by: "st-1" })) }, DEFAULT_SECTIONS);
   assert.ok(!JSON.stringify(pub).includes("st-1"));
   assert.equal(pub.slides![0].items[0].ls, "dot", "Stil sehen Spieler");
+});
+
+test("Zeichentool: gemalter Strich wird gerade oder ein gleichmäßiger Bogen", () => {
+  const a = { x: 10, y: 60 }, b = { x: 40, y: 60 };
+  const along = (f: (u: number) => number, n = 31) => Array.from({ length: n }, (_, i) => { const u = i / (n - 1); return { x: a.x + (b.x - a.x) * u, y: a.y - f(u) }; });
+  // leicht zittrig = gerade
+  assert.equal(strokeBend(a, b, along(u => 0.6 * Math.sin(u * 40))), 0);
+  // Bogen aus dem eigenen Modell wird genau getroffen (beide Richtungen)
+  for (const bend of [1.5, -2, 0.9, 3]) {
+    const it = { x: a.x, y: a.y, x2: b.x, y2: b.y, bend }, pts = Array.from({ length: 41 }, (_, i) => linePoint(it, i / 40));
+    assert.equal(strokeBend(a, b, pts), bend, "Bogen " + bend);
+    // rückwärts gezeichnet: gleicher Bogen, Vorzeichen andersherum (Kontrollpunkt bleibt)
+    assert.equal(strokeBend(b, a, [...pts].reverse()), -bend);
+  }
+  // ungleichmäßig gezeichneter Bogen (Scheitel nicht in der Mitte) wird gleichmäßig: Bogen zur selben Seite
+  const skew = strokeBend(a, b, along(u => 6 * Math.sin(Math.PI * u * u)));
+  assert.ok(skew > 0.8 && skew <= 3, "Bogen nach links in Laufrichtung (oben, Bildschirm): " + skew);
+  // S-Kurve: passendster einzelner Bogen = gerade
+  assert.equal(strokeBend(a, b, along(u => 3 * Math.sin(2 * Math.PI * u))), 0);
+  // Halbkreis: stärkster Bogen
+  assert.equal(Math.abs(strokeBend(a, b, along(u => 30 * Math.sqrt(u * (1 - u))))), 3);
+  // kurzer Strich: Mindestwölbung (Zittern am Handy) entscheidet
+  const c = { x: 10, y: 10 }, d = { x: 18, y: 10 }, small = Array.from({ length: 21 }, (_, i) => ({ x: 10 + 8 * i / 20, y: 10 - 1.2 * Math.sin(Math.PI * i / 20) }));
+  assert.ok(strokeBend(c, d, small) !== 0); assert.equal(strokeBend(c, d, small, 1.5), 0);
+  // zu kurz oder zu wenige Punkte: gerade
+  assert.equal(strokeBend(a, { x: 10.2, y: 60 }, along(u => u)), 0); assert.equal(strokeBend(a, b, [a, b]), 0);
 });

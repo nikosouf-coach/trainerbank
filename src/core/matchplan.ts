@@ -120,6 +120,29 @@ export function bendThrough(it: Pick<MpItem, "x" | "y" | "x2" | "y2">, p: { x: n
   const k = 2 * ((p.x - mx) * dy - (p.y - my) * dx) / L2, b = Math.round((k / 0.25) * 10) / 10;
   return Math.abs(b) < 0.15 ? 0 : Math.max(-3, Math.min(3, b));
 }
+/**
+ * Gezeichneten Strich glätten (Verlauf „automatisch“ bei Pfeilen und Linien): Start a und Ziel b bleiben, dazwischen
+ * wird es gerade oder ein gleichmäßiger Bogen (Scheitel in der Mitte, wie `bend`), der den Strich am besten trifft
+ * (kleinste Quadrate über die Abstände zur Sehne). Zittern und leichtes Ausholen bleiben gerade (Wölbung unter 10 % der
+ * Länge bzw. unter minSag Metern); eine S-Kurve wird zum passendsten einzelnen Bogen, meist gerade.
+ * Ergebnis: Wert für `bend` (0 = gerade, positiv = Bogen nach links in Laufrichtung, höchstens ±3).
+ */
+export function strokeBend(a: { x: number; y: number }, b: { x: number; y: number }, pts: { x: number; y: number }[], minSag = 0): number {
+  const dx = b.x - a.x, dy = b.y - a.y, L2 = dx * dx + dy * dy, L = Math.sqrt(L2);
+  if (L < 0.5 || pts.length < 3) return 0;
+  // Modell: Abstand zur Sehne h(u) = 2u(1 − u) · k · L (u = Lage entlang der Sehne, 0 … 1)
+  let num = 0, den = 0;
+  for (const p of pts) {
+    const u = ((p.x - a.x) * dx + (p.y - a.y) * dy) / L2;
+    if (u <= 0 || u >= 1) continue;
+    const h = ((p.x - a.x) * dy - (p.y - a.y) * dx) / L, w = 2 * u * (1 - u);
+    num += h * w; den += w * w;
+  }
+  if (!den) return 0;
+  const k = num / (L * den), sag = Math.abs(0.5 * k * L);
+  if (sag < Math.max(minSag, 0.1 * L)) return 0;
+  return Math.max(-3, Math.min(3, Math.round(k * 40) / 10));
+}
 /** Freihand: Punkte ausdünnen (Mindestabstand in Metern), Anfang und Ende bleiben; höchstens FREE_MAX Punkte */
 export function thinPoints(P: { x: number; y: number }[], tol = 1.2): number[] {
   if (!P.length) return [];

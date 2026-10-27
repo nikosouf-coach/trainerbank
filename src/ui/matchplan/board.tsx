@@ -1,7 +1,8 @@
 // Matchplan und Übungsskizzen: Taktiktafel – Spielfeld mit Bedienung und Zustand der Werkzeuge.
 // Werkzeuge in zwei Ebenen (Leiste: tools.tsx): erst die Art (Auswahl, Spieler, Pfeile, Linien, Formen, Material,
-// Text), dann ihre Optionen (Linie durchgezogen/gestrichelt/gepunktet/Welle, Verlauf gerade/gebogen/frei, Stärke,
-// Farbe, Füllung). Gezeichnete Elemente bleiben nicht ausgewählt – so gelten Optionen immer für das nächste Element;
+// Text), dann ihre Optionen (Linie durchgezogen/gestrichelt/gepunktet/Welle, Verlauf automatisch/frei, Stärke,
+// Farbe, Füllung). Pfeile und Linien („automatisch“) malt man mit dem Finger; beim Loslassen werden sie gerade oder ein
+// gleichmäßiger Bogen (strokeBend). Gezeichnete Elemente bleiben nicht ausgewählt – so gelten Optionen immer für das nächste Element;
 // Antippen eines Elements wählt es aus (Griffe für Start, Ziel, Bogen, Ecken, Radius). Mit Spieler-, Material- und
 // Textwerkzeug wird ein vorhandenes Element (statt ein neues darauf) verschoben. Pfeile rasten an Spielern ein.
 // Gezogen wird lokal (flüssig), übernommen beim Loslassen – ein Schritt im Verlauf je Bewegung. Radierer: antippen oder
@@ -11,7 +12,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Platform, Pressable, Text, View, type GestureResponderEvent, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Path, Polyline, Rect } from "react-native-svg";
-import { MP_LIMITS, bendCtrl, bendThrough, clampX, clampY, dashOf, frameOf, isArea, isArrow, isLine, isMaterial, linePoint, mpId, panFrame, shiftItem, textScale, thinPoints, withFrame, zoomFrame } from "../../core/matchplan";
+import { MP_LIMITS, bendCtrl, bendThrough, clampX, clampY, dashOf, frameOf, isArea, isArrow, isLine, isMaterial, linePoint, mpId, panFrame, shiftItem, strokeBend, textScale, thinPoints, withFrame, zoomFrame } from "../../core/matchplan";
 import type { MpColor, MpContent, MpDash, MpFrame, MpItem, MpSlide, MpTool } from "../../core/types";
 import { useEngine, useStore } from "../../data/store";
 import { Btn, Col, Field, useScrollLock } from "../kit";
@@ -28,8 +29,8 @@ export type Cat = "select" | "players" | "arrows" | "lines" | "shapes" | "materi
 export const CATS: Cat[] = ["select", "players", "arrows", "lines", "shapes", "material", "text"];
 /** Linie: durchgezogen, gestrichelt, gepunktet, Welle (nur Pfeile, gerade/gebogen: Dribbling) */
 export type Dash = "solid" | "dash" | "dot" | "wave";
-/** Verlauf: gerade, gebogen (Bogen nach links), frei gemalt */
-export type PathKind = "straight" | "curve" | "free";
+/** Verlauf: automatisch (gemalter Strich wird gerade oder ein gleichmäßiger Bogen) bzw. frei gemalt (Strich bleibt) */
+export type PathKind = "auto" | "free";
 export type Width = 1 | 2 | 3;
 export interface LineStyle { path: PathKind; dash: Dash; w: Width; col: MpColor | null }
 export interface ShapeStyle { dash: Exclude<Dash, "wave">; w: Width; fill: boolean; col: MpColor | null }
@@ -41,10 +42,10 @@ export interface Tools {
 export const MATERIAL_TOOLS: MpTool[] = ["ball", "cone", "goal", "mgoal", "pole", "dummy", "ladder", "hurdle", "ring"];
 export const DEF_TOOLS: Tools = {
   cat: "select", selMode: "move", player: "own", mat: "cone", shape: "zone",
-  arrows: { path: "straight", dash: "solid", w: 2, col: null }, lines: { path: "straight", dash: "solid", w: 2, col: null },
+  arrows: { path: "auto", dash: "solid", w: 2, col: null }, lines: { path: "auto", dash: "solid", w: 2, col: null },
   shapes: { dash: "dash", w: 2, fill: true, col: null }, textCol: null, textW: 2,
 };
-/** Bogen, mit dem „gebogen“ zeichnet (nach links in Laufrichtung; umdrehen am gelben Griff) */
+/** Bogen der Schnellwahl „Bogen links/rechts“ beim ausgewählten Pfeil */
 export const CURVE = 1.5;
 
 /** Element an einem Punkt (Spieler, Ball, Hütchen, Material) */
@@ -88,17 +89,13 @@ export function styleProps(ts: Tools, t: MpTool): Partial<MpItem> {
   const lines = ts.cat === "lines", s = lines ? ts.lines : ts.arrows, o: Partial<MpItem> = { col: s.col || defCol(t) };
   if (t !== "drib") { const ls = lsOf(s.dash); if (ls !== dashOf({ t })) o.ls = ls; }
   if (s.w !== 2) o.w = s.w;
-  if (s.path === "curve" && isArrow(t)) o.bend = CURVE;
   if (t === "free" && lines) o.nh = true;
   return o;
 }
 /** Optionen, die ein Element zeigt (für die Leiste beim Auswählen) */
-export function styleOfItem(it: MpItem): { dash: Dash; w: Width; col: MpColor; fill: boolean; path: PathKind } {
+export function styleOfItem(it: MpItem): { dash: Dash; w: Width; col: MpColor; fill: boolean } {
   const ls = dashOf(it);
-  return {
-    dash: it.t === "drib" ? "wave" : ls === "solid" ? "solid" : ls === "dot" ? "dot" : "dash", w: it.w || 2, col: it.col || defCol(it.t),
-    fill: !it.nf, path: it.t === "free" ? "free" : it.bend ? "curve" : "straight",
-  };
+  return { dash: it.t === "drib" ? "wave" : ls === "solid" ? "solid" : ls === "dot" ? "dot" : "dash", w: it.w || 2, col: it.col || defCol(it.t), fill: !it.nf };
 }
 /** Stil eines Elements ändern (Linie, Stärke, Farbe, Füllung, Bogen, Spitze) */
 export function restyle(it: MpItem, ch: { dash?: Dash; w?: Width; col?: MpColor; fill?: boolean; bend?: number; head?: boolean }): MpItem {
@@ -206,6 +203,8 @@ type Act =
   | { k: "handle"; id: string; h: Handle; it0: MpItem }
   | { k: "new"; it: MpItem; p0: Pt }
   | { k: "free"; it: MpItem; pts: Pt[]; p0: Pt }
+  /** Pfeil oder Linie mit dem Finger malen (beim Loslassen gerade oder gleichmäßiger Bogen) */
+  | { k: "stroke"; it: MpItem; pts: Pt[]; p0: Pt }
   | { k: "erase"; ids: Set<string>; p0: Pt; last: Pt; tap: string | null }
   | { k: "tap"; p0: Pt };
 /** hold: Ziehen erst nach kurzem Halten oder waagerecht (Tafel auf einer scrollbaren Seite, Finger) */
@@ -353,6 +352,14 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     const ns = slide.items.filter(x => stepped(x.t) && x.n).map(x => x.n as number);
     return ns.length ? Math.min(20, Math.max(...ns) + 1) : null;
   };
+  /** Fingerspur beim Malen eines Pfeils bzw. einer Linie: Freihand im Stil des Elements (Dribbling: durchgezogen) */
+  const trail = (it: MpItem, P: Pt[]): MpItem => {
+    const tr: MpItem = { id: it.id, t: "free", x: P[0].x, y: P[0].y, x2: P[P.length - 1].x, y2: P[P.length - 1].y, pts: P.flatMap(q => [q.x, q.y]),
+      col: it.col || defCol(it.t), ls: it.t === "drib" ? "solid" : dashOf(it) };
+    if (it.w) tr.w = it.w;
+    if (it.t === "line") tr.nh = true;
+    return tr;
+  };
   const touches = (e: GestureResponderEvent): Touch[] => ((e.nativeEvent as unknown as { touches?: Touch[] }).touches || []);
   /** Element übernehmen (neu oder geändert); false = Folie voll */
   const me = st.myStaff?.id || null;
@@ -446,8 +453,9 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     }
     const props = B.newProps(t);
     if (t === "free") { const it: MpItem = { id: mpId("i"), t, x: p.x, y: p.y, x2: p.x, y2: p.y, pts: [p.x, p.y], ...props }; begin({ k: "free", it, pts: [p], p0: p }); return; }
-    const s0 = isArrow(t) ? snapStart(p) : p;
-    begin({ k: "new", it: { id: mpId("i"), t, x: s0.x, y: s0.y, x2: s0.x, y2: s0.y, ...props }, p0: p });
+    // Pfeile und Linien: Strich malen (Start auf einem Spieler: in dessen Mitte)
+    if (isArrow(t)) { const s0 = snapStart(p); begin({ k: "stroke", it: { id: mpId("i"), t, x: s0.x, y: s0.y, x2: s0.x, y2: s0.y, ...props }, pts: [s0], p0: p }); return; }
+    begin({ k: "new", it: { id: mpId("i"), t, x: p.x, y: p.y, x2: p.x, y2: p.y, ...props }, p0: p });
   };
   const move = (e: GestureResponderEvent) => {
     if (B.framing) { frameMove(e); return; }
@@ -474,11 +482,12 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
     else if (A.k === "move") setLive(shiftItem(A.it0, p.x - A.p0.x, p.y - A.p0.y));
     else if (A.k === "handle") setLive(dragHandle(A.it0, A.h, p));
     else if (A.k === "new") setLive({ ...A.it, x2: p.x, y2: p.y });
-    else if (A.k === "free") {
+    else if (A.k === "free" || A.k === "stroke") {
       const last = A.pts[A.pts.length - 1];
       if (Math.hypot(p.x - last.x, p.y - last.y) >= Math.max(0.3, 3 / g.k)) A.pts.push(p);
       const P = [...A.pts, p];
-      setLive({ ...A.it, pts: P.flatMap(q => [q.x, q.y]), x2: p.x, y2: p.y });
+      // beim Malen zeigt die Tafel die Fingerspur (im Stil des Pfeils); erst beim Loslassen wird sie geglättet
+      setLive(A.k === "free" ? { ...A.it, pts: P.flatMap(q => [q.x, q.y]), x2: p.x, y2: p.y } : trail(A.it, P));
     }
   };
   const release = () => {
@@ -508,8 +517,21 @@ export function BoardCanvas({ slide, c, B, ro, testID = "mp-board", maxH, maxW =
       const it = L; if (!C.moved || !it) { tapSelect(A.p0); return; }
       const len = Math.hypot((it.x2 ?? it.x) - it.x, (it.y2 ?? it.y) - it.y);
       if (len < (it.t === "circle" ? 1.2 : 2)) { tapSelect(A.p0); return; }
+      upsert(it); return;
+    }
+    if (A.k === "stroke") {
+      const P = L?.pts ? ptsOf(L) : A.pts;
+      if (!C.moved || pathLen(P) < 2) { tapSelect(A.p0); return; }
+      // Ziel auf einem Spieler: zu dessen Mitte (die Spitze setzt snapEnd danach an den Rand)
+      const a = { x: A.it.x, y: A.it.y }, e0 = P[P.length - 1], tk = tokenNear(e0, 1.2);
+      const e = tk && Math.hypot(tk.x - a.x, tk.y - a.y) > 0.01 ? { x: tk.x, y: tk.y } : e0;
+      if (Math.hypot(e.x - a.x, e.y - a.y) < 2) { tapSelect(A.p0); return; }
+      // Form aus dem Strich, wie gezeichnet (ohne Einrasten – sonst entstünde durch das Einrasten ein Bogen)
+      const raw = [A.p0, ...P.slice(1)], bend = strokeBend(A.p0, e0, raw, 10 / g.k);
+      const it: MpItem = { ...A.it, x2: e.x, y2: e.y };
+      if (bend) it.bend = bend;
       // Schritt im Ablauf weiterzählen – nur Pfeile (eine Linie, z. B. Abwehrlinie, bleibt immer sichtbar)
-      const n = stepped(it.t) && it.t !== "line" ? nextStep() : null;
+      const n = it.t !== "line" ? nextStep() : null;
       upsert(snapEnd(n ? { ...it, n } : it)); return;
     }
     if (A.k === "free") {

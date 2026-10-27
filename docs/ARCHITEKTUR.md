@@ -190,7 +190,11 @@ FLAG_SECURE, iOS schwärzt Aufnahmen; erkannte Screenshots → `match_plan_event
 
 Bedienung der Tafel (`src/ui/matchplan/board.tsx`, Werkzeugleiste `tools.tsx`): Werkzeuge in zwei Ebenen – unten die
 Art (Auswahl mit Radierer und Ausschnitt, Spieler, Pfeile, Linien, Formen, Material, Text), darüber ihre Optionen
-(Linie durchgezogen/gestrichelt/gepunktet/Welle, Verlauf gerade/gebogen/frei gemalt, Stärke, Farbe, Füllung, Größe).
+(Linie durchgezogen/gestrichelt/gepunktet/Welle, Verlauf automatisch/frei gemalt, Stärke, Farbe, Füllung, Größe).
+Pfeile und Linien („automatisch“) malt man mit dem Finger; beim Malen zeigt die Tafel die Spur, beim Loslassen macht
+`core/matchplan.strokeBend` daraus gerade oder einen gleichmäßigen Bogen (`bend`, kleinste Quadrate über die Abstände zur
+Sehne; unter 10 % Wölbung bzw. 10 px gerade, S-Kurven der passendste einzelne Bogen). Gemessen wird am Strich, wie er
+gezeichnet wurde – das Einrasten an Spielern (Start in der Mitte, Spitze am Rand) ändert die Form nicht.
 Der Zustand (`Tools`) merkt sich die Optionen je Art; `toolOf` macht daraus das Werkzeug (z. B. Pfeil durchgezogen =
 Pass, gestrichelt/gepunktet = Laufweg, Welle = Dribbling), `styleProps` den gespeicherten Stil (Standardwerte werden
 nicht gespeichert). Gezeichnete Elemente bleiben nicht ausgewählt, damit die Optionen für das nächste gelten.
