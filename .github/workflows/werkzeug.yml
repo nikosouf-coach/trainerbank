@@ -3,7 +3,7 @@
 # Ergebnis: Branch "werkzeug/expo-sdk-<SDK>" mit angepasster package.json, package-lock.json und Berichten in
 # reports/ (TypeScript, expo-doctor). Danach Pull Request öffnen und prüfen lassen.
 # Mit „pakete“ (z. B. expo-screen-capture): nur diese Pakete in der zum SDK passenden Version installieren;
-# Ergebnis im Branch "werkzeug/pakete" (package.json und package-lock.json, sonst unverändert).
+# Ergebnis im Branch "werkzeug/pakete" (package.json, package-lock.json und Bericht reports/pakete.txt).
 name: Werkzeug
 
 on:
@@ -33,18 +33,21 @@ jobs:
         with:
           node-version: 22
       - name: Pakete passend zum SDK installieren
+        # Läuft immer durch; die Ausgaben stehen in reports/pakete.txt im Branch (auch wenn etwas schiefgeht)
         run: |
           echo "$PAKETE" | grep -Eq '^[a-z0-9@/._ -]+$' || { echo "Ungültige Paketnamen"; exit 1; }
-          npm ci
+          mkdir -p reports
+          { echo "## npm ci"; npm ci 2>&1 | tail -n 40 || echo "## npm ci fehlgeschlagen"; } > reports/pakete.txt
           # shellcheck disable=SC2086
-          npx expo install $PAKETE
-          git diff --stat
+          { echo "## expo install $PAKETE"; npx expo install $PAKETE 2>&1 | tail -n 80 || echo "## expo install fehlgeschlagen"; } >> reports/pakete.txt
+          { echo "## Änderungen"; git diff --stat; echo "## typecheck"; npm run typecheck 2>&1 | tail -n 60 || echo "## typecheck mit Fehlern"; } >> reports/pakete.txt
+          tail -n 80 reports/pakete.txt
       - name: Branch schreiben
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -B werkzeug/pakete
-          git add package.json package-lock.json
+          git add package.json package-lock.json reports
           git commit -m "Pakete hinzugefügt: $PAKETE" || echo "keine Änderungen"
           git push -f origin werkzeug/pakete
 
