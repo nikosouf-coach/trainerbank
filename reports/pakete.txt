@@ -1,0 +1,99 @@
+## npm ci
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: expo-modules-core@57.0.21
+npm warn Found: react-native-worklets@0.13.0
+npm warn node_modules/react-native-worklets
+npm warn   peerOptional react-native-worklets@"*" from @expo/ui@57.0.22
+npm warn   node_modules/@expo/ui
+npm warn     @expo/ui@"^57.0.22" from expo-router@57.0.25
+npm warn     node_modules/expo-router
+npm warn   1 more (react-native-reanimated)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional react-native-worklets@"^0.7.4 || ^0.8.0 || ^0.9.0 || ^0.10.0" from expo-modules-core@57.0.21
+npm warn node_modules/expo-modules-core
+npm warn   expo-modules-core@"~57.0.21" from expo@57.0.27
+npm warn   node_modules/expo
+npm warn
+npm warn Conflicting peer dependency: react-native-worklets@0.10.4
+npm warn node_modules/react-native-worklets
+npm warn   peerOptional react-native-worklets@"^0.7.4 || ^0.8.0 || ^0.9.0 || ^0.10.0" from expo-modules-core@57.0.21
+npm warn   node_modules/expo-modules-core
+npm warn     expo-modules-core@"~57.0.21" from expo@57.0.27
+npm warn     node_modules/expo
+npm warn deprecated uuid@7.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated eslint@9.39.5: This version is no longer supported. Please see https://eslint.org/version-support for other options.
+
+added 848 packages, and audited 849 packages in 12s
+
+177 packages are looking for funding
+  run `npm fund` for details
+
+15 vulnerabilities (5 low, 6 moderate, 4 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+## expo install expo-updates @sentry/react-native expo-application
+› Installing 3 SDK 57.0.0 compatible native modules using npm
+> npm install
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: expo-modules-core@57.0.21
+npm warn Found: react-native-worklets@0.13.0
+npm warn node_modules/react-native-worklets
+npm warn   peerOptional react-native-worklets@"*" from @expo/ui@57.0.22
+npm warn   node_modules/@expo/ui
+npm warn     @expo/ui@"^57.0.22" from expo-router@57.0.25
+npm warn     node_modules/expo-router
+npm warn   1 more (react-native-reanimated)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional react-native-worklets@"^0.7.4 || ^0.8.0 || ^0.9.0 || ^0.10.0" from expo-modules-core@57.0.21
+npm warn node_modules/expo-modules-core
+npm warn   expo-modules-core@"~57.0.21" from expo@57.0.27
+npm warn   node_modules/expo
+npm warn
+npm warn Conflicting peer dependency: react-native-worklets@0.10.4
+npm warn node_modules/react-native-worklets
+npm warn   peerOptional react-native-worklets@"^0.7.4 || ^0.8.0 || ^0.9.0 || ^0.10.0" from expo-modules-core@57.0.21
+npm warn   node_modules/expo-modules-core
+npm warn     expo-modules-core@"~57.0.21" from expo@57.0.27
+npm warn     node_modules/expo
+
+added 22 packages, and audited 871 packages in 4s
+
+177 packages are looking for funding
+  run `npm fund` for details
+
+15 vulnerabilities (5 low, 6 moderate, 4 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+Cannot automatically write to dynamic config at: app.config.ts
+Add the following to your Expo config
+
+{
+  "plugins": [
+    "@sentry/react-native"
+  ]
+}
+
+## Änderungen
+ package-lock.json | 420 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ package.json      |   3 +
+ 2 files changed, 423 insertions(+)
+## typecheck
+
+> trainerbank@1.0.0 typecheck
+> tsc --noEmit
+
