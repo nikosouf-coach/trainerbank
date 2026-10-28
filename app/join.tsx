@@ -1,9 +1,13 @@
 // Spieler treten mit dem Team-Code bei: Code → Profil → Einwilligungen.
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+// Aus einem Einladungslink (trainerbank://join?code=…): Code vorausgefüllt und geprüft; ohne Anmeldung wird die
+// Einladung gemerkt und es geht nach Anmeldung bzw. Registrierung weiter (Start zeigt sie an).
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
 import { teamLabel, POS } from "../src/core/classes";
 import { ageOn } from "../src/core/dates";
+import { cleanCode } from "../src/data/invite";
 import { useStore } from "../src/data/store";
+import { Splash } from "../src/ui/guard";
 import { Banner, Btn, Card, CardTitle, Check, ChoiceChips, Col, DateField, Field, Header, Info, Muted, NumField, Row, Screen, T } from "../src/ui/kit";
 
 export default function Join() {
@@ -15,11 +19,21 @@ export default function Join() {
   const [cPrivacy, setCPrivacy] = useState(false); const [cHealth, setCHealth] = useState(false); const [cParent, setCParent] = useState(false); const [parentMail, setParentMail] = useState(""); const [cAi, setCAi] = useState(false);
   const [msg, setMsg] = useState(""); const [busy, setBusy] = useState(false);
   const under16 = geb ? ageOn(geb, new Date()) < 16 : false;
-  const check = async () => {
+  const check = async (c: string = code) => {
     setBusy(true); setMsg("");
-    try { const r = await s.api.teamByCode(code); if (!r) { setMsg(t("err_invalid_code")); return; } setTeamName(teamLabel(r)); setStep(1); }
+    try { const r = await s.api.teamByCode(c); if (!r) { setMsg(t("err_invalid_code")); return; } setTeamName(teamLabel(r)); setStep(1); }
     catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
+  // Einladungslink bzw. gemerkte Einladung
+  const params = useLocalSearchParams<{ code?: string }>();
+  const linkCode = cleanCode(params.code) || (s.pendingInvite?.kind === "player" ? s.pendingInvite.code : null);
+  const auto = useRef(false);
+  useEffect(() => {
+    if (!linkCode || auto.current || s.phase === "loading") return;
+    auto.current = true;
+    if (s.phase === "signedOut") { s.rememberInvite({ kind: "player", code: linkCode }); router.replace("/welcome"); return; }
+    setCode(linkCode); check(linkCode);
+  }, [linkCode, s.phase]); // eslint-disable-line react-hooks/exhaustive-deps
   const go = async () => {
     if (!cPrivacy || !cHealth || (under16 && (!cParent || !/^\S+@\S+\.\S+$/.test(parentMail)))) { setMsg(t("cs_need")); return; }
     setBusy(true); setMsg("");
@@ -28,16 +42,18 @@ export default function Join() {
       if (under16) await s.giveConsent("parental", { parentEmail: parentMail.trim() });
       if (cAi) await s.giveConsent("ai");
       await s.joinTeam(code, { vn: vn.trim(), nn: nn.trim(), geb: geb!, pos, nr, kg });
+      s.rememberInvite(null);
       s.toast(t("jn_done")); router.replace("/");
     } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
+  if (s.phase === "loading") return <Splash />;
   return (
     <Screen testID={"join-" + step}>
       <Header eyebrow={teamName || t("po_hi")} title={step === 0 ? t("po_q1") : step === 1 ? t("jn_profile") : t("jn_consent")} onBack={() => step === 0 ? router.back() : setStep(step - 1)} backLabel={t("btn_back")} />
       {step === 0 ? <Col gap={12} style={{ maxWidth: 480 }}>
         <Muted>{t("po_q1b")}</Muted>
         <Field testID="jn-code" label={t("po_code")} value={code} onChangeText={setCode} autoCapitalize="characters" placeholder="ABCD-EFGH" />
-        <Btn testID="jn-check" kind="primary" label={t("jn_check")} onPress={check} disabled={busy || !code.trim()} />
+        <Btn testID="jn-check" kind="primary" label={t("jn_check")} onPress={() => check()} disabled={busy || !code.trim()} />
       </Col> : null}
       {step === 1 ? <Col gap={12} style={{ maxWidth: 560 }}>
         <Muted>{t("po_q2b")}</Muted>

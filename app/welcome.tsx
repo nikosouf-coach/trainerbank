@@ -8,7 +8,7 @@ import { LogoMark, Wordmark } from "../src/ui/brand";
 import { Banner, Btn, Col, Muted, Row, Screen, Seg } from "../src/ui/kit";
 
 export default function Welcome() {
-  const s = useStore(); const { t } = s.tr; const router = useRouter();
+  const s = useStore(); const { t, tf } = s.tr; const router = useRouter();
   return (
     <Screen testID="welcome">
       <Row between>
@@ -20,6 +20,7 @@ export default function Welcome() {
         <Muted style={{ fontSize: 17, lineHeight: 24 }}>{t("app_tag")}</Muted>
       </Col>
       <Col gap={10} style={{ marginTop: 24, maxWidth: 420 }}>
+        {s.pendingInvite ? <Banner testID="w-invite">{tf("inv_saved", { c: s.pendingInvite.code })}</Banner> : null}
         {hasSupabase ? <>
           <Btn testID="go-login" kind="primary" label={t("w_login")} onPress={() => router.push("/login")} />
           <Btn testID="go-register" label={t("w_register")} onPress={() => router.push("/register")} />

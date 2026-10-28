@@ -14,12 +14,14 @@
       "extends": "base",
       "distribution": "internal",
       "environment": "preview",
+      "channel": "preview",
       "android": { "buildType": "apk" },
       "ios": { "simulator": false }
     },
     "production": {
       "extends": "base",
       "environment": "production",
+      "channel": "production",
       "autoIncrement": true
     }
   },

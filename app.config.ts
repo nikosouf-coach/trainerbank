@@ -2,12 +2,19 @@
 import type { ExpoConfig } from "expo/config";
 
 const BUNDLE_ID = process.env.APP_BUNDLE_ID || "de.goatsocceracademy.trainerbank";
+const PROJECT_ID = process.env.EAS_PROJECT_ID;
 
 const config: ExpoConfig = {
   name: "Trainerbank",
   slug: "trainerbank",
   scheme: "trainerbank",
   version: "1.0.0",
+  // Updates über EAS Update gelten für alle Builds mit derselben Version. Kommt ein neues natives Paket dazu oder ändert
+  // sich die native Konfiguration, die Version erhöhen (z. B. 1.1.0) und neu bauen – sonst bekämen alte Builds
+  // unpassenden Code.
+  runtimeVersion: { policy: "appVersion" },
+  // Beim Start im Hintergrund nach einem Update suchen; es gilt ab dem nächsten Start (kein Warten beim Öffnen)
+  updates: PROJECT_ID ? { url: `https://u.expo.dev/${PROJECT_ID}`, checkAutomatically: "ON_LOAD", fallbackToCacheTimeout: 0 } : { enabled: false },
   orientation: "default",
   icon: "./assets/icon.png",
   userInterfaceStyle: "automatic",
@@ -51,7 +58,7 @@ const config: ExpoConfig = {
   ],
   experiments: { typedRoutes: false },
   extra: {
-    eas: { projectId: process.env.EAS_PROJECT_ID },
+    eas: { projectId: PROJECT_ID },
   },
 };
 

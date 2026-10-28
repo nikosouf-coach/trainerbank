@@ -19,7 +19,7 @@ import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, 
 import { emptyTeamData } from "../core/types";
 import {
   ApiError, CONSENT_VERSION, type AiRequest, type Api, type ChatEvent, type ChatListData, type ConsentKind, type ConsentState, type CreateTeamInput,
-  type JoinProfile, type Membership, type PublishedDay, type Role, type StaffEntry, type TeamPatch, type UserInfo, type UserPrefs,
+  type FeedbackInput, type FeedbackItem, type JoinProfile, type Membership, type PublishedDay, type Role, type StaffEntry, type TeamPatch, type UserInfo, type UserPrefs,
 } from "./api";
 import { supabase } from "./supabase";
 import { cleanClubPerms, type ClubInfo, type ClubRole, type ClubStaffEntry, type ClubTeam, type TeamSummary } from "../core/club";
@@ -29,7 +29,7 @@ type Row = Record<string, any>;
 const KNOWN_CODES = ["invalid_years", "managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
   "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew"];
 /** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
-const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams"];
+const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams", "feedback_rate"];
 
 function fail(error: { message?: string; details?: string; code?: string } | null | undefined): never {
   const msg = error?.message || "unknown";
@@ -1039,6 +1039,48 @@ export class SupabaseApi implements Api {
     }
     return String((data as { text?: string })?.text || "");
   }
+
+  // ---------- Rückmeldungen ----------
+  async sendFeedback(f: FeedbackInput, shotUri: string | null) {
+    const uid = await this.uid(); if (!uid) throw new ApiError("not_authenticated");
+    let shot: string | null = null;
+    if (shotUri) {
+      // Bildschirmfoto verkleinern (lesbar, aber klein) und in den eigenen Ordner laden
+      const img = await manipulateAsync(shotUri, [{ resize: { width: 1080 } }], { compress: 0.7, format: SaveFormat.JPEG });
+      const buf = await (await fetch(img.uri)).arrayBuffer();
+      shot = `${uid}/${cryptoId()}.jpg`;
+      const { error } = await this.sb.storage.from("feedback").upload(shot, buf, { contentType: "image/jpeg", upsert: false });
+      if (error) fail(error);
+    }
+    try {
+      await q(this.sb.from("feedback").insert({
+        team_id: f.teamId, kind: f.kind, text: f.text.trim().slice(0, 2000), page: f.page?.slice(0, 200) || null,
+        app_version: f.appVersion?.slice(0, 40) || null, update_id: f.updateId?.slice(0, 80) || null, platform: f.platform,
+        os_version: f.osVersion?.slice(0, 40) || null, device: f.device?.slice(0, 80) || null, shot_path: shot,
+      }));
+    } catch (e) {
+      // Ohne gespeicherte Rückmeldung kein verwaistes Foto
+      if (shot) await this.sb.storage.from("feedback").remove([shot]).catch(() => undefined);
+      throw e;
+    }
+  }
+  async isAppAdmin() { return !!(await q<boolean>(this.sb.rpc("is_app_admin"))); }
+  async feedbackOpenCount() { return Number(await q<number>(this.sb.rpc("feedback_open_count"))) || 0; }
+  async feedbackList(status: "open" | "done" | "all"): Promise<FeedbackItem[]> {
+    const rows = await q<Row[]>(this.sb.rpc("feedback_list", { p_status: status }));
+    return (rows || []).map(r => ({
+      id: r.id, kind: r.kind, text: r.text, page: r.page || null, appVersion: r.app_version || null, updateId: r.update_id || null,
+      platform: r.platform || "web", osVersion: r.os_version || null, device: r.device || null, shotPath: r.shot_path || null,
+      status: r.status === "done" ? "done" : "open", createdAt: r.created_at, doneAt: r.done_at || null,
+      role: r.role || null, team: r.team || null, reporter: r.reporter || null,
+    }));
+  }
+  async feedbackSetDone(id: string, done: boolean) { await q(this.sb.rpc("feedback_set_done", { p_id: id, p_done: done })); }
+  async feedbackDelete(id: string) {
+    const path = await q<string | null>(this.sb.rpc("feedback_delete", { p_id: id }));
+    if (path) await this.sb.storage.from("feedback").remove([path]).catch(() => undefined);
+  }
+  async feedbackShotUrl(path: string) { const { data } = await this.sb.storage.from("feedback").createSignedUrl(path, 3600); return data?.signedUrl || null; }
 }
 
 /** Hilfsfunktion für die Teamerstellung (Einstellungen der gewählten Altersklasse). */

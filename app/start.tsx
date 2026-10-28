@@ -3,7 +3,7 @@ import { teamLabel } from "../src/core/classes";
 import React from "react";
 import { Pressable } from "react-native";
 import { useStore } from "../src/data/store";
-import { Btn, Card, Col, Header, Muted, Screen, T } from "../src/ui/kit";
+import { Banner, Btn, Card, Col, Header, Muted, Row, Screen, T } from "../src/ui/kit";
 
 export default function Start() {
   const s = useStore(); const { t, tf } = s.tr; const router = useRouter();
@@ -16,6 +16,14 @@ export default function Start() {
     <Screen testID="start">
       <Header eyebrow={s.user?.displayName || ""} title={t("st_title")} />
       <Col gap={12} style={{ maxWidth: 560 }}>
+        {s.pendingInvite ? <Banner testID="st-invite"><Col gap={8}>
+          <T>{tf("inv_found", { c: s.pendingInvite.code })}</T>
+          <Row gap={8} wrap>
+            <Btn small kind="primary" testID="st-invite-go" label={t(s.pendingInvite.kind === "staff" ? "inv_joinStaff" : "inv_join")}
+              onPress={() => router.push((s.pendingInvite!.kind === "staff" ? "/staff-join?code=" : "/join?code=") + encodeURIComponent(s.pendingInvite!.code))} />
+            <Btn small kind="ghost" testID="st-invite-forget" label={t("inv_forget")} onPress={() => s.rememberInvite(null)} />
+          </Row>
+        </Col></Banner> : null}
         {opt("create", t("st_create"), t("st_create_d"), "/setup")}
         {opt("join", t("st_join"), t("st_join_d"), "/join")}
         {opt("staff", t("st_staff"), t("st_staff_d"), "/staff-join")}

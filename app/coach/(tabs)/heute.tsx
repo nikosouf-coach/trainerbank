@@ -23,6 +23,7 @@ import { MatchdayCard } from "../../../src/ui/matchday";
 import { TeamStatusCard } from "../../../src/ui/teamStatus";
 import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
+import { CrashAsk } from "../../../src/ui/pilot";
 import { InboxCard } from "../../../src/ui/inbox";
 import { ViaClubBanner } from "../../../src/ui/club";
 import { Icon, type IconName } from "../../../src/ui/icons";
@@ -171,6 +172,7 @@ export default function Heute() {
       <Header eyebrow={`${longDate(E, E.TODAY)} · ${teamLabel(E.team)}`} title={myName ? `${gruss}, ${myName}` : gruss}
         aside={<TeamLogo size={46} />} />
       <ViaClubBanner />
+      <CrashAsk />
       {/* Breiter Bildschirm (Tablet, Laptop): nächste Einheit über die ganze Breite, die übrigen Bereiche in zwei Spalten
           (Reihenfolge bleibt zeilenweise erhalten) */}
       {wide ? <>

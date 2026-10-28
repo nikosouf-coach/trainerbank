@@ -83,6 +83,7 @@ export default function Ich() {
         {E.playerSees("dev") ? <ListItem testID="me-dev" title={t("dv_mine")} sub={`${t("dv_myGoals")} · ${t("dv_profile")} · ${t("iq_title")}`} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/entwicklung")} /> : null}
         {E.mods.kontakte && E.playerSees("contacts") ? <ListItem testID="me-kontakte" title={t("ct_title")} sub={t("ct_sub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/kontakte")} /> : null}
         <ListItem testID="me-wiki" title={t("wk_menu")} sub={t("wk_menuSub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/wiki")} />
+        <ListItem testID="me-feedback" title={t("fb_menu")} sub={t("fb_menuSub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/feedback")} />
         <ListItem testID="me-konto" title={t("pl_account")} sub={s.isDemo ? t("w_demoHint") : s.user?.email || ""} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/konto")} />
       </Card>
     </Screen>

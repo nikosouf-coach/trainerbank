@@ -121,6 +121,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `scout_players` (…0026) | externer Spieler: `first_name`, `last_name`, `birth_year`/`birthdate`, `positions` (≤ 3, Hauptposition zuerst), `foot`, `height_cm`, `club`, `club_team`, `status` (watch/scout/trial/talks/signed/declined/dropped), `priority` (a/b/c), `level`/`potential` 1–5, `tags`, `lists`, `source`, `contact`, `video_url` (nur http/https), `note`, `next_date`/`next_note`, `informed_at` (Information nach Art. 14 DSGVO), `player_id` (nach Übernahme in den Kader); **keine Gesundheitsdaten** | nur Staff mit `scout`; Spieler nie |
 | `scout_reports` (…0026) | Beobachtung: `date`, `event`, `kind` (match/tournament/training/video/trial/other), `minutes`, `position`, `scores` jsonb (Bereiche und Kompetenzen 1–5), `grade` 1–5, `verdict` (sign/watch/no), `strengths`, `weaknesses`, `summary`, `author`/`author_name` (setzt der Server) | nur Staff mit `scout`; ein neuer Bericht frischt `scout_players.updated_at` auf (Löschfrist) |
 | `squad_plans` (…0026) | Saisonplanung je Team und Saison (`season` = Beginnjahr, unique, nicht änderbar): `content` jsonb (Spielform, Grundordnung, je Position Soll, Anforderungsprofil, eingeplanter Kader und Schattenkandidaten in Reihenfolge, Stand der eigenen Spieler, Kurzangaben zu Aufrückern, Notizen; ≤ 200 kB) | nur Staff mit `scout` |
+| `app_admins`, `feedback` (…0030) | Betreiber der App (nur per SQL eintragen); Rückmeldungen: `kind` (bug/unclear/wish/praise), `text`, `page` (ohne IDs), `app_version`, `update_id`, `platform`, `os_version`, `device`, `shot_path` (Bucket `feedback`, `{user_id}/{uuid}.jpg`), `status`, `role` und `team_id` (setzt der Trigger nach Mitgliedschaft), höchstens 20 je Konto und Tag | eigene lesen, einfügen; Betreiber alles über `feedback_list`, `feedback_set_done`, `feedback_delete`; Löschfrist 12 Monate nach Erledigung (ohne Foto) |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -354,7 +355,7 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `team_by_join_code(code)` → Vereins-/Teamname zur Anzeige vor dem Beitritt (keine weiteren Daten).
 - `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen,
   Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining; v7: Matchplan).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v7` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein): Profil, Gesundheitsdaten
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v8` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -382,6 +383,9 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Jahrgang, Team; Recht `scout`).
 - `is_treasurer(team)`, `can_manage_cash(team)`, `team_cash_balance(team)` – Kasse; der Kassenstand geht an Spieler
   nur, wenn er freigegeben ist.
+- `is_app_admin()`, `feedback_list(status)`, `feedback_open_count()`, `feedback_set_done(id, done)`, `feedback_delete(id)`
+  (liefert den Pfad des Bildschirmfotos), `purge_old_feedback()` (täglich) – Rückmeldungen; Liste und Änderungen nur
+  für Betreiber.
 - `my_test_ranks(player)` – nur für den eigenen Spieler: Platz je Test unter den aktiven Spielern (jeweils letzter
   Wert der letzten 365 Tage, ab 5 Werten) und – wenn eingestellt – der Teambestwert. Werte oder Namen anderer Spieler
   werden nie ausgegeben.

@@ -154,6 +154,9 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.36 | Verein | Verein (Name, Farbe, Codes) und verbundene Teams; Funktionäre (Konto, Funktion, Bezeichnung, Rechte, zugewiesene Teams; Anfragen); Kennzahlen je Team in der Vereinsübersicht (Zahl der Spieler, nächstes und letztes Spiel, Bilanz, Zahl der Verletzten, Kranken und Abwesenden, Trainingsbeteiligung, Zahl der Trainings, Status des Matchplans – **ohne Namen**); beim Hochziehen oder Wechsel: Spielerprofil im Zielteam (Name, Geburtsdatum, Position, Rückennummer, Gewicht, Herkunftsteam) und – nur auf Wunsch des Trainerteams – Belastung der letzten 6 Wochen (je Tag zusammengefasst als „Training <Team>“), Zusatzsport, Morgen-Checks der letzten 4 Wochen und laufende Abwesenheiten; Ankündigungen des Vereins im Teamchat (wie 4.34) | Funktionäre des Vereins (nach Rechten), Trainerteams der beteiligten Teams | – |
 | 4.35 | Matchplan | Aufstellung (Startelf, Bank, Kapitän, Position), Aufgabe für dich, Folien, Spielidee, Gegneranalyse, Wechselplan (geplante Minuten) – vom Trainerteam erstellt (intern mit Vermerk, wer im Trainerteam ein Element oder eine Folie angelegt hat; dieser Vermerk ist für Spieler nicht sichtbar); **Zugriffsprotokoll**: wann du einen freigegebenen Matchplan geöffnet hast, Plattform (iOS/Android/Web) und erkannte Screenshots | Trainerteam; du (freigegebene Bereiche) | – |
 | 4.37 | Kaderplanung und Scouting | **Saisonplanung:** Grundordnung, je Position Soll, Anforderungsprofil, eingeplante Spieler und Schattenkandidaten in Reihenfolge, dein Stand für die Saison (offen, fest, Perspektive, unsicher, Abgang; das Erreichen der Altersgrenze berechnet die App aus deinem Geburtsjahr) mit kurzer Notiz, Notizen zur Saison. **Aufrücker:** Spieler jüngerer Teams des Vereins mit Vorname, Nachname, Position, Jahrgang und Team. **Scouting** (Spieler, die Trainerbank nicht nutzen): Vor- und Nachname, Jahrgang bzw. Geburtsdatum, Positionen, starker Fuß, Größe, Verein und Mannschaft/Liga, Status (beobachten, Sichtung, Probetraining, Gespräche, Zusage, Absage, kein Interesse), Priorität, Einschätzung von aktuellem Niveau und Potenzial, Merkmale, Merklisten, Quelle, Kontaktweg (z. B. „über den Vater“), Videolink, Notiz, nächster Schritt, Berichte (Datum, Anlass, Art der Beobachtung, Minuten, Position, Bewertung 1–5 je Bereich und Kompetenz, Gesamteindruck, Empfehlung, Stärken, Entwicklungsfelder, Fazit, Verfasser), Datum der Information nach Art. 14 DSGVO; **keine Gesundheitsdaten** | Trainerteam; Aufrücker aus den Kaderdaten der Vereinsteams | – |
+| 4.38 | Rückmeldungen aus der App | Art (Fehler, Unklar, Wunsch, Lob), dein Text, optional ein Bildschirmfoto, die zuletzt geöffnete Seite (ohne IDs), App-Version, Gerätemodell und Betriebssystem, dein Konto (für Rückfragen), das aktive Team und deine Rolle dort; Status (offen, erledigt) | du | freiwillig |
+| 4.39 | Absturzberichte | nur wenn du sie auf deinem Gerät einschaltest: Fehlermeldung und Stelle im Programmcode, App-Version und Build, Kanal der Updates, Gerätemodell, Betriebssystem, Zeitpunkt, die zuletzt geöffneten Seiten (ohne IDs) und eine zufällige Kennung der Installation (zum Zählen absturzfreier Sitzungen); **keine** Namen, E-Mail- oder IP-Adressen, keine Gesundheitsdaten, keine Bildschirmfotos, keine Netzwerk- oder Konsolendaten | dein Gerät | freiwillig |
+| 4.40 | App-Updates | beim Start fragt die App bei Expo nach einer neuen Version: IP-Adresse, Plattform, App-Version, Laufzeitversion und Kanal (Test oder Store) | dein Gerät | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -280,8 +283,9 @@ Nachrichten (4.11) können Gesundheitsbezug haben, wenn das Trainerteam darin z.
 Die „Körperregion“ bei Beschwerden oder Verletzungen ist eine Angabe wie „Oberschenkel hinten links“. Trainerbank erfasst **keinen
 Standort** (keine GPS- oder Ortungsdaten).
 
-> **Prüfhinweis:** Abgleichen, ob die App weitere Daten verarbeitet (z. B. Absturzberichte, App-Version, Zeitzone des
-> Geräts, Kontakte, Kamera). Wenn ja, ergänzen – auch in den Store-Formularen (`docs/STORE.md`).
+> **Prüfhinweis:** Abgleichen, ob die App weitere Daten verarbeitet (z. B. Zeitzone des Geräts, Kontakte, Kamera).
+> Wenn ja, ergänzen – auch in den Store-Formularen (`docs/STORE.md`). Rückmeldungen, Absturzberichte und App-Updates
+> (4.38–4.40) sind seit Oktober 2026 erfasst.
 
 ## 5. Zwecke und Rechtsgrundlagen
 
@@ -299,6 +303,9 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Vertraulichkeit des Matchplans: Wasserzeichen, Bildschirmschutz und Zugriffsprotokoll | 4.35 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Mannschaft, die Spielvorbereitung vertraulich zu halten; das Protokoll enthält nur Zeitpunkt, Plattform und erkannte Screenshots und wird nach 6 Monaten gelöscht) |
 | Sicherheit, Missbrauchsabwehr, Fehleranalyse, Tageslimit für den KI-Coach | 4.15 (Zähler), 4.16 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem sicheren und bezahlbaren Betrieb) |
 | Speicherung auf deinem Gerät (Anmeldesitzung, Sprache, Einstellungen) | – | § 25 Abs. 2 Nr. 2 TDDDG (unbedingt erforderlich); Art. 6 Abs. 1 lit. b DSGVO |
+| Rückmeldungen aus der App bearbeiten (Fehler beheben, App verbessern, Rückfragen) | 4.38 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer funktionierenden, verständlichen App; du schickst die Rückmeldung freiwillig) |
+| Absturzberichte | 4.39 | Einwilligung, Art. 6 Abs. 1 lit. a DSGVO und § 25 Abs. 1 TDDDG (Schalter in der App, jederzeit abschaltbar; ohne Zustimmung werden keine Berichte gesendet) |
+| App-Updates laden | 4.40 | Art. 6 Abs. 1 lit. b DSGVO; § 25 Abs. 2 Nr. 2 TDDDG (für eine fehlerfreie und sichere App unbedingt erforderlich) |
 | Beantwortung von Anfragen | 4.17 | Art. 6 Abs. 1 lit. b DSGVO, sonst Art. 6 Abs. 1 lit. f DSGVO |
 | [Vertragsabwicklung und Rechnungsstellung mit Vereinen] | [Rechnungsdaten] | [Art. 6 Abs. 1 lit. b und lit. c DSGVO i. V. m. HGB/AO] |
 | Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen | je nach Fall | Art. 6 Abs. 1 lit. f DSGVO, bei Gesundheitsdaten Art. 9 Abs. 2 lit. f DSGVO |
@@ -461,7 +468,8 @@ die Daten in unserem Auftrag und nach unseren Weisungen verarbeiten (Auftragsver
 |---|---|---|---|---|
 | Supabase [Vertragspartner und Anschrift laut Auftragsverarbeitungsvertrag] | Datenbank, Anmeldung, Dateispeicher (Profilfotos, Befunde, Skizzen-Fotos), Serverfunktionen (Weiterleitung an den KI-Coach, Push-Erinnerungen) | alle in der App gespeicherten Daten, Server-Protokolle | Rechenzentrum in der EU: Frankfurt am Main (AWS eu-central-1) | Auftragsverarbeitungsvertrag [abgeschlossen am …]; zu prüfen: Zugriffe des Anbieters oder seiner Unterauftragsverarbeiter aus Drittländern (z. B. Support) und die dafür geltenden Garantien |
 | Anthropic [Vertragspartner und Anschrift laut Vertrag] | KI-Coach (Claude API) – nur mit deiner Einwilligung | Text deiner Anfrage und reduzierter Kontext (Abschnitt 11) | USA | zu prüfen, siehe Abschnitt 10 |
-| Expo (650 Industries, Inc.) [Anschrift prüfen] | Versand von Push-Mitteilungen | Push-Token, Plattform, Text der Mitteilung | USA | zu prüfen, siehe Abschnitt 10 |
+| Expo (650 Industries, Inc.) [Anschrift prüfen] | Versand von Push-Mitteilungen; Auslieferung von App-Updates (EAS Update) | Push-Token, Plattform, Text der Mitteilung; bei Updates IP-Adresse, Plattform, App-Version, Kanal | USA | zu prüfen, siehe Abschnitt 10 |
+| Sentry (Functional Software, Inc.) [Anschrift prüfen] | Absturzberichte – nur, wenn du sie einschaltest | Daten nach 4.39 | Speicherort in der EU (Deutschland); Zugriffe des Anbieters aus den USA zu prüfen | Auftragsverarbeitungsvertrag [abschließen], Garantien siehe Abschnitt 10 |
 | Apple (Apple Push Notification Service) bzw. Google (Firebase Cloud Messaging) | Zustellung von Push-Mitteilungen auf dein Gerät | Push-Token, Text der Mitteilung | [zu prüfen] | Rolle und Garantien zu prüfen |
 | [E-Mail-Versanddienstleister] | Bestätigungs- und Passwort-E-Mails, [Bestätigung für Erziehungsberechtigte] | E-Mail-Adresse, Link | [Ort] | [Auftragsverarbeitungsvertrag] |
 | [Webhoster der Web-App und Website] | Auslieferung der Web-Version und der Website | IP-Adresse, Zugriffsdaten | [Ort] | [Auftragsverarbeitungsvertrag] |
@@ -487,6 +495,9 @@ EU bzw. des EWR übermittelt, insbesondere in die USA:
 
 - **KI-Coach (Anthropic, USA)** – nur wenn du den KI-Coach mit gesonderter Einwilligung nutzt.
 - **Push-Mitteilungen (Expo, USA; Zustellung über Apple bzw. Google)** – nur wenn du Push-Mitteilungen erlaubst.
+- **App-Updates (Expo, USA)** – beim Start der App (IP-Adresse, Plattform, App-Version, Kanal).
+- **[Absturzberichte (Sentry): Speicherort in der EU; mögliche Zugriffe des Anbieters aus den USA, z. B. für Support –
+  zu prüfen] – nur wenn du Absturzberichte einschaltest.**
 - **[Zugriffe von Supabase oder seinen Unterauftragsverarbeitern aus Drittländern, z. B. für Support oder Betrieb –
   zu prüfen].**
 
@@ -575,6 +586,37 @@ von Expo und die Zustelldienste von Apple bzw. Google (Abschnitte 9 und 10). **M
 Gesundheitsangaben und keine Chat-Inhalte** (nur „Neue Nachricht von …“), weil sie auf dem Sperrbildschirm sichtbar
 sein können.
 
+### 12a. Absturzberichte
+
+Damit wir Fehler schnell finden, kann die App bei einem Absturz oder Programmfehler einen technischen Bericht an
+Sentry senden – **nur, wenn du das auf deinem Gerät einschaltest** (Hinweis auf der Startseite oder im Konto unter
+„Absturzberichte senden“). Gesendet werden nur die Angaben aus 4.39: was schiefging und wo im Programm, App-Version,
+Gerätemodell, Betriebssystem und die zuletzt geöffneten Seiten der App (ohne IDs). **Keine** Namen, E-Mail- oder
+IP-Adressen, keine Gesundheitsdaten, keine Bildschirmfotos, keine Inhalte aus dem Netzwerkverkehr oder der Konsole.
+Die Berichte werden in der EU gespeichert. Du kannst die Einwilligung jederzeit im Konto widerrufen; danach sendet
+die App keine Berichte mehr. Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG.
+
+### 12b. Rückmeldungen aus der App
+
+Über „Feedback / Fehler melden“ kannst du uns Fehler, Unklares, Wünsche oder Lob schicken – freiwillig. Gespeichert
+werden die Angaben aus 4.38 auf unserem Server in Frankfurt; lesen können sie nur du (deine eigenen) und die
+Betreiber der App, um Fehler zu beheben und dir bei Bedarf zu antworten. Bitte schreib **keine Gesundheitsangaben und
+keine Namen anderer Personen** hinein und decke solche Angaben auf Bildschirmfotos ab. Zur Bearbeitung geben wir den
+Text einer Rückmeldung **ohne Namen und ohne Konto** an Werkzeuge weiter, mit denen wir die App entwickeln
+[Dienst, Rolle und Garantien eintragen, z. B. Anthropic (Claude) – zu prüfen]. Rechtsgrundlage: Art. 6 Abs. 1
+lit. f DSGVO.
+
+### 12c. App-Updates
+
+Kleinere Verbesserungen und Fehlerkorrekturen lädt die App ohne Umweg über den App Store bzw. Google Play beim Start
+von Expo (EAS Update). Dabei werden die Angaben aus 4.40 verarbeitet. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO,
+§ 25 Abs. 2 Nr. 2 TDDDG.
+
+> **Prüfhinweis:** Sentry: Auftragsverarbeitungsvertrag (in den Einstellungen der Organisation), Speicherort EU bei
+> der Anlage der Organisation gewählt, Einstellung „IP-Adressen nicht speichern“ im Projekt aktiv, Speicherdauer laut
+> Tarif eintragen; Zugriffe aus den USA und Garantien prüfen. Weitergabe von Rückmeldungen an Entwicklungswerkzeuge:
+> Dienst, Auftragsverarbeitung und Drittlandübermittlung prüfen oder streichen.
+
 ## 13. Web-Version und Speicherung auf deinem Gerät
 
 Die App speichert auf deinem Gerät bzw. im Browser nur, was für den Betrieb unbedingt erforderlich ist: die
@@ -639,6 +681,8 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Angaben zum Schmerz | wie Gesundheitsdaten (mit dem Morgen-Check-Eintrag) |
 | Mannschaftskasse | Buchungen und Befreiungen bei Löschung durch Kasse/Trainerteam oder des Teams; beim Löschen eines Spielers werden Befreiungen gelöscht und Buchungen anonymisiert |
 | Offline-Einträge und Stand auf dem Gerät | nach dem Senden bzw. spätestens nach 14 Tagen; der Stand beim Abmelden und Löschen des Kontos |
+| Rückmeldungen aus der App | bis die Betreiber sie löschen; erledigte ohne Bildschirmfoto automatisch nach 12 Monaten; sofort mit deinem Konto (samt Bildschirmfotos) |
+| Absturzberichte | beim Anbieter nach [Speicherdauer laut Sentry-Tarif]; auf dem Gerät nur deine Einstellung |
 | Einwilligungsnachweise | für die Dauer der Verarbeitung und danach [3] Jahre (Verjährungsfrist, Nachweispflicht nach Art. 7 Abs. 1 DSGVO), danach Löschung |
 | Push-Token | bei Abmeldung, wenn der Token ungültig wird, spätestens nach [6] Monaten ohne Aktualisierung |
 | Zähler für KI-Anfragen | nach [30] Tagen |
@@ -665,7 +709,8 @@ Team … – zu regeln].
 ## 17. Keine Werbung, kein Tracking, kein Verkauf
 
 Trainerbank enthält keine Werbung, keine Tracking- oder Analyse-SDKs von Drittanbietern und kein geräteübergreifendes
-Tracking. Wir erstellen keine Werbeprofile und verkaufen keine Daten.
+Tracking. Einzige Ausnahme sind Absturzberichte über Sentry – nur, wenn du sie einschaltest, und ohne Namen und
+Gesundheitsdaten (Abschnitt 12a). Wir erstellen keine Werbeprofile und verkaufen keine Daten.
 
 ## 18. Datensicherheit
 
@@ -787,7 +832,12 @@ right in both teams); squad planning for the next season (your planning status w
 coaching staff only, like coach notes; older teams of your club see only your name, position, year of birth and team
 as a possible call-up) and scouting of players who do not use the app (sporting impressions only, no health data, no
 photos; they – or for minors their parents – are informed under Art. 14 GDPR; deleted 6 months after a decline,
-otherwise after 24 months without activity); push tokens; AI usage counters; technical server logs. Load, wellness,
+otherwise after 24 months without activity); feedback you send from the app (kind, text, optional screenshot, the page
+opened last without IDs, app version, device model and OS, your account and team – readable by you and the operators
+only; completed feedback without a screenshot is deleted after 12 months); crash reports via Sentry only if you switch
+them on (error and code location, app version, device, pages opened last – no names, e-mail or IP addresses, no health
+data, no screenshots; stored in the EU); update checks with Expo (IP address, platform, app version, channel); push
+tokens; AI usage counters; technical server logs. Load, wellness,
 complaints and body regions, injury, illness, height and weight, rehab/load-build/growth group membership and test
 results are treated as **health data** (Art. 9 GDPR).
 
@@ -795,7 +845,9 @@ results are treated as **health data** (Art. 9 GDPR).
 players without an account – legitimate interests in organising training and matches (Art. 6(1)(f)); health data and
 the AI coach – explicit consent (Art. 9(2)(a), Art. 6(1)(a)); consent records – legal obligation (Art. 6(1)(c),
 Art. 7(1)); squad planning and scouting – legitimate interests in planning the squad and identifying talent
-(Art. 6(1)(f)); security and abuse prevention – legitimate interests (Art. 6(1)(f)); device storage – § 25(2) no. 2 TDDDG.
+(Art. 6(1)(f)); security and abuse prevention – legitimate interests (Art. 6(1)(f)); device storage – § 25(2) no. 2 TDDDG;
+feedback – legitimate interests in a working app (Art. 6(1)(f)); crash reports – consent (Art. 6(1)(a), § 25(1) TDDDG);
+app updates – contract (Art. 6(1)(b)), § 25(2) no. 2 TDDDG.
 
 **Who sees what:** players see only their own data; the coaching staff of the team (owner, coach, physio) see the data
 of their team's players; team-mates never see each other's data. In the chat, members of a chat see its messages

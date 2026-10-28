@@ -1,11 +1,13 @@
-import { Stack } from "expo-router";
+import { Stack, usePathname } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { Platform, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { enableFreeze } from "react-native-screens";
+import { crashPage } from "../src/data/crash";
 import { usePush } from "../src/data/push";
 import { StoreProvider, useStore } from "../src/data/store";
+import { notePath } from "../src/data/trail";
 import { InfoHost, Toast } from "../src/ui/kit";
 import { BRAND, ThemeProvider, useTheme } from "../src/ui/theme";
 
@@ -16,6 +18,9 @@ enableFreeze(true);
 function Shell() {
   const s = useStore();
   usePush();
+  // Zuletzt geöffnete Seiten (ohne IDs) für Rückmeldungen und Absturzberichte
+  const path = usePathname();
+  useEffect(() => { const p = notePath(path || ""); if (p) crashPage(p); }, [path]);
   return (
     <ThemeProvider accent={s.D?.team.accent || BRAND.green} mode={s.themeMode}>
       <Body toast={s.toastMsg} closeLabel={s.tr.t("cancel")} info={s.prefs.info !== false} />

@@ -1,5 +1,4 @@
 // Konto & Datenschutz (für Trainer und Spieler): Sprache, Teams, Einwilligungen, Erinnerungen, Export, Löschen.
-import Constants from "expo-constants";
 import { teamLabel } from "../src/core/classes";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
@@ -13,6 +12,7 @@ import { usePhotoUrl } from "../src/ui/playerAvatar";
 import { ProfileFields, emptyProfile, profileName, type ProfileDraft } from "../src/ui/setupParts";
 import { StaffAvatar } from "../src/ui/teamLogo";
 import { DashEditor, PlayerTabsEditor } from "../src/ui/dashboard";
+import { CrashCard, VersionRow } from "../src/ui/pilot";
 import { useTheme } from "../src/ui/theme";
 import { tmpId } from "../src/data/store";
 
@@ -114,6 +114,8 @@ export default function Konto() {
         <ListItem title={t("cs_privacy")} sub={t("cs_privacy_s")} right={<StatusChip status={s.consents?.privacy ? "ok" : "none"} label={t(s.consents?.privacy ? "cs_active" : "cs_inactive")} />} />
       </Card>
 
+      <CrashCard />
+
       {isPlayer ? <Card>
         <CardTitle title={t("ko_push")} />
         {Platform.OS === "web" ? <Muted>{t("ko_pushWeb")}</Muted> : <>
@@ -132,7 +134,7 @@ export default function Konto() {
           <Btn testID="ko-export" label={t("ko_export")} disabled={busy || s.isDemo} onPress={doExport} style={{ alignSelf: "flex-start" }} />
           <Btn testID="ko-delete" kind="danger" label={t("ko_delete")} disabled={busy || s.isDemo} onPress={() => setAsk("delete")} style={{ alignSelf: "flex-start" }} />
         </Col>
-        <Muted small>{t("ko_version")} {Constants.expoConfig?.version || "1.0.0"}</Muted>
+        <VersionRow />
       </Card>
 
       <Sheet visible={!!prof} onClose={() => setProf(null)} title={t("pf_title")} testID="ko-profile-sheet" closeLabel={t("cancel")}>

@@ -1,0 +1,50 @@
+# Liefert Korrekturen ohne Store-Prüfung aus (EAS Update): Die installierten Apps laden das Update beim nächsten Start
+# im Hintergrund und nutzen es ab dem Start danach. Gilt nur für JavaScript und Bilder – neue native Pakete oder
+# Berechtigungen brauchen einen neuen Build (Version in app.config.ts erhöhen, siehe runtimeVersion).
+# Start: Actions → App-Update ausliefern → Run workflow (Kanal und kurze Beschreibung).
+#
+# Benötigt: Repository-Secret EXPO_TOKEN und Repository-Variable EAS_PROJECT_ID (wie „App bauen“).
+# Die App-Umgebungsvariablen (EXPO_PUBLIC_…) kommen aus EAS: expo.dev → Projekt → Environment variables.
+name: App-Update ausliefern
+
+on:
+  workflow_dispatch:
+    inputs:
+      kanal:
+        description: Kanal (preview = Testversion, production = Store)
+        type: choice
+        options: [preview, production]
+        default: preview
+      nachricht:
+        description: Was ist neu? (kurz, erscheint bei Expo)
+        required: true
+
+concurrency:
+  group: app-update-${{ inputs.kanal }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    env:
+      EAS_PROJECT_ID: ${{ vars.EAS_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: expo/expo-github-action@v9
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Pakete installieren
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - name: Prüfen (Kernlogik und TypeScript)
+        run: |
+          npm test
+          npm run typecheck
+      - name: Update veröffentlichen
+        env:
+          KANAL: ${{ inputs.kanal }}
+          NACHRICHT: ${{ inputs.nachricht }}
+        run: eas update --channel "$KANAL" --environment "$KANAL" --message "$NACHRICHT" --non-interactive

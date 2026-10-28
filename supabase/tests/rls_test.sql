@@ -3337,6 +3337,130 @@ $$;
 commit;
 
 -- =====================================================================
+-- T51 Rückmeldungen aus der App: eigene Zeilen, Betreiber, Bildschirmfotos, Spam-Grenze
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$insert into public.feedback (team_id, kind, text, page, app_version, platform, os_version, device)
+                              values (%L, 'bug', '  Absturz beim Speichern  ', '/player/eintragen', '1.0.0 (3)', 'ios', '18.1', 'iPhone 15')$q$,
+                          tst.get('team_a')), 1, 'T51 Spieler schickt eine Rückmeldung');
+select tst.affects(format($q$insert into public.feedback (user_id, team_id, kind, text, status, done_at)
+                              values (%L, %L, 'wish', 'Bitte eine Tabelle', 'done', now())$q$,
+                          tst.uid('coachA'), tst.get('team_a')), 1, 'T51 fremde user_id und Status werden überschrieben');
+select tst.affects(format($q$insert into public.feedback (team_id, kind, text) values (%L, 'unclear', 'Wo finde ich das?')$q$,
+                          tst.get('team_b')), 1, 'T51 Rückmeldung mit fremdem Team wird angenommen');
+select tst.throws($q$insert into public.feedback (kind, text, shot_path) values ('bug', 'Bild dabei', 'anderer/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg')$q$,
+                  'T51 Bildschirmfoto nur aus dem eigenen Ordner', 'invalid_body');
+select tst.affects(format($q$insert into public.feedback (kind, text, shot_path) values ('bug', 'Bild dabei', %L)$q$,
+                          tst.uid('p1')::text || '/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'), 1, 'T51 Rückmeldung mit eigenem Bildschirmfoto');
+select tst.throws($q$insert into public.feedback (kind, text) values ('bug', 'ab')$q$, 'T51 zu kurzer Text abgelehnt', 'check constraint');
+select tst.throws($q$insert into public.feedback (kind, text) values ('spam', 'Hallo zusammen')$q$, 'T51 unbekannte Art abgelehnt', 'check constraint');
+do $$
+begin
+  perform tst.eq((select count(*) from public.feedback)::text, '4', 'T51 Spieler sieht die eigenen Rückmeldungen');
+  perform tst.eq((select string_agg(distinct user_id::text, ',') from public.feedback), tst.uid('p1')::text, 'T51 alle Zeilen gehören dem Konto');
+  perform tst.eq((select role || '/' || status || '/' || text from public.feedback where kind = 'bug' and shot_path is null),
+                 'player/open/Absturz beim Speichern', 'T51 Rolle aus dem Team, Status offen, Text ohne Leerraum');
+  perform tst.eq((select status || '/' || coalesce(done_at::text, '-') from public.feedback where kind = 'wish'), 'open/-', 'T51 Status lässt sich nicht vorgeben');
+  perform tst.eq((select coalesce(team_id::text, '-') || '/' || coalesce(role, '-') from public.feedback where kind = 'unclear'), '-/-',
+                 'T51 fremdes Team wird entfernt');
+  perform tst.eq(public.feedback_open_count()::text, '0', 'T51 Zähler ist für Nicht-Betreiber 0');
+end
+$$;
+select tst.affects($q$update public.feedback set status = 'done'$q$, 0, 'T51 Spieler ändert keine Rückmeldungen');
+select tst.affects($q$delete from public.feedback$q$, 0, 'T51 Spieler löscht keine Rückmeldungen');
+select tst.throws($q$select public.feedback_list('open')$q$, 'T51 Liste nur für Betreiber', 'forbidden');
+select tst.throws(format($q$select public.feedback_set_done(%L, true)$q$, (select id from public.feedback limit 1)), 'T51 erledigen nur für Betreiber', 'forbidden');
+select tst.throws($q$insert into public.app_admins (user_id) select auth.uid()$q$, 'T51 niemand macht sich selbst zum Betreiber', 'row-level security');
+select tst.affects(format($q$insert into storage.objects (bucket_id, name) values ('feedback', %L)$q$,
+                          tst.uid('p1')::text || '/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg'), 1, 'T51 Bildschirmfoto in den eigenen Ordner');
+select tst.throws(format($q$insert into storage.objects (bucket_id, name) values ('feedback', %L)$q$,
+                         tst.uid('coachA')::text || '/bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb.jpg'), 'T51 kein Foto in fremde Ordner', 'row-level security');
+select tst.throws(format($q$insert into storage.objects (bucket_id, name) values ('feedback', %L)$q$,
+                         tst.uid('p1')::text || '/foto.png'), 'T51 nur JPEG mit zufälligem Namen', 'row-level security');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$
+begin
+  perform tst.eq((select count(*) from public.feedback)::text, '0', 'T51 Trainer sieht fremde Rückmeldungen nicht');
+  perform tst.eq((select count(*) from storage.objects where bucket_id = 'feedback')::text, '0', 'T51 Trainer sieht fremde Bildschirmfotos nicht');
+  perform tst.ok(not public.is_app_admin(), 'T51 Trainer ist kein Betreiber');
+end
+$$;
+commit;
+
+insert into public.app_admins (user_id) values (:'coachA');
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$
+declare
+  l jsonb := public.feedback_list('open');
+  bug jsonb;
+begin
+  perform tst.ok(public.is_app_admin(), 'T51 Betreiber erkannt');
+  perform tst.eq(jsonb_array_length(l)::text, '4', 'T51 Betreiber sieht alle offenen Rückmeldungen');
+  select e into bug from jsonb_array_elements(l) e where e ->> 'kind' = 'bug' and e ->> 'shot_path' is null;
+  perform tst.eq((bug ->> 'reporter') || '/' || (bug ->> 'device') || '/' || (bug ->> 'page'), 'Maxi/iPhone 15//player/eintragen',
+                 'T51 Liste mit Anzeigename, Gerät und Seite');
+  perform tst.eq(bug ->> 'team', (select btrim(club || ' ' || name) from public.teams where id = tst.get('team_a')::uuid), 'T51 Liste mit Team');
+  perform tst.eq(public.feedback_open_count()::text, '4', 'T51 Zähler offener Rückmeldungen');
+  perform public.feedback_set_done((bug ->> 'id')::uuid, true);
+  perform tst.eq(jsonb_array_length(public.feedback_list('done'))::text, '1', 'T51 Rückmeldung erledigt');
+  perform tst.eq(jsonb_array_length(public.feedback_list('all'))::text, '4', 'T51 Liste aller Rückmeldungen');
+  perform public.feedback_set_done((bug ->> 'id')::uuid, false);
+  perform tst.eq(public.feedback_open_count()::text, '4', 'T51 wieder offen');
+  perform tst.eq((select count(*) from storage.objects where bucket_id = 'feedback')::text, '1', 'T51 Betreiber sieht Bildschirmfotos');
+  perform tst.eq(public.feedback_delete((select (e ->> 'id')::uuid from jsonb_array_elements(l) e where e ->> 'shot_path' is not null)),
+                 tst.uid('p1')::text || '/aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa.jpg', 'T51 Löschen liefert den Pfad des Fotos');
+  perform tst.eq(public.feedback_open_count()::text, '3', 'T51 gelöschte Rückmeldung ist weg');
+end
+$$;
+select tst.throws($q$select public.feedback_set_done('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', true)$q$, 'T51 unbekannte Rückmeldung', 'not_found');
+select tst.affects($q$delete from storage.objects where bucket_id = 'feedback'$q$, 1, 'T51 Betreiber löscht das Bildschirmfoto');
+commit;
+
+delete from public.app_admins where user_id = :'coachA';
+
+-- Spam-Grenze: höchstens 20 Rückmeldungen in 24 Stunden
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$
+begin
+  for i in 1..20 loop
+    insert into public.feedback (kind, text) values ('wish', 'Wunsch Nummer ' || i);
+  end loop;
+end
+$$;
+select tst.throws($q$insert into public.feedback (kind, text) values ('wish', 'Noch ein Wunsch')$q$, 'T51 Spam-Grenze 20 je Tag', 'limit');
+commit;
+delete from public.feedback where user_id = :'p2';
+
+-- Löschfrist: erledigt und älter als 12 Monate (ohne Bildschirmfoto)
+insert into public.feedback (user_id, kind, text, status, created_at, done_at, shot_path) values
+  (:'p2', 'bug', 'purge alt erledigt', 'done', now() - interval '14 months', now() - interval '13 months', null),
+  (:'p2', 'bug', 'purge alt mit Foto', 'done', now() - interval '14 months', now() - interval '13 months', :'p2' || '/cccccccc-cccc-4ccc-8ccc-cccccccccccc.jpg'),
+  (:'p2', 'bug', 'purge alt offen', 'open', now() - interval '14 months', null, null),
+  (:'p2', 'bug', 'purge neu erledigt', 'done', now() - interval '2 months', now() - interval '1 month', null);
+begin;
+set local role service_role;
+do $$
+begin
+  perform tst.eq(public.purge_old_feedback()::text, '1', 'T51 erledigte Rückmeldung nach 12 Monaten gelöscht');
+  perform tst.eq((select string_agg(text, ',' order by text) from public.feedback where text like 'purge%'),
+                 'purge alt mit Foto,purge alt offen,purge neu erledigt', 'T51 mit Foto, offene und jüngere bleiben');
+end
+$$;
+commit;
+delete from public.feedback where user_id = :'p2';
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -3354,7 +3478,9 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v7', 'T21b Exportformat v7');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v8', 'T21b Exportformat v8');
+  perform tst.eq(jsonb_array_length(x -> 'feedback')::text, '3', 'T21b Export enthält die eigenen Rückmeldungen');
+  perform tst.ok(not ((x -> 'feedback' -> 0) ? 'shot_path'), 'T21b Export ohne Speicherpfade der Bildschirmfotos');
   perform tst.ok(x ? 'match_plan_views', 'T21b Export enthält das Zugriffsprotokoll der Matchpläne');
   perform tst.ok(x ?& array['groups', 'tasks', 'duties', 'fines', 'cash', 'cash_waivers'], 'T21b Export enthält Gruppen, Aufgaben, Dienste, Strafen, Kasse');
   perform tst.ok(x ?& array['assessments', 'goals', 'goal_entries', 'dev_talks', 'challenge_entries', 'indiv_requests', 'chat_messages', 'chat_reactions', 'chat_reports', 'chats'],
@@ -3428,6 +3554,7 @@ begin
   perform tst.eq((select count(*) from public.ai_usage where user_id = u)::text, '0', 'T22 KI-Zähler gelöscht');
   perform tst.eq((select count(*) from public.push_log where user_id = u)::text, '0', 'T22 Push-Log gelöscht');
   perform tst.eq((select count(*) from public.profiles where id = u)::text, '0', 'T22 Profil gelöscht');
+  perform tst.eq((select count(*) from public.feedback where user_id = u)::text, '0', 'T22 Rückmeldungen gelöscht');
   perform tst.eq((select count(*) from public.players where team_id = tst.get('team_a')::uuid)::text, '6',
                  'T22 übrige Spieler und Team bleiben bestehen');
   perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('p2_player')::uuid)::text, '2',

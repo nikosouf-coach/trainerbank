@@ -13,7 +13,8 @@ import type { IconName } from "./icons";
 export type NavGroup = "team" | "training" | "spiel" | "orga" | "setup";
 export const NAV_GROUPS: NavGroup[] = ["team", "training", "spiel", "orga", "setup"];
 
-export interface NavCtx { mods: Partial<Modules>; can: (p: Perm) => boolean; chatOn: boolean }
+export interface NavCtx { mods: Partial<Modules>; can: (p: Perm) => boolean; chatOn: boolean;
+  /** Betreiber der App (Rückmeldungen aller Nutzer) */ appAdmin?: boolean }
 export interface NavItem {
   /** Schlüssel = Name der Seite in der Tab-Navigation (wenn tab) */
   k: string; href: string; icon: IconName;
@@ -51,8 +52,11 @@ export const NAV: NavItem[] = [
   { k: "verein", href: "/verein", icon: "club", short: "cl_title", title: "cl_title", sub: "cl_menuSub", group: "setup", tab: false },
   { k: "baukasten", href: "/coach/baukasten", icon: "grid", short: "nvb_baukasten", title: "bk_title", sub: "bk_sub", group: "setup", tab: true, need: x => x.can("admin") },
   { k: "zugang", href: "/coach/zugang", icon: "key", short: "nvb_zugang", title: "mh_access", sub: "nvs_zugang", group: "setup", tab: true },
+  { k: "nutzung", href: "/coach/nutzung", icon: "people", short: "nu_title", title: "nu_title", sub: "nu_menuSub", group: "setup", tab: false, need: x => x.can("admin") },
   { k: "wiki", href: "/wiki", icon: "help", short: "wk_menu", title: "wk_menu", sub: "wk_menuSub", group: "setup", tab: false },
   { k: "konto", href: "/konto", icon: "person", short: "mh_account", title: "mh_account", sub: "nvs_konto", group: "setup", tab: false },
+  { k: "feedback", href: "/feedback", icon: "flag", short: "fb_menu", title: "fb_menu", sub: "fb_menuSub", group: "setup", tab: false },
+  { k: "rueckmeldungen", href: "/rueckmeldungen", icon: "note", short: "fbl_title", title: "fbl_title", sub: "fbl_menuSub", group: "setup", tab: false, need: x => !!x.appAdmin },
 ];
 export const navItem = (k: string): NavItem | undefined => NAV.find(n => n.k === k);
 /** Höchstens fünf Bereiche in der unteren Leiste (dazu „Mehr“) */
@@ -73,7 +77,7 @@ export function barOf(saved: string[] | undefined, avail: NavItem[]): string[] {
 export function useNav() {
   const s = useStore();
   const D = s.D;
-  const x: NavCtx = { mods: D?.team.modules || {}, can: s.can, chatOn: !!D && D.team.modules.chat !== false && chatSettings(D.team).on };
+  const x: NavCtx = { mods: D?.team.modules || {}, can: s.can, chatOn: !!D && D.team.modules.chat !== false && chatSettings(D.team).on, appAdmin: s.appAdmin };
   const items = availNav(x);
   const saved = s.prefs.nav;
   const bar = barOf(saved?.bar, items);
@@ -81,7 +85,7 @@ export function useNav() {
   const save = (nb: string[], nh: string[]) => s.setPrefs({ nav: { bar: nb.slice(0, MAX_BAR), hide: [...new Set(nh)].slice(0, 40) } });
   const reset = () => s.setPrefs({ nav: undefined });
   /** Zahl am Menüpunkt (z. B. offene Anfragen) */
-  const badge = (k: string): number => k === "individual" && D ? openRequests(D).length : 0;
+  const badge = (k: string): number => k === "individual" && D ? openRequests(D).length : k === "rueckmeldungen" ? s.feedbackOpen : 0;
   return { items, bar, hidden, save, reset, badge, custom: !!saved?.bar?.length || !!saved?.hide?.length };
 }
 

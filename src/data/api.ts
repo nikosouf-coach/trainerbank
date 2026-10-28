@@ -57,6 +57,23 @@ export interface StaffEntry { userId: string; role: Role; displayName: string; /
 export interface PublishedDay { date: string; kind: string; rpe: number; dauer: number; inhalt: string }
 export type TeamPatch = Partial<Pick<Team, "club" | "name" | "accent" | "cls" | "depth" | "settings" | "principles" | "modules" | "logo">>;
 
+/** Rückmeldung aus der App: Fehler, Unklares, Wunsch oder Lob */
+export type FeedbackKind = "bug" | "unclear" | "wish" | "praise";
+export const FEEDBACK_KINDS: FeedbackKind[] = ["bug", "unclear", "wish", "praise"];
+export interface FeedbackInput {
+  kind: FeedbackKind; text: string;
+  /** aktives Team (die Datenbank prüft die Mitgliedschaft und setzt die Rolle) */
+  teamId: string | null;
+  /** zuletzt geöffnete Seite (IDs durch :id ersetzt) */
+  page: string | null;
+  appVersion: string | null; updateId: string | null; platform: "ios" | "android" | "web"; osVersion: string | null; device: string | null;
+}
+/** Rückmeldung in der Liste der Betreiber */
+export interface FeedbackItem extends Omit<FeedbackInput, "teamId"> {
+  id: string; status: "open" | "done"; createdAt: string; doneAt: string | null;
+  role: Role | null; team: string | null; reporter: string | null; shotPath: string | null;
+}
+
 /** Fehler mit maschinenlesbarem Code (z. B. invalid_code, consent_required, limit). */
 export class ApiError extends Error {
   constructor(public code: string, message?: string, public details?: string) { super(message || code); }
@@ -311,6 +328,18 @@ export interface Api {
 
   // KI
   ai(req: AiRequest): Promise<string>;
+
+  // Rückmeldungen (Feedback-Knopf für alle; Liste, erledigen und löschen nur für Betreiber der App)
+  /** Rückmeldung senden, optional mit Bildschirmfoto (Bild-URI vom Gerät) */
+  sendFeedback(f: FeedbackInput, shotUri: string | null): Promise<void>;
+  isAppAdmin(): Promise<boolean>;
+  /** Offene Rückmeldungen (0, wenn kein Betreiber) */
+  feedbackOpenCount(): Promise<number>;
+  feedbackList(status: "open" | "done" | "all"): Promise<FeedbackItem[]>;
+  feedbackSetDone(id: string, done: boolean): Promise<void>;
+  /** Rückmeldung samt Bildschirmfoto löschen */
+  feedbackDelete(id: string): Promise<void>;
+  feedbackShotUrl(path: string): Promise<string | null>;
 }
 
 export const CONSENT_VERSION = "2026-10";

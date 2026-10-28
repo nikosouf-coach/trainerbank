@@ -166,7 +166,7 @@ export const de: Dict = {
   "imp_go": "Übernehmen",
   "imp_none": "Keine Spiele erkannt. Pro Zeile: Datum, Uhrzeit, „Heim - Gast“.",
   "imp_done": "{n} Spiele übernommen",
-  "imp_hint": "In der fertigen App wird der Spielplan mit dem Verbandsportal verbunden und aktualisiert sich automatisch.",
+  "imp_hint": "Spiele an Tagen, an denen schon ein Spiel eingetragen ist, werden übersprungen. Mit dem Verband gleicht die App den Spielplan noch nicht automatisch ab – Verlegungen bitte im Kalender ändern.",
   "saved_on": "Gespeichert für {d}",
   "pl_sub": "Vorschlag aus Kalender und Trainingsprinzipien",
   "wk_normal": "Erhalt",

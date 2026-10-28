@@ -14,6 +14,7 @@ import { Icon } from "../../../src/ui/icons";
 import { PlayerQuick } from "../../../src/ui/player/quick";
 import { Badges, Goals, NewRating, NextDates, PlayerHero, TodoTile, WeekRings } from "../../../src/ui/player/parts";
 import { PlayerProgramCard } from "../../../src/ui/prep";
+import { CrashAsk } from "../../../src/ui/pilot";
 import { msgColor } from "../../../src/ui/squad/ProfileCards";
 import { PlayerRehaCard } from "../../../src/ui/reha";
 import { PlayerTasksCard } from "../../../src/ui/tasks/widgets";
@@ -73,6 +74,7 @@ export default function PlayerHeute() {
   return (
     <Screen testID="player-heute">
       <PlayerHero p={p} g={g} />
+      <CrashAsk />
       {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
       <CustomizeLinks testID="p-dash-edit" onDash={() => setEdit(true)} />
       <DashEditor visible={edit} onClose={() => setEdit(false)} available={available} who="player" extra={<PlayerTabsEditor />} />

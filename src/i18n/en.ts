@@ -166,7 +166,7 @@ export const en: Dict = {
   "imp_go": "Import",
   "imp_none": "No matches found. One per line: date, time, “Home - Away”.",
   "imp_done": "{n} matches imported",
-  "imp_hint": "In the finished app the fixture list connects to the league portal and updates automatically.",
+  "imp_hint": "Matches on days that already have a match are skipped. The app does not sync the fixture list with the league automatically yet – please change postponed matches in the calendar.",
   "saved_on": "Saved for {d}",
   "pl_sub": "Proposal from calendar and training principles",
   "wk_normal": "Maintain",

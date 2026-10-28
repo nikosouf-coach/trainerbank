@@ -6,7 +6,7 @@
 // Ablauf (mit service_role):
 //   1. Fotos der eigenen Spielerzeilen aus dem Bucket "avatars" und Befund-Dateien
 //      (Bucket "findings", Pfade aus der Tabelle findings) entfernen; eigene Trainerprofile
-//      samt Foto löschen
+//      samt Foto löschen; Bildschirmfotos eigener Rückmeldungen (Bucket "feedback", Ordner = Konto-ID)
 //   2. Teams löschen, in denen das Konto das einzige (bestätigte) Staff-Mitglied ist
 //      (inkl. aller Fotos und Befund-Dateien des Teams; offene Anfragen 'pending' zählen nicht und
 //      verfallen mit dem Team). Bleiben andere Staff-Mitglieder übrig und war das
@@ -25,6 +25,7 @@ import { adminClient, authenticate } from '../_shared/supabase.ts';
 const AVATARS = 'avatars';
 const FINDINGS = 'findings';
 const SKETCHES = 'sketches';
+const FEEDBACK = 'feedback';
 
 interface StaffRow {
   user_id: string;
@@ -99,6 +100,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
       const { error } = await admin.from('staff_profiles').delete().eq('user_id', uid);
       if (error) throw error;
     }
+
+    // 1c. Bildschirmfotos eigener Rückmeldungen (die Zeilen löscht der Cascade mit dem Konto)
+    await removeObjects(admin, FEEDBACK, await listObjects(admin, FEEDBACK, uid));
 
     // 2. Teams, in denen das Konto Staff ist
     const { data: memberships, error: staffError } = await admin

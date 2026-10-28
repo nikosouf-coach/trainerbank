@@ -10,7 +10,7 @@ import { fmtOf } from "../core/matchplan";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
 import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
-import { ApiError, type Api, type ChatListData, type ConsentState, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
+import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
 let n = 1;
 const newId = (id: string): string => (!id || id.startsWith("tmp-")) ? "demo-" + (n++) : id;
@@ -416,6 +416,47 @@ export class DemoApi implements Api {
   async exportMyData() { return { hinweis: "Demo-Modus: Es sind keine persönlichen Daten gespeichert." }; }
   async deleteAccount() { /* nichts gespeichert */ }
   async ai(): Promise<string> { throw new ApiError("demo_ai"); }
+
+  // Rückmeldungen: bleiben im Demo-Modus auf dem Gerät. Die Liste der Betreiber gibt es nur in der Vorschau (mit Beispielen),
+  // damit sie in Vorführungen und bei der Store-Prüfung nicht auftaucht.
+  private fb: FeedbackItem[] | null = null;
+  private feedbackItems(): FeedbackItem[] {
+    if (this.fb) return this.fb;
+    const at = (days: number, h: number): string => { const d = new Date(Date.now() - days * 86400e3); d.setHours(h, 14, 0, 0); return d.toISOString(); };
+    const team = this.lang === "en" ? "Demo club U19" : "Demo-Verein U19", de = this.lang !== "en";
+    const base = { appVersion: "1.0.0 (3)", updateId: null, shotPath: null, team, doneAt: null } as const;
+    this.fb = [
+      { ...base, id: "demo-fb-1", kind: "bug", status: "open", createdAt: at(0, 9), role: "coach", reporter: "Jonas K.", page: "/coach/tag/:id", platform: "ios", osVersion: "18.1", device: "iPhone 13",
+        text: de ? "Beim Speichern der Anwesenheit kam „Etwas ist schiefgelaufen“. Ich war in der Halle ohne Netz, später war der Eintrag trotzdem da." : "Saving attendance showed “Something went wrong”. I had no signal in the gym, later the entry was there anyway." },
+      { ...base, id: "demo-fb-2", kind: "unclear", status: "open", createdAt: at(1, 19), role: "owner", reporter: "Demo-Trainer", page: "/coach/heute", platform: "android", osVersion: "15", device: "Pixel 8",
+        text: de ? "Wo sehe ich, wer heute noch kein RPE eingetragen hat?" : "Where do I see who has not entered RPE today?" },
+      { ...base, id: "demo-fb-3", kind: "praise", status: "open", createdAt: at(2, 21), role: "player", reporter: "Lukas M.", page: "/player/eintragen", platform: "ios", osVersion: "17.6", device: "iPhone 12",
+        text: de ? "Morgen-Check geht richtig schnell, top!" : "The morning check is really quick, great!" },
+      { ...base, id: "demo-fb-4", kind: "wish", status: "done", createdAt: at(5, 20), doneAt: at(3, 12), role: "coach", reporter: "Jonas K.", page: "/coach/plan", platform: "web", osVersion: null, device: "Chrome",
+        text: de ? "Kann man die Trainingswoche als PDF für die Kabine exportieren?" : "Can the training week be exported as a PDF for the dressing room?" },
+    ];
+    return this.fb;
+  }
+  private preview(): boolean { return (globalThis as { TB_PREVIEW?: boolean }).TB_PREVIEW === true; }
+  async sendFeedback(f: FeedbackInput, shotUri: string | null) {
+    this.net();
+    if (f.text.trim().length < 3) throw new ApiError("invalid_body");
+    const { teamId: _t, ...rest } = f;
+    this.feedbackItems().unshift({ ...rest, text: f.text.trim(), id: newId(""), status: "open", createdAt: new Date().toISOString(), doneAt: null,
+      role: "owner", team: this.lang === "en" ? "Demo club U19" : "Demo-Verein U19", reporter: this.user.displayName, shotPath: shotUri });
+  }
+  async isAppAdmin() { return this.preview(); }
+  async feedbackOpenCount() { return this.preview() ? this.feedbackItems().filter(x => x.status === "open").length : 0; }
+  async feedbackList(status: "open" | "done" | "all") {
+    this.net(); if (!this.preview()) throw new ApiError("forbidden");
+    return this.feedbackItems().filter(x => status === "all" || x.status === status).map(x => ({ ...x }));
+  }
+  async feedbackSetDone(id: string, done: boolean) {
+    this.net(); const x = this.feedbackItems().find(y => y.id === id); if (!x) throw new ApiError("not_found");
+    x.status = done ? "done" : "open"; x.doneAt = done ? new Date().toISOString() : null;
+  }
+  async feedbackDelete(id: string) { this.net(); this.fb = this.feedbackItems().filter(x => x.id !== id); }
+  async feedbackShotUrl(path: string) { return path; }
 
   // Spielerentwicklung, Challenges, Individualtraining (lokal – der Store ändert die Demo-Daten direkt)
   async saveAssessment(_t: string, a: Assessment) { this.net(); return { ...a, id: newId(a.id) }; }

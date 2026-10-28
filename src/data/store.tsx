@@ -24,12 +24,19 @@ import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, 
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
-import { ApiError, isOffline, isStaffRole, type Api, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type ThemeMode, type UserInfo, type UserPrefs } from "./api";
+import { ApiError, isOffline, isStaffRole, type Api, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type FeedbackKind, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type ThemeMode, type UserInfo, type UserPrefs } from "./api";
+import { startCrashReports } from "./crash";
+import { cleanCode, type PendingInvite } from "./invite";
+import { appInfo } from "./release";
 import { DemoApi, type DemoSetup } from "./demoApi";
 import { hasSupabase } from "./supabase";
 import { forgetPhoto } from "../ui/playerAvatar";
 
 const K_TEAM = "tb.activeTeam", K_LANG = "tb.lang", K_THEME = "tb.theme";
+/** Absturzberichte auf diesem Gerät: "on" | "off" (fehlt = noch nicht entschieden) */
+const K_CRASH = "tb.crash";
+/** Einladung aus einem Link, die nach Anmeldung bzw. Registrierung weitergeht */
+const K_INVITE = "tb.invite";
 /** Offline: wartende Einträge je Konto und letzter geladener Stand (für den Start ohne Netz) */
 const K_OUTBOX = (uid: string): string => "tb.outbox.v1." + uid, K_CACHE = "tb.cache.v1";
 /** Gerätespeicher: höchstens so groß (Zeichen) und so alt (Tage) */
@@ -72,6 +79,13 @@ interface State {
   clubs: ClubInfo[];
   /** Aufrücker aus dem Verein je Team und Saison („team:season“) */
   risers: Record<string, Riser[]>;
+  /** Betreiber der App (sieht alle Rückmeldungen) und Zahl der offenen Rückmeldungen */
+  appAdmin: boolean;
+  feedbackOpen: number;
+  /** Absturzberichte auf diesem Gerät: an, aus oder noch nicht entschieden (null) */
+  crashPref: "on" | "off" | null;
+  /** Einladung aus einem Link (wartet auf Anmeldung bzw. Beitritt) */
+  pendingInvite: PendingInvite | null;
 }
 
 function systemLang(): Lang {
@@ -91,7 +105,7 @@ function useStoreValue() {
   const [s, setS] = useState<State>(() => ({
     phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(), themeLocal: "system",
     consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
-    outbox: [], offline: false, syncing: false, cachedAt: null, clubs: [], risers: {},
+    outbox: [], offline: false, syncing: false, cachedAt: null, clubs: [], risers: {}, appAdmin: false, feedbackOpen: 0, crashPref: null, pendingInvite: null,
   }));
   const ref = useRef(s); ref.current = s;
   /** Rechte im aktiven Team (Trainerteam). Demo: Cheftrainer alle, Co-Trainer-Ansicht die Rechte des Profils. */
@@ -123,6 +137,15 @@ function useStoreValue() {
     return txt === k ? translator(ref.current.lang).t("err_server") : txt;
   }, []);
 
+  // ---------- Rückmeldungen: Betreiber und offene Meldungen ----------
+  async function refreshFeedbackOf(api: Api) {
+    try {
+      const admin = await api.isAppAdmin();
+      const open = admin ? await api.feedbackOpenCount() : 0;
+      if (ref.current.api === api) set({ appAdmin: admin, feedbackOpen: open });
+    } catch { /* ohne Netz bleibt der letzte Stand */ }
+  }
+
   // ---------- Laden ----------
   const loadActive = useCallback(async (api: Api, m: Membership | null, extra: Partial<State> = {}) => {
     // Vereine (Übersicht, Anfragen) – ohne Netz bleibt der letzte Stand
@@ -141,6 +164,7 @@ function useStoreValue() {
     set({ phase: "ready", active: m, D, version: ref.current.version + 1, consents, aiPlayers, healthPlayers, offline: false, cachedAt: null, ...extra });
     if (pending) scheduleFlush(400);
     if (staff) scheduleAutomation(300);
+    refreshFeedbackOf(api);
     try { await AsyncStorage.setItem(K_TEAM, m.teamId); } catch { /* optional */ }
     if (isStaffRole(m.role) && api.kind === "supabase" && effectivePerms(m.role, m.perms).has("plan")) afterCoachLoad(api, m, D);
   }, [set]);
@@ -150,6 +174,15 @@ function useStoreValue() {
     let lang = ref.current.lang;
     try { const l = await AsyncStorage.getItem(K_LANG); if (l === "de" || l === "en") lang = l; } catch { /* optional */ }
     try { const m = await AsyncStorage.getItem(K_THEME); if (m === "light" || m === "dark" || m === "system") set({ themeLocal: m }); } catch { /* optional */ }
+    try {
+      const c = await AsyncStorage.getItem(K_CRASH); const pref = c === "on" || c === "off" ? c : null;
+      set({ crashPref: pref }); startCrashReports(pref === "on");
+    } catch { /* optional */ }
+    try {
+      const raw = await AsyncStorage.getItem(K_INVITE), inv = raw ? JSON.parse(raw) as Partial<PendingInvite> : null;
+      const code = cleanCode(inv?.code);
+      if (inv && code && (inv.kind === "player" || inv.kind === "staff")) set({ pendingInvite: { kind: inv.kind, code } });
+    } catch { /* optional */ }
     let user: UserInfo | null = null;
     try {
       user = await api.currentUser();
@@ -487,7 +520,26 @@ function useStoreValue() {
       // Wartende Einträge bleiben für dieses Konto gespeichert (werden nach der nächsten Anmeldung gesendet); der Datenstand wird gelöscht
       clearDevice(); await ref.current.api.signOut().catch(() => undefined);
       try { await AsyncStorage.removeItem(K_TEAM); } catch { /* optional */ }
-      obRef.current = []; set({ phase: "signedOut", user: null, D: null, active: null, memberships: [], outbox: [], offline: false, cachedAt: null });
+      obRef.current = []; set({ phase: "signedOut", user: null, D: null, active: null, memberships: [], outbox: [], offline: false, cachedAt: null, appAdmin: false, feedbackOpen: 0 });
+    },
+    /** Absturzberichte auf diesem Gerät ein- oder ausschalten (gilt sofort) */
+    setCrashPref: async (on: boolean) => {
+      const v = on ? "on" : "off"; set({ crashPref: v }); startCrashReports(on);
+      try { await AsyncStorage.setItem(K_CRASH, v); } catch { /* optional */ }
+    },
+    /** Rückmeldung senden: Seite, App-Version und Gerät gehen mit, das Team nur als Bezug (Rolle setzt der Server) */
+    sendFeedback: async (kind: FeedbackKind, text: string, shotUri: string | null, page: string | null) => {
+      const a = appInfo(), { api, active } = ref.current;
+      const ver = [a.version, a.build ? "(" + a.build + ")" : "", a.updateAt ? "· " + a.updateAt.slice(0, 16).replace("T", " ") : ""].filter(Boolean).join(" ");
+      await api.sendFeedback({ kind, text, teamId: active?.teamId && active.teamId !== "demo" ? active.teamId : null, page, appVersion: ver,
+        updateId: a.updateId, platform: a.platform, osVersion: a.os, device: a.device }, shotUri);
+    },
+    /** Betreiber: Liste neu geladen – Zahl am Menüpunkt aktualisieren */
+    refreshFeedback: () => refreshFeedbackOf(ref.current.api),
+    /** Einladung aus einem Link merken (null = erledigt bzw. verworfen) – übersteht Registrierung und Neustart */
+    rememberInvite: (inv: PendingInvite | null) => {
+      set({ pendingInvite: inv });
+      (inv ? AsyncStorage.setItem(K_INVITE, JSON.stringify(inv)) : AsyncStorage.removeItem(K_INVITE)).catch(() => undefined);
     },
     startDemo: async (cls: ClassKey = "u19", depth: Depth = "basis", over: DemoSetup = {}) => {
       const api = new DemoApi(cls, depth, ref.current.lang, over);
@@ -495,7 +547,7 @@ function useStoreValue() {
       obRef.current = []; set({ api, user, memberships: ms, outbox: [], offline: false, cachedAt: null });
       await loadActive(api, ms[0], { api, user, memberships: ms, demoView: "coach", demoPlayer: null, demoStaff: null });
     },
-    leaveDemo: () => { obRef.current = []; set({ api: makeApi(), phase: "loading", D: null, active: null, user: null, outbox: [], offline: false, cachedAt: null }); setTimeout(() => boot(), 0); },
+    leaveDemo: () => { obRef.current = []; set({ api: makeApi(), phase: "loading", D: null, active: null, user: null, outbox: [], offline: false, cachedAt: null, appAdmin: false, feedbackOpen: 0 }); setTimeout(() => boot(), 0); },
     setDemoView: (v: "coach" | "player", pid?: string | null, staffId?: string | null) => set({ demoView: v, demoPlayer: pid ?? ref.current.demoPlayer, demoStaff: v === "coach" ? (staffId ?? null) : ref.current.demoStaff }),
     selectTeam: async (m: Membership) => { set({ phase: "loading" }); try { await loadActive(ref.current.api, m); } catch (e) { toast(errText(e)); } },
     createTeam: async (input: CreateTeamInput & { me?: Partial<StaffProfile>; staff?: { name: string; role: StaffRoleKey }[]; logoUri?: string | null; prefs?: UserPrefs }) => {

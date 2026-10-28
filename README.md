@@ -38,6 +38,8 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 | Trainerteam & Rechte | zehn Rechte je Mitglied mit Vorlagen (Co-, TW-, Athletiktrainer, Physio, Betreuer, Analyst), serverseitig geprüft | – |
 | Offline | Anwesenheit und Einträge ohne Netz, Start mit letztem Stand | RPE, Morgen-Check, Abmeldung ohne Netz – wird nachgereicht |
 | Baukasten | Pakete an/aus, was Spieler sehen, Absagen per App an/aus, Ranglisten-Modus | – |
+| Einladen | Team- und Trainer-Code als QR-Code mit Schritten, optional QR-Codes zur Testversion (TestFlight, Google Play), Einladung teilen; der Link öffnet die App mit vorausgefülltem Code (ohne Konto: nach Anmeldung weiter) | QR-Code scannen oder Code eingeben |
+| Testphase & Betrieb | „Feedback / Fehler melden“ (Art, Text, Bildschirmfoto, Seite, Version, Gerät); „Nutzung im Team“ je Woche (Registrierungen, RPE-Quote, Morgen-Check, Anwesenheit, Planung gegen die Ziele des Piloten, ohne Namen); Betreiber: „Rückmeldungen“ aller Nutzer (erledigen, teilen ohne Namen, löschen); Absturzberichte über Sentry nur mit Zustimmung; Updates ohne Store-Prüfung (EAS Update) mit Versionsanzeige und Update-Suche im Konto | Feedback geben, Absturzberichte ein/aus |
 
 ## Ordner
 
@@ -50,7 +52,7 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 | `src/i18n/` | Texte Deutsch/Englisch |
 | `supabase/` | Datenbank-Migrationen, Zugriffsregeln, Edge Functions, Tests ([README](supabase/README.md)) |
 | `docs/` | Architektur, Gestaltung (DESIGN.md), Datenschutzerklärung, Einwilligungen, DSFA, Store-Texte, Impressum-Vorlage |
-| `.github/workflows/` | CI, Backend-Deploy, App-Build |
+| `.github/workflows/` | CI, Backend-Deploy, App-Build, App-Update (EAS Update), Werkzeug (Expo-Pakete) |
 
 ## Befehle
 

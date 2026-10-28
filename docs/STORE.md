@@ -338,11 +338,14 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |
 | Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen), Noten, Kontaktliste des Teams |
 | Finanzinformationen | Sonstige Finanzinformationen | ja | ja | nein | App-Funktionalität | Mannschaftskasse: Beiträge, Zahlungen, Geldstrafen, Kassenbuch (keine Konto- oder Kartendaten, keine Zahlungsabwicklung) |
-| Standort, Kontakte, Browserverlauf, Suchverlauf, Käufe, Diagnose, Sensible Daten | – | **nein** | – | – | – | Körperregion und Angaben zum Schmerz sind Gesundheit, kein Standort; Gesundheit gehört nicht unter „Sensible Daten“ |
+| Benutzerinhalte | Kundensupport | ja | ja | nein | App-Funktionalität | Rückmeldungen aus der App („Feedback / Fehler melden“): Text, optional Bildschirmfoto |
+| Diagnose | Absturzdaten | ja (nur nach Zustimmung auf dem Gerät) | nein | nein | App-Funktionalität | Absturzberichte über Sentry ohne Konto-Bezug |
+| Diagnose | Sonstige Diagnosedaten | ja | ja | nein | App-Funktionalität | App-Version, Gerätemodell und Betriebssystem in Rückmeldungen; zuletzt geöffnete Seite |
+| Standort, Kontakte, Browserverlauf, Suchverlauf, Käufe, Sensible Daten | – | **nein** | – | – | – | Körperregion und Angaben zum Schmerz sind Gesundheit, kein Standort; Gesundheit gehört nicht unter „Sensible Daten“ |
 
-**Zu prüfen:** Falls später Absturzberichte (z. B. ein Crash-SDK) oder In-App-Käufe hinzukommen, Kategorie
-„Diagnose“ bzw. „Käufe“ ergänzen. Push-Token und KI-Zähler: Einordnung anhand der Apple-Definitionen
-bestätigen – im Zweifel angeben.
+**Zu prüfen:** Falls später In-App-Käufe hinzukommen, Kategorie „Käufe“ ergänzen. Push-Token, KI-Zähler und
+Absturzdaten (Sentry nutzt eine zufällige Kennung der Installation, nicht das Konto): Einordnung anhand der
+Apple-Definitionen bestätigen – im Zweifel angeben.
 
 ---
 
@@ -360,7 +363,7 @@ bestätigen – im Zweifel angeben.
 | Unabhängige Sicherheitsprüfung (MASA) | Nein [optional] |
 
 **„Geteilt“** bedeutet bei Google die Übermittlung an Dritte. Übermittlungen an Dienstleister, die im Auftrag
-verarbeiten (Supabase, Anthropic, Expo), gelten nach Googles Definition nicht als Teilen – Voraussetzung ist, dass
+verarbeiten (Supabase, Anthropic, Expo, Sentry), gelten nach Googles Definition nicht als Teilen – Voraussetzung ist, dass
 sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9). Daher überall „Geteilt: nein“.
 
 ### Datentypen
@@ -380,7 +383,9 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 | App-Aktivitäten | App-Interaktionen | ja (konservativ, KI-Zähler) – zu prüfen | nein | nein | Pflicht bei KI-Nutzung | App-Funktionalität, Betrugsprävention/Sicherheit |
 | Geräte- oder andere IDs | Geräte- oder andere IDs | ja (Push-Token) | nein | nein | optional | App-Funktionalität |
 | Finanzdaten | Sonstige Finanzinformationen | ja | nein | nein | optional | App-Funktionalität (Mannschaftskasse: Beiträge, Zahlungen, Geldstrafen – keine Zahlungsabwicklung) |
-| Standort, Kalender (Geräte-Kalender), Kontakte, Audio, Web-Browsing, Absturzberichte, Diagnosen | – | **nein** | – | – | – | Teamkalender und Kontaktliste sind App-Inhalte, kein Zugriff auf Gerätekalender oder Geräte-Kontakte |
+| App-Info und -Leistung | Absturzprotokolle | ja (nur nach Zustimmung auf dem Gerät) | nein | nein | optional | App-Funktionalität (Fehler beheben) |
+| App-Info und -Leistung | Diagnosedaten | ja | nein | nein | optional | App-Funktionalität (App-Version, Gerät und Seite in Rückmeldungen und Absturzberichten) |
+| Standort, Kalender (Geräte-Kalender), Kontakte, Audio, Web-Browsing | – | **nein** | – | – | – | Teamkalender und Kontaktliste sind App-Inhalte, kein Zugriff auf Gerätekalender oder Geräte-Kontakte |
 
 ### Weitere Formulare unter „App-Inhalte“
 

@@ -4,6 +4,8 @@ import React, { useEffect, useState } from "react";
 import { Share, Text } from "react-native";
 import type { StaffEntry } from "../../../src/data/api";
 import { useEngine, useStore } from "../../../src/data/store";
+import type { InviteKind } from "../../../src/data/invite";
+import { InviteSheet } from "../../../src/ui/invite";
 import { Banner, Btn, Card, CardTitle, Col, Header, Info, ListItem, Muted, Row, Screen, T, Tag } from "../../../src/ui/kit";
 import { PermChips, PermSheet } from "../../../src/ui/perms";
 import { useTheme } from "../../../src/ui/theme";
@@ -19,15 +21,17 @@ export default function Zugang() {
   const [ask, setAsk] = useState(false);
   const [busy, setBusy] = useState(false);
   const [edit, setEdit] = useState<StaffEntry | null>(null);
+  const [qr, setQr] = useState<InviteKind | null>(null);
   const loadStaff = () => s.api.staffList(teamId).then(setStaff).catch(() => setStaff([]));
   useEffect(() => { loadStaff(); }, [teamId]); // eslint-disable-line react-hooks/exhaustive-deps
   const run = async (fn: () => Promise<unknown>) => { setBusy(true); try { await fn(); } catch (e) { s.toast(s.errText(e)); } finally { setBusy(false); } };
   const share = (code: string) => Share.share({ message: tf("cd_shareText", { t: teamLabel(E.team), c: code }) }).catch(() => undefined);
-  const codeBox = (label: string, code: string | undefined, id: string) => (
+  const codeBox = (label: string, code: string | undefined, id: string, kind: InviteKind) => (
     <Col gap={6}>
       <T v="small" bold color={c.muted}>{label}</T>
       <Row gap={10} wrap>
         <Text selectable testID={id} style={{ fontSize: 24, fontWeight: "800", letterSpacing: 2, color: c.ink, fontVariant: ["tabular-nums"] }}>{code || "–"}</Text>
+        {code ? <Btn small testID={id + "-qr"} label={t("inv_show")} onPress={() => setQr(kind)} /> : null}
         {code ? <Btn small label={t("cd_share")} onPress={() => share(code)} /> : null}
       </Row>
     </Col>
@@ -39,8 +43,8 @@ export default function Zugang() {
       <Card testID="codes">
         <CardTitle title={t("cd_title")} info={<Info title={t("pa_code")} text={t("pa_codeHint")} />} />
         <Muted small>{t("cd_sub")}</Muted>
-        {codeBox(t("cd_join"), codes.joinCode, "code-join")}
-        {codeBox(t("cd_staff"), codes.staffCode, "code-staff")}
+        {codeBox(t("cd_join"), codes.joinCode, "code-join", "player")}
+        {codeBox(t("cd_staff"), codes.staffCode, "code-staff", "staff")}
         {owner ? (ask ? <Banner color={c.warn}><Col gap={8}><T v="small">{t("cd_newQ")}</T><Row gap={8}>
           <Btn small label={t("no")} onPress={() => setAsk(false)} />
           <Btn small kind="primary" testID="codes-new-confirm" label={t("cd_new")} disabled={busy} onPress={() => run(async () => { setCodes(await s.api.regenerateCodes(teamId)); setAsk(false); s.toast(t("t_saved")); })} />
@@ -71,6 +75,7 @@ export default function Zugang() {
         {staff && team.length <= 1 && !pending.length ? <Muted small>{t("sf_noStaff")}</Muted> : null}
       </Card>
       <PermSheet entry={edit} visible={!!edit} onClose={() => setEdit(null)} onSaved={() => { loadStaff(); if (s.isDemo) s.reload(); }} />
+      {qr ? <InviteSheet kind={qr} code={(qr === "staff" ? codes.staffCode : codes.joinCode) || ""} team={teamLabel(E.team)} visible onClose={() => setQr(null)} /> : null}
     </Screen>
   );
 }
