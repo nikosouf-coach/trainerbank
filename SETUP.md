@@ -24,15 +24,31 @@ prüfen Konten und Apps). Nur der allererste Build braucht einmal einen Rechner 
 | Domain mit kleinem Webspace | Datenschutzerklärung, Impressum, später Website | wenige Euro im Monat |
 
 **Für den Test als Einzelperson, zur Veröffentlichung als Firma.** Für ein Firmenkonto verlangen Apple und Google
-eine D-U-N-S-Nummer der Firma (kostenlos, rund eine Woche). Für TestFlight und den geschlossenen Test reicht ein Konto
-als Einzelperson; es ist meist in ein bis zwei Tagen frei. Nach der Gründung der Firma (UG): das Google-Konto in der
-Play Console auf die Organisation umstellen (braucht D-U-N-S-Nummer und eine bestätigte Website); bei Apple die
-Umstellung früh beantragen – sie dauert laut Entwicklerforum teils Monate – oder ein Firmenkonto anlegen und die App
-dort veröffentlichen. Wer in der EU Abos verkauft, gilt in den Stores als Händler: Adresse, Telefon und E-Mail stehen
-dann öffentlich auf der Produktseite (bei Firmen die Adresse aus der D-U-N-S-Nummer).
+eine D-U-N-S-Nummer der Firma (kostenlos, rund eine Woche, erst nach der Gründung). Für TestFlight und den
+geschlossenen Test reicht ein Konto als Einzelperson; es ist meist in ein bis zwei Tagen frei. Damit der Wechsel zur
+Firma (UG) später einfach bleibt:
 
-**Google Play, privates Konto:** Vor der ersten Veröffentlichung verlangt Google einen geschlossenen Test mit
-mindestens 12 Testern, 14 Tage am Stück. Der Pilot erfüllt das, wenn mindestens 12 Android-Nutzer mitmachen; danach in
+- Für alle Konten eine eigene E-Mail-Adresse nur für Trainerbank nutzen (am besten an der eigenen Domain), auch für
+  die Apple-ID – nicht die private.
+- Bei Supabase und Sentry eine Organisation „Trainerbank“ anlegen; die Rechnungsdaten lassen sich später auf die
+  Firma ändern, Supabase-Projekte auch zwischen Organisationen verschieben. Das persönliche Expo-Konto lässt sich
+  später in eine Organisation umwandeln (Updates und Push laufen weiter).
+- Domain auf dich registrieren, später per Inhaberwechsel auf die Firma übertragen.
+- Google: das Konto nach der Gründung in der Play Console auf die Organisation umstellen (braucht D-U-N-S-Nummer und
+  eine bestätigte Website).
+- Apple: Eine App lässt sich erst an ein anderes Konto übertragen, wenn eine Version im App Store veröffentlicht ist –
+  während des Tests also nicht. Nach der Gründung deshalb die Umstellung des Kontos beantragen (dauert laut
+  Entwicklerforum teils Monate) oder ein Firmenkonto anlegen und die App dort veröffentlichen (die Tester installieren
+  einmal neu, die Daten bleiben auf dem Server).
+
+Wer in der EU Abos verkauft, gilt in den Stores als Händler: Adresse, Telefon und E-Mail stehen dann öffentlich auf der
+Produktseite (bei Firmen die Adresse aus der D-U-N-S-Nummer). Wer nur über TestFlight verteilt, handelt laut Apple
+nicht als Händler im App Store; angeben muss man den Status in App Store Connect trotzdem.
+
+**Google Play, privates Konto:** Neue private Konten bestätigen einmal mit einem echten Android-Handy (ab Android 10,
+ohne Root) über die App „Play Console“, dass sie Zugriff auf ein Gerät haben – das dauert eine Minute, ein geliehenes
+Handy reicht. Vor der ersten Veröffentlichung verlangt Google einen geschlossenen Test mit mindestens 12 Testern, 14
+Tage am Stück. Der Pilot erfüllt das, wenn mindestens 12 Android-Nutzer mitmachen; danach in
 der Play Console „Zugriff auf Produktion beantragen“ (Prüfung meist bis zu 7 Tage).
 
 ---
