@@ -67,7 +67,8 @@ supabase functions deploy delete-account
 supabase functions deploy push-reminders
 supabase functions deploy chat-push
 
-# Secrets (SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY setzt Supabase selbst)
+# Secrets (SUPABASE_URL und die Schlüssel – neu SUPABASE_PUBLISHABLE_KEYS/SUPABASE_SECRET_KEYS, alt
+# SUPABASE_ANON_KEY/SUPABASE_SERVICE_ROLE_KEY – setzt Supabase selbst; die Funktionen nehmen zuerst die neuen)
 supabase secrets set ANTHROPIC_API_KEY=sk-ant-... CRON_SECRET=$(openssl rand -hex 32) AI_DAILY_LIMIT=40
 # optional:
 supabase secrets set ANTHROPIC_MODEL=claude-sonnet-5-5   # Standard

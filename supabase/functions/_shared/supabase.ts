@@ -1,6 +1,8 @@
 // Supabase-Clients für Edge Functions.
-// SUPABASE_URL, SUPABASE_ANON_KEY und SUPABASE_SERVICE_ROLE_KEY stellt die
-// Supabase-Plattform in jeder Edge Function automatisch bereit.
+// Die Supabase-Plattform stellt in jeder Edge Function automatisch bereit: SUPABASE_URL, die neuen Schlüssel
+// SUPABASE_SECRET_KEYS und SUPABASE_PUBLISHABLE_KEYS (JSON, Eintrag "default") und – solange das Projekt sie noch
+// hat – die alten SUPABASE_SERVICE_ROLE_KEY und SUPABASE_ANON_KEY. Supabase stellt die alten Schlüssel bis Ende
+// 2026 ein; deshalb gelten die neuen zuerst, die alten nur als Rückfall.
 import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supabase-js@2';
 
 export function requireEnv(name: string): string {
@@ -9,18 +11,31 @@ export function requireEnv(name: string): string {
   return value;
 }
 
+/** Standard-Schlüssel aus einer der neuen JSON-Variablen, sonst die alte Variable */
+export function apiKey(keys: 'SUPABASE_SECRET_KEYS' | 'SUPABASE_PUBLISHABLE_KEYS', legacy: string): string {
+  const raw = Deno.env.get(keys);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      const value = parsed?.default ?? Object.values(parsed ?? {})[0];
+      if (typeof value === 'string' && value) return value;
+    } catch { /* kein gültiges JSON: alte Variable nutzen */ }
+  }
+  return requireEnv(legacy);
+}
+
 const clientOptions = {
   auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
 };
 
-/** Client mit Service-Role-Key: umgeht RLS – nur für serverseitige, geprüfte Vorgänge. */
+/** Client mit Secret Key (früher Service-Role-Key): umgeht RLS – nur für serverseitige, geprüfte Vorgänge. */
 export function adminClient(): SupabaseClient {
-  return createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_SERVICE_ROLE_KEY'), clientOptions);
+  return createClient(requireEnv('SUPABASE_URL'), apiKey('SUPABASE_SECRET_KEYS', 'SUPABASE_SERVICE_ROLE_KEY'), clientOptions);
 }
 
 /** Client im Namen des aufrufenden Nutzers: alle Abfragen laufen durch RLS. */
 export function userClient(authorization: string): SupabaseClient {
-  return createClient(requireEnv('SUPABASE_URL'), requireEnv('SUPABASE_ANON_KEY'), {
+  return createClient(requireEnv('SUPABASE_URL'), apiKey('SUPABASE_PUBLISHABLE_KEYS', 'SUPABASE_ANON_KEY'), {
     ...clientOptions,
     global: { headers: { Authorization: authorization } },
   });

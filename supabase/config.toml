@@ -31,17 +31,20 @@ enable_signup = true
 enable_confirmations = true
 
 # Edge Functions
-# ai, delete-account: nur mit gültigem Nutzer-JWT aufrufbar.
+# ai, finding, delete-account: nur für angemeldete Nutzer. Die Funktionen prüfen das Nutzer-JWT selbst beim
+# Auth-Server (authenticate() in _shared/supabase.ts) und antworten sonst mit 401. Die Prüfung der Plattform
+# (verify_jwt) ist aus, weil sie mit den neuen JWT-Signaturschlüsseln von Supabase nicht zuverlässig funktioniert
+# (Supabase empfiehlt dann, sie abzuschalten und im Code zu prüfen).
 # push-reminders: wird von pg_cron ohne JWT aufgerufen und prüft stattdessen den Header x-cron-secret.
 # chat-push: wird bei neuen Chat-Nachrichten vom Datenbank-Trigger aufgerufen (ebenfalls x-cron-secret).
 [functions.ai]
-verify_jwt = true
+verify_jwt = false
 
 [functions.finding]
-verify_jwt = true
+verify_jwt = false
 
 [functions.delete-account]
-verify_jwt = true
+verify_jwt = false
 
 [functions.push-reminders]
 verify_jwt = false

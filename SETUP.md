@@ -58,7 +58,8 @@ der Play Console „Zugriff auf Produktion beantragen“ (Prüfung meist bis zu 
 1. Auf supabase.com eine Organisation anlegen, Tarif **Pro**. Dann **New project** → Name `trainerbank`, Region
    **Central EU (Frankfurt)**, sicheres Datenbank-Passwort erzeugen und im Passwort-Manager speichern.
 2. Unter **Project Settings → General** die **Project ID** (Reference ID) notieren.
-3. Unter **Project Settings → API** die **Project URL** und den **anon public key** notieren.
+3. Oben im Projekt auf **Connect** klicken: Dort stehen die **Project URL** und der **Publishable key** (beginnt mit
+   `sb_publishable_`). Alle Schlüssel stehen auch unter **Project Settings → API Keys**.
 4. Unter **Account → Access Tokens** einen Token erzeugen (für GitHub).
 5. Unter **Authentication → URL Configuration**:
    - Site URL: deine Website, z. B. `https://trainerbank.de`
@@ -114,7 +115,7 @@ Prüfen: `select jobname, schedule, active from cron.job;` zeigt `push-reminders
 | Name | Wert | Sichtbarkeit |
 |---|---|---|
 | `EXPO_PUBLIC_SUPABASE_URL` | Project URL | Plain text |
-| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | anon key | Plain text (ist öffentlich, Schutz kommt aus den Zugriffsregeln) |
+| `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Publishable key (`sb_publishable_…`; bei älteren Projekten der anon key) | Plain text (ist öffentlich, Schutz kommt aus den Zugriffsregeln) |
 | `EXPO_PUBLIC_PRIVACY_URL` | Adresse der Datenschutzerklärung | Plain text |
 | `EXPO_PUBLIC_IMPRINT_URL` | Adresse des Impressums | Plain text |
 | `EXPO_PUBLIC_SENTRY_DSN` | DSN aus Schritt 6 (ohne: keine Absturzberichte) | Plain text |
