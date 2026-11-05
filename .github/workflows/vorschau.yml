@@ -1,10 +1,14 @@
 # Vorschau: baut die Web-Version der App im Demo-Modus (ohne Server-Zugangsdaten) – Grundlage der Vorschau-Seite.
-# Läuft bei Pull Requests und auf Knopfdruck (Actions → Vorschau → Run workflow); Ergebnis als Artefakt „web“ (7 Tage).
+# Läuft bei Pull Requests und auf Knopfdruck (Actions → Vorschau → Run workflow). Ergebnis als Artefakt „web“ (7 Tage)
+# und im Branch „vorschau/web“ (nur der letzte Stand, ein Commit) – von dort holt Claude die Dateien für die Vorschau.
 name: Vorschau
 
 on:
   pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 concurrency:
   group: vorschau-${{ github.ref }}
@@ -30,3 +34,16 @@ jobs:
           name: web
           path: dist
           retention-days: 7
+      - name: Branch „vorschau/web“ aktualisieren
+        # nur im eigenen Repository (Pull Requests aus Forks dürfen nicht schreiben)
+        if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd dist
+          git init -q -b vorschau-web
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Web-Vorschau ${GITHUB_SHA::7}"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" vorschau-web:vorschau/web
