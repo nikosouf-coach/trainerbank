@@ -35,6 +35,8 @@ function zoneRows(E: Engine, zones: string[]): { row: string; lanes: string }[] 
   return ZONE_ROWS.map(r => ({ row: cap(E.t("ep_zr_" + r)), lanes: zones.filter(z => z[0] === r).map(z => E.t("ep_zl_" + z[1])).join(", ") })).filter(x => x.lanes);
 }
 const zoneName = (E: Engine, z: string): string => cap(E.tf("ep_zone", { l: E.t("ep_zl_" + z[1]), r: E.t("ep_zr_" + z[0]) }));
+/** „5 Mitspieler haben Stärken genannt“ (Einzahl bei einem) */
+const peersCountText = (tf: (k: string, o: Record<string, string | number>) => string, n: number): string => tf(n === 1 ? "ep_peersCount1" : "ep_peersCount", { n });
 /** Torwart-Katalog für Mitspieler (nur Position bekannt) */
 const mateGk = (m: PeerMate): boolean => m.pos === "TW";
 
@@ -414,7 +416,7 @@ export function ViewsCard({ p, prog, forPlayer, onSelf }: { p: Player; prog: Dev
     <Col gap={6}>
       {peers.length ? <Row wrap gap={6}>{tags(peers, "plain")}</Row> : <Muted small>{t("ep_matesNone")}</Muted>}
       {counts && counts.list.length ? (
-        <Muted small>{tf("ep_peersCount", { n: counts.givers })}{counts.givers < PEER_MIN_GIVERS ? " · " + tf("ep_peersFew", { n: PEER_MIN_GIVERS }) : ""}: {counts.list.slice(0, 8).map(x => `${skillLabel(t, x.key)} ×${x.n}`).join(", ")}</Muted>
+        <Muted small>{peersCountText(tf, counts.givers)}{counts.givers < PEER_MIN_GIVERS ? " · " + tf("ep_peersFew", { n: PEER_MIN_GIVERS }) : ""}: {counts.list.slice(0, 8).map(x => `${skillLabel(t, x.key)} ×${x.n}`).join(", ")}</Muted>
       ) : null}
     </Col>
   );
@@ -550,7 +552,7 @@ export function PeerRoundCard({ p }: { p: Player }) {
       <Col gap={6}>
         <T v="h3">{t("ep_peerQ")}</T>
         {mates.length ? <Bar value={n / mates.length} color={c.ok} /> : null}
-        <Muted small>{n ? tf("ep_peerGiven", { n }) : t("ep_peerGiven0")}</Muted>
+        <Muted small>{n === 1 ? t("ep_peerGiven1") : n ? tf("ep_peerGiven", { n }) : t("ep_peerGiven0")}</Muted>
       </Col>
       {mates.length ? (
         <Col gap={0}>
@@ -594,7 +596,7 @@ export function PeerRoundAdmin() {
       {r && pr ? (
         <Col gap={6}>
           {!open ? <Muted small>{tf("ep_roundClosed", { a: E.de(r.since), b: E.de(r.until) })}</Muted> : null}
-          <T v="small">{tf("ep_roundProgress", { a: pr.givers, b: pr.players, c: pr.received })}</T>
+          <T v="small">{tf(pr.givers === 1 ? "ep_roundGivers1" : "ep_roundGivers", { a: pr.givers, b: pr.players })} · {tf(pr.received === 1 ? "ep_roundReceived1" : "ep_roundReceived", { c: pr.received })}</T>
           <Bar value={pr.players ? pr.givers / pr.players : 0} color={open ? c.ok : c.build} />
         </Col>
       ) : <Muted small>{t("ep_roundInfo")}</Muted>}
@@ -693,6 +695,8 @@ function ProgramForm({ p, onClose }: { p: Player; onClose: () => void }) {
   const sugg = xfSuggest(x.coach, self, counts.list).filter(y => !x.xf.includes(y.key)).slice(0, 5);
   const goals = goalsOf(E.D, p.id).filter(g => g.status === "active");
   const itemOf = (k: ImproveKind): ImproveItem => x.improve.find(i => i.kind === k) || blankItem(k);
+  // Felder ohne Inhalt bleiben eingeklappt, bis sie gebraucht werden
+  const [openKinds, setOpenKinds] = useState<ImproveKind[]>(() => IMPROVE_KINDS.filter(k => (cur?.improve || []).some(i => i.kind === k)));
   const setItem = (k: ImproveKind, patch: Partial<ImproveItem>) => setX(prev => ({ ...prev, improve: [...prev.improve.filter(i => i.kind !== k), { ...(prev.improve.find(i => i.kind === k) || blankItem(k)), ...patch }] }));
   const sitAt = (i: number, v: string) => { const L = [...x.sit]; while (L.length < LIMITS.sit) L.push(""); L[i] = v; set({ sit: L }); };
   const peerKeys = [...counts.list.map(y => y.key), ...x.peers.filter(k => !counts.list.some(y => y.key === k))];
@@ -715,11 +719,8 @@ function ProgramForm({ p, onClose }: { p: Player; onClose: () => void }) {
   const del = async () => { if (!sure) { setSure(true); return; } setBusy(true); try { await s.deleteProgram(p.id); onClose(); } finally { setBusy(false); } };
   return (
     <Sheet visible onClose={onClose} title={cur ? t("ep_edit") : t("ep_new")} testID="prog-sheet" closeLabel={t("cancel")}>
-      <Muted small>{E.name(p)} · {t("ep_info")}</Muted>
-
-      <EdBlock title={t("ep_tag")} desc={t("ep_tagD")}>
-        <Field testID="prog-tag-in" label={t("ep_tag")} value={x.tag} onChangeText={v => set({ tag: cleanTag(v.toUpperCase()) })} placeholder={t("ep_tagPh")} autoCapitalize="characters" maxLength={LIMITS.tag + 4} />
-      </EdBlock>
+      <Muted small>{E.name(p)}</Muted>
+      <Field testID="prog-tag-in" label={t("ep_tag")} hint={t("ep_tagD")} value={x.tag} onChangeText={v => set({ tag: cleanTag(v.toUpperCase()) })} placeholder={t("ep_tagPh")} autoCapitalize="characters" maxLength={LIMITS.tag + 4} />
 
       <EdBlock title={t("ep_xf")} desc={t("ep_xfD")} testID="prog-ed-xf">
         {x.xf.length ? <Row wrap gap={6}>{x.xf.map(k => <SkillTag key={k} k={k} look="solid" />)}</Row> : null}
@@ -736,6 +737,7 @@ function ProgramForm({ p, onClose }: { p: Player; onClose: () => void }) {
               <Muted small>{y.by.map(v => t("ep_v_" + v)).join(" · ")}</Muted>
             </Row>
           )) : <Muted small>{t("ep_suggestNone")}</Muted>}
+          {sugg.length && x.xf.length >= LIMITS.xf ? <Muted small>{t("ep_xfFull")}</Muted> : null}
           {self && (self.weapons.length || self.skills.length) ? <Muted small>{t("ep_v_self")}: {[...self.weapons, ...self.skills].map(k => skillLabel(t, k)).join(", ")}</Muted> : null}
         </Col>
       </EdBlock>
@@ -757,6 +759,13 @@ function ProgramForm({ p, onClose }: { p: Player; onClose: () => void }) {
       <EdBlock title={`${t("ep_improve")} – ${t("ep_improveT")}`} desc={t("ep_kindEmpty")} testID="prog-ed-improve">
         {IMPROVE_KINDS.map(k => {
           const it = itemOf(k);
+          if (!openKinds.includes(k)) return (
+            <Pressable key={k} testID={"prog-ed-add-" + k} accessibilityRole="button" accessibilityLabel={tf("ep_kindAdd", { k: t("ep_ik_" + k) })} onPress={() => setOpenKinds([...openKinds, k])}
+              style={({ pressed }) => ({ flexDirection: "row", alignItems: "center", gap: 10, borderRadius: radius.l, borderWidth: 1, borderStyle: "dashed", borderColor: c.line, paddingVertical: 12, paddingHorizontal: 12, opacity: pressed ? 0.7 : 1 })}>
+              <Icon name="plus" size={16} color={c.accentTx} strokeWidth={2.4} />
+              <Col gap={1} style={{ flex: 1 }}><T bold>{t("ep_ik_" + k)}</T><Muted small>{t("ep_ikd_" + k)}</Muted></Col>
+            </Pressable>
+          );
           return (
             <View key={k} testID={"prog-ed-" + k} style={{ borderRadius: radius.l, borderWidth: 1, borderColor: c.line, padding: 12, gap: 10 }}>
               <Col gap={2}><T bold>{t("ep_ik_" + k)}</T><Muted small>{t("ep_ikd_" + k)}</Muted></Col>
@@ -803,7 +812,7 @@ function ProgramForm({ p, onClose }: { p: Player; onClose: () => void }) {
       </EdBlock>
 
       <EdBlock title={t("ep_v_mates")} testID="prog-ed-peers"
-        desc={counts.givers ? tf("ep_peersCount", { n: counts.givers }) + (counts.givers < PEER_MIN_GIVERS ? " · " + tf("ep_peersFew", { n: PEER_MIN_GIVERS }) : "") : t("ep_peersNone")}>
+        desc={counts.givers ? peersCountText(tf, counts.givers) + (counts.givers < PEER_MIN_GIVERS ? " · " + tf("ep_peersFew", { n: PEER_MIN_GIVERS }) : "") : t("ep_peersNone")}>
         {peerKeys.length ? (
           <Col gap={6}>
             <T v="small" bold>{t("ep_peersPick")}</T>
