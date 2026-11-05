@@ -76,7 +76,7 @@ export default function Groessen() {
               <Col key={x.item} gap={6} testID={"gr-total-" + x.item}>
                 <Row between gap={8}>
                   <T bold>{t("gr_item_" + x.item)}</T>
-                  <Muted small>{x.n}</Muted>
+                  <Muted small>{tf("gr_pieces", { n: x.n })}</Muted>
                 </Row>
                 <Row wrap gap={6}>
                   {x.counts.map(cn => (

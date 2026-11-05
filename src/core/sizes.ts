@@ -128,8 +128,8 @@ export function orderOf(D: Pick<TeamData, "sizes">, players: Player[], items: Or
   return { lines, totals };
 }
 
-/** Summen eines Artikels als Text („S 2 · M 8 · L 6“) */
-export const totalText = (t: OrderTotal): string => t.counts.map(c => `${c.size}: ${c.n}`).join(" · ");
+/** Summen eines Artikels als Text („2× S, 8× M, 6× L“) */
+export const totalText = (t: OrderTotal): string => t.counts.map(c => `${c.n}× ${c.size}`).join(", ");
 
 /**
  * Bestellliste als CSV (Excel): auf Deutsch Semikolon, auf Englisch Komma; mit BOM, damit Umlaute stimmen. Oben je
@@ -161,9 +161,7 @@ export function orderCsv(o: Order, opts: { print: boolean }, tr: Translator): st
 export function orderText(o: Order, opts: { print: boolean; title: string }, tr: Translator): string {
   const { t, tf } = tr;
   const out = [opts.title, ""];
-  for (const x of o.totals) {
-    out.push(`${t("gr_item_" + x.item)}: ${x.counts.length ? totalText(x) : "–"} (${x.n})`);
-  }
+  for (const x of o.totals) out.push(`${t("gr_item_" + x.item)} (${x.n}): ${x.counts.length ? totalText(x) : "–"}`);
   const miss = o.lines.filter(l => l.missing.length);
   if (miss.length) out.push("", tf("gr_textMissing", { n: miss.map(l => `${l.name} (${l.missing.map(i => t("gr_item_" + i)).join(", ")})`).join("; ") }));
   out.push("");

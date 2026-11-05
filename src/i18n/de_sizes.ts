@@ -8,7 +8,7 @@ export const de_sizes: Dict = {
   gr_item_top: "Oberteil", gr_item_bottom: "Hose", gr_item_socks: "Stutzen", gr_item_shoes: "Schuhe", gr_item_gloves: "TW-Handschuhe",
   gr_itemD_top: "Trikot, Shirt, Jacke", gr_itemD_bottom: "Shorts, Trainingshose", gr_itemD_socks: "aus der Schuhgröße", gr_itemD_shoes: "EU-Größe", gr_itemD_gloves: "nur Torhüter",
   gr_kids: "Kindergrößen", gr_kidsShow: "Kindergrößen zeigen", gr_shoesPh: "z. B. 42,5", gr_glovesPh: "z. B. 9",
-  gr_print: "Name für die Beflockung", gr_printPh: "z. B. {n}", gr_printD: "Leer lassen: In der Bestellliste steht dein Nachname.",
+  gr_print: "Name für die Beflockung", gr_printPh: "z. B. {n}", gr_printD: "Leer lassen: In der Bestellliste steht dann der Nachname.", gr_pieces: "{n} Stück",
   gr_note: "Hinweis", gr_notePh: "z. B. fällt klein aus – lieber eine Größe größer",
   gr_hint: "Unsicher? Nimm die Größe, die dir bei Sportkleidung sonst passt.",
   gr_errShoes: "Schuhgröße bitte zwischen 26 und 50 eintragen – halbe Größen mit Komma, z. B. 42,5.", gr_errGloves: "Handschuhgröße bitte zwischen 4 und 12 eintragen, z. B. 9 oder 9,5.",

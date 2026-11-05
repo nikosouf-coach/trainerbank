@@ -8,7 +8,7 @@ export const en_sizes: Dict = {
   gr_item_top: "Top", gr_item_bottom: "Bottoms", gr_item_socks: "Socks", gr_item_shoes: "Shoes", gr_item_gloves: "GK gloves",
   gr_itemD_top: "Jersey, shirt, jacket", gr_itemD_bottom: "Shorts, training pants", gr_itemD_socks: "from the shoe size", gr_itemD_shoes: "EU size", gr_itemD_gloves: "goalkeepers only",
   gr_kids: "Kids' sizes", gr_kidsShow: "Show kids' sizes", gr_shoesPh: "e.g. 42.5", gr_glovesPh: "e.g. 9",
-  gr_print: "Name for printing", gr_printPh: "e.g. {n}", gr_printD: "Leave empty: the order list uses your surname.",
+  gr_print: "Name for printing", gr_printPh: "e.g. {n}", gr_printD: "Leave empty: the order list then uses the surname.", gr_pieces: "{n} pcs",
   gr_note: "Note", gr_notePh: "e.g. runs small – one size up, please",
   gr_hint: "Not sure? Pick the size that usually fits you in sportswear.",
   gr_errShoes: "Please enter a shoe size between 26 and 50 (EU) – half sizes like 42.5.", gr_errGloves: "Please enter a glove size between 4 and 12, e.g. 9 or 9.5.",

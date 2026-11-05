@@ -71,7 +71,7 @@ function SizesForm({ pid, onDone }: { pid: string; onDone: () => void }) {
   );
   return (
     <Col gap={16}>
-      <Muted small>{t("gr_hint")}</Muted>
+      {s.viewAs !== "coach" ? <Muted small>{t("gr_hint")}</Muted> : null}
       <Col gap={8} testID="gr-top">
         {label("top")}
         <ClothChips testID="gr-top" value={d.top} onChange={v => set({ top: v })} kids={kids} />

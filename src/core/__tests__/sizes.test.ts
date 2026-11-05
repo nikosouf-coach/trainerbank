@@ -90,7 +90,7 @@ test("Bestellliste als CSV und Text", () => {
   const txt = orderText(o, { print: true, title: "Bestellung U19 – 05.11.2026" }, tr);
   const lines = txt.split("\n");
   assert.equal(lines[0], "Bestellung U19 – 05.11.2026");
-  assert.ok(lines.some(x => x.startsWith("Oberteil: ") && x.endsWith("(2)")), "Summe Oberteile");
+  assert.ok(lines.some(x => /^Oberteil \(2\): \d× [A-Z0-9]+(, \d× [A-Z0-9]+)?$/.test(x)), "Summe Oberteile");
   assert.ok(txt.includes("Größe fehlt noch: Mats Ehlert (Oberteil, Stutzen)"));
   assert.ok(lines.some(x => x.startsWith("#1 Luca Brenner") && x.includes("TW-Handschuhe")), "Zeile je Spieler");
   for (const lang of ["de", "en"] as const) for (const k of ORDER_ITEMS) assert.ok(DICTS[lang]["gr_item_" + k], `${lang}: gr_item_${k}`);
