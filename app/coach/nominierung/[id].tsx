@@ -51,7 +51,8 @@ export default function Nominierung() {
   const plan = E.mods.matchplan ? E.D.plans.find(p => p.matchId === m.id) || null : null, planIds = plan ? squadOf(plan.c) : [];
 
   const toggle = (pid: string, v: Pick_) => setSel(x => { const y = { ...x }; if (y[pid] === v) delete y[pid]; else y[pid] = v; return y; });
-  const pickAvail = () => setSel(x => { const y = { ...x }; for (const p of players) if (p.active !== false && !absentOn(E.D, p.id, m.date) && !y[p.id]) y[p.id] = "squad"; return y; });
+  // alle verfügbaren: aktiv, nicht abwesend, keine neue App-Anmeldung, die noch zusammengeführt werden muss
+  const pickAvail = () => setSel(x => { const y = { ...x }; for (const p of players) if (p.active !== false && !p.neu && !absentOn(E.D, p.id, m.date) && !y[p.id]) y[p.id] = "squad"; return y; });
   const pickPlan = () => setSel(x => { const y = { ...x }; for (const pid of planIds) if (E.P(pid) && !y[pid]) y[pid] = "squad"; return y; });
 
   const save = async (publish: boolean | null) => {
@@ -116,9 +117,8 @@ export default function Nominierung() {
                     <PlayerAvatar p={p} size={32} />
                     <Col gap={1} style={{ flex: 1, minWidth: 0 }}>
                       <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: "700", color: c.ink }}>{E.name(p)}</Text>
-                      <Text numberOfLines={1} style={{ fontSize: 12.5, color: ab ? c.crit : c.muted }}>
-                        {[p.nr != null ? "#" + p.nr : "", p.pos, ab ? `${t("nm_unavailable")}: ${t("ab_" + ab.typ)}` : ""].filter(Boolean).join(" · ")}
-                      </Text>
+                      <Text numberOfLines={1} style={{ fontSize: 12.5, color: c.muted }}>{[p.nr != null ? "#" + p.nr : "", p.pos].filter(Boolean).join(" · ")}</Text>
+                      {ab ? <Text testID={"nm-abs-" + p.id} style={{ fontSize: 12.5, fontWeight: "600", color: c.crit }}>{`${t("nm_unavailable")}: ${t("ab_" + ab.typ)}${ab.bis ? ` (${t("until")} ${E.de(ab.bis)})` : ""}`}</Text> : null}
                       {st ? (
                         <Pressable testID={"nm-ans-" + p.id} accessibilityRole="button" accessibilityLabel={`${t("nm_setAnswer")}: ${st.label}`} disabled={!canEdit} onPress={() => setAns(p.id)} hitSlop={4}
                           style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>
