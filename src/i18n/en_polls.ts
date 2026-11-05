@@ -47,7 +47,7 @@ export const en_polls: Dict = {
   um_qN: "Question {n}", um_qAdd: "Add question", um_qDel: "Remove question {n}", um_qUp: "Move question {n} up", um_qDown: "Move question {n} down",
   um_required: "Required", um_lo: "Label at 1", um_hi: "Label at 5", um_loPh: "e.g. not at all", um_hiPh: "e.g. a lot",
   um_who: "Who answers?", um_groupHidden: "The players in this group see the poll, but not the group's name.",
-  um_mode: "Answers", um_modeNamedAll: "After answering, everyone sees who picked what.", um_modeNamedStaff: "Only the coaching staff sees who picked what.",
+  um_mode: "With names or anonymous?", um_modeNamedAll: "After answering, everyone sees who picked what.", um_modeNamedStaff: "Only the coaching staff sees who picked what.",
   um_modeAnon: "Nobody sees who answered what – not even the coaching staff. Results from three answers.",
   um_resWho: "Who sees the result", um_resAllOpt: "Everyone", um_resStaffOpt: "Coaching staff only",
   um_resAllD: "Players see the result after answering and after the end.", um_resStaffD: "Players only see their own answer.",
@@ -61,14 +61,14 @@ export const en_polls: Dict = {
   // Player
   um_vote: "Vote", um_send: "Send", um_thanks: "Thanks! Your answer has been saved.",
   um_change: "Change answer", um_withdraw: "Withdraw answer", um_withdrawn: "Answer withdrawn",
-  um_yourAnswer: "Your answer", um_youVoted: "You've voted", um_open: "Open", um_seeAll: "All polls",
+  um_yourAnswer: "Your answer", um_youVoted: "You've voted", um_youTook: "You've taken part", um_open: "Open", um_seeAll: "All polls",
   um_privNamedAll: "With names – everyone sees what you picked.", um_privNamedStaff: "With names – only the coaching staff sees your answer.",
   um_privAnon: "Anonymous – nobody sees what you answered.", um_privText: "Only the coaching staff sees free text.",
   um_needRequired: "Please answer all required questions.", um_optional: "optional",
   um_toAnswer: "Open for you", um_answeredList: "Answered", um_mine: "Started by you",
   um_startOwn: "Start a quick poll", um_ownMax: "You already have {n} running quick polls. End one to start a new one.",
   um_ownInfo: "Your own quick polls are always with names and go to the whole team. Your coaching staff sees them and can end them.",
-  um_playerNone: "No polls right now.", um_cardMore: "See all polls",
+  um_cardMoreN: "See all polls (+{n})", um_playerNone: "No polls right now.", um_cardMore: "See all polls",
 
   // Server errors
   err_polls_off: "Players can't start quick polls right now.", err_poll_closed: "This poll has ended.",

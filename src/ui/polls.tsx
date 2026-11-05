@@ -281,7 +281,7 @@ export function PollSheet({ poll, onClose }: { poll: Poll | null; onClose: () =>
             </>
           ) : (
             <>
-              {mine ? <Row gap={6}><Icon name="check" size={17} color={c.ok} strokeWidth={2.6} /><T bold color={c.ok}>{t("um_youVoted")}</T></Row> : null}
+              {mine ? <Row gap={6}><Icon name="check" size={17} color={c.ok} strokeWidth={2.6} /><T bold color={c.ok}>{t(p.kind === "survey" ? "um_youTook" : "um_youVoted")}</T></Row> : null}
               {vis ? <PollResultView p={p} r={r} staff={false} mine={mine?.answers} />
                 : <Muted small>{p.results === "staff" ? t("um_resultsStaffOnly") : t("um_resultsAfter")}</Muted>}
               {open && mine ? (
@@ -354,7 +354,10 @@ export function PlayerPollsCard({ onAll }: { onAll: () => void }) {
   const pid = s.mePid || "";
   const [done, setDone] = useState<string[]>([]);
   const [sheet, setSheet] = useState<Poll | null>(null);
-  const L = s.myPolls.filter(p => pollOpen(p, E.TODAY) && (!answerOf(E.D, p.id, pid) || done.includes(p.id))).slice(0, 3);
+  // Dringendes zuerst: was bald endet, dann das Neueste; höchstens drei, der Rest unter „Alle Umfragen“
+  const all = s.myPolls.filter(p => pollOpen(p, E.TODAY) && (!answerOf(E.D, p.id, pid) || done.includes(p.id)))
+    .sort((a, b) => (a.until || "9999") < (b.until || "9999") ? -1 : (a.until || "9999") > (b.until || "9999") ? 1 : a.created < b.created ? 1 : -1);
+  const L = all.slice(0, 3), more = all.length - L.length;
   if (!L.length) return <PollSheet poll={sheet} onClose={() => setSheet(null)} />;
   return (
     <Card testID="player-polls">
@@ -374,7 +377,7 @@ export function PlayerPollsCard({ onAll }: { onAll: () => void }) {
           )}
         </View>
       ))}
-      <Btn small kind="ghost" testID="player-polls-all" label={t("um_cardMore")} onPress={onAll} style={{ alignSelf: "flex-start" }} />
+      <Btn small kind="ghost" testID="player-polls-all" label={more > 0 ? tf("um_cardMoreN", { n: more }) : t("um_cardMore")} onPress={onAll} style={{ alignSelf: "flex-start" }} />
       <PollSheet poll={sheet} onClose={() => setSheet(null)} />
     </Card>
   );
@@ -592,13 +595,13 @@ export function PollEditor({ initial, onClose, asPlayer }: { initial: Poll | nul
 export function PollFacts({ p, staff }: { p: Poll; staff: boolean }) {
   const s = useStore(); const E = useEngine(); const { t } = E; const { c } = useTheme();
   const items: { icon: IconName; label: string }[] = [
-    { icon: p.anonymous ? "eye" : "people", label: cap(t(p.anonymous ? "um_anon" : "um_named")) },
+    { icon: p.anonymous ? "shield" : "eye", label: cap(t(p.anonymous ? "um_anon" : "um_named")) },
     { icon: "chart", label: t(p.results === "all" ? "um_resAll" : "um_resStaff") },
     { icon: "kader", label: pollTarget(E, p, staff) },
     { icon: "clock", label: cap(pollState(E, p)) },
   ];
   const by = pollAuthor(E, p, staff ? null : s.mePid);
-  if (by) items.push({ icon: "person", label: cap(by) });
+  if (by) items.push({ icon: p.byPlayer ? "person" : "whistle", label: cap(by) });
   return (
     <Row wrap gap={8} testID="poll-facts">
       {items.map((x, i) => (

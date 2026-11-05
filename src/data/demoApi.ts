@@ -9,8 +9,9 @@ import { addRef, isYounger, makeResolver, planSlots, posMatch, refOf, riserSnap,
 import { fmtOf } from "../core/matchplan";
 import { cleanGift, cleanProgram, cleanSelf } from "../core/program";
 import { cleanAnswers, cleanPoll, pollOpen, pollResult } from "../core/polls";
+import { cleanContacts, cleanMed } from "../core/emergency";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -498,6 +499,9 @@ export class DemoApi implements Api {
     return { ...a, answers, at: new Date().toISOString() };
   }
   async deletePollAnswer() { this.net(); }
+  // Notfallkontakte: bleiben auf dem Gerät (der Store ändert die Daten selbst)
+  async saveEmergency(_pid: string, contacts: EmContact[]) { this.net(); return cleanContacts(contacts); }
+  async saveEmergencyMed(_pid: string, note: string) { this.net(); return cleanMed(note); }
   /** Demo: Ergebnis wie der Server für das Trainerteam (die Spieler-Ansicht rechnet der Store mit eigener Sicht) */
   async pollResults(pollId: string) {
     const D = this.data, p = D?.polls.find(x => x.id === pollId);

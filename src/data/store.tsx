@@ -16,13 +16,14 @@ import { cleanBody, demoMe, putMsg, toggleReaction, visibleChats } from "../core
 import { indivUnit } from "../core/dev";
 import { cleanGift, cleanProgram, cleanSelf, matesOf, peerOpen } from "../core/program";
 import { cleanPoll, pollsFor, sortPolls } from "../core/polls";
+import { cleanContacts, cleanMed } from "../core/emergency";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -343,20 +344,26 @@ function useStoreValue() {
 
   // ---------- Änderungen ----------
   /** Lokal ändern, neu rechnen, speichern; bei Fehler Meldung und neu laden. */
-  const change = useCallback(async (local: (D: TeamData) => void, remote: (api: Api, teamId: string) => Promise<unknown>, opts: { plan?: boolean; ok?: string } = {}) => {
-    const { D, active, api } = ref.current; if (!D || !active) return;
+  /** Änderung: erst lokal, dann an den Server. Ergebnis: gespeichert? (false: ohne Netz, Fehler – mit Hinweis – oder kein Team) */
+  const changeOk = useCallback(async (local: (D: TeamData) => void, remote: (api: Api, teamId: string) => Promise<unknown>, opts: { plan?: boolean; ok?: string } = {}): Promise<boolean> => {
+    const { D, active, api } = ref.current; if (!D || !active) return false;
     local(D); setS(prev => ({ ...prev, version: prev.version + 1 }));
     try {
       await remote(api, active.teamId); setS(prev => ({ ...prev, version: prev.version + 1, offline: false }));
       if (opts.ok) toast(opts.ok); if (opts.plan) { publishPlans(); scheduleAutomation(); }
       if (obRef.current.length) scheduleFlush(300);
+      return true;
     }
     catch (e) {
       // Ohne Netz bleibt diese Änderung nicht erhalten (nur Einträge kommen in die Warteschlange) – klar sagen
-      if (isOffline(e)) { set({ offline: true }); toast(translator(ref.current.lang).t("off_notSaved")); return; }
+      if (isOffline(e)) { set({ offline: true }); toast(translator(ref.current.lang).t("off_notSaved")); return false; }
       toast(errText(e)); reload();
+      return false;
     }
   }, [toast, errText, reload, publishPlans, scheduleAutomation]); // eslint-disable-line react-hooks/exhaustive-deps
+  const change = useCallback(async (local: (D: TeamData) => void, remote: (api: Api, teamId: string) => Promise<unknown>, opts: { plan?: boolean; ok?: string } = {}): Promise<void> => {
+    await changeOk(local, remote, opts);
+  }, [changeOk]);
 
   /** Eintrag senden (an das jeweilige Api) – gibt bei neuen Datensätzen den gespeicherten Stand zurück */
   async function exec(api: Api, teamId: string, o: OutboxOp): Promise<Extra | Absence | void> {
@@ -606,7 +613,26 @@ function useStoreValue() {
       if (saved.userId && saved.userId === ref.current.user?.id) { await api.setDisplayName(saved.name).catch(() => undefined); const u = ref.current.user; if (u) set({ user: { ...u, displayName: saved.name } }); }
       set({ version: ref.current.version + 1 }); return saved;
     },
-    joinTeam: async (code: string, p: JoinProfile) => { const pid = await ref.current.api.joinTeam(code, p); const ms = await ref.current.api.memberships(); await loadActive(ref.current.api, ms.find(m => m.playerId === pid) || ms[0] || null, { memberships: ms }); return pid; },
+    /**
+     * Team beitreten. Der Notfallkontakt (beim Beitreten Pflicht) wird gleich danach gespeichert – vor dem Laden des
+     * Teams, damit die Startseite ihn schon kennt. saved = false: nicht gespeichert (z. B. Netz weg) – der Spieler trägt
+     * ihn auf der Startseite nach (Hinweis „fehlt“).
+     */
+    joinTeam: async (code: string, p: JoinProfile, em?: { contacts: EmContact[]; med?: string }): Promise<{ pid: string; saved: boolean }> => {
+      const api = ref.current.api;
+      const pid = await api.joinTeam(code, p);
+      let saved = true;
+      if (em) {
+        try {
+          await api.saveEmergency(pid, cleanContacts(em.contacts));
+          const n = cleanMed(em.med);
+          if (n) await api.saveEmergencyMed(pid, n);
+        } catch { saved = false; }
+      }
+      const ms = await api.memberships();
+      await loadActive(api, ms.find(m => m.playerId === pid) || ms[0] || null, { memberships: ms });
+      return { pid, saved };
+    },
     /** Trainerteam-Code eines Teams oder Funktionärs-Code eines Vereins: liefert, wohin die Anfrage ging */
     joinStaff: async (code: string): Promise<"team" | "club"> => {
       const api = ref.current.api;
@@ -976,6 +1002,27 @@ function useStoreValue() {
       toast(translator(ref.current.lang).t("um_reminded"));
     },
 
+    // ---------- Notfallkontakte ----------
+    /** Kontakte eines Spielers speichern (Spieler: eigene; Trainerteam: Recht „Kader“); leer = löschen */
+    saveEmergency: (pid: string, contacts: EmContact[]) => {
+      const L = cleanContacts(contacts);
+      return changeOk(D => { if (L.length) D.emergency[pid] = L; else delete D.emergency[pid]; },
+        async api => { const saved = await api.saveEmergency(pid, L); const D = ref.current.D; if (D) { if (saved.length) D.emergency[pid] = saved; else delete D.emergency[pid]; } },
+        { ok: translator(ref.current.lang).t("nf_saved") });
+    },
+    /** Hinweise für den Notfall (Gesundheitsdaten; Spieler: eigene; Trainerteam: Recht „Gesundheitsdaten“); leer = löschen */
+    saveEmergencyMed: (pid: string, note: string) => {
+      const n = cleanMed(note);
+      return changeOk(D => { if (n) D.emergencyMed[pid] = n; else delete D.emergencyMed[pid]; }, api => api.saveEmergencyMed(pid, n),
+        { ok: translator(ref.current.lang).t("nf_saved") });
+    },
+    /** Spieler mit Konto an den fehlenden Notfallkontakt erinnern (Nachricht vom Trainerteam, 7 Tage sichtbar) */
+    remindEmergency: async (pids: string[]) => {
+      const tr0 = translator(ref.current.lang), today = iso(new Date());
+      for (const pid of pids) await actions.saveMessage(pid, { id: tmpId(), date: today, typ: "info", text: tr0.t("nf_remindMsg"), bis: addDays(today, 7) });
+      toast(tr0.t("nf_reminded"));
+    },
+
     // ---------- Wochenchallenge ----------
     saveChallenge: (c: Challenge) => upsert("challenges", c, (api, t) => api.saveChallenge(t, c), { ok: translator(ref.current.lang).t("cg_saved") }),
     deleteChallenge: (id: string) => change(D => { D.challenges = D.challenges.filter(x => x.id !== id); D.chEntries = D.chEntries.filter(x => x.cid !== id); delete D.chTotals[id]; }, api => api.deleteChallenge(id)),
@@ -1274,6 +1321,8 @@ function useStoreValue() {
     saveProgram: "notes", deleteProgram: "notes", setPeerRound: "notes",
     // Umfragen: Trainerteam mit „Nachrichten“ (Spieler verwalten eigene Abstimmungen – prüft der Server)
     savePoll: "messages", setPollState: "messages", deletePoll: "messages", setPlayerPolls: "messages", remindPoll: "messages",
+    // Notfallkontakte: Kontakte „Kader“, Hinweise (Gesundheitsdaten) „Gesundheitsdaten“, Erinnerung „Nachrichten“
+    saveEmergency: "squad", saveEmergencyMed: "health", remindEmergency: "messages",
     savePlan: "plan", deletePlan: "plan",
     saveScout: "scout", deleteScout: "scout", saveScoutReport: "scout", deleteScoutReport: "scout", saveScoutList: "scout", deleteScoutList: "scout",
     saveSquadPlan: "scout", deleteSquadPlan: "scout", takeOverScout: ["scout"],

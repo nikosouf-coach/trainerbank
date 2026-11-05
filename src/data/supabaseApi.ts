@@ -12,9 +12,10 @@ import { cleanContent, fmtOf } from "../core/matchplan";
 import { cleanPlanContent } from "../core/scout";
 import { cleanGift, cleanProgram, cleanSelf, peerOpen, programContent } from "../core/program";
 import { cleanPoll } from "../core/polls";
+import { cleanContacts, cleanMed } from "../core/emergency";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -425,6 +426,19 @@ export class SupabaseApi implements Api {
         ]);
         D.polls = polls.map(mapPoll); D.pollAnswers = answers.map(mapPollAnswer);
       } catch { /* Umfragen optional: Rest der App lädt trotzdem */ }
+    }
+    {
+      // Notfallkontakte (Trainerteam mit „Kader“ oder „Gesundheitsdaten“; Spieler: eigene) und Hinweise für den Notfall
+      // (Gesundheitsdaten) – Teil der Teamdaten, damit sie auch ohne Netz da sind
+      try {
+        const [em, med] = await Promise.all([
+          all((a, b) => sb.from("player_emergency").select("player_id, contacts").eq("team_id", tid).range(a, b)),
+          all((a, b) => sb.from("player_emergency_med").select("player_id, note").eq("team_id", tid).range(a, b)),
+        ]);
+        for (const r of em) { const L = cleanContacts(r.contacts); if (L.length) D.emergency[r.player_id] = L; }
+        for (const r of med) { const n = cleanMed(r.note); if (n) D.emergencyMed[r.player_id] = n; }
+        D.emergencyOk = true;
+      } catch { /* optional – ohne geladene Daten zeigt die App „fehlt“ nicht an */ }
     }
     if (D.team.modules.matchplan !== false) {
       // Matchpläne: Trainerteam liest Pläne und Zugriffsprotokoll; Spieler nur die Liste freigegebener Pläne
@@ -913,6 +927,20 @@ export class SupabaseApi implements Api {
   }
   async deletePollAnswer(pollId: string, pid: string) { await q(this.sb.from("poll_answers").delete().eq("poll_id", pollId).eq("player_id", pid)); }
   async pollResults(pollId: string) { return mapPollResult(await q<Row>(this.sb.rpc("poll_results", { p_poll: pollId }))); }
+
+  // ---------- Notfallkontakte ----------
+  async saveEmergency(pid: string, contacts: EmContact[]) {
+    const L = cleanContacts(contacts);
+    if (!L.length) { await q(this.sb.from("player_emergency").delete().eq("player_id", pid)); return []; }
+    const r = await q<Row>(this.sb.from("player_emergency").upsert({ player_id: pid, contacts: L }, { onConflict: "player_id" }).select("contacts").single());
+    return cleanContacts(r.contacts);
+  }
+  async saveEmergencyMed(pid: string, note: string) {
+    const n = cleanMed(note);
+    if (!n) { await q(this.sb.from("player_emergency_med").delete().eq("player_id", pid)); return ""; }
+    const r = await q<Row>(this.sb.from("player_emergency_med").upsert({ player_id: pid, note: n }, { onConflict: "player_id" }).select("note").single());
+    return cleanMed(r.note);
+  }
 
   // ---------- Wochenchallenge ----------
   async saveChallenge(teamId: string, c: Challenge) {

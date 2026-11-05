@@ -47,7 +47,7 @@ export const de_polls: Dict = {
   um_qN: "Frage {n}", um_qAdd: "Frage hinzufügen", um_qDel: "Frage {n} entfernen", um_qUp: "Frage {n} nach oben", um_qDown: "Frage {n} nach unten",
   um_required: "Pflichtfrage", um_lo: "Beschriftung bei 1", um_hi: "Beschriftung bei 5", um_loPh: "z. B. gar nicht", um_hiPh: "z. B. sehr",
   um_who: "Wer antwortet?", um_groupHidden: "Die Spieler dieser Gruppe sehen die Umfrage, aber nicht den Namen der Gruppe.",
-  um_mode: "Antworten", um_modeNamedAll: "Alle sehen nach ihrer Antwort, wer was gewählt hat.", um_modeNamedStaff: "Nur das Trainerteam sieht, wer was gewählt hat.",
+  um_mode: "Mit Namen oder anonym?", um_modeNamedAll: "Alle sehen nach ihrer Antwort, wer was gewählt hat.", um_modeNamedStaff: "Nur das Trainerteam sieht, wer was gewählt hat.",
   um_modeAnon: "Niemand sieht, wer was geantwortet hat – auch das Trainerteam nicht. Ergebnisse ab drei Antworten.",
   um_resWho: "Ergebnis sehen", um_resAllOpt: "Alle", um_resStaffOpt: "Nur Trainerteam",
   um_resAllD: "Spieler sehen das Ergebnis nach ihrer Antwort und nach dem Ende.", um_resStaffD: "Spieler sehen nur ihre eigene Antwort.",
@@ -61,14 +61,14 @@ export const de_polls: Dict = {
   // Spieler
   um_vote: "Abstimmen", um_send: "Absenden", um_thanks: "Danke! Deine Antwort ist gespeichert.",
   um_change: "Antwort ändern", um_withdraw: "Antwort zurückziehen", um_withdrawn: "Antwort zurückgezogen",
-  um_yourAnswer: "Deine Antwort", um_youVoted: "Du hast abgestimmt", um_open: "Öffnen", um_seeAll: "Alle Umfragen",
+  um_yourAnswer: "Deine Antwort", um_youVoted: "Du hast abgestimmt", um_youTook: "Du hast mitgemacht", um_open: "Öffnen", um_seeAll: "Alle Umfragen",
   um_privNamedAll: "Mit Namen – alle sehen, was du gewählt hast.", um_privNamedStaff: "Mit Namen – nur das Trainerteam sieht deine Antwort.",
   um_privAnon: "Anonym – niemand sieht, was du geantwortet hast.", um_privText: "Freitext sieht nur das Trainerteam.",
   um_needRequired: "Bitte alle Pflichtfragen beantworten.", um_optional: "freiwillig",
   um_toAnswer: "Offen für dich", um_answeredList: "Beantwortet", um_mine: "Von dir gestartet",
   um_startOwn: "Abstimmung starten", um_ownMax: "Du hast schon {n} laufende Abstimmungen. Beende eine, um eine neue zu starten.",
   um_ownInfo: "Eigene Abstimmungen sind immer mit Namen und gehen ans ganze Team. Dein Trainerteam sieht sie und kann sie beenden.",
-  um_playerNone: "Gerade keine Umfragen.", um_cardMore: "Alle Umfragen ansehen",
+  um_cardMoreN: "Alle Umfragen ansehen (+{n})", um_playerNone: "Gerade keine Umfragen.", um_cardMore: "Alle Umfragen ansehen",
 
   // Fehler vom Server
   err_polls_off: "Spieler dürfen gerade keine Abstimmungen starten.", err_poll_closed: "Diese Umfrage ist beendet.",

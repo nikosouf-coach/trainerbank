@@ -74,14 +74,15 @@ FÜR TRAINERINNEN UND TRAINER
 • Belastungssteuerung mit Session-RPE: Belastung pro Einheit, Verlauf über die Wochen, akute und chronische Belastung im Vergleich
 • Ampel und Hinweise: Wer braucht mehr Erholung, wer kann mehr?
 • Regeneration nach Alter: Erholungszeiten für neun Altersstufen
-• Mehrere Einheiten am Tag: z. B. Athletik vor dem Mannschaftstraining, Torwarttraining oder eine Reha-Gruppe – jede Woche oder für einzelne Tage
-• Torhüter im Blick: Torwarttraining mit Schwerpunkten, Sprünge als Belastung, Gegentore, Paraden und Torwarttests
-• Trainingseindruck in Sekunden: nur besonders gute oder schwache Leistungen markieren – Durchschnitt ist Standard
+• Mehrere Einheiten am Tag, z. B. Athletik vor dem Mannschaftstraining oder eine Reha-Gruppe
+• Torhüter im Blick: Torwarttraining, Sprünge als Belastung, Gegentore, Paraden und Torwarttests
+• Trainingseindruck in Sekunden: nur besonders gute oder schwache Leistungen markieren
 • Anwesenheit in Sekunden erfassen
 • Abwesenheiten mit Grund und stufenweiser Rückkehr ins Training
+• Notfallkontakte jedes Spielers griffbereit – mit einem Tipp anrufen, auch ohne Netz
 • Wachstum im Blick: Körpergröße erfassen und Wachstumsphasen im Jugendbereich berücksichtigen
 • Potenziale und Ziele für jeden Spieler – auf Wunsch für den Spieler sichtbar
-• Kurze Nachrichten an einzelne Spieler, z. B. Pause, Regeneration oder Zusatzaufgabe
+• Kurze Nachrichten an einzelne Spieler, z. B. Pause oder Zusatzaufgabe
 • Team-Chat statt WhatsApp-Gruppe – ohne Telefonnummern, mit Kinderschutz für Jugendteams – und Umfragen, auf Wunsch anonym
 • Spielerentwicklung mit individuellem Entwicklungsprogramm (X-Faktor, Entwicklungsfelder mit Weg und Ziel), Kompetenzprofil, messbaren Zielen und Entwicklungsgesprächen
 • Wochenchallenge für zu Hause und Anfragen für Individualtraining
@@ -99,7 +100,7 @@ FÜR SPIELERINNEN UND SPIELER
 • „Mein Weg“: Spielerkarte mit X-Faktor, Entwicklungsfelder, Ziele und Stärken-Runde – dazu Team-Chat, Umfragen und Wochenchallenge
 
 KI-COACH (OPTIONAL)
-Stell Fragen zu Training, Belastung und Erholung. Der KI-Coach ist freiwillig, erst nach gesonderter Einwilligung nutzbar und hat ein Tageslimit. Antworten sind als KI-generiert gekennzeichnet.
+Stell Fragen zu Training, Belastung und Erholung. Der KI-Coach ist freiwillig und erst nach gesonderter Einwilligung nutzbar. Antworten sind als KI-generiert gekennzeichnet.
 
 PASSEND FÜR JEDE ALTERSKLASSE
 Infotiefe und Module passen sich der Altersklasse an: Im Kinderfußball steht die Organisation im Vordergrund, im Leistungsbereich die detaillierte Belastungssteuerung.
@@ -139,14 +140,15 @@ FOR COACHES
 • Load management with session RPE: load per session, trends over the weeks, acute vs. chronic load
 • Traffic light and hints: who needs more recovery, who can handle more?
 • Age-based recovery: recovery times for nine age groups
-• Several sessions per day: e.g. athletics before team training, goalkeeper training or a rehab group – weekly or for single days
-• Goalkeepers in focus: goalkeeper sessions with focus areas, jumps as load, goals conceded, saves and goalkeeper tests
-• Training impressions in seconds: only mark particularly good or weak performances – average is the default
+• Several sessions per day, e.g. athletics before team training or a rehab group
+• Goalkeepers in focus: goalkeeper sessions, jumps as load, goals conceded, saves and goalkeeper tests
+• Training impressions in seconds: only mark particularly good or weak performances
 • Take attendance in seconds
 • Absences with reason and a step-by-step return to training
+• Every player's emergency contacts at hand – call with one tap, even offline
 • Growth tracking: record height and take growth phases in youth football into account
 • Potentials and goals for each player – visible to the player if you choose
-• Short messages to individual players, e.g. rest, recovery or extra task
+• Short messages to individual players, e.g. rest or an extra task
 • Team chat instead of a WhatsApp group – no phone numbers, with safeguarding for youth teams – plus polls, anonymous if you like
 • Player development with an individual development programme (X-factor, focus areas with a plan and a goal), competency profile, measurable goals and development talks
 • Weekly challenge for at home and requests for individual sessions
@@ -164,7 +166,7 @@ FOR PLAYERS
 • “My path”: player card with X-factor, focus areas, goals and a strengths round – plus team chat, polls and the weekly challenge
 
 AI COACH (OPTIONAL)
-Ask questions about training, load and recovery. The AI coach is optional, only available after separate consent and has a daily limit. Answers are labelled as AI-generated.
+Ask questions about training, load and recovery. The AI coach is optional and only available after separate consent. Answers are labelled as AI-generated.
 
 FITS EVERY AGE GROUP
 Level of detail and modules adapt to the age group: in kids' football the focus is on organisation, in performance football on detailed load management.
@@ -191,8 +193,8 @@ Legal notice: [Impressum-URL]
 ```
 <!-- desc-en:end -->
 
-Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE ca. 3.480 Zeichen, EN ca. 3.150 Zeichen – Puffer für
-Preisangaben vorhanden.
+Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE 3.926 Zeichen, EN 3.607 Zeichen. Für die Preisangabe
+bleiben statt des Platzhalters rund 140 Zeichen (DE) bzw. 410 Zeichen (EN) – vor dem Einreichen nachzählen.
 
 ### Formulierungsregeln für alle Store- und Werbetexte
 
@@ -325,9 +327,10 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 
 | Apple-Kategorie | Datentyp | Erhoben | Verknüpft | Tracking | Zweck | Inhalt bei Trainerbank |
 |---|---|---|---|---|---|---|
-| Kontaktinformationen | Name | ja | ja | nein | App-Funktionalität | Anzeigename, Vor-/Nachname |
+| Kontaktinformationen | Name | ja | ja | nein | App-Funktionalität | Anzeigename, Vor-/Nachname, Name der Notfallkontakte |
 | Kontaktinformationen | E-Mail-Adresse | ja | ja | nein | App-Funktionalität | Konto-E-Mail, E-Mail der Erziehungsberechtigten |
-| Gesundheit & Fitness | Gesundheit | ja | ja | nein | App-Funktionalität | Wohlbefinden, Beschwerden, Krankheit/Verletzung, Rückkehrstufe, Größe, Gewicht |
+| Kontaktinformationen | Telefonnummer | ja | ja | nein | App-Funktionalität | Telefonnummern der Notfallkontakte (Eltern, Angehörige), die der Spieler oder das Trainerteam einträgt |
+| Gesundheit & Fitness | Gesundheit | ja | ja | nein | App-Funktionalität | Wohlbefinden, Beschwerden, Krankheit/Verletzung, Rückkehrstufe, Größe, Gewicht, Hinweise für den Notfall (z. B. Allergie) |
 | Gesundheit & Fitness | Fitness | ja | ja | nein | App-Funktionalität | Session-RPE, Minuten, Zusatzsport |
 | Benutzerinhalte | Fotos oder Videos | ja | ja | nein | App-Funktionalität | optionales Profilfoto, Fotos von Befunden (Arztbriefe) |
 | Gesundheit & Fitness | Gesundheit (Ergänzung) | ja | ja | nein | App-Funktionalität | Befunde (Bild/PDF) und deren KI-Zusammenfassung, Leistungstests |
@@ -341,7 +344,7 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Benutzerinhalte | Kundensupport | ja | ja | nein | App-Funktionalität | Rückmeldungen aus der App („Feedback / Fehler melden“): Text, optional Bildschirmfoto |
 | Diagnose | Absturzdaten | ja (nur nach Zustimmung auf dem Gerät) | nein | nein | App-Funktionalität | Absturzberichte über Sentry ohne Konto-Bezug |
 | Diagnose | Sonstige Diagnosedaten | ja | ja | nein | App-Funktionalität | App-Version, Gerätemodell und Betriebssystem in Rückmeldungen; zuletzt geöffnete Seite |
-| Standort, Kontakte, Browserverlauf, Suchverlauf, Käufe, Sensible Daten | – | **nein** | – | – | – | Körperregion und Angaben zum Schmerz sind Gesundheit, kein Standort; Gesundheit gehört nicht unter „Sensible Daten“ |
+| Standort, Kontakte, Browserverlauf, Suchverlauf, Käufe, Sensible Daten | – | **nein** | – | – | – | Körperregion und Angaben zum Schmerz sind Gesundheit, kein Standort; Gesundheit gehört nicht unter „Sensible Daten“; Notfallkontakte werden von Hand eingetragen – kein Zugriff auf das Adressbuch („Kontakte“ meint bei Apple das Adressbuch des Geräts) |
 
 **Zu prüfen:** Falls später In-App-Käufe hinzukommen, Kategorie „Käufe“ ergänzen. Push-Token, KI-Zähler und
 Absturzdaten (Sentry nutzt eine zufällige Kennung der Installation, nicht das Konto): Einordnung anhand der
@@ -372,6 +375,7 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 |---|---|---|---|---|---|---|
 | Personenbezogene Daten | Name | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung |
 | Personenbezogene Daten | E-Mail-Adresse | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung |
+| Personenbezogene Daten | Telefonnummer | ja | nein | nein | Pflicht (Notfallkontakt beim Beitreten als Spieler) | App-Funktionalität (Notfallkontakte) |
 | Personenbezogene Daten | Nutzer-IDs | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung, Betrugsprävention/Sicherheit |
 | Personenbezogene Daten | Sonstige Informationen | ja | nein | nein | Pflicht (Geburtsdatum), sonst optional | App-Funktionalität |
 | Gesundheit und Fitness | Gesundheitsinformationen | ja | nein | nein | optional | App-Funktionalität |

@@ -46,6 +46,12 @@ test("Sicht ohne Gesundheits-/Befund-/Notizrecht: Module aus, Demo-Daten ausgebl
   const M = viewFor(D, new Set(PERMS.filter(p => p !== "messages")), true);
   assert.deepEqual(M.polls, []); assert.deepEqual(M.pollAnswers, []); assert.equal(D.polls.length, 1, "Original bleibt");
   assert.equal(viewFor(D, new Set(PERMS), true).polls.length, 1);
+  // Notfallkontakte mit „Kader“ oder „Gesundheitsdaten“, Hinweise nur mit „Gesundheitsdaten“
+  D.emergency = { p1: [{ name: "Sabine", rel: "mother", phone: "0171 2345678" }] }; D.emergencyMed = { p1: "Asthma" };
+  const sq = viewFor(D, new Set(["squad"]), true), he = viewFor(D, new Set(["health"]), true), no = viewFor(D, new Set(["plan"]), true);
+  assert.equal(Object.keys(sq.emergency).length, 1); assert.deepEqual(sq.emergencyMed, {});
+  assert.equal(Object.keys(he.emergency).length, 1); assert.equal(he.emergencyMed.p1, "Asthma");
+  assert.deepEqual(no.emergency, {}); assert.deepEqual(no.emergencyMed, {});
 });
 
 test("Benötigte Rechte für Team-Änderungen: nur echte Änderungen zählen", () => {

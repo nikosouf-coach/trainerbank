@@ -31,6 +31,7 @@ import { PlayerAvatar } from "../playerAvatar";
 import { TermInfo } from "../termInfo";
 import { radius, statusColor, useTheme } from "../theme";
 import { GroupChip } from "./Groups";
+import { EmergencySection } from "../emergency";
 import { MergeSheet, PlayerSheet } from "./PlayerForm";
 import { ExtraCard, GamesCard, PotCard, RecCard } from "./ProfileCards";
 
@@ -193,8 +194,8 @@ export function ProfileOverview({ id }: { id: string }) {
       </Row>
       {wide ? <Row align="flex-start" gap={24}>
         <Col gap={20} style={{ flex: 1, minWidth: 0 }}>{head}{kpis}</Col>
-        <Col gap={20} style={{ flex: 1, minWidth: 0 }}>{list}</Col>
-      </Row> : <>{head}{kpis}{list}</>}
+        <Col gap={20} style={{ flex: 1, minWidth: 0 }}>{list}<EmergencySection p={p} /></Col>
+      </Row> : <>{head}{kpis}{list}<EmergencySection p={p} /></>}
       <PlayerSheet player={edit} onClose={() => { setEdit(undefined); if (!E.P(id)) goBack(); }} />
       <MergeSheet newPlayer={merge} onClose={() => { setMerge(null); if (!E.P(id)) router.replace("/coach/kader"); }} />
       <MoveSheet player={move} onClose={moved => { setMove(null); if (moved) router.replace("/coach/kader"); }} />

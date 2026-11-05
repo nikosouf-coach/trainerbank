@@ -23,6 +23,7 @@ import { ChallengeCard } from "../../../src/ui/challenge";
 import { MyGoalsCard } from "../../../src/ui/dev";
 import { WegCard } from "../../../src/ui/program";
 import { PlayerPollsCard } from "../../../src/ui/polls";
+import { PlayerEmergencyCard } from "../../../src/ui/emergency";
 import { PlayerPlansCard } from "../../../src/ui/matchplan/cards";
 import { radius, useTheme } from "../../../src/ui/theme";
 
@@ -78,6 +79,7 @@ export default function PlayerHeute() {
   return (
     <Screen testID="player-heute">
       <PlayerHero p={p} g={g} />
+      <PlayerEmergencyCard />
       <CrashAsk />
       {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
       <CustomizeLinks testID="p-dash-edit" onDash={() => setEdit(true)} />

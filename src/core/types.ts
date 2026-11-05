@@ -456,6 +456,12 @@ export interface PollResult {
 }
 export interface PollSettings { players?: boolean }
 
+// ---------- Notfallkontakte ----------
+/** Beziehung zum Spieler */
+export type EmRel = "mother" | "father" | "guardian" | "partner" | "sibling" | "grandparent" | "other";
+/** Notfallkontakt (Person, die das Trainerteam im Notfall anruft) */
+export interface EmContact { name: string; rel: EmRel; phone: string }
+
 // ---------- Chat ----------
 export type ChatKind = "team" | "staff" | "group" | "direct" | "custom";
 export interface Chat {
@@ -657,6 +663,12 @@ export interface TeamData {
   /** Umfragen (Spieler: die an sie gerichteten und eigene), Antworten (Spieler: eigene; Trainerteam mit „Nachrichten“:
    *  alle zu Umfragen mit Namen), Ergebnisse je Umfrage (vom Server geladen bzw. in der Demo berechnet) */
   polls: Poll[]; pollAnswers: PollAnswer[]; pollResults: Record<string, PollResult>;
+  /** Notfallkontakte je Spieler (Trainerteam mit Recht „Kader“ oder „Gesundheitsdaten“; Spieler: eigene) */
+  emergency: Record<string, EmContact[]>;
+  /** Wichtige Hinweise für den Notfall je Spieler (Gesundheitsdaten: Recht „Gesundheitsdaten“; Spieler: eigene) */
+  emergencyMed: Record<string, string>;
+  /** Notfallkontakte wurden geladen (sonst zeigt die App „fehlt“ nicht an – z. B. ohne Verbindung beim ersten Start) */
+  emergencyOk: boolean;
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -728,6 +740,7 @@ export function emptyTeamData(team: Team): TeamData {
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     programs: [], selfSkills: [], peerGifts: [], peerMates: [],
     polls: [], pollAnswers: [], pollResults: {},
+    emergency: {}, emergencyMed: {}, emergencyOk: false,
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],

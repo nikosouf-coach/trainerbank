@@ -14,6 +14,7 @@ import { demoPeople } from "./chat";
 import { compsOf, posGroupOf } from "./dev";
 import { cleanGift, cleanProgram, cleanSelf } from "./program";
 import { cleanPoll, pollTemplates } from "./polls";
+import { cleanContacts } from "./emergency";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -241,6 +242,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoDev(D, lang, now);
   demoProgram(D, lang, now);
   demoPolls(D, lang, now);
+  demoEmergency(D, lang);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -771,6 +773,30 @@ function demoPolls(D: TeamData, lang: Lang, now: Date): void {
   P.slice(0, 17).forEach((p, i) => ans("dpo5", p.id, { q1: pick([6, 3, 2]) }, -14 + i * 0.2));
 
   for (const p of D.polls) p.answers = D.pollAnswers.filter(a => a.pollId === p.id).length;
+}
+
+/**
+ * Notfallkontakte der Demo: Mutter und/oder Vater je Spieler, bei drei Spielern fehlt der Kontakt (Hinweis im Kader und
+ * Erinnerung), zwei Hinweise für den Notfall. Nummern aus dem Bereich 0199 (netzintern, keine echten Anschlüsse) – die
+ * Demo wählt ohnehin nicht.
+ */
+function demoEmergency(D: TeamData, lang: Lang): void {
+  const en = lang === "en";
+  const moms = ["Sabine", "Katrin", "Nicole", "Anja", "Melanie", "Sandra", "Julia", "Tanja", "Stefanie", "Claudia", "Martina"];
+  const dads = ["Thomas", "Michael", "Andreas", "Stefan", "Frank", "Markus", "Christian", "Oliver", "Jens", "Dirk", "Sven"];
+  const missing = new Set(["p5", "p11", "p19"]);
+  D.players.forEach((p, i) => {
+    if (missing.has(p.id) || p.active === false) return;
+    const nr = (k: number) => `0199 ${String(4100000 + i * 37 + k * 11).slice(0, 7)}`;
+    const L = [{ name: `${moms[i % moms.length]} ${p.nn}`, rel: "mother", phone: nr(1) }];
+    if (i % 3 !== 1) L.push({ name: `${dads[(i * 5) % dads.length]} ${p.nn}`, rel: "father", phone: nr(2) });
+    D.emergency[p.id] = cleanContacts(i % 4 === 2 ? L.reverse() : L);
+  });
+  const med: Record<string, string> = en
+    ? { p3: "Asthma – inhaler is in the sports bag.", p9: "Wasp sting allergy – emergency kit (adrenaline pen) in the side pocket of the bag." }
+    : { p3: "Asthma – Spray ist in der Sporttasche.", p9: "Allergie gegen Wespenstiche – Notfallset (Adrenalin-Pen) in der Seitentasche der Tasche." };
+  for (const [pid, note] of Object.entries(med)) if (D.players.some(p => p.id === pid)) D.emergencyMed[pid] = note;
+  D.emergencyOk = true;
 }
 
 /** Chat der Demo: Teamchat, Trainerteam, Torhüter-Gruppe, Einzelchats (Jugend: transparent), eigene Gruppe, eine Meldung. */

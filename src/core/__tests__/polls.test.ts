@@ -4,10 +4,11 @@ import assert from "node:assert/strict";
 import { buildDemo, demoExtras, demoTeam } from "../demo";
 import { DICTS } from "../i18n";
 import {
-  ANON_MIN, PLAYER_OPEN_MAX, POLL_LIMITS, answerOf, asPlayerPoll, cut, blankQuestion, canManage, cleanAnswers, cleanPoll, cleanQuestion, fromTemplate, isPollTarget, leaders,
+  ANON_MIN, PLAYER_OPEN_MAX, POLL_LIMITS, answerOf, asPlayerPoll, blankQuestion, canManage, cleanAnswers, cleanPoll, cleanQuestion, fromTemplate, isPollTarget, leaders,
   newPoll, nextQuestionId, openPollsBy, pct, playersMayPoll, pollEditable, pollOpen, pollReady, pollResult, pollTargets, pollTemplates, pollsFor, pollsToAnswer,
   reopened, resultsVisible, sortPolls,
 } from "../polls";
+import { cut } from "../text";
 import type { Poll, TeamData } from "../types";
 
 const NOW = new Date(2026, 10, 5, 10, 0), TODAY = "2026-11-05";

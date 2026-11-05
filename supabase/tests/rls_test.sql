@@ -3850,6 +3850,69 @@ end $$;
 commit;
 
 -- =====================================================================
+-- T54 Notfallkontakte: Spieler selbst, Trainerteam mit Kader bzw. Gesundheitsdaten, Hinweise nur mit Gesundheitsdaten
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$insert into public.player_emergency (player_id, contacts) values (%L, '[{"name": "Sabine Muster", "rel": "mother", "phone": "0171 2345678"}]')$q$, tst.get('max')), 1, 'T54 Spieler trägt seinen Notfallkontakt ein');
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and updated_by = tst.uid('p1') from public.player_emergency where player_id = tst.get('max')::uuid), 'T54 Team und Konto setzt der Server');
+end $$;
+select tst.throws(format($q$insert into public.player_emergency (player_id, contacts) values (%L, '[{"name": "Fremd", "rel": "other", "phone": "0171 2345678"}]')$q$, tst.get('erik')), 'T54 nur für sich selbst', 'row-level security');
+select tst.throws(format($q$update public.player_emergency set contacts = '[]' where player_id = %L$q$, tst.get('max')), 'T54 mindestens ein Kontakt', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "mother", "phone": "12345"}]' where player_id = %L$q$, tst.get('max')), 'T54 mindestens 6 Ziffern', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "mother", "phone": "0171+234567"}]' where player_id = %L$q$, tst.get('max')), 'T54 + nur am Anfang', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "chef", "phone": "0171 234567"}]' where player_id = %L$q$, tst.get('max')), 'T54 Beziehung aus der Liste', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "mother", "phone": "0171 1111111"}, {"name": "B", "rel": "father", "phone": "0171 2222222"}, {"name": "C", "rel": "other", "phone": "0171 3333333"}]' where player_id = %L$q$, tst.get('max')), 'T54 höchstens zwei Kontakte', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "mother", "phone": "0171 1111111"}, {"name": "B", "rel": "father", "phone": "0171-111 111 1"}]' where player_id = %L$q$, tst.get('max')), 'T54 dieselbe Nummer nicht zweimal', 'player_emergency_contacts_valid');
+select tst.affects(format($q$update public.player_emergency set contacts = '[{"name": "Sabine Muster", "rel": "mother", "phone": "+49 171 2345678"}, {"name": "Thomas Muster", "rel": "father", "phone": "(0201) 12 34 56"}]' where player_id = %L$q$, tst.get('max')), 1, 'T54 zwei Kontakte');
+select tst.throws(format($q$update public.player_emergency set player_id = %L where player_id = %L$q$, tst.get('erik'), tst.get('max')), 'T54 Spieler lässt sich nicht wechseln', 'forbidden');
+select tst.affects(format($q$insert into public.player_emergency_med (player_id, note) values (%L, 'Asthma – Spray in der Sporttasche')$q$, tst.get('max')), 1, 'T54 Spieler trägt einen Hinweis für den Notfall ein');
+select tst.throws(format($q$update public.player_emergency_med set note = '   ' where player_id = %L$q$, tst.get('max')), 'T54 Hinweis nicht leer', 'player_emergency_med_note_valid');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_emergency)::text || '/' || (select count(*) from public.player_emergency_med)::text, '0/0', 'T54 Mitspieler sehen keine Notfallkontakte');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_emergency where player_id = tst.get('max')::uuid)::text, '1', 'T54 Recht Kader: Kontakte sichtbar');
+  perform tst.eq((select count(*) from public.player_emergency_med)::text, '0', 'T54 Recht Kader: keine Hinweise (Gesundheitsdaten)');
+end $$;
+select tst.affects(format($q$insert into public.player_emergency (player_id, contacts) values (%L, '[{"name": "Petra Beispiel", "rel": "mother", "phone": "0172 7654321"}]')$q$, tst.get('erik')), 1, 'T54 Trainerteam trägt den Kontakt für einen Spieler ein');
+select tst.throws(format($q$insert into public.player_emergency_med (player_id, note) values (%L, 'Allergie')$q$, tst.get('erik')), 'T54 Hinweise nur mit Recht Gesundheitsdaten', 'row-level security');
+commit;
+update public.team_staff set perms = array['health']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_emergency where team_id = tst.get('team_a')::uuid)::text || '/' || (select count(*) from public.player_emergency_med)::text, '2/1', 'T54 Recht Gesundheitsdaten: Kontakte und Hinweise sichtbar');
+end $$;
+select tst.affects(format($q$update public.player_emergency set contacts = '[{"name": "X", "rel": "other", "phone": "0172 1111111"}]' where player_id = %L$q$, tst.get('erik')), 0, 'T54 ohne Recht Kader keine Änderung der Kontakte');
+select tst.affects(format($q$insert into public.player_emergency_med (player_id, note) values (%L, 'Allergie gegen Wespenstiche – Notfallset in der Tasche')$q$, tst.get('erik')), 1, 'T54 Recht Gesundheitsdaten: Hinweis eintragen');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_emergency where team_id = tst.get('team_a')::uuid)::text, '0', 'T54 fremdes Trainerteam sieht keine Notfallkontakte');
+end $$;
+select tst.throws(format($q$insert into public.player_emergency (player_id, contacts) values (%L, '[{"name": "Fremd", "rel": "other", "phone": "0172 7654321"}]')$q$, tst.get('tom')), 'T54 fremdes Trainerteam trägt nichts ein', 'row-level security');
+commit;
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -3867,7 +3930,9 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v10', 'T21b Exportformat v10');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v11', 'T21b Exportformat v11');
+  perform tst.eq(jsonb_array_length(x -> 'emergency_contacts')::text || '/' || jsonb_array_length(x -> 'emergency_contacts' -> 0 -> 'contacts')::text || '/' || jsonb_array_length(x -> 'emergency_notes')::text,
+                 '1/2/1', 'T21b Export: Notfallkontakte und Hinweis');
   perform tst.eq(jsonb_array_length(x -> 'poll_answers')::text, '2', 'T21b Export: eigene Antworten aus Umfragen');
   perform tst.ok((select bool_and(e ? 'questions' and e ? 'answers') from jsonb_array_elements(x -> 'poll_answers') e), 'T21b Export: Antworten mit den Fragen');
   perform tst.eq(x -> 'polls_started' -> 0 ->> 'title', 'Kicken am Sonntag?', 'T21b Export: selbst gestartete Abstimmung');

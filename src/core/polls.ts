@@ -3,6 +3,7 @@
 // Ergebnisse gibt es erst ab drei Antworten (sonst ließe sich erraten, wer was gesagt hat). Freitexte sieht nur das
 // Trainerteam. Spieler starten Abstimmungen nur, wenn das Trainerteam es erlaubt – dann immer mit Namen und für das
 // ganze Team. Reine Logik ohne UI und ohne Datenbank; die Grenzen gelten genauso in der Datenbank.
+import { oneLine, paragraph } from "./text";
 import type { Lang, Player, Poll, PollAnswer, PollKind, PollQResult, PollQType, PollQuestion, PollResult, PollResultsVis, PollValue, TeamData, TeamSettings } from "./types";
 
 export const POLL_LIMITS = { title: 120, intro: 600, questions: 15, qtext: 200, options: 10, option: 80, label: 30, text: 500, author: 80 } as const;
@@ -15,21 +16,7 @@ export const PLAYER_OPEN_MAX = 2;
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/;
 const arr = (x: unknown): unknown[] => Array.isArray(x) ? x : [];
-/** Höchstens max Zeichen, ohne ein Emoji (Ersatzpaar) zu zerschneiden – die Datenbank lehnt halbe Zeichen ab */
-export function cut(s: string, max: number): string {
-  if (s.length <= max) return s;
-  const r = s.slice(0, max), last = r.charCodeAt(r.length - 1);
-  return (last >= 0xd800 && last <= 0xdbff ? r.slice(0, -1) : r).trimEnd();
-}
-/** eine Zeile (Titel, Frage, Antwort): ohne Steuerzeichen und Zeilenumbrüche */
-function line(s: unknown, max: number): string {
-  return cut(String(s ?? "").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim(), max);
-}
-/** Absatz (Einleitung, Freitext): Zeilenumbrüche bleiben, höchstens eine Leerzeile */
-function para(s: unknown, max: number): string {
-  return cut(String(s ?? "").replace(/\r\n?/g, "\n").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").replace(/[ ]{2,}/g, " ")
-    .replace(/ *\n */g, "\n").replace(/\n{3,}/g, "\n\n").trim(), max);
-}
+const line = oneLine, para = paragraph;
 const isChoice = (t: PollQType): boolean => t === "single" || t === "multi";
 
 // ---------- Fragen und Umfragen bereinigen ----------

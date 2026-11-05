@@ -45,6 +45,10 @@
 - **Umfragen:** Mitmachen ist freiwillig. Vor dem Antworten siehst du, ob eine Umfrage mit Namen oder anonym ist und
   wer das Ergebnis sieht. Bei anonymen Umfragen sieht niemand, was du geantwortet hast oder ob du mitgemacht hast;
   Ergebnisse gibt es erst ab drei Antworten. Freitexte sieht nur das Trainerteam.
+- **Notfallkontakt:** Beim Beitreten gibst du mindestens eine Person an, die dein Trainerteam im Notfall anrufen kann
+  (Name, Beziehung zu dir, Telefonnummer) – sag ihr bitte Bescheid. Freiwillig kannst du Hinweise für den Notfall
+  eintragen (z. B. eine Allergie oder wo dein Asthma-Spray ist). Diese Hinweise sind Gesundheitsdaten: Sie sieht nur,
+  wer im Trainerteam das Recht „Gesundheitsdaten“ hat. Mitspieler sehen nichts davon.
 - **Matchplan:** Gibt dein Trainerteam einen Matchplan frei, kannst du ihn bis Spielende ansehen. Er ist vertraulich:
   Er wird mit deinem Namen als Wasserzeichen angezeigt, und es wird festgehalten, wann du ihn geöffnet hast (und ob
   ein Screenshot erkannt wurde). Das Protokoll wird nach 6 Monaten gelöscht.
@@ -164,6 +168,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.40 | App-Updates | beim Start fragt die App bei Expo nach einer neuen Version: IP-Adresse, Plattform, App-Version, Laufzeitversion und Kanal (Test oder Store) | dein Gerät | – |
 | 4.41 | Entwicklungsprogramm und Stärken-Runde | **Programm:** Motto, X-Faktor (bis zu drei Stärken), Situationen, in denen du den Unterschied machst, stärkster Bereich auf dem Feld, bis zu vier Entwicklungsfelder (Art, Thema, wo du dich verbesserst, wen du um Hilfe fragen kannst, wie es gelingt, verknüpftes Ziel), Sicht des Trainerteams (Stärken), ausgewählte Stärken aus der Stärken-Runde, Freigabe und Zeitpunkt; dazu Saisonzahlen aus 4.18 (nur für die Anzeige). **Selbstanalyse:** bis zu drei Waffen und drei weitere Stärken aus einer festen Liste. **Stärken-Runde:** Zeitraum der Runde; je Mitspieler die Stärken (1–3 aus einer festen Liste, kein Freitext), die du ihm geschenkt hast, mit Zeitpunkt | Trainerteam, du, deine Mitspieler (Stärken-Runde) | Selbstanalyse und Stärken-Runde freiwillig |
 | 4.42 | Umfragen | **Umfrage:** Art (Abstimmung oder Fragebogen), Titel, Einleitung, Fragen mit Antwortmöglichkeiten, mit Namen oder anonym, wer das Ergebnis sieht, Zielgruppe (Team oder Gruppe), Ende, beendet, wer sie gestartet hat (Trainerteam mit Namen, Spieler mit Vorname und Initial), Zeitpunkte, Zahl der Antworten. **Deine Antwort:** je Frage die gewählte(n) Antwort(en), die Stufe 1–5 oder dein Freitext, mit Zeitpunkt | Trainerteam mit Recht „Nachrichten“; bei Umfragen mit Namen und „Ergebnisse für alle“ auch die Angesprochenen; bei anonymen Umfragen niemand einzeln | freiwillig |
+| 4.43 | Notfallkontakte | **Notfallkontakt:** eine oder zwei Personen, die das Trainerteam im Notfall anruft – Name, Beziehung zu dir (z. B. Mutter, Vater, erziehungsberechtigte Person, Partner/in, Geschwister, Großeltern) und Telefonnummer –, dazu wer zuletzt geändert hat und wann. **Hinweise für den Notfall:** Freitext, z. B. Allergien, Asthma, Diabetes, Notfallmedikament und wo es liegt (Gesundheitsdaten) | du; das Trainerteam mit Recht „Kader“ (z. B. für Spieler ohne Konto), Hinweise mit Recht „Gesundheitsdaten“ | Notfallkontakt Pflicht beim Beitreten als Spieler; Hinweise freiwillig, Einwilligung erforderlich |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -243,6 +248,31 @@ sieht in jedem Fall nur das Trainerteam. Solange die Umfrage läuft, kannst du d
 Sobald jemand geantwortet hat, lassen sich Fragen und Einstellungen nicht mehr ändern – eine anonyme Umfrage bleibt
 anonym. Umfragen werden mit allen Antworten 12 Monate nach ihrem Ende gelöscht (ohne Ende 12 Monate nach dem Start),
 früher, wenn das Trainerteam oder – bei eigenen Abstimmungen – der Spieler sie löscht.
+
+**Notfallkontakte (4.43):** Damit dein Trainerteam bei einem Unfall oder einem medizinischen Notfall im Training oder
+beim Spiel schnell jemanden erreicht, gibst du beim Beitreten mindestens eine Person mit Telefonnummer an (höchstens
+zwei). Spieler, die schon im Team sind, werden gebeten, den Kontakt nachzutragen. Für Spieler ohne eigenes Konto trägt
+ihn das Trainerteam ein. Den Notfallkontakt sehen du und das Trainerteam mit dem Recht „Kader“ oder „Gesundheitsdaten“
+– auch ohne Netz, damit im Notfall angerufen werden kann. Die **Hinweise für den Notfall** sind freiwillig und
+Gesundheitsdaten; sie sehen nur du und das Trainerteam mit dem Recht „Gesundheitsdaten“, und du kannst sie nur mit
+deiner Einwilligung in Gesundheitsdaten eintragen. Mitspieler, Funktionäre ohne diese Rechte und andere Teams sehen
+weder Kontakt noch Hinweise. Du kannst beides jederzeit unter „Ich → Notfallkontakt“ ändern; Hinweise kannst du auch
+ganz löschen. Kontakt und Hinweise werden mit deinem Spielerprofil gelöscht.
+
+**Für Personen, die als Notfallkontakt angegeben sind (Art. 14 DSGVO):** Deine Daten (Name, Beziehung zum Spieler,
+Telefonnummer) hat der Spieler bzw. das Trainerteam eingetragen – nicht du selbst. Sie werden nur verwendet, um dich im
+Notfall anzurufen, und sind nur für den Spieler und das Trainerteam sichtbar. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f
+DSGVO (berechtigtes Interesse von Spieler und Verein, im Notfall Angehörige oder Vertrauenspersonen schnell zu
+erreichen; bei Minderjährigen auch die Aufsichtspflicht). Die Daten werden gelöscht, sobald der Spieler sie ändert oder
+sein Spielerprofil gelöscht wird. Du kannst jederzeit Auskunft verlangen, der Verarbeitung widersprechen oder die
+Löschung verlangen – über den Spieler, das Trainerteam oder bei uns unter [E-Mail]; die übrigen Rechte aus Abschnitt 20
+gelten entsprechend.
+
+> **Prüfhinweis:** Die App bittet beim Eintragen ausdrücklich darum, die Person zu informieren („Sag der Person
+> Bescheid …“). Prüfen, ob das zusammen mit diesem Abschnitt die Informationspflicht nach Art. 14 DSGVO erfüllt
+> (Ausnahme Art. 14 Abs. 5 lit. b DSGVO – unverhältnismäßiger Aufwand, da die App die Person nicht anschreibt) und ob
+> die Pflichtangabe beim Beitreten mit dem Kopplungsverbot vereinbar ist (Empfehlung: zulässig, weil der Kontakt für
+> die sichere Teilnahme am Training erforderlich ist; Hinweise bleiben freiwillig).
 
 **Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
 geschafft haben, sowie die gemeinsame Summe – nicht deine Werte. Nur wenn das Trainerteam die Bestenliste einschaltet,
@@ -329,6 +359,8 @@ Standort** (keine GPS- oder Ortungsdaten).
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
 | Push-Erinnerungen und Team-Mitteilungen | 4.14 | Art. 6 Abs. 1 lit. b DSGVO; Zugriff auf das Endgerät nach § 25 Abs. 2 Nr. 2 TDDDG (vom Nutzer ausdrücklich gewünschter Dienst) nach Freigabe in den Systemeinstellungen |
 | Nachweis von Einwilligungen | 4.13 | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 DSGVO |
+| Notfallkontakte: im Notfall jemanden erreichen | 4.43 (Kontakt) | Art. 6 Abs. 1 lit. b DSGVO für Spieler mit eigenem Konto (sichere Teilnahme am Training und an Spielen); für die Kontaktperson und Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an schneller Hilfe; bei Minderjährigen Aufsichtspflicht); im akuten Notfall auch Art. 6 Abs. 1 lit. d DSGVO (lebenswichtige Interessen) |
+| Hinweise für den Notfall (Gesundheitsdaten) | 4.43 (Hinweise) | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO (dieselbe Einwilligung wie für die Belastungssteuerung); im akuten Notfall, wenn du nicht einwilligen kannst, Art. 9 Abs. 2 lit. c DSGVO |
 | Kinderschutz und Schutz vor Missbrauch im Chat (Mitlesen in Jugendteams, Meldungen mit Kopie, Begrenzung auf 30 Nachrichten pro Minute) | 4.34 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Spieler am Schutz von Kindern und Jugendlichen; § 72a SGB VIII, Kinderschutzkonzepte der Verbände) |
 | Kaderplanung und Scouting: Planung der nächsten Saison, Aufrücker aus dem Verein, Beobachtung von Spielern anderer Teams und Vereine | 4.37 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins an einer vorausschauenden Kaderplanung und Talentsichtung; Abwägung siehe unten) |
 | Vertraulichkeit des Matchplans: Wasserzeichen, Bildschirmschutz und Zugriffsprotokoll | 4.35 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Mannschaft, die Spielvorbereitung vertraulich zu halten; das Protokoll enthält nur Zeitpunkt, Plattform und erkannte Screenshots und wird nach 6 Monaten gelöscht) |
@@ -404,6 +436,10 @@ Teilnahme an Training und Spielen darf nicht davon abhängen.
 
 **Auch Einträge des Trainerteams:** Die Einwilligung umfasst auch Gesundheitsdaten, die das Trainerteam für dich
 einträgt (z. B. Belastung einer Einheit, Abwesenheit wegen Verletzung, Körpergröße).
+
+**Hinweise für den Notfall (4.43):** Allergien, Vorerkrankungen oder ein Notfallmedikament, die du beim Notfallkontakt
+einträgst, sind ebenfalls Gesundheitsdaten. Sie sind freiwillig, sehen nur du und das Trainerteam mit dem Recht
+„Gesundheitsdaten“ und werden bei einem Widerruf der Einwilligung wie die übrigen Gesundheitsdaten gelöscht.
 
 **Kein Medizinprodukt:** Trainerbank ist ein Werkzeug zur Trainingsorganisation. Die App stellt keine Diagnosen und
 gibt keine Therapieempfehlungen. Ampel, Kennzahlen und Tipps beruhen auf allgemeinen sportwissenschaftlichen
@@ -482,6 +518,8 @@ bleibt unberührt.
 | Stärken, die dir geschenkt werden | nur, was das Trainerteam in dein Programm übernimmt (ohne Namen und Anzahl); im Datenexport die Anzahl je Stärke | mit Recht „Notizen & Bewertungen“ (mit Namen) | nein | nein |
 | deine Antworten in Umfragen mit Namen | ja | mit Recht „Nachrichten“ (wer was gewählt hat, wer fehlt, Freitexte mit Namen) | nur bei „Ergebnisse für alle“: die Angesprochenen nach ihrer Antwort bzw. nach dem Ende (Auswahl mit Namen, Skala zusammengefasst, keine Freitexte) | nein |
 | deine Antworten in anonymen Umfragen | ja | mit Recht „Nachrichten“ nur zusammengefasst ab drei Antworten (Freitexte ohne Namen) – nie, wer was geantwortet oder ob du mitgemacht hast | nur zusammengefasst bei „Ergebnisse für alle“ (ohne Freitexte) | nein |
+| dein Notfallkontakt (Name, Beziehung, Telefonnummer) | ja | mit Recht „Kader“ (ändern) oder „Gesundheitsdaten“ (ansehen) | nein | nein |
+| deine Hinweise für den Notfall | ja | mit Recht „Gesundheitsdaten“ | nein | nein |
 | deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
 | deine Chat-Nachrichten | ja | in Chats, in denen das Trainerteam Mitglied ist; in Jugendteams auch Einzelchats Trainer–Spieler (Recht „Nachrichten“) | Mitglieder des jeweiligen Chats | nein |
@@ -707,6 +745,7 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Entwicklungsprogramm, Selbstanalyse | bei Löschung durch das Trainerteam (deine Selbstanalyse auch durch dich), Löschung des Spielerprofils oder des Teams |
 | Stärken-Runde | automatisch **12 Monate** nach dem Eintrag; sofort beim Zurücknehmen, bei Löschung durch das Trainerteam, des Spielerprofils (des Schenkenden oder des Empfängers) oder des Teams |
 | Umfragen und Antworten | automatisch **12 Monate** nach dem Ende der Umfrage (ohne Ende: nach dem Start); deine Antwort sofort beim Zurückziehen (solange die Umfrage läuft); sonst bei Löschung der Umfrage, deines Spielerprofils oder des Teams |
+| Notfallkontakte und Hinweise für den Notfall | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Hinweise auch beim Widerruf der Einwilligung in Gesundheitsdaten |
 | Wochenchallenge | mit der Challenge, dem Spielerprofil oder dem Team |
 | Anfragen für Individualtraining | automatisch 12 Monate nach Abschluss (zugesagt, abgesagt, zurückgezogen); offene mit dem Spielerprofil bzw. Team |
 | Chat-Nachrichten und Reaktionen | automatisch **24 Monate** nach dem Senden; sofort bei Löschung deines Kontos; gelöschte Nachrichten verlieren ihren Text sofort; Einzel- und eigene Chats auch, wenn alle Mitglieder sie verlassen |
@@ -774,9 +813,10 @@ Kein System ist vollkommen sicher. Schütze dein Konto mit einem starken Passwor
 
 ## 19. Musst du Daten angeben?
 
-Für ein Konto brauchst du eine E-Mail-Adresse und ein Passwort; für den Beitritt als Spieler Vor- und Nachnamen und
-Geburtsdatum (für die Zuordnung im Team und für altersgerechte Erholungsempfehlungen). Ohne diese Angaben kannst du die
-App nicht nutzen. Alle Gesundheitsdaten, Foto, Gewicht, Push-Mitteilungen und der KI-Coach sind freiwillig.
+Für ein Konto brauchst du eine E-Mail-Adresse und ein Passwort; für den Beitritt als Spieler Vor- und Nachnamen,
+Geburtsdatum (für die Zuordnung im Team und für altersgerechte Erholungsempfehlungen) und einen Notfallkontakt (damit
+dein Trainerteam im Notfall jemanden erreicht). Ohne diese Angaben kannst du die App nicht nutzen. Alle
+Gesundheitsdaten (auch die Hinweise für den Notfall), Foto, Gewicht, Push-Mitteilungen und der KI-Coach sind freiwillig.
 
 ## 20. Deine Rechte
 
@@ -876,7 +916,13 @@ otherwise after 24 months without activity); feedback you send from the app (kin
 opened last without IDs, app version, device model and OS, your account and team – readable by you and the operators
 only; completed feedback without a screenshot is deleted after 12 months); crash reports via Sentry only if you switch
 them on (error and code location, app version, device, pages opened last – no names, e-mail or IP addresses, no health
-data, no screenshots; stored in the EU); update checks with Expo (IP address, platform, app version, channel); push
+data, no screenshots; stored in the EU); update checks with Expo (IP address, platform, app version, channel); polls and surveys
+(named or anonymous – anonymous results only from three answers, never who answered what; free-text answers only for
+the coaching staff; deleted 12 months after the end); emergency contacts (one or two people with name, relationship
+and phone number – required when joining as a player; visible to you and staff with the squad or health-data
+permission, also offline – plus optional emergency notes such as allergies or an inhaler, which are health data and
+visible only to staff with the health-data permission; people named as a contact are informed under Art. 14 GDPR in
+the German section 4); push
 tokens; AI usage counters; technical server logs. Load, wellness,
 complaints and body regions, injury, illness, height and weight, rehab/load-build/growth group membership and test
 results are treated as **health data** (Art. 9 GDPR).
@@ -887,7 +933,9 @@ the AI coach – explicit consent (Art. 9(2)(a), Art. 6(1)(a)); consent records 
 Art. 7(1)); squad planning and scouting – legitimate interests in planning the squad and identifying talent
 (Art. 6(1)(f)); security and abuse prevention – legitimate interests (Art. 6(1)(f)); device storage – § 25(2) no. 2 TDDDG;
 feedback – legitimate interests in a working app (Art. 6(1)(f)); crash reports – consent (Art. 6(1)(a), § 25(1) TDDDG);
-app updates – contract (Art. 6(1)(b)), § 25(2) no. 2 TDDDG.
+app updates – contract (Art. 6(1)(b)), § 25(2) no. 2 TDDDG; emergency contacts – contract for players with an account,
+otherwise legitimate interests in getting help quickly (Art. 6(1)(b)/(f)), in an acute emergency vital interests
+(Art. 6(1)(d)); emergency notes – explicit consent (Art. 9(2)(a)), in an acute emergency vital interests (Art. 9(2)(c)).
 
 **Who sees what:** players see only their own data; the coaching staff of the team (owner, coach, physio) see the data
 of their team's players; team-mates never see each other's data. In the chat, members of a chat see its messages

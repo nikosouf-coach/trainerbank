@@ -128,6 +128,8 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `match_stats.pre_assists` (…20261105000001) | Pre-Assists (vorletzter Pass vor einem Tor, 0–20; leer = nicht erfasst) | wie Spieldaten |
 | `polls` (…20261105000002) | Umfrage: `kind` (quick = Abstimmung mit genau einer Auswahlfrage, survey = Fragebogen), `title`, `intro` (nur Fragebogen), `questions` jsonb (1–15 Fragen: `id`, `type` single/multi/scale/text, `text` ≤ 200, `options` 2–10 verschiedene je ≤ 80 bzw. keine, `required`, Skalenbeschriftungen `lo`/`hi` ≤ 30; `poll_questions_ok`), `anonymous`, `results` (all/staff), `group_id` (Gruppe gelöscht ⇒ Umfrage weg), `until` (letzter Tag, Zeitzone des Teams), `closed_at`, `by_player`/`author_player`/`author_name`/`created_by`/`answer_count` (setzt der Server); Spieler-Abstimmungen nur mit `settings.polls.players` (`polls_off`), immer mit Namen, ganzes Team, Ergebnisse für alle (`polls_player_rules`), höchstens zwei laufende (`limit`/`open_polls`); nach der ersten Antwort bleiben Fragen und Einstellungen fest (`poll_answered`); höchstens 300 je Team | Staff mit `messages` alle; Spieler die an sie gerichteten (`poll_target_me`, auch nicht freigegebene Gruppen) und eigenen; ändern/löschen Staff mit `messages` (Inhalt von Spieler-Abstimmungen nur der Autor) und der Autor |
 | `poll_answers` (…20261105000002) | Antwort, pk(`poll_id`,`player_id`): `answers` jsonb (Frage-ID → Index, Indizes, 1–5 oder Text ≤ 500; `poll_answer_ok`), nur solange die Umfrage läuft (`poll_closed`) und nur von Angesprochenen; Zähler `polls.answer_count` per Trigger | nur der Spieler selbst (lesen, schreiben, zurückziehen solange sie läuft); Ergebnisse nur über `poll_results`; Löschfrist mit der Umfrage |
+| `player_emergency` (…20261105000003) | Notfallkontakt, einer je Spieler (pk `player_id` → `players`, Cascade): `contacts` jsonb mit 1–2 Kontakten (`name` 1–80, `rel` mother/father/guardian/partner/sibling/grandparent/other, `phone` ≤ 30 Zeichen aus Ziffern, `+` nur am Anfang, Leerzeichen, `/`, `-`, Klammern, 6–20 Ziffern; keine Nummer doppelt – `emergency_contacts_ok`), `team_id` setzt der Server, `updated_at`/`updated_by` (Client-Änderungen); `player_id` nicht änderbar | Spieler eigene (lesen, schreiben, löschen); Staff mit `squad` oder `health` lesen, mit `squad` schreiben und löschen |
+| `player_emergency_med` (…20261105000003) | Hinweise für den Notfall (Gesundheitsdaten), einer je Spieler: `note` 1–500 Zeichen; Spieler nur mit Einwilligung (`require_health_consent`) | Spieler eigene; Staff mit `health` (lesen, schreiben, löschen) |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -321,7 +323,8 @@ Der Datenexport (`my_data_export`) bleibt unverändert, da Scouting keine Daten 
 `staff_can(team, perm)` ist die zentrale Prüfung: Owner immer, sonst `team_staff.perms` bzw. `default_perms(role)`
 (coach: health, plan, squad, perf, notes, messages, tasks, scout; physio: health, medical, perf, messages). Die Regeln nutzen
 sie für Gesundheitsdaten (`health`), Befunde inkl. Dateien und KI-Auswertung (`medical`), Planung (`plan`), Kader,
-Gruppen, Anwesenheit, Kontakte (`squad`), Tests/Statistik (`perf`), Notizen/Bewertungen (`notes`), Nachrichten
+Gruppen, Anwesenheit, Kontakte, Notfallkontakte (`squad`; lesen auch mit `health`, Hinweise für den Notfall nur
+`health`), Tests/Statistik (`perf`), Notizen/Bewertungen (`notes`), Nachrichten
 (`messages`), Aufgaben/Dienste/Strafen (`tasks`), Kaderplanung und Scouting (`scout`), Kasse (`cash`) und
 Team-Einstellungen (`admin`). Eigene Todos darf
 jeder im Trainerteam abhaken. In der App wirken fehlende Rechte wie ausgeschaltete Module (`core/perms.viewFor`).
@@ -331,7 +334,8 @@ jeder im Trainerteam abhaken. In der App wirken fehlende Rechte wie ausgeschalte
 Einträge (RPE, Morgen-Check, Zusatzsport, Abwesenheit, Anwesenheit, Aufgabe erledigt) gehen ohne Netz in eine
 Warteschlange (`core/outbox`, Gerätespeicher je Konto, 14 Tage) und werden in Reihenfolge nachgereicht; neue Datensätze
 bekommen IDs vom Gerät (wiederholbares Senden). Der letzte Stand wird für den Start ohne Netz auf dem Gerät gehalten
-(höchstens 2,5 MB, 14 Tage, beim Abmelden gelöscht).
+(höchstens 2,5 MB, 14 Tage, beim Abmelden gelöscht) – dazu gehören die Notfallkontakte, damit das Trainerteam auch
+ohne Netz anrufen kann.
 
 Storage-Buckets: `avatars` (Profilbilder), `findings` (Befunde, Staff + Spieler selbst), `sketches` (Fotos von
 Trainingsskizzen, Pfad `{team_id}/{block_id}.jpg`, JPEG ≤ 4 MB, nur Trainerteam).
@@ -364,7 +368,9 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen,
   Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining; v7: Matchplan; v8:
   Entwicklungsprogramm, Selbstanalyse, Stärken-Runde; v9: Antworten und Abstimmungen aus Umfragen – doppelte Einträge
-  bleiben beim bestehenden Spieler).
+  bleiben beim bestehenden Spieler; v10: Notfallkontakt und Hinweise für den Notfall – der neuere Stand gewinnt).
+- Notfallkontakte: Beim Beitreten speichert die App den Kontakt (Pflicht) direkt nach `join_team` und vor dem Laden
+  des Teams; Prüfung der Kontakte `emergency_contacts_ok(c)` (wie `core/emergency → cleanContacts`).
 - `peer_targets(team)` – Spieler: Mitspieler für die Stärken-Runde (Vorname, Initial, Rückennummer, Position), nur
   während einer Runde und nur für aktive Spieler des Teams; `peer_round_open(team)` prüft die Runde (Zeitzone des Teams).
 - `purge_old_peer_skills()` (täglich) – Einträge der Stärken-Runde nach 12 Monaten.
@@ -375,7 +381,7 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Antwort, nach dem Ende oder bei der eigenen Abstimmung. Hilfen: `team_today(team)`, `poll_running(poll)`,
   `poll_target_me(team, group)`, `poll_my_player(team)`, `poll_group_ok(group, team)`.
 - `purge_old_polls()` (täglich) – Umfragen mit allen Antworten 12 Monate nach dem Ende (ohne Ende: nach dem Start).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v10` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen): Profil, Gesundheitsdaten
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v11` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -476,6 +482,12 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Ende), Zielgruppe, Sichtbarkeit der Ergebnisse, Auswertung wie `poll_results` (anonym ab drei Antworten, Freitexte
   nur fürs Trainerteam, anonym nach Inhalt sortiert), Regeln für Spieler-Abstimmungen und Vorlagen (Fahrt, Termin,
   Mannschaftsabend, nächste Saison; Fragebögen Trainingswoche, Teamklima, Saison-Feedback).
+- `emergency.ts` – Notfallkontakte: Telefonnummern aufräumen und prüfen (`00` → `+`, 6–20 Ziffern, Link zum Anrufen),
+  Kontakte bereinigen (höchstens zwei, Name und gültige Nummer, keine Nummer doppelt), Prüfung im Formular mit
+  Fehler je Kontakt, Hinweise für den Notfall (≤ 500), fehlende Kontakte (nur aktive Spieler und nur, wenn die Kontakte
+  geladen sind – `emergencyOk`), Erinnerung an Spieler mit Konto.
+- `text.ts` – Texteingaben bereinigen (eine Zeile, Absatz, Kürzen ohne Emojis zu zerschneiden) – gemeinsam für
+  Umfragen und Notfallkontakte; zählt wie die Datenbank (`char_length`).
 - `challenge.ts` – Wochenchallenge: Vorschläge je Altersgruppe, Eintragen (Bestleistung, Menge, Tage, geschafft),
   Fortschritt, Teamsumme, Serie.
 - `chat.ts` – Chat-Regeln wie in der Datenbank (Teilnehmer, Mitlesen, Schreiben, Einzelchats nach Einstellung),

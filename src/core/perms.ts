@@ -50,8 +50,8 @@ export function presetOf(perms: readonly string[]): StaffRoleKey | null {
  * Gibt bei vollen Rechten dasselbe Objekt zurück.
  */
 export function viewFor(D: TeamData, perms: ReadonlySet<Perm>, strip: boolean): TeamData {
-  const health = perms.has("health"), medical = perms.has("medical"), notes = perms.has("notes"), scout = perms.has("scout"), messages = perms.has("messages");
-  if (health && medical && notes && scout && messages) return D;
+  const health = perms.has("health"), medical = perms.has("medical"), notes = perms.has("notes"), scout = perms.has("scout"), messages = perms.has("messages"), squad = perms.has("squad");
+  if (health && medical && notes && scout && messages && squad) return D;
   const m = { ...D.team.modules };
   if (!health) { m.belastung = false; m.regeneration = false; m.wachstum = false; }
   if (!medical) m.befunde = false;
@@ -67,6 +67,9 @@ export function viewFor(D: TeamData, perms: ReadonlySet<Perm>, strip: boolean): 
     if (!scout) { V.scouts = []; V.scoutReports = []; V.scoutLists = []; V.squadPlans = []; }
     // Umfragen gehören zum Recht „Nachrichten“
     if (!messages) { V.polls = []; V.pollAnswers = []; V.pollResults = {}; }
+    // Notfallkontakte mit „Kader“ oder „Gesundheitsdaten“, Hinweise (Gesundheitsdaten) nur mit „Gesundheitsdaten“
+    if (!squad && !health) { V.emergency = {}; V.emergencyOk = false; }
+    if (!health) V.emergencyMed = {};
   }
   return V;
 }
