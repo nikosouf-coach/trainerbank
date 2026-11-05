@@ -201,7 +201,7 @@ export function EmergencySection({ p }: { p: Player }) {
   if (!s.can("squad") && !s.can("health")) return null;
   const has = hasEmergency(E.D, p.id), med = s.can("health") && !!E.D.emergencyMed[p.id];
   return (
-    <Section title={t("nf_my")} testID="profile-emergency" action={{ label: t("nf_title"), onPress: () => router.push("/coach/notfall"), testID: "profile-emergency-all" }}>
+    <Section title={t("nf_my")} testID="profile-emergency" action={{ label: t("nf_allLink"), onPress: () => router.push("/coach/notfall"), testID: "profile-emergency-all" }}>
       <Card>
         {has || med ? <EmergencyView pid={p.id} showMed={s.can("health")} /> : null}
         {!has && E.D.emergencyOk ? <Text style={{ color: c.crit, fontWeight: "700", fontSize: 14 }}>{t("nf_none")}</Text> : null}

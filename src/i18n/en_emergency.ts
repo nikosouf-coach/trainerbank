@@ -19,7 +19,7 @@ export const en_emergency: Dict = {
   nf_countN: "{n} of {m} players with an emergency contact", nf_filterAll: "All", nf_filterMissing: "Missing",
   nf_remind: "Remind the missing ({n})", nf_remindMsg: "Please add your emergency contact in the app: Me → Emergency contact. Thanks!", nf_reminded: "Reminder sent",
   nf_noAccount: "Without their own account: {n} – you enter the contact yourselves.",
-  nf_editT: "Emergency contact", nf_enterCoach: "Add", nf_offline: "Available offline too.",
+  nf_editT: "Emergency contact", nf_enterCoach: "Add", nf_allLink: "All players", nf_offline: "Available offline too.",
   jn_emergency: "Emergency contact", jn_emergencyD: "Who should your coaching staff call in an emergency? This is required – at least one person with a phone number.",
   jn_doneNoEm: "Welcome to the team! Your emergency contact wasn't saved – please add it again on the home screen.",
   pf_emergency: "Emergency contact", pf_emergencyD: "Optional here – the player can also add it. If it's missing, the squad shows it.",

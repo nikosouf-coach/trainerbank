@@ -19,7 +19,7 @@ export const de_emergency: Dict = {
   nf_countN: "{n} von {m} Spielern mit Notfallkontakt", nf_filterAll: "Alle", nf_filterMissing: "Fehlt",
   nf_remind: "Fehlende erinnern ({n})", nf_remindMsg: "Bitte trag deinen Notfallkontakt in der App ein: Ich → Notfallkontakt. Danke!", nf_reminded: "Erinnerung gesendet",
   nf_noAccount: "Ohne eigenes Konto: {n} – den Kontakt tragt ihr selbst ein.",
-  nf_editT: "Notfallkontakt", nf_enterCoach: "Eintragen", nf_offline: "Auch ohne Netz verfügbar.",
+  nf_editT: "Notfallkontakt", nf_enterCoach: "Eintragen", nf_offline: "Auch ohne Netz verfügbar.", nf_allLink: "Alle Spieler",
   jn_emergency: "Notfallkontakt", jn_emergencyD: "Wen soll dein Trainerteam im Notfall anrufen? Das ist Pflicht – mindestens eine Person mit Telefonnummer.",
   jn_doneNoEm: "Willkommen im Team! Dein Notfallkontakt wurde nicht gespeichert – bitte auf der Startseite noch einmal eintragen.",
   pf_emergency: "Notfallkontakt", pf_emergencyD: "Freiwillig hier – der Spieler kann ihn auch selbst eintragen. Fehlt er, zeigt der Kader es an.",

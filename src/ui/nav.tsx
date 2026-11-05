@@ -4,6 +4,7 @@
 import { useRouter } from "expo-router";
 import { chatSettings } from "../core/chat";
 import { openRequests } from "../core/dev";
+import { missingEmergency } from "../core/emergency";
 import type { Perm } from "../core/perms";
 import type { Modules } from "../core/types";
 import { useStore } from "../data/store";
@@ -87,7 +88,8 @@ export function useNav() {
   const save = (nb: string[], nh: string[]) => s.setPrefs({ nav: { bar: nb.slice(0, MAX_BAR), hide: [...new Set(nh)].slice(0, 40) } });
   const reset = () => s.setPrefs({ nav: undefined });
   /** Zahl am Menüpunkt (z. B. offene Anfragen) */
-  const badge = (k: string): number => k === "individual" && D ? openRequests(D).length : k === "rueckmeldungen" ? s.feedbackOpen : 0;
+  const badge = (k: string): number => k === "individual" && D ? openRequests(D).length : k === "rueckmeldungen" ? s.feedbackOpen
+    : k === "notfall" && D ? missingEmergency(D).length : 0;
   return { items, bar, hidden, save, reset, badge, custom: !!saved?.bar?.length || !!saved?.hide?.length };
 }
 
