@@ -16,6 +16,7 @@ import { cleanGift, cleanProgram, cleanSelf } from "./program";
 import { cleanPoll, pollTemplates } from "./polls";
 import { cleanContacts } from "./emergency";
 import { cleanSizes } from "./sizes";
+import { absentOn, cleanSquad, squadMatesOf, squadSort } from "./nomination";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -245,6 +246,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoPolls(D, lang, now);
   demoEmergency(D, lang);
   demoSizes(D, lang, now);
+  demoSquads(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -799,6 +801,36 @@ function demoEmergency(D: TeamData, lang: Lang): void {
     : { p3: "Asthma – Spray ist in der Sporttasche.", p9: "Allergie gegen Wespenstiche – Notfallset (Adrenalin-Pen) in der Seitentasche der Tasche." };
   for (const [pid, note] of Object.entries(med)) if (D.players.some(p => p.id === pid)) D.emergencyMed[pid] = note;
   D.emergencyOk = true;
+}
+
+/**
+ * Kader fürs nächste Spiel: veröffentlicht (für die Nominierten sichtbar), 16 im Kader und 2 auf Abruf aus den
+ * verfügbaren Spielern; einige haben zugesagt, einer abgesagt, der Rest ist offen (p17 nominiert, noch offen).
+ */
+function demoSquads(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", TODAY = iso(now);
+  const m = D.matches.filter(x => x.date >= TODAY && !x.result).sort((a, b) => (a.date + a.zeit < b.date + b.zeit ? -1 : 1))[0];
+  if (!m) return;
+  const avail = D.players.filter(p => p.active !== false && !absentOn(D, p.id, m.date)).sort(squadSort);
+  const gk = avail.filter(p => p.pos === "TW"), field = avail.filter(p => p.pos !== "TW");
+  const pick = [...gk.slice(0, 2), ...field.filter(p => p.id === "p17"), ...field.filter(p => p.id !== "p17")].slice(0, 18);
+  const [h, mi] = (m.zeit || "15:00").split(":").map(Number), meet = Math.max(0, h * 60 + mi - 75);
+  D.squads[m.id] = cleanSquad({
+    matchId: m.id, meetTime: `${String(Math.floor(meet / 60)).padStart(2, "0")}:${String(meet % 60).padStart(2, "0")}`,
+    meetPlace: m.heim ? (en ? "Clubhouse, changing room 2" : "Vereinsheim, Kabine 2") : (en ? "Clubhouse car park (carpools)" : "Parkplatz am Vereinsheim (Fahrgemeinschaften)"),
+    note: en ? "Home kit in red. Please bring your player pass." : "Heimtrikots in Rot. Bitte Spielerpass mitbringen.",
+    showAll: true, published: addDays(TODAY, -2) + "T18:30:00.000Z",
+  });
+  const at = (k: number) => addDays(TODAY, -1) + `T${String(9 + k).padStart(2, "0")}:15:00.000Z`;
+  pick.forEach((p, i) => {
+    const standby = i >= 16, yes = p.id !== "p17" && i % 4 !== 3 && !standby, no = i === 7;
+    D.noms.push({
+      matchId: m.id, pid: p.id, standby,
+      answer: no ? "no" : yes ? "yes" : null, reason: no ? (en ? "Family celebration" : "Familienfeier") : "",
+      at: no || yes ? at(i % 10) : null, byStaff: i === 5,
+    });
+  });
+  D.squadMates[m.id] = squadMatesOf(D, m.id);
 }
 
 /** Größen: die meisten Spieler haben sie eingetragen (passend zum Alter), drei fehlen, einer ist unvollständig */

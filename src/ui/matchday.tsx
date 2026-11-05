@@ -6,6 +6,7 @@ import React, { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { addDays } from "../core/dates";
 import { changedSincePublish, seenStats, shareState, squadOf } from "../core/matchplan";
+import { nomsOf, squadCounts } from "../core/nomination";
 import { useEngine } from "../data/store";
 import { Card, Col, Row, T } from "./kit";
 import { Icon } from "./icons";
@@ -31,6 +32,17 @@ export function useMatchdayChecks(): { m: ReturnType<typeof useNextMatch>; check
     const names = (ids: string[]) => ids.map(id => E.P(id)).filter(Boolean).slice(0, 4).map(p => p!.vn).join(", ") + (ids.length > 4 ? " " + tf("db_more", { n: ids.length - 4 }) : "");
     const plan = E.mods.matchplan ? E.D.plans.find(p => p.matchId === m.id) || null : null;
     const absent = E.absentOn(m.date).map(p => p.id);
+    // Kader (Nominierung): angelegt, veröffentlicht, Abwesende im Kader, Absagen, offene Antworten
+    {
+      const sq = E.D.squads[m.id], noms = nomsOf(E.D, m.id), k = squadCounts(noms), href = "/coach/nominierung/" + m.id;
+      const answersOn = E.team.settings.playerAbs ?? true, absentNom = noms.filter(n => absent.includes(n.pid)).map(n => n.pid);
+      if (!sq) L.push({ k: "squad", state: "todo", title: t("md_squadNone"), sub: t("md_squadNoneSub"), href });
+      else if (!sq.published) L.push({ k: "squad", state: "todo", title: t("md_squadDraft"), sub: tf("md_squadDraftSub", { n: noms.length }), href });
+      else if (absentNom.length) L.push({ k: "squad", state: "warn", title: tf("md_squadAbsent", { n: absentNom.length }), sub: names(absentNom), href });
+      else if (answersOn && k.no) L.push({ k: "squad", state: "warn", title: tf("md_squadNo", { n: k.no }), sub: names(noms.filter(n => n.answer === "no").map(n => n.pid)), href });
+      else if (answersOn && k.open) L.push({ k: "squad", state: "todo", title: tf("md_squadOpen", { o: k.open }), sub: tf("nm_answerLine", { y: k.yes, n: k.no, o: k.open }), href });
+      else L.push({ k: "squad", state: "ok", title: t("md_squadOk"), sub: tf("nm_countLine", { s: k.squad, b: k.standby }), href });
+    }
     // Matchplan
     if (E.mods.matchplan) {
       if (!plan) L.push({ k: "plan", state: "todo", title: t("md_planNone"), sub: t("md_planNoneSub"), href: "/coach/matchplaene" });

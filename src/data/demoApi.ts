@@ -11,8 +11,9 @@ import { cleanGift, cleanProgram, cleanSelf } from "../core/program";
 import { cleanAnswers, cleanPoll, pollOpen, pollResult } from "../core/polls";
 import { cleanContacts, cleanMed } from "../core/emergency";
 import { cleanSizes, sizesEmpty } from "../core/sizes";
+import { answersAllowed, applyAnswer, cleanSquad } from "../core/nomination";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -504,6 +505,32 @@ export class DemoApi implements Api {
   async saveEmergency(_pid: string, contacts: EmContact[]) { this.net(); return cleanContacts(contacts); }
   async saveEmergencyMed(_pid: string, note: string) { this.net(); return cleanMed(note); }
   async saveSizes(_pid: string, s: PlayerSizes) { this.net(); const x = cleanSizes(s); return sizesEmpty(x) ? null : x; }
+  // Kader-Nominierung: wie der Server (Veröffentlichung mit Zeitpunkt, Antworten bleiben beim Abgleich, Regeln für Spieler)
+  async saveSquad(sq: MatchSquad) {
+    this.net();
+    const old = this.data?.squads[sq.matchId];
+    return cleanSquad({ ...sq, published: sq.published ? (old?.published || new Date().toISOString()) : null });
+  }
+  async deleteSquad() { this.net(); }
+  async setNominations(matchId: string, list: { pid: string; standby: boolean }[]) {
+    this.net();
+    const old = (this.data?.noms || []).filter(n => n.matchId === matchId);
+    return list.map((x): Nomination => { const o = old.find(n => n.pid === x.pid); return o ? { ...o, standby: x.standby } : { matchId, pid: x.pid, standby: x.standby, answer: null, reason: "", at: null, byStaff: false }; });
+  }
+  async setNomAnswer(matchId: string, pid: string, answer: NomAnswer | null, reason: string) {
+    this.net();
+    const n = (this.data?.noms || []).find(x => x.matchId === matchId && x.pid === pid);
+    if (!n) throw new ApiError("not_found");
+    return applyAnswer(n, answer, reason, new Date().toISOString(), true);
+  }
+  async answerNomination(matchId: string, pid: string, answer: NomAnswer, reason: string) {
+    this.net();
+    const D = this.data, n = D?.noms.find(x => x.matchId === matchId && x.pid === pid), m = D?.matches.find(x => x.id === matchId);
+    if (!D || !n || !m || !D.squads[matchId]?.published) throw new ApiError("not_found");
+    if (!(D.team.settings.playerAbs ?? true)) throw new ApiError("answers_off");
+    if (!answersAllowed(D.team, m, new Date())) throw new ApiError("match_started");
+    return applyAnswer(n, answer, reason, new Date().toISOString(), false);
+  }
   /** Demo: Ergebnis wie der Server für das Trainerteam (die Spieler-Ansicht rechnet der Store mit eigener Sicht) */
   async pollResults(pollId: string) {
     const D = this.data, p = D?.polls.find(x => x.id === pollId);

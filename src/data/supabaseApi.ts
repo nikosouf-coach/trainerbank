@@ -14,9 +14,10 @@ import { cleanGift, cleanProgram, cleanSelf, peerOpen, programContent } from "..
 import { cleanPoll } from "../core/polls";
 import { cleanContacts, cleanMed } from "../core/emergency";
 import { cleanSizes, sizesEmpty } from "../core/sizes";
+import { cleanReason, cleanSquad } from "../core/nomination";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -33,7 +34,7 @@ import { cleanCrew } from "../core/day";
 type Row = Record<string, any>;
 const KNOWN_CODES = ["invalid_years", "managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
   "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew", "peer_closed",
-  "polls_off", "poll_closed", "poll_answered", "invalid_answer"];
+  "polls_off", "poll_closed", "poll_answered", "invalid_answer", "answers_off", "match_started"];
 /** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
 const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams", "feedback_rate", "open_polls", "polls"];
 
@@ -146,6 +147,13 @@ const mapPoll = (r: Row): Poll => cleanPoll({
   groupId: r.group_id || null, until: r.until || null, closed: !!r.closed_at, byPlayer: !!r.by_player, authorPid: r.author_player || null,
   author: r.author_name || "", createdBy: r.created_by || null, created: r.created_at || "", answers: Number(r.answer_count) || 0,
 });
+// Kader-Nominierung
+const mapSquad = (r: Row): MatchSquad => cleanSquad({ matchId: r.match_id, meetTime: r.meet_time, meetPlace: r.meet_place || "", note: r.note || "", showAll: r.show_all !== false, published: r.published_at || null });
+const mapNom = (r: Row): Nomination => ({
+  matchId: r.match_id, pid: r.player_id, standby: !!r.standby, answer: r.answer === "yes" || r.answer === "no" ? r.answer : null,
+  reason: r.answer === "no" ? cleanReason(r.reason) : "", at: r.answered_at || null, byStaff: !!r.answered_by_staff,
+});
+const mapMate = (r: Row): SquadMate => ({ pid: r.player_id, name: String(r.name || ""), nr: r.nr == null ? null : Number(r.nr), pos: String(r.pos || ""), standby: !!r.standby });
 // Größen (Schuhe und Handschuhe kommen als Zahl bzw. Text „42.5“)
 const mapSizes = (r: Row): PlayerSizes => cleanSizes({ top: r.top, bottom: r.bottom, shoes: r.shoes, gloves: r.gloves, print: r.print_name || "", note: r.note || "" });
 const mapPollAnswer = (r: Row): PollAnswer => ({ pollId: r.poll_id, pid: r.player_id, answers: r.answers || {}, at: r.updated_at || "" });
@@ -442,6 +450,20 @@ export class SupabaseApi implements Api {
         for (const r of med) { const n = cleanMed(r.note); if (n) D.emergencyMed[r.player_id] = n; }
         D.emergencyOk = true;
       } catch { /* optional – ohne geladene Daten zeigt die App „fehlt“ nicht an */ }
+    }
+    {
+      // Kader-Nominierungen: Trainerteam alle; Spieler veröffentlichte Kader, in denen sie stehen, die eigene Nominierung
+      // und (wenn freigegeben) die Kaderliste mit Vorname und Initial
+      try {
+        const [sqs, noms, mates] = await Promise.all([
+          all((a, b) => sb.from("match_squads").select("*").eq("team_id", tid).range(a, b)),
+          all((a, b) => sb.from("match_nominations").select("match_id, player_id, standby, answer, reason, answered_at, answered_by_staff").eq("team_id", tid).range(a, b)),
+          staff ? Promise.resolve([] as Row[]) : q<Row[]>(sb.rpc("squad_mates", { p_team: tid })),
+        ]);
+        for (const r of sqs) D.squads[r.match_id] = mapSquad(r);
+        D.noms = noms.map(mapNom);
+        for (const r of mates || []) (D.squadMates[r.match_id] ||= []).push(mapMate(r));
+      } catch { /* optional: Rest der App lädt trotzdem */ }
     }
     if (D.team.modules.ausruestung !== false) {
       // Größen (Trainerteam mit „Kader“; Spieler: eigene)
@@ -951,6 +973,30 @@ export class SupabaseApi implements Api {
     if (!n) { await q(this.sb.from("player_emergency_med").delete().eq("player_id", pid)); return ""; }
     const r = await q<Row>(this.sb.from("player_emergency_med").upsert({ player_id: pid, note: n }, { onConflict: "player_id" }).select("note").single());
     return cleanMed(r.note);
+  }
+
+  // ---------- Kader-Nominierung ----------
+  async saveSquad(sq: MatchSquad) {
+    const x = cleanSquad(sq);
+    const row = { match_id: x.matchId, meet_time: x.meetTime, meet_place: x.meetPlace || null, note: x.note || null, show_all: x.showAll, published_at: x.published ? new Date().toISOString() : null };
+    return mapSquad(await q<Row>(this.sb.from("match_squads").upsert(row, { onConflict: "match_id" }).select().single()));
+  }
+  async deleteSquad(matchId: string) { await q(this.sb.from("match_squads").delete().eq("match_id", matchId)); }
+  async setNominations(matchId: string, list: { pid: string; standby: boolean }[]) {
+    const old = await q<Row[]>(this.sb.from("match_nominations").select("player_id, standby").eq("match_id", matchId));
+    const keep = new Set(list.map(x => x.pid)), gone = old.map(r => String(r.player_id)).filter(id => !keep.has(id));
+    if (gone.length) await q(this.sb.from("match_nominations").delete().eq("match_id", matchId).in("player_id", gone));
+    const change = list.filter(x => { const o = old.find(r => r.player_id === x.pid); return !o || !!o.standby !== x.standby; });
+    if (change.length) await q(this.sb.from("match_nominations").upsert(change.map(x => ({ match_id: matchId, player_id: x.pid, standby: x.standby })), { onConflict: "match_id,player_id" }));
+    return (await q<Row[]>(this.sb.from("match_nominations").select("match_id, player_id, standby, answer, reason, answered_at, answered_by_staff").eq("match_id", matchId))).map(mapNom);
+  }
+  async setNomAnswer(matchId: string, pid: string, answer: NomAnswer | null, reason: string) {
+    const r = answer === "no" ? cleanReason(reason) : "";
+    return mapNom(await q<Row>(this.sb.from("match_nominations").update({ answer, reason: r || null }).eq("match_id", matchId).eq("player_id", pid)
+      .select("match_id, player_id, standby, answer, reason, answered_at, answered_by_staff").single()));
+  }
+  async answerNomination(matchId: string, _pid: string, answer: NomAnswer, reason: string) {
+    return mapNom(await q<Row>(this.sb.rpc("answer_nomination", { p_match: matchId, p_answer: answer, p_reason: answer === "no" ? cleanReason(reason) || null : null })));
   }
 
   // ---------- Größen & Ausrüstung ----------

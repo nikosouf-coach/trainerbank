@@ -3976,6 +3976,149 @@ select tst.throws(format($q$insert into public.player_sizes (player_id, top) val
 commit;
 
 -- =====================================================================
+-- T56 Kader-Nominierung: Trainerteam (Recht Planung) nominiert; Spieler sehen nur die veröffentlichte eigene
+--     Nominierung und antworten über answer_nomination (wenn erlaubt, bis zum Anpfiff)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.matches (team_id, date, time, opponent) values (tst.get('team_a')::uuid, current_date + 3, '15:00', 'T56 FC') returning id)
+select tst.put('m56', id::text) from ins;
+with ins as (insert into public.matches (team_id, date, time, opponent) values (tst.get('team_a')::uuid, current_date - 1, '10:00', 'T56 alt') returning id)
+select tst.put('m56old', id::text) from ins;
+with ins as (insert into public.matches (team_id, date, time, opponent) values (tst.get('team_a')::uuid, current_date + 10, '19:30', 'T56 Pokal') returning id)
+select tst.put('m56b', id::text) from ins;
+with ins as (insert into public.matches (team_id, date, opponent) values (tst.get('team_a')::uuid, current_date - 400, 'T56 vor einem Jahr') returning id)
+select tst.put('m56gone', id::text) from ins;
+select tst.affects(format($q$insert into public.match_squads (match_id, meet_time, meet_place, note) values (%L, '13:45', 'Vereinsheim', 'Weiße Trikots')$q$, tst.get('m56')), 1, 'T56 Kader anlegen (Entwurf)');
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and published_at is null and updated_by = tst.uid('coachA') from public.match_squads where match_id = tst.get('m56')::uuid),
+                 'T56 Team und Konto setzt der Server, zunächst Entwurf');
+end $$;
+select tst.affects(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L), (%L, %L)$q$, tst.get('m56'), tst.get('max'), tst.get('m56'), tst.get('p2_player')), 2, 'T56 zwei Spieler nominieren');
+select tst.affects(format($q$insert into public.match_nominations (match_id, player_id, standby, answer, answered_by_staff) values (%L, %L, true, 'yes', false)$q$, tst.get('m56'), tst.get('erik')), 1, 'T56 auf Abruf mit Zusage vom Trainerteam');
+do $$ begin
+  perform tst.ok((select answered_by_staff and answered_at is not null and team_id = tst.get('team_a')::uuid from public.match_nominations
+                   where match_id = tst.get('m56')::uuid and player_id = tst.get('erik')::uuid), 'T56 Antwort des Trainerteams wird gekennzeichnet');
+end $$;
+select tst.throws(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L)$q$, tst.get('m56'), tst.get('p46b')), 'T56 nur Spieler des eigenen Teams', 'different_teams');
+select tst.throws(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L)$q$, tst.get('m56b'), tst.get('tom')), 'T56 Nominierung nur mit Kader', 'foreign key');
+select tst.throws(format($q$update public.match_squads set meet_time = '25:00' where match_id = %L$q$, tst.get('m56')), 'T56 Treffpunkt: gültige Uhrzeit', 'match_squads_meet_time_valid');
+select tst.throws(format($q$update public.match_squads set meet_place = %L where match_id = %L$q$, repeat('x', 121), tst.get('m56')), 'T56 Ort höchstens 120 Zeichen', 'match_squads_meet_place_valid');
+select tst.throws(format($q$update public.match_nominations set answer = 'vielleicht' where match_id = %L and player_id = %L$q$, tst.get('m56'), tst.get('max')), 'T56 Antwort ja oder nein', 'match_nominations_answer_valid');
+select tst.throws(format($q$update public.match_squads set match_id = %L where match_id = %L$q$, tst.get('m56b'), tst.get('m56')), 'T56 Spiel lässt sich nicht wechseln', 'forbidden');
+select tst.affects(format($q$update public.match_nominations set answer = 'yes', reason = 'egal' where match_id = %L and player_id = %L$q$, tst.get('m56'), tst.get('p2_player')), 1, 'T56 Trainerteam trägt eine Zusage ein');
+do $$ begin
+  perform tst.ok((select reason is null and answered_by_staff from public.match_nominations where match_id = tst.get('m56')::uuid and player_id = tst.get('p2_player')::uuid),
+                 'T56 Grund nur bei Absage');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.match_squads where match_id = tst.get('m56')::uuid)::text || '/' || (select count(*) from public.match_nominations where match_id = tst.get('m56')::uuid)::text,
+                 '0/0', 'T56 Entwurf: Spieler sehen nichts');
+  perform tst.eq((select count(*) from public.squad_mates(tst.get('team_a')::uuid))::text, '0', 'T56 Entwurf: keine Kaderliste');
+end $$;
+select tst.throws(format($q$select public.answer_nomination(%L, 'yes')$q$, tst.get('m56')), 'T56 vor dem Veröffentlichen keine Antwort', 'not_found');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.match_squads set published_at = '2000-01-01' where match_id = %L$q$, tst.get('m56')), 1, 'T56 veröffentlichen');
+do $$ begin
+  perform tst.ok((select published_at > now() - interval '1 minute' from public.match_squads where match_id = tst.get('m56')::uuid), 'T56 Zeitpunkt der Veröffentlichung setzt der Server');
+end $$;
+select tst.affects(format($q$insert into public.match_squads (match_id, published_at) values (%L, now())$q$, tst.get('m56old')), 1, 'T56 Kader fürs vergangene Spiel');
+select tst.affects(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L)$q$, tst.get('m56old'), tst.get('max')), 1, 'T56 Max im vergangenen Spiel');
+select tst.affects(format($q$insert into public.match_squads (match_id, published_at) values (%L, now())$q$, tst.get('m56gone')), 1, 'T56 Kader vor einem Jahr');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare
+  r public.match_nominations;
+begin
+  perform tst.eq((select meet_time || '/' || meet_place from public.match_squads where match_id = tst.get('m56')::uuid), '13:45/Vereinsheim', 'T56 veröffentlicht: Spieler sieht Treffpunkt');
+  perform tst.eq((select count(*) from public.match_nominations where match_id = tst.get('m56')::uuid)::text, '1', 'T56 Spieler sieht nur die eigene Nominierung');
+  perform tst.eq((select string_agg(name || '/' || standby::text, ', ' order by name) from public.squad_mates(tst.get('team_a')::uuid) where match_id = tst.get('m56')::uuid),
+                 'Erik B./true, Max M./false, Paul N./false', 'T56 Kaderliste mit Vorname und Initial');
+  r := public.answer_nomination(tst.get('m56')::uuid, 'no', E'  Familienfeier\nbei Oma  ');
+  perform tst.eq(r.answer || '/' || r.reason || '/' || r.answered_by_staff::text, 'no/Familienfeier bei Oma/false', 'T56 Absage mit Grund (bereinigt)');
+  r := public.answer_nomination(tst.get('m56')::uuid, 'yes', 'egal');
+  perform tst.ok(r.answer = 'yes' and r.reason is null and r.answered_at > now() - interval '1 minute', 'T56 Zusage ohne Grund');
+end $$;
+select tst.throws(format($q$select public.answer_nomination(%L, 'vielleicht')$q$, tst.get('m56')), 'T56 nur ja oder nein', 'invalid_answer');
+select tst.throws(format($q$select public.answer_nomination(%L, 'yes')$q$, tst.get('m56old')), 'T56 nach dem Anpfiff keine Antwort', 'match_started');
+select tst.throws(format($q$select public.answer_nomination(%L, 'yes')$q$, tst.get('m56b')), 'T56 ohne Nominierung keine Antwort', 'not_found');
+select tst.affects(format($q$update public.match_nominations set answer = 'no' where match_id = %L$q$, tst.get('m56')), 0, 'T56 Spieler ändern Nominierungen nicht direkt');
+select tst.throws(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L)$q$, tst.get('m56'), tst.get('tom')), 'T56 Spieler nominieren nicht', 'row-level security');
+commit;
+
+update public.teams set settings = settings || '{"playerAbs": false}'::jsonb where id = tst.get('team_a')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$select public.answer_nomination(%L, 'no')$q$, tst.get('m56')), 'T56 Absagen durch Spieler aus', 'answers_off');
+commit;
+update public.teams set settings = settings - 'playerAbs' where id = tst.get('team_a')::uuid;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$delete from public.match_nominations where match_id = %L and player_id = %L$q$, tst.get('m56'), tst.get('p2_player')), 1, 'T56 Spieler aus dem Kader nehmen');
+select tst.affects(format($q$update public.match_nominations set standby = false where match_id = %L and player_id = %L$q$, tst.get('m56'), tst.get('max')), 1, 'T56 nur Abruf geändert');
+do $$ begin
+  perform tst.ok((select answer = 'yes' and not answered_by_staff from public.match_nominations where match_id = tst.get('m56')::uuid and player_id = tst.get('max')::uuid),
+                 'T56 Antwort des Spielers bleibt bei anderen Änderungen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.match_squads where match_id = tst.get('m56')::uuid)::text || '/' || (select count(*) from public.squad_mates(tst.get('team_a')::uuid))::text,
+                 '0/0', 'T56 nicht nominiert: Spieler sieht keinen Kader');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.match_nominations where match_id = tst.get('m56')::uuid)::text, '2', 'T56 Trainerteam ohne Recht Planung sieht den Kader');
+end $$;
+select tst.affects(format($q$update public.match_nominations set standby = true where match_id = %L$q$, tst.get('m56')), 0, 'T56 ohne Recht Planung keine Änderung');
+select tst.throws(format($q$insert into public.match_squads (match_id) values (%L)$q$, tst.get('m56b')), 'T56 ohne Recht Planung kein Kader', 'row-level security');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.match_squads where team_id = tst.get('team_a')::uuid)::text, '0', 'T56 fremdes Trainerteam sieht keinen Kader');
+end $$;
+select tst.throws(format($q$insert into public.match_squads (match_id) values (%L)$q$, tst.get('m56b')), 'T56 fremdes Trainerteam legt keinen Kader an', 'row-level security');
+commit;
+
+do $$ begin
+  perform tst.ok(public.purge_old_squads() >= 1, 'T56 Löschfrist: alte Kader werden gelöscht');
+  perform tst.eq((select count(*) from public.match_squads where match_id in (tst.get('m56gone')::uuid, tst.get('m56')::uuid))::text, '1', 'T56 Löschfrist: nur Kader älter als 12 Monate');
+end $$;
+delete from public.matches where id = tst.get('m56old')::uuid;
+do $$ begin
+  perform tst.eq((select count(*) from public.match_nominations where match_id = tst.get('m56old')::uuid)::text, '0', 'T56 Spiel gelöscht: Kader und Nominierungen weg');
+end $$;
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -3993,7 +4136,8 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v12', 'T21b Exportformat v12');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v13', 'T21b Exportformat v13');
+  perform tst.eq(jsonb_array_length(x -> 'nominations')::text || '/' || (x -> 'nominations' -> 0 ->> 'answer') || '/' || (x -> 'nominations' -> 0 ->> 'opponent'), '1/yes/T56 FC', 'T21b Export: eigene Nominierungen');
   perform tst.eq(jsonb_array_length(x -> 'sizes')::text || '/' || (x -> 'sizes' -> 0 ->> 'top') || '/' || (x -> 'sizes' -> 0 ->> 'print_name'), '1/L/MAXI', 'T21b Export: eigene Größen');
   perform tst.eq(jsonb_array_length(x -> 'emergency_contacts')::text || '/' || jsonb_array_length(x -> 'emergency_contacts' -> 0 -> 'contacts')::text || '/' || jsonb_array_length(x -> 'emergency_notes')::text,
                  '1/2/1', 'T21b Export: Notfallkontakte und Hinweis');

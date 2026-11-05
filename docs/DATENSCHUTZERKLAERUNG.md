@@ -51,6 +51,9 @@
   wer im Trainerteam das Recht „Gesundheitsdaten“ hat. Mitspieler sehen nichts davon.
 - **Größen:** Freiwillig trägst du deine Kleider- und Schuhgrößen und einen Namen für die Beflockung ein, damit dein
   Trainerteam z. B. Trikots oder Trainingsanzüge bestellen kann. Sie sieht nur das Trainerteam mit dem Recht „Kader“.
+- **Kader fürs Spiel:** Nominiert dich dein Trainerteam für ein Spiel, siehst du das auf der Startseite – mit Treffpunkt
+  und, wenn das Trainerteam es freigibt, wer noch dabei ist (Vorname und Initial). Wer nicht nominiert ist, sieht
+  nichts. Ist es erlaubt, sagst du in der App zu oder ab; den Grund einer Absage sieht nur das Trainerteam.
 - **Matchplan:** Gibt dein Trainerteam einen Matchplan frei, kannst du ihn bis Spielende ansehen. Er ist vertraulich:
   Er wird mit deinem Namen als Wasserzeichen angezeigt, und es wird festgehalten, wann du ihn geöffnet hast (und ob
   ein Screenshot erkannt wurde). Das Protokoll wird nach 6 Monaten gelöscht.
@@ -172,6 +175,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.42 | Umfragen | **Umfrage:** Art (Abstimmung oder Fragebogen), Titel, Einleitung, Fragen mit Antwortmöglichkeiten, mit Namen oder anonym, wer das Ergebnis sieht, Zielgruppe (Team oder Gruppe), Ende, beendet, wer sie gestartet hat (Trainerteam mit Namen, Spieler mit Vorname und Initial), Zeitpunkte, Zahl der Antworten. **Deine Antwort:** je Frage die gewählte(n) Antwort(en), die Stufe 1–5 oder dein Freitext, mit Zeitpunkt | Trainerteam mit Recht „Nachrichten“; bei Umfragen mit Namen und „Ergebnisse für alle“ auch die Angesprochenen; bei anonymen Umfragen niemand einzeln | freiwillig |
 | 4.43 | Notfallkontakte | **Notfallkontakt:** eine oder zwei Personen, die das Trainerteam im Notfall anruft – Name, Beziehung zu dir (z. B. Mutter, Vater, erziehungsberechtigte Person, Partner/in, Geschwister, Großeltern) und Telefonnummer –, dazu wer zuletzt geändert hat und wann. **Hinweise für den Notfall:** Freitext, z. B. Allergien, Asthma, Diabetes, Notfallmedikament und wo es liegt (Gesundheitsdaten) | du; das Trainerteam mit Recht „Kader“ (z. B. für Spieler ohne Konto), Hinweise mit Recht „Gesundheitsdaten“ | Notfallkontakt Pflicht beim Beitreten als Spieler; Hinweise freiwillig, Einwilligung erforderlich |
 | 4.44 | Größen & Ausrüstung | Größe für Oberteil und Hose, Schuhgröße, bei Torhütern Handschuhgröße, Name für die Beflockung, Hinweis (z. B. „fällt klein aus“), wer zuletzt geändert hat und wann; daraus erstellte Bestelllisten (CSV-Datei oder Text mit Rückennummer, Name, Beflockung und Größen) | du; das Trainerteam mit Recht „Kader“ (z. B. für Spieler ohne Konto) | freiwillig |
+| 4.45 | Kader-Nominierung | Spiel, im Kader oder auf Abruf, Treffpunkt (Uhrzeit, Ort) und Hinweis des Trainerteams, ob die Nominierten den Kader sehen, Zeitpunkt der Veröffentlichung; deine Zu- oder Absage mit freiwilligem Grund, Zeitpunkt und ob das Trainerteam die Antwort eingetragen hat | Trainerteam mit Recht „Planung“; du (Antwort) | Antwort freiwillig |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -285,6 +289,15 @@ einen Ausrüster oder Sporthändler weiter; Trainerbank selbst sendet die Liste 
 Gesundheitsdaten – bitte trag im Hinweis keine Angaben zu Verletzungen oder Erkrankungen ein. Du kannst deine Größen
 jederzeit ändern oder löschen; sie werden mit deinem Spielerprofil gelöscht.
 
+**Kader-Nominierung (4.45):** Das Trainerteam mit dem Recht „Planung“ stellt den Kader für ein Spiel zusammen (im Kader
+oder auf Abruf) und veröffentlicht ihn. Erst dann siehst du deine Nominierung mit Treffpunkt und Hinweis. Gibt das
+Trainerteam es frei, sehen die Nominierten, wer noch dabei ist – mit Vorname, Initial des Nachnamens, Rückennummer
+und Position, nie die Antworten oder Gründe der anderen. Wer nicht nominiert ist, sieht den Kader nicht. Erlaubt das
+Trainerteam Absagen durch Spieler (dieselbe Einstellung wie bei Trainings), sagst du bis zum Anpfiff in der App zu oder
+ab; einen Grund für eine Absage musst du nicht angeben – bei Krankheit genügt „krank“, Einzelheiten bitte persönlich.
+Den Grund sieht nur das Trainerteam. Antworten kann auch das Trainerteam eintragen (z. B. wenn du persönlich Bescheid
+gibst); das ist dann so gekennzeichnet. Kader mit allen Antworten werden 12 Monate nach dem Spiel gelöscht.
+
 **Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
 geschafft haben, sowie die gemeinsame Summe – nicht deine Werte. Nur wenn das Trainerteam die Bestenliste einschaltet,
 erscheinen bei Bestleistungs-Challenges die drei besten Werte mit Vorname und Initial.
@@ -364,7 +377,7 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen, Größen und Bestelllisten | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42, 4.44 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen, Größen und Bestelllisten, Kader-Nominierung | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42, 4.44, 4.45 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
 | Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests, Angaben zum Schmerz (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26, 4.27 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
 | Übernahme der Belastung beim Hochziehen oder Wechsel innerhalb des Vereins (Gesundheitsdaten) | 4.36 | wie die Belastungssteuerung: ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO (gleicher Zweck; nur mit Recht „Gesundheitsdaten“ in beiden Teams) |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
@@ -532,6 +545,8 @@ bleibt unberührt.
 | dein Notfallkontakt (Name, Beziehung, Telefonnummer) | ja | mit Recht „Kader“ (ändern) oder „Gesundheitsdaten“ (ansehen) | nein | nein |
 | deine Hinweise für den Notfall | ja | mit Recht „Gesundheitsdaten“ | nein | nein |
 | deine Größen und der Name für die Beflockung | ja | mit Recht „Kader“ (auch als Bestellliste zum Weitergeben, z. B. an einen Ausrüster) | nein | nein |
+| deine Nominierung für ein Spiel | nach dem Veröffentlichen | ja (ändern mit Recht „Planung“) | wenn freigegeben: die anderen Nominierten (Vorname, Initial, Nummer, Position) | nein |
+| deine Zu- oder Absage und ihr Grund | ja | ja | nein | nein |
 | deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
 | deine Chat-Nachrichten | ja | in Chats, in denen das Trainerteam Mitglied ist; in Jugendteams auch Einzelchats Trainer–Spieler (Recht „Nachrichten“) | Mitglieder des jeweiligen Chats | nein |
@@ -759,6 +774,7 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Umfragen und Antworten | automatisch **12 Monate** nach dem Ende der Umfrage (ohne Ende: nach dem Start); deine Antwort sofort beim Zurückziehen (solange die Umfrage läuft); sonst bei Löschung der Umfrage, deines Spielerprofils oder des Teams |
 | Notfallkontakte und Hinweise für den Notfall | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Hinweise auch beim Widerruf der Einwilligung in Gesundheitsdaten |
 | Größen | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Exportierte Bestelllisten liegen beim Trainerteam bzw. beim Empfänger der Bestellung – dort gelten deren Löschfristen |
+| Kader-Nominierungen mit Zu- und Absagen | automatisch **12 Monate** nach dem Spiel; sonst mit dem Kader, dem Spiel, deinem Spielerprofil oder dem Team |
 | Wochenchallenge | mit der Challenge, dem Spielerprofil oder dem Team |
 | Anfragen für Individualtraining | automatisch 12 Monate nach Abschluss (zugesagt, abgesagt, zurückgezogen); offene mit dem Spielerprofil bzw. Team |
 | Chat-Nachrichten und Reaktionen | automatisch **24 Monate** nach dem Senden; sofort bei Löschung deines Kontos; gelöschte Nachrichten verlieren ihren Text sofort; Einzel- und eigene Chats auch, wenn alle Mitglieder sie verlassen |
@@ -938,7 +954,10 @@ permission, also offline – plus optional emergency notes such as allergies or 
 visible only to staff with the health-data permission; people named as a contact are informed under Art. 14 GDPR in
 the German section 4); clothing and shoe sizes with a name for printing (optional; visible to you and staff with the
 squad permission, who can export an order list – number, name, print name, sizes – e.g. for a kit supplier; the app
-itself sends it to no one); push
+itself sends it to no one); match squad nominations (squad or standby, meeting point and note; you see your nomination
+once published and, if the staff allows it, the other nominated players with first name and initial; players who aren't
+nominated see nothing; your yes/no with an optional reason that only the staff sees; deleted 12 months after the
+match); push
 tokens; AI usage counters; technical server logs. Load, wellness,
 complaints and body regions, injury, illness, height and weight, rehab/load-build/growth group membership and test
 results are treated as **health data** (Art. 9 GDPR).

@@ -131,6 +131,8 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `player_emergency` (…20261105000003) | Notfallkontakt, einer je Spieler (pk `player_id` → `players`, Cascade): `contacts` jsonb mit 1–2 Kontakten (`name` 1–80, `rel` mother/father/guardian/partner/sibling/grandparent/other, `phone` ≤ 30 Zeichen aus Ziffern, `+` nur am Anfang, Leerzeichen, `/`, `-`, Klammern, 6–20 Ziffern; keine Nummer doppelt – `emergency_contacts_ok`), `team_id` setzt der Server, `updated_at`/`updated_by` (Client-Änderungen); `player_id` nicht änderbar | Spieler eigene (lesen, schreiben, löschen); Staff mit `squad` oder `health` lesen, mit `squad` schreiben und löschen |
 | `player_emergency_med` (…20261105000003) | Hinweise für den Notfall (Gesundheitsdaten), einer je Spieler: `note` 1–500 Zeichen; Spieler nur mit Einwilligung (`require_health_consent`) | Spieler eigene; Staff mit `health` (lesen, schreiben, löschen) |
 | `player_sizes` (…20261105000004) | Größen, eine Zeile je Spieler (pk `player_id` → `players`, Cascade): `top` und `bottom` (116–176 oder XS–3XL), `shoes` (EU 26–50, halbe Größen), `gloves` (4–12, halbe Größen), `print_name` (Beflockung, 1–20 Zeichen ohne Steuerzeichen), `note` (1–200), mindestens eine Angabe; `team_id`, `updated_at`/`updated_by` setzt der Server (`player_emergency_prepare`), `player_id` nicht änderbar. Modul `ausruestung` (Standard an) | Spieler eigene (lesen, schreiben, löschen); Staff mit `squad` |
+| `match_squads` (…20261105000005) | Kader je Spiel (pk `match_id` → `matches`, Cascade): `meet_time` (HH:MM), `meet_place` (1–120), `note` (1–500), `show_all` (Nominierte sehen die Kaderliste), `published_at` (setzt der Server beim Veröffentlichen; null = Entwurf), `team_id`/`updated_at`/`updated_by` vom Server, Spiel nicht wechselbar | Staff lesen; Spieler veröffentlichte Kader, in denen sie nominiert sind (`nominated_me`); schreiben Staff mit `plan` |
+| `match_nominations` (…20261105000005) | pk(`match_id` → `match_squads`, `player_id`): `standby` (auf Abruf), `answer` (yes/no), `reason` (nur bei Absage, 1–200), `answered_at`, `answered_by_staff` (Antworten von Clients = Trainerteam, Zeitpunkt vom Server); Spieler aus demselben Team (`different_teams`) | Staff lesen; Spieler die eigene, wenn veröffentlicht (`squad_published`); schreiben Staff mit `plan`; Spieler antworten über `answer_nomination` |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -370,7 +372,12 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining; v7: Matchplan; v8:
   Entwicklungsprogramm, Selbstanalyse, Stärken-Runde; v9: Antworten und Abstimmungen aus Umfragen – doppelte Einträge
   bleiben beim bestehenden Spieler; v10: Notfallkontakt und Hinweise für den Notfall – der neuere Stand gewinnt; v11:
-  Größen – der neuere Stand gewinnt).
+  Größen – der neuere Stand gewinnt; v12: Kader-Nominierungen – doppelte bleiben bei der neuen Zeile).
+- `answer_nomination(match, answer, reason)` – Zu-/Absage des Spielers für die eigene Nominierung: nur veröffentlicht,
+  mit `settings.playerAbs` (wie Absagen bei Trainings, Standard an) und vor dem Anpfiff (Datum + Uhrzeit in der Zeitzone
+  des Teams); Grund nur bei Absage (bereinigt, ≤ 200). Fehler `answers_off`, `match_started`, `invalid_answer`.
+- `squad_mates(team)` – Kaderlisten für nominierte Spieler (nur `show_all`): Vorname und Initial, Nummer, Position, auf
+  Abruf – keine Antworten. `purge_old_squads()` (täglich) – Kader 12 Monate nach dem Spiel.
 - Notfallkontakte: Beim Beitreten speichert die App den Kontakt (Pflicht) direkt nach `join_team` und vor dem Laden
   des Teams; Prüfung der Kontakte `emergency_contacts_ok(c)` (wie `core/emergency → cleanContacts`).
 - `peer_targets(team)` – Spieler: Mitspieler für die Stärken-Runde (Vorname, Initial, Rückennummer, Position), nur
@@ -383,7 +390,7 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Antwort, nach dem Ende oder bei der eigenen Abstimmung. Hilfen: `team_today(team)`, `poll_running(poll)`,
   `poll_target_me(team, group)`, `poll_my_player(team)`, `poll_group_ok(group, team)`.
 - `purge_old_polls()` (täglich) – Umfragen mit allen Antworten 12 Monate nach dem Ende (ohne Ende: nach dem Start).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v12` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen): Profil, Gesundheitsdaten
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v13` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -488,6 +495,10 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Kontakte bereinigen (höchstens zwei, Name und gültige Nummer, keine Nummer doppelt), Prüfung im Formular mit
   Fehler je Kontakt, Hinweise für den Notfall (≤ 500), fehlende Kontakte (nur aktive Spieler und nur, wenn die Kontakte
   geladen sind – `emergencyOk`), Erinnerung an Spieler mit Konto.
+- `nomination.ts` – Kader-Nominierung: Bereinigung (Treffpunkt, Hinweis, Grund), Anpfiff und Antwortregeln
+  (`answersAllowed`: Einstellung „Absagen durch Spieler“ und vor dem Anpfiff), Zahlen (Kader, Abruf, Zu-/Absagen,
+  offen), Reihenfolge nach Mannschaftsteilen, Kaderliste mit Vorname und Initial, Kader aus Sicht eines Spielers (nur
+  veröffentlicht und nominiert), Offene mit Konto (Erinnerung), Text für die Ankündigung im Chat.
 - `sizes.ts` – Größen & Ausrüstung: Größenlisten (Kinder 116–176, XS–3XL), halbe Schuh- und Handschuhgrößen,
   Bereinigung wie `player_sizes`, vollständig (Oberteil, Hose, Schuhe), fehlende Größen (nur wenn geladen – `sizesOk`),
   Stutzen aus der Schuhgröße, Bestellliste (Summen je Artikel und Größe, Fehlende, Handschuhe nur Torhüter, sortiert

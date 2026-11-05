@@ -3,7 +3,7 @@ import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "
 import type { ChatFolderPrefs } from "../core/chat";
 import type { StatPeriod } from "../core/stats";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -283,6 +283,16 @@ export interface Api {
   saveEmergencyMed(pid: string, note: string): Promise<string>;
   /** Größen (Spieler: eigene; Trainerteam mit Recht „Kader“); alles leer = löschen (Ergebnis null) */
   saveSizes(pid: string, s: PlayerSizes): Promise<PlayerSizes | null>;
+  // Kader-Nominierung (Trainerteam mit Recht „Planung“; Spieler antworten über answerNomination)
+  /** Kader speichern (Treffpunkt, Hinweis, Sichtbarkeit; veröffentlicht – den Zeitpunkt setzt der Server) */
+  saveSquad(sq: MatchSquad): Promise<MatchSquad>;
+  deleteSquad(matchId: string): Promise<void>;
+  /** Nominierungen eines Kaders abgleichen (neue, entfernte, Abruf geändert) – vorhandene Antworten bleiben */
+  setNominations(matchId: string, list: { pid: string; standby: boolean }[]): Promise<Nomination[]>;
+  /** Antwort durch das Trainerteam (null = wieder offen; Grund nur bei Absage) */
+  setNomAnswer(matchId: string, pid: string, answer: NomAnswer | null, reason: string): Promise<Nomination>;
+  /** Antwort des Spielers (eigene Nominierung – der Server bestimmt den Spieler; pid nur für die Demo) */
+  answerNomination(matchId: string, pid: string, answer: NomAnswer, reason: string): Promise<Nomination>;
   // Wochenchallenge
   saveChallenge(teamId: string, c: Challenge): Promise<Challenge>;
   deleteChallenge(id: string): Promise<void>;

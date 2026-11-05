@@ -77,12 +77,12 @@ FÜR TRAINERINNEN UND TRAINER
 • Mehrere Einheiten am Tag, z. B. Athletik vor dem Mannschaftstraining oder eine Reha-Gruppe
 • Torhüter im Blick: Torwarttraining, Sprünge als Belastung, Gegentore, Paraden und Torwarttests
 • Trainingseindruck in Sekunden: nur besonders gute oder schwache Leistungen markieren
-• Anwesenheit in Sekunden erfassen
+• Kader fürs Spiel nominieren, Zu- und Absagen in der App, Anwesenheit in Sekunden
 • Abwesenheiten mit Grund und stufenweiser Rückkehr ins Training
 • Notfallkontakte jedes Spielers griffbereit – mit einem Tipp anrufen, auch ohne Netz
 • Größen für Trikots & Co.: Spieler tragen sie selbst ein, die Bestellliste entsteht automatisch
-• Wachstum im Blick: Körpergröße erfassen und Wachstumsphasen im Jugendbereich berücksichtigen
-• Kurze Nachrichten an einzelne Spieler, z. B. Pause oder Zusatzaufgabe
+• Wachstum im Blick: Körpergröße und Wachstumsphasen im Jugendbereich
+• Kurze Nachrichten an einzelne Spieler
 • Team-Chat statt WhatsApp-Gruppe – ohne Telefonnummern, mit Kinderschutz für Jugendteams – und Umfragen, auf Wunsch anonym
 • Spielerentwicklung mit individuellem Entwicklungsprogramm (X-Faktor, Entwicklungsfelder mit Weg und Ziel), Kompetenzprofil, messbaren Zielen und Entwicklungsgesprächen
 • Wochenchallenge für zu Hause und Anfragen für Individualtraining
@@ -143,12 +143,12 @@ FOR COACHES
 • Several sessions per day, e.g. athletics before team training or a rehab group
 • Goalkeepers in focus: goalkeeper sessions, jumps as load, goals conceded, saves and goalkeeper tests
 • Training impressions in seconds: only mark particularly good or weak performances
-• Take attendance in seconds
+• Nominate the match squad, players say yes or no in the app, attendance in seconds
 • Absences with reason and a step-by-step return to training
 • Every player's emergency contacts at hand – call with one tap, even offline
 • Kit sizes: players add their own, the order list builds itself
-• Growth tracking: record height and take growth phases in youth football into account
-• Short messages to individual players, e.g. rest or an extra task
+• Growth tracking: height and growth phases in youth football
+• Short messages to individual players
 • Team chat instead of a WhatsApp group – no phone numbers, with safeguarding for youth teams – plus polls, anonymous if you like
 • Player development with an individual development programme (X-factor, focus areas with a plan and a goal), competency profile, measurable goals and development talks
 • Weekly challenge for at home and requests for individual sessions
@@ -193,8 +193,8 @@ Legal notice: [Impressum-URL]
 ```
 <!-- desc-en:end -->
 
-Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE 3.928 Zeichen, EN 3.582 Zeichen. Für die Preisangabe
-bleiben statt des Platzhalters rund 140 Zeichen (DE) bzw. 430 Zeichen (EN) – vor dem Einreichen nachzählen.
+Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE 3.919 Zeichen, EN 3.584 Zeichen. Für die Preisangabe
+bleiben statt des Platzhalters rund 150 Zeichen (DE) bzw. 430 Zeichen (EN) – vor dem Einreichen nachzählen.
 
 ### Formulierungsregeln für alle Store- und Werbetexte
 
@@ -335,7 +335,7 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Benutzerinhalte | Fotos oder Videos | ja | ja | nein | App-Funktionalität | optionales Profilfoto, Fotos von Befunden (Arztbriefe) |
 | Gesundheit & Fitness | Gesundheit (Ergänzung) | ja | ja | nein | App-Funktionalität | Befunde (Bild/PDF) und deren KI-Zusammenfassung, Leistungstests |
 | Benutzerinhalte | E-Mails oder Textnachrichten | ja | ja | nein | App-Funktionalität | Chat-Nachrichten, Reaktionen, Meldungen; Trainer-Nachrichten an Spieler |
-| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen, Selbsteinschätzung, Ziele, Gesprächsprotokolle, Entwicklungsprogramm, Selbstanalyse, Stärken-Runde, Antworten in Umfragen, Challenge-Einträge, Anfragen für Individualtraining |
+| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen, Selbsteinschätzung, Ziele, Gesprächsprotokolle, Entwicklungsprogramm, Selbstanalyse, Stärken-Runde, Antworten in Umfragen, Zu- und Absagen zu Kader-Nominierungen, Challenge-Einträge, Anfragen für Individualtraining |
 | Identifikatoren | Benutzer-ID | ja | ja | nein | App-Funktionalität | Konto-ID |
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |

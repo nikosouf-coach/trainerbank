@@ -471,6 +471,18 @@ export interface EmContact { name: string; rel: EmRel; phone: string }
  */
 export interface PlayerSizes { top: string | null; bottom: string | null; shoes: number | null; gloves: number | null; print: string; note: string }
 
+// ---------- Kader-Nominierung fürs Spiel ----------
+/**
+ * Kader eines Spiels: Treffpunkt (Uhrzeit, Ort), Hinweis, ob die Spieler die ganze Liste sehen (sonst nur die eigene
+ * Nominierung), veröffentlicht am (null = Entwurf, nur fürs Trainerteam)
+ */
+export interface MatchSquad { matchId: string; meetTime: string | null; meetPlace: string; note: string; showAll: boolean; published: string | null }
+export type NomAnswer = "yes" | "no";
+/** Nominierung: im Kader oder auf Abruf; Zu- oder Absage (mit Grund), wann und ob das Trainerteam sie eingetragen hat */
+export interface Nomination { matchId: string; pid: string; standby: boolean; answer: NomAnswer | null; reason: string; at: string | null; byStaff: boolean }
+/** Kader aus Sicht eines Spielers (nur veröffentlicht und für alle sichtbar): Vorname und Initial, Nummer, Position */
+export interface SquadMate { pid: string; name: string; nr: number | null; pos: string; standby: boolean }
+
 // ---------- Chat ----------
 export type ChatKind = "team" | "staff" | "group" | "direct" | "custom";
 export interface Chat {
@@ -680,6 +692,9 @@ export interface TeamData {
   emergencyOk: boolean;
   /** Größen je Spieler (Trainerteam mit Recht „Kader“; Spieler: eigene) und ob sie geladen wurden */
   sizes: Record<string, PlayerSizes>; sizesOk: boolean;
+  /** Kader je Spiel (Trainerteam: alle; Spieler: veröffentlichte, in denen sie stehen oder die für alle sichtbar sind),
+   *  Nominierungen (Trainerteam: alle; Spieler: eigene), Kaderlisten für Spieler (Schlüssel = Spiel) */
+  squads: Record<string, MatchSquad>; noms: Nomination[]; squadMates: Record<string, SquadMate[]>;
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -751,7 +766,7 @@ export function emptyTeamData(team: Team): TeamData {
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     programs: [], selfSkills: [], peerGifts: [], peerMates: [],
     polls: [], pollAnswers: [], pollResults: {},
-    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false,
+    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {},
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],

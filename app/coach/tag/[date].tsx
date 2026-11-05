@@ -19,6 +19,7 @@ import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { GroupChip } from "../../../src/ui/squad/Groups";
 import { DayUnitsCard } from "../../../src/ui/units";
 import { CoachPlanCard } from "../../../src/ui/matchplan/cards";
+import { CoachSquadCard } from "../../../src/ui/nomination";
 import { Icon } from "../../../src/ui/icons";
 import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
@@ -83,6 +84,7 @@ export default function Trainingstag() {
         <T v="small">{x.match.zeit} · {x.match.heim ? t("home") : t("away")} · {t("comp_" + x.match.comp)}</T>
         <Row wrap gap={6}>
           {E.mods.spielanalyse && date <= E.TODAY ? <Btn small kind="primary" label={t("sp_open")} onPress={() => router.push("/coach/spiel/" + x.match!.id)} /> : null}
+          <CoachSquadCard match={x.match} compact />
           <CoachPlanCard match={x.match} compact />
           {sess && E.mods.beteiligung ? <Btn small label={t("day_attOpen")} onPress={() => router.push("/coach/einheit/" + date)} /> : null}
         </Row>

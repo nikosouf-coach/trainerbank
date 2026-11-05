@@ -18,13 +18,14 @@ import { cleanGift, cleanProgram, cleanSelf, matesOf, peerOpen } from "../core/p
 import { cleanPoll, pollsFor, sortPolls } from "../core/polls";
 import { cleanContacts, cleanMed } from "../core/emergency";
 import { cleanSizes, sizesEmpty } from "../core/sizes";
+import { applyAnswer, cleanSquad, mySquads as mySquadsOf, squadMatesOf, type MySquad } from "../core/nomination";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -1024,6 +1025,48 @@ function useStoreValue() {
       toast(tr0.t("nf_reminded"));
     },
 
+    // ---------- Kader-Nominierung ----------
+    /**
+     * Kader speichern (Treffpunkt, Hinweis, Sichtbarkeit, veröffentlicht) und die Nominierungen abgleichen – vorhandene
+     * Antworten bleiben. ok = Hinweis nach dem Speichern (Entwurf, veröffentlicht, zurückgezogen).
+     */
+    saveSquad: (sq: MatchSquad, list: { pid: string; standby: boolean }[], ok?: string) => {
+      const x = cleanSquad(sq), id = x.matchId;
+      const merge = (D: TeamData, noms: Nomination[]) => { D.noms = [...D.noms.filter(n => n.matchId !== id), ...noms]; };
+      return changeOk(D => {
+        const old = D.noms.filter(n => n.matchId === id);
+        D.squads[id] = { ...x, published: x.published ? (D.squads[id]?.published || x.published) : null };
+        merge(D, list.map((l): Nomination => { const o = old.find(n => n.pid === l.pid); return o ? { ...o, standby: l.standby } : { matchId: id, pid: l.pid, standby: l.standby, answer: null, reason: "", at: null, byStaff: false }; }));
+      }, async api => {
+        const saved = await api.saveSquad(x), noms = await api.setNominations(id, list);
+        const D = ref.current.D; if (D) { D.squads[id] = saved; merge(D, noms); }
+      }, { ok });
+    },
+    /** Kader mit allen Nominierungen und Antworten löschen */
+    deleteSquad: (matchId: string) => changeOk(D => { delete D.squads[matchId]; D.noms = D.noms.filter(n => n.matchId !== matchId); },
+      api => api.deleteSquad(matchId), { ok: translator(ref.current.lang).t("nm_deleted") }),
+    /** Antwort für einen Spieler eintragen (Trainerteam; null = wieder offen) */
+    setNomAnswer: (matchId: string, pid: string, answer: NomAnswer | null, reason: string) => {
+      const now = new Date().toISOString();
+      return changeOk(D => { D.noms = D.noms.map(n => n.matchId === matchId && n.pid === pid ? applyAnswer(n, answer, reason, now, true) : n); },
+        async api => { const saved = await api.setNomAnswer(matchId, pid, answer, reason); const D = ref.current.D; if (D) D.noms = D.noms.map(n => n.matchId === matchId && n.pid === pid ? saved : n); },
+        { ok: translator(ref.current.lang).t("nm_answered") });
+    },
+    /** Zu- oder Absage des Spielers (eigene Nominierung) */
+    answerNomination: (matchId: string, answer: NomAnswer, reason: string) => {
+      const pid = ref.current.api.kind === "demo" ? ref.current.demoPlayer || "" : ref.current.active?.playerId || "";
+      const now = new Date().toISOString();
+      return changeOk(D => { D.noms = D.noms.map(n => n.matchId === matchId && n.pid === pid ? applyAnswer(n, answer, reason, now, false) : n); },
+        async api => { const saved = await api.answerNomination(matchId, pid, answer, reason); const D = ref.current.D; if (D) D.noms = D.noms.map(n => n.matchId === matchId && n.pid === saved.pid ? saved : n); },
+        { ok: translator(ref.current.lang).t("nm_answered") });
+    },
+    /** Nominierte mit Konto ohne Antwort erinnern (Nachricht vom Trainerteam, gültig bis zum Spieltag) */
+    remindSquad: async (pids: string[], text: string, until: string) => {
+      const tr0 = translator(ref.current.lang), today = iso(new Date());
+      for (const pid of pids) await actions.saveMessage(pid, { id: tmpId(), date: today, typ: "info", text, bis: until < today ? today : until });
+      toast(tr0.t("nm_reminded"));
+    },
+
     // ---------- Größen & Ausrüstung ----------
     /** Größen eines Spielers speichern (Spieler: eigene; Trainerteam: Recht „Kader“); alles leer = löschen */
     saveSizes: (pid: string, sizes: PlayerSizes) => {
@@ -1338,7 +1381,7 @@ function useStoreValue() {
     // Umfragen: Trainerteam mit „Nachrichten“ (Spieler verwalten eigene Abstimmungen – prüft der Server)
     savePoll: "messages", setPollState: "messages", deletePoll: "messages", setPlayerPolls: "messages", remindPoll: "messages",
     // Notfallkontakte: Kontakte „Kader“, Hinweise (Gesundheitsdaten) „Gesundheitsdaten“, Erinnerung „Nachrichten“
-    saveEmergency: "squad", saveEmergencyMed: "health", remindEmergency: "messages", saveSizes: "squad", remindSizes: "messages",
+    saveEmergency: "squad", saveEmergencyMed: "health", remindEmergency: "messages", saveSizes: "squad", remindSizes: "messages", saveSquad: "plan", deleteSquad: "plan", setNomAnswer: "plan", remindSquad: "messages",
     savePlan: "plan", deletePlan: "plan",
     saveScout: "scout", deleteScout: "scout", saveScoutReport: "scout", deleteScoutReport: "scout", saveScoutList: "scout", deleteScoutList: "scout",
     saveSquadPlan: "scout", deleteSquadPlan: "scout", takeOverScout: ["scout"],
@@ -1403,8 +1446,14 @@ function useStoreValue() {
   // Umfragen (Spieler): an ihn gerichtete und eigene – Demo nach den Zugriffsregeln, echt liefert der Server nur diese
   const myPolls: Poll[] = useMemo(() => !s.D || staffView || !mePid ? [] : isDemo ? pollsFor(s.D, mePid, iso(new Date())) : sortPolls(s.D.polls, iso(new Date())),
     [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Kader, in denen der Spieler nominiert ist (Demo: Kaderliste aus den Teamdaten wie squad_mates)
+  const mySquads: MySquad[] = useMemo(() => {
+    if (!s.D || staffView || !mePid) return [];
+    const D = s.D, mates = isDemo ? Object.fromEntries(Object.keys(D.squads).filter(id => D.squads[id].showAll).map(id => [id, squadMatesOf(D, id)])) : D.squadMates;
+    return mySquadsOf({ ...D, squadMates: mates }, mePid, iso(new Date()));
+  }, [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, themeMode, perms, can, chats, chatMeId, chatMod, myPlans, peerMates, myPolls };
+  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, themeMode, perms, can, chats, chatMeId, chatMod, myPlans, peerMates, myPolls, mySquads };
 }
 
 export type Store = ReturnType<typeof useStoreValue>;
