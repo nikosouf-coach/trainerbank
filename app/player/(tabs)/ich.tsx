@@ -77,7 +77,7 @@ export default function Ich() {
       {E.playerSees("goals") ? <Goals pid={p.id} /> : null}
       <Card style={{ paddingVertical: 4, gap: 0 }}>
         {/* ausgeblendete Bereiche der Leiste bleiben hier erreichbar */}
-        {playerHidden(s.prefs).filter(k => k !== "chat" || (E.mods.chat !== false)).map(k => (
+        {playerHidden(s.prefs, E.playerSees("dev")).filter(k => k !== "chat" || (E.mods.chat !== false)).map(k => (
           <ListItem key={k} testID={"me-tab-" + k} title={t(k === "chat" ? "nav_chat" : "pn_" + k)} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/" + k)} />
         ))}
         {E.playerSees("dev") ? <ListItem testID="me-dev" title={t("dv_mine")} sub={`${t("dv_myGoals")} · ${t("dv_profile")} · ${t("iq_title")}`} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/entwicklung")} /> : null}

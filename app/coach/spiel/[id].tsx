@@ -93,6 +93,7 @@ function PlayerMatchForm({ pid, matchId, date, onDone }: { pid: string; matchId:
   const [start, setStart] = useState(x?.start ?? true);
   const [goals, setGoals] = useState(x?.goals ?? 0);
   const [assists, setAssists] = useState(x?.assists ?? 0);
+  const [pre, setPre] = useState(x?.pre ?? 0);
   // Torhüter: Gegentore in der eigenen Spielzeit (Vorschlag: Gegentore des Spiels bei voller Spielzeit) und Paraden
   const p = E.P(pid), gk = !!p && E.isGK(p), m = E.D.matches.find(z => z.id === matchId);
   const [conceded, setConceded] = useState<number>(x?.conceded ?? (m?.result && (x?.min ?? rpeMin ?? E.matchMin()) >= E.matchMin() ? m.result.opp : 0));
@@ -101,8 +102,8 @@ function PlayerMatchForm({ pid, matchId, date, onDone }: { pid: string; matchId:
   const [text, setText] = useState(r?.text || "");
   const [vis, setVis] = useState(r ? r.vis : true);
   const save = () => {
-    const stat: MatchStat = { min: Math.max(0, min || 0), goals, assists, start, ...(gk && (min || 0) > 0 ? { conceded, saves } : {}) };
-    s.saveStat(matchId, pid, stat.min || goals || assists ? stat : null);
+    const stat: MatchStat = { min: Math.max(0, min || 0), goals, assists, start, pre, ...(gk && (min || 0) > 0 ? { conceded, saves } : {}) };
+    s.saveStat(matchId, pid, stat.min || goals || assists || pre ? stat : null);
     if (rating != null || text.trim()) s.saveRating({ id: r?.id || tmpId(), pid, date, kind: "spiel", rating, text: text.trim(), vis });
     else if (r) s.deleteRating(r.id);
     s.toast(t("t_saved")); onDone();
@@ -116,6 +117,7 @@ function PlayerMatchForm({ pid, matchId, date, onDone }: { pid: string; matchId:
       <Row wrap gap={24}>
         <Col gap={4}><T v="small" bold>{t("sp_goals")}</T><Stepper testID="spf-goals" value={goals} onChange={setGoals} /></Col>
         <Col gap={4}><T v="small" bold>{t("sp_assists")}</T><Stepper testID="spf-assists" value={assists} onChange={setAssists} /></Col>
+        <Col gap={4}><T v="small" bold>{t("sp_pre")}</T><Stepper testID="spf-pre" value={pre} onChange={setPre} /></Col>
       </Row>
       {gk ? <Row wrap gap={24} testID="spf-gk">
         <Col gap={4}><T v="small" bold>{t("tw_conceded")}</T><Stepper testID="spf-conceded" value={conceded} onChange={setConceded} /></Col>

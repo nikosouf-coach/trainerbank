@@ -1,0 +1,32 @@
+# Vorschau: baut die Web-Version der App im Demo-Modus (ohne Server-Zugangsdaten) – Grundlage der Vorschau-Seite.
+# Läuft bei Pull Requests und auf Knopfdruck (Actions → Vorschau → Run workflow); Ergebnis als Artefakt „web“ (7 Tage).
+name: Vorschau
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: vorschau-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web-Version (Demo)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Pakete installieren
+        run: if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+      - name: Web-Export
+        run: npx expo export -p web --output-dir dist
+      - name: Inhalt
+        run: find dist -type f -printf '%s\t%p\n' | sort -n | tail -n 20
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: dist
+          retention-days: 7

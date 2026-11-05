@@ -12,6 +12,7 @@ import { emptyTeamData } from "./types";
 import { challengeDefsFor, fromDef } from "./challenge";
 import { demoPeople } from "./chat";
 import { compsOf, posGroupOf } from "./dev";
+import { cleanGift, cleanProgram, cleanSelf } from "./program";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -237,6 +238,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoGroups(D, en, TODAY);
   demoUnits(D, lang, now);
   demoDev(D, lang, now);
+  demoProgram(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -613,6 +615,101 @@ function demoDev(D: TeamData, lang: Lang, now: Date): void {
     if (i % 2 === 0) { const v = Math.round((c1.target || 100) * (0.3 + r() * 0.9)); D.chEntries.push({ cid: c1.id, pid: p.id, value: v, days: [], done: v >= (c1.target || 1), at: atNow }); }
     if (i % 3 === 0) D.chEntries.push({ cid: c2.id, pid: p.id, value: Math.round(5 + r() * (grp === "u11" ? 25 : 40)), days: [], done: true, at: atNow });
   });
+}
+
+/**
+ * Entwicklungsprogramm für die Demo: Stürmer (p17) mit vollständigem Programm wie ein Spielerprofil im NLZ, Sechser (p8),
+ * ein Entwurf (p6), Selbstanalysen, eine laufende Stärken-Runde mit Einträgen, Pre-Assists und Notenverlauf.
+ * Eigener Zufallsgenerator, damit die übrigen Demo-Daten unverändert bleiben.
+ */
+function demoProgram(D: TeamData, lang: Lang, now: Date): void {
+  const TODAY = iso(now), en = lang === "en", r = rng(523), at = (d: number) => new Date(now.getTime() + d * 86400e3).toISOString();
+  const P = (id: string) => D.players.find(p => p.id === id);
+  if (!P("p17") || !P("p8") || !P("p6")) return;
+  const co = D.staff.find(x => x.role === "co")?.id || null;
+  // Pre-Assists in allen erfassten Spielen (Offensive häufiger), dazu Spielnoten für Stürmer und Sechser über die ganze Saison
+  const chance = (pos: string) => ["ST", "OM", "LM", "RM"].includes(pos) ? 0.3 : ["ZM", "DM"].includes(pos) ? 0.18 : 0.04;
+  const byDate = [...D.matches].filter(m => m.date < TODAY).sort((a, b) => a.date < b.date ? -1 : 1);
+  for (const m of byDate) for (const [pid, x] of Object.entries(D.stats[m.id] || {})) {
+    const p = P(pid); if (!p) continue;
+    x.pre = x.min > 0 && r() < chance(p.pos) * (x.min / 90) ? (r() < 0.15 ? 2 : 1) : 0;
+  }
+  let rid = 1;
+  for (const pid of ["p17", "p8"]) for (const m of byDate) {
+    const x = D.stats[m.id]?.[pid];
+    if (!x || x.min <= 0 || D.ratings.some(q => q.pid === pid && q.date === m.date && q.kind === "spiel")) continue;
+    const rating = Math.min(9.5, Math.round((5.4 + r() * 1.8 + Math.min(1.2, x.goals * 0.6 + x.assists * 0.4 + (x.pre || 0) * 0.2)) * 10) / 10);
+    D.ratings.push({ id: "rp" + (rid++), pid, date: m.date, kind: "spiel", rating, text: "", vis: true });
+  }
+  // Ziel für die Extraschicht des Stürmers (Fortschritt aus Einträgen)
+  const g17: Goal = { id: "dgp17", pid: "p17", title: en ? "Left foot: 400 shots" : "Linker Fuß: 400 Abschlüsse", area: "tech", kind: "process", metric: "count", unit: en ? "shots" : "Abschlüsse",
+    start: 0, target: 400, lower: false, test: null, stat: null, from: addDays(TODAY, -35), due: addDays(TODAY, 49), why: en ? "So defenders can't force me onto my right." : "Damit mich Verteidiger nicht mehr auf rechts zwingen können.",
+    steps: [], status: "active", vis: true, by: "coach", talkId: null };
+  D.goals.push(g17);
+  for (const [d, v] of [[-30, 45], [-23, 60], [-16, 55], [-9, 70], [-2, 50]] as [number, number][]) D.goalEntries.push({ id: "dep" + d, goalId: g17.id, pid: "p17", date: addDays(TODAY, d), value: v, note: "", by: "player" });
+  const g8 = D.goals.find(g => g.pid === "p8" && g.metric === "count")?.id || null;
+  const help = (...ids: (string | null)[]) => ["team", ...ids.filter((x): x is string => !!x)];
+  D.programs.push(cleanProgram({
+    pid: "p17", tag: en ? "HOLDUP" : "FESTMACHEN", xf: ["festmachen", "schusstechnik", "passspiel"],
+    sit: en ? ["When I hold up the ball with a defender at my back", "I play the pass in behind", "I get into good finishing positions and strike the ball cleanly"]
+      : ["Wenn ich den Ball mit dem Gegner im Rücken festmache", "Ich spiele den tiefen Pass", "Ich bringe mich in gute Abschlusspositionen und schließe sauber ab"],
+    zones: ["o2", "o3", "o4", "m3"],
+    improve: [
+      { kind: "excel", topic: en ? "Final pass" : "Letzter Pass", skill: "letzterpass", where: ["training", "indiv", "extra"], help: help(co), how: en ? "After holding up: head up, look for the run in behind first" : "Nach dem Festmachen: Kopf hoch, zuerst den Lauf in die Tiefe suchen", goalId: null },
+      { kind: "extra", topic: en ? "Left foot" : "Linker Fuß", skill: "beidfuss", where: ["extra", "home", "indiv"], help: help(co), how: en ? "3× a week 15 min finishing with the left after training" : "3× pro Woche 15 Min. Abschluss mit links nach dem Training", goalId: g17.id },
+      { kind: "focus", topic: en ? "Defending the box" : "Box verteidigen", skill: "boxverteidigen", where: ["training", "video", "spiel"], help: ["team"], how: en ? "Set pieces against us: I take the man at the near post" : "Standards gegen uns: Ich übernehme den Mann am ersten Pfosten", goalId: null },
+      { kind: "off", topic: en ? "Coaching teammates" : "Mitspieler coachen", skill: "coaching", where: ["training", "spiel"], help: ["team", "mates"], how: en ? "Agree two calls with the attackers before every match" : "Vor jedem Spiel zwei Kommandos mit der Offensive absprechen", goalId: null },
+    ],
+    coach: { weapons: ["festmachen", "schusstechnik", "passspiel"], skills: ["flugbaelle"] },
+    peers: ["physis", "kopfball", "abschluss", "aggressivitaet", "festmachen"], vis: true, at: at(-2),
+  }));
+  D.programs.push(cleanProgram({
+    pid: "p8", tag: en ? "BALLHUNTER" : "BALLJÄGER", xf: ["zweikampf", "spielverstaendnis", "passspiel"],
+    sit: en ? ["After we lose the ball I hunt it back straight away", "I play the first pass forward through the lines", "I cover when our full-backs push up"]
+      : ["Nach Ballverlust jage ich den Ball sofort zurück", "Ich spiele den ersten Pass nach vorne durch die Linien", "Ich sichere ab, wenn unsere Außenverteidiger aufrücken"],
+    zones: ["m2", "m3", "m4", "d3"],
+    improve: [
+      { kind: "excel", topic: en ? "Pass through the lines" : "Pass durch die Linien", skill: "tiefpass", where: ["training", "video"], help: ["team"], how: "", goalId: null },
+      { kind: "extra", topic: en ? "Left foot" : "Linker Fuß", skill: "beidfuss", where: ["extra", "indiv"], help: help(co), how: en ? "Wall passes with the left after training" : "Wandpässe mit links nach dem Training", goalId: g8 },
+      { kind: "focus", topic: en ? "Scanning before receiving" : "Schulterblick vor der Ballannahme", skill: "uebersicht", where: ["training", "spiel", "video"], help: ["team"], how: en ? "Two shoulder checks before every pass you receive" : "Vor jeder Ballannahme zweimal über die Schulter schauen", goalId: null },
+    ],
+    coach: { weapons: ["zweikampf", "einsatz", "spielverstaendnis"], skills: ["passspiel"] },
+    peers: ["zweikampf", "einsatz", "fuehrung"], vis: true, at: at(-6),
+  }));
+  D.programs.push(cleanProgram({
+    pid: "p6", tag: "", xf: ["schnelligkeit", "dribbling"], sit: [], zones: ["o1", "m1"],
+    improve: [{ kind: "focus", topic: en ? "Defensive positioning" : "Defensives Stellungsspiel", skill: "stellungsspiel", where: ["training", "video"], help: ["team"], how: "", goalId: null }],
+    coach: { weapons: ["schnelligkeit", "flanken"], skills: [] }, peers: [], vis: false, at: at(-1),
+  }));
+  D.selfSkills.push(cleanSelf({ pid: "p17", weapons: ["physis", "schusstechnik", "zweikampf"], skills: [], at: at(-9) }));
+  D.selfSkills.push(cleanSelf({ pid: "p8", weapons: ["zweikampf", "einsatz", "passspiel"], skills: ["kommunikation"], at: at(-12) }));
+  D.selfSkills.push(cleanSelf({ pid: "p6", weapons: ["schnelligkeit", "dribbling", "flanken"], skills: ["mut"], at: at(-2) }));
+  // Stärken-Runde: läuft seit 4 Tagen, noch 10 Tage; Mitspieler nennen typische Stärken je Position
+  D.team.settings.peer = { since: addDays(TODAY, -4), until: addDays(TODAY, 9) };
+  const typical = (pos: string): string[] => pos === "TW" ? ["reflexe", "strafraum", "ruhe", "kommunikation", "fussspiel"]
+    : ["ST"].includes(pos) ? ["abschluss", "physis", "kopfball", "festmachen", "aggressivitaet", "schnelligkeit"]
+      : ["LM", "RM", "OM"].includes(pos) ? ["dribbling", "schnelligkeit", "flanken", "letzterpass", "mut"]
+        : ["ZM", "DM"].includes(pos) ? ["passspiel", "einsatz", "zweikampf", "uebersicht", "fuehrung"]
+          : ["zweikampf", "kopfball", "stellungsspiel", "fuehrung", "ruhe"];
+  const fixed: Record<string, string[][]> = {
+    p17: [["physis", "kopfball", "abschluss"], ["festmachen", "physis"], ["aggressivitaet", "abschluss", "physis"], ["kopfball", "festmachen"], ["physis", "abschluss"]],
+    p8: [["zweikampf", "einsatz"], ["einsatz", "fuehrung", "zweikampf"], ["fuehrung"], ["zweikampf", "passspiel"]],
+  };
+  const givers = D.players.filter(p => !["p15"].includes(p.id)).map(p => p.id);
+  const pick = (L: string[], n: number) => { const c = [...L], out: string[] = []; while (out.length < n && c.length) out.push(c.splice(Math.floor(r() * c.length), 1)[0]); return out; };
+  const add = (giver: string, target: string, skills: string[], d: number) => {
+    if (giver === target || D.peerGifts.some(g => g.giver === giver && g.target === target)) return;
+    D.peerGifts.push({ giver, target, skills: cleanGift(skills), at: at(-d) });
+  };
+  for (const [target, lists] of Object.entries(fixed)) {
+    const from = givers.filter(g => g !== target && g !== "p17" && g !== "p8");
+    lists.forEach((skills, i) => add(from[(i * 5 + 3) % from.length], target, skills, 1 + (i % 3)));
+  }
+  for (const giver of givers.slice(0, 16)) {
+    if (giver === "p17") continue; // die Spieler-Ansicht des Stürmers zeigt die Runde noch offen
+    for (const target of pick(givers.filter(x => x !== giver), 2 + Math.floor(r() * 2))) add(giver, target, pick(typical(P(target)!.pos), 1 + Math.floor(r() * 3)), Math.floor(r() * 4));
+  }
+  add("p17", "p8", ["zweikampf", "fuehrung"], 1);
 }
 
 /** Chat der Demo: Teamchat, Trainerteam, Torhüter-Gruppe, Einzelchats (Jugend: transparent), eigene Gruppe, eine Meldung. */

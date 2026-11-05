@@ -122,6 +122,10 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `scout_reports` (…0026) | Beobachtung: `date`, `event`, `kind` (match/tournament/training/video/trial/other), `minutes`, `position`, `scores` jsonb (Bereiche und Kompetenzen 1–5), `grade` 1–5, `verdict` (sign/watch/no), `strengths`, `weaknesses`, `summary`, `author`/`author_name` (setzt der Server) | nur Staff mit `scout`; ein neuer Bericht frischt `scout_players.updated_at` auf (Löschfrist) |
 | `squad_plans` (…0026) | Saisonplanung je Team und Saison (`season` = Beginnjahr, unique, nicht änderbar): `content` jsonb (Spielform, Grundordnung, je Position Soll, Anforderungsprofil, eingeplanter Kader und Schattenkandidaten in Reihenfolge, Stand der eigenen Spieler, Kurzangaben zu Aufrückern, Notizen; ≤ 200 kB) | nur Staff mit `scout` |
 | `app_admins`, `feedback` (…0030) | Betreiber der App (nur per SQL eintragen); Rückmeldungen: `kind` (bug/unclear/wish/praise), `text`, `page` (ohne IDs), `app_version`, `update_id`, `platform`, `os_version`, `device`, `shot_path` (Bucket `feedback`, `{user_id}/{uuid}.jpg`), `status`, `role` und `team_id` (setzt der Trigger nach Mitgliedschaft), höchstens 20 je Konto und Tag | eigene lesen, einfügen; Betreiber alles über `feedback_list`, `feedback_set_done`, `feedback_delete`; Löschfrist 12 Monate nach Erledigung (ohne Foto) |
+| `dev_programs` (…20261105000001) | Entwicklungsprogramm, eines je Spieler (pk `player_id`): `content` jsonb (`tag` Motto ≤ 24, `xf` X-Faktor ≤ 3, `sit` Situationen ≤ 3, `zones` stärkster Bereich ≤ 15, `improve` ≤ 4 Felder mit Art, Thema, Stärke, Ort, Hilfe, Weg, Ziel, `coach` Sicht des Trainerteams, `peers` ausgewählte Stärken aus der Stärken-Runde ≤ 5; ≤ 16 KB, `dev_program_ok`), `visible`, `published_at` (setzt der Trigger beim Freigeben und bei jeder Änderung eines freigegebenen Programms), `updated_by` | Staff mit `notes`; Spieler nur das eigene freigegebene |
+| `dev_self` (…20261105000001) | Selbstanalyse: `weapons` und `skills` (je ≤ 3 Schlüssel aus dem Stärken-Katalog der App, ohne Überschneidung) | Spieler eigene (schreiben, löschen); Staff mit `notes` lesen und löschen |
+| `dev_peer_skills` (…20261105000001) | Stärken-Runde: pk(`giver_id`,`target_id`), `skills` 1–3 Katalog-Schlüssel (nur Positives, kein Freitext); Schenkender und Empfänger aktiv im selben Team (`different_teams`), Spieler schreiben nur während der Runde `teams.settings.peer = {since, until}` (`peer_closed`) | lesen Staff mit `notes` und der Schenkende (eigene); Empfänger sehen keine Einträge – nur, was das Trainerteam ins Programm übernimmt; Löschfrist 12 Monate |
+| `match_stats.pre_assists` (…20261105000001) | Pre-Assists (vorletzter Pass vor einem Tor, 0–20; leer = nicht erfasst) | wie Spieldaten |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -134,6 +138,7 @@ ihrem Startdatum, fallen an Spieltagen, in Pausen und bei abgesagtem Mannschafts
 Tage (42 Tage) als `day_units` festgehalten, damit spätere Änderungen am Wochenrhythmus die Historie nicht verändern.
 `settings.indivReq` (Anfragen für Individualtraining an/aus) und `settings.challengeRank` (Bestenliste der Challenge)
 gehören zur Planung (`plan`); `settings.chat` = `{ on, dm: off|staff|all, transparent, teamReadOnly }` zu `admin`.
+`settings.peer` = `{ since, until }` (Stärken-Runde, 7/14/21 Tage; Beenden setzt `until` auf gestern) gehört zu `notes`.
 
 ### Chat und Kinderschutz
 
@@ -354,8 +359,12 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `regenerate_codes(team)` (nur Owner).
 - `team_by_join_code(code)` → Vereins-/Teamname zur Anzeige vor dem Beitritt (keine weiteren Daten).
 - `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen,
-  Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining; v7: Matchplan).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v8` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos): Profil, Gesundheitsdaten
+  Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining; v7: Matchplan; v8:
+  Entwicklungsprogramm, Selbstanalyse, Stärken-Runde – doppelte Einträge bleiben beim bestehenden Spieler).
+- `peer_targets(team)` – Spieler: Mitspieler für die Stärken-Runde (Vorname, Initial, Rückennummer, Position), nur
+  während einer Runde und nur für aktive Spieler des Teams; `peer_round_open(team)` prüft die Runde (Zeitzone des Teams).
+- `purge_old_peer_skills()` (täglich) – Einträge der Stärken-Runde nach 12 Monaten.
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v9` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -445,6 +454,12 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Unterschiede Selbst-/Fremdbild (ab 2 Stufen), Zielfortschritt (Test, Statistik, Beteiligung, Zähler, Messwert,
   Meilensteine; „hinter Plan“ nach verstrichener Zeit), Gesprächsvorbereitung aus den Daten, Saisonrückblick,
   Individualtraining (Einheit nur für den Spieler).
+- `program.ts` – Entwicklungsprogramm (Herzstück der Spielerentwicklung): Stärken-Katalog in der Sprache des Platzes
+  (Technik, Taktik, Athletik, Persönlichkeit; eigene für Torhüter), Bereinigung mit den Grenzen der Datenbank,
+  stärkster Bereich (15 Zonen: Drittel × Flügel/Halbraum/Zentrum), Stand und offene Punkte eines Programms,
+  Stärken-Runde (starten, beenden, Zählung je Stärke ohne Namen, Teilnahme), Vorschläge für den X-Faktor (wo sich
+  Selbstanalyse, Mitspieler und Trainerteam treffen), Saisonzahlen der Spielerkarte (Spiele, Minuten, Tore, Vorlagen,
+  Pre-Assists, Ø Note, Notenverlauf; Torhüter zu null/Gegentore) und Thema für „Individualtraining anfragen“.
 - `challenge.ts` – Wochenchallenge: Vorschläge je Altersgruppe, Eintragen (Bestleistung, Menge, Tage, geschafft),
   Fortschritt, Teamsumme, Serie.
 - `chat.ts` – Chat-Regeln wie in der Datenbank (Teilnehmer, Mitlesen, Schreiben, Einzelchats nach Einstellung),

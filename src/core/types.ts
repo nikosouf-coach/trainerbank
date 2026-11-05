@@ -76,6 +76,8 @@ export interface TeamSettings {
   indivReq?: boolean;
   /** Wochenchallenge: Bestenliste anzeigen (Standard: aus – persönliche Bestleistung und Teamziel statt Vergleich) */
   challengeRank?: boolean;
+  /** Stärken-Runde des Entwicklungsprogramms (Spieler schenken einander Stärken); fehlt = noch keine Runde */
+  peer?: PeerRound | null;
 }
 /**
  * Chat: wer Einzelchats starten darf (aus / nur mit dem Trainerteam / auch Spieler untereinander), ob das ganze Trainerteam
@@ -217,7 +219,8 @@ export interface Potential { id: string; cat: PotCat; text: string; vis: boolean
 export interface CoachMsg { id: string; date: string; typ: MsgType; text: string; bis: string | null }
 /** Spieldaten eines Spielers in einem Spiel (vom Trainerteam erfasst). */
 export interface MatchStat { min: number; goals: number; assists: number; start: boolean;
-  /** Torhüter: Gegentore in seiner Spielzeit und Paraden */ conceded?: number | null; saves?: number | null }
+  /** Torhüter: Gegentore in seiner Spielzeit und Paraden */ conceded?: number | null; saves?: number | null;
+  /** Pre-Assists (Pass vor der Vorlage); fehlt = nicht erfasst */ pre?: number | null }
 /** Note (1–10, eine Nachkommastelle) und Feedback des Trainers zu Spiel oder Training. */
 export interface Rating { id: string; pid: string; date: string; kind: "spiel" | "training"; rating: number | null; text: string; vis: boolean;
   /** Training: nur Abweichungen vom Durchschnitt – besonders gut oder besonders schwach (Standard = Durchschnitt, nicht gespeichert) */
@@ -361,6 +364,45 @@ export interface IndivRequest {
   /** staffId: wer die Einheit leitet (bei Zusage); ask: bei wem der Spieler angefragt hat (null = Trainerteam) */
   answer: string; date: string | null; slot: number | null; staffId: string | null; created: string; ask?: string | null;
 }
+
+// ---------- Individuelles Entwicklungsprogramm (Herzstück der Spielerentwicklung) ----------
+/** Felder unter „Improve“: Stärke veredeln, Extraschicht, Fokus im Spiel, abseits des Platzes */
+export type ImproveKind = "excel" | "extra" | "focus" | "off";
+/** Wo der Spieler daran arbeitet */
+export type ImproveWhere = "training" | "indiv" | "extra" | "home" | "video" | "athletik" | "spiel";
+export interface ImproveItem {
+  kind: ImproveKind;
+  /** Thema in eigenen Worten (z. B. „Linker Fuß“); optional eine Stärke aus dem Katalog (core/program → SKILLS) */
+  topic: string; skill: string | null;
+  where: ImproveWhere[];
+  /** Wo nach Hilfe fragen: "team" (Trainerteam), "mates" (Mitspieler) oder ID eines Trainerprofils */
+  help: string[];
+  /** So gelingt es (z. B. „nach jedem Training 10 Min.“) */ how: string;
+  /** verknüpftes messbares Ziel (Fortschritt aus „Ziele“) */ goalId: string | null;
+}
+/** Waffen (höchstens 3) und weitere Stärken (höchstens 3) als Schlüssel aus SKILLS – das Trainerteam darf eigene Begriffe („t:…“) nutzen */
+export interface SkillView { weapons: string[]; skills: string[] }
+/** Entwicklungsprogramm eines Spielers: Spielerkarte, Perform, Improve und die Sicht von Spieler, Mitspielern und Trainerteam */
+export interface DevProgram {
+  pid: string;
+  /** Motto ohne „#“ (z. B. FESTMACHEN) */ tag: string;
+  /** X-Faktor: die 1–3 Waffen, mit denen der Spieler den Unterschied macht */ xf: string[];
+  /** So mache ich den Unterschied: Situationen in Ich-Form (höchstens 3) */ sit: string[];
+  /** Stärkster Bereich auf dem Feld (Zonen aus core/program → ZONES) */ zones: string[];
+  improve: ImproveItem[];
+  /** Sicht des Trainerteams */ coach: SkillView;
+  /** Vom Trainerteam ausgewählte Stärken aus der Stärken-Runde der Mitspieler (höchstens 5, ohne Namen) */ peers: string[];
+  /** für den Spieler freigegeben */ vis: boolean;
+  /** zuletzt freigegeben bzw. geändert (ISO) */ at: string | null;
+}
+/** Selbstanalyse des Spielers: eigene Waffen und weitere Stärken */
+export interface DevSelf { pid: string; weapons: string[]; skills: string[]; at: string | null }
+/** Stärken, die ein Spieler einem Mitspieler in der Stärken-Runde zuschreibt (nur positiv, nur aus dem Katalog) */
+export interface PeerGift { giver: string; target: string; skills: string[]; at: string }
+/** Mitspieler für die Stärken-Runde in der Spieler-App (Vorname, Initial, Rückennummer, Position – keine weiteren Daten) */
+export interface PeerMate { id: string; name: string; nr: number | null; pos: string }
+/** Stärken-Runde des Teams (Team-Einstellungen, Recht „notes“): Spieler schenken einander Stärken von `since` bis `until` */
+export interface PeerRound { since: string; until: string }
 
 // ---------- Chat ----------
 export type ChatKind = "team" | "staff" | "group" | "direct" | "custom";
@@ -557,6 +599,9 @@ export interface TeamData {
   challenges: Challenge[]; chEntries: ChallengeEntry[]; chTotals: Record<string, ChallengeTotals>;
   /** Anfragen für Individualtraining (Spieler: eigene) */
   indiv: IndivRequest[];
+  /** Entwicklungsprogramme (Spieler: eigenes, wenn freigegeben), Selbstanalysen (Spieler: eigene), Stärken-Runde
+   *  (Trainerteam: alle Einträge; Spieler: nur selbst verschenkte) und Mitspieler für die Runde (nur Spieler-App) */
+  programs: DevProgram[]; selfSkills: DevSelf[]; peerGifts: PeerGift[]; peerMates: PeerMate[];
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -626,6 +671,7 @@ export function emptyTeamData(team: Team): TeamData {
     rpe: {}, rpeU: {}, units: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
     stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], duties: [], fines: [], tasks: [], cash: [], waivers: [], inactive: [],
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
+    programs: [], selfSkills: [], peerGifts: [], peerMates: [],
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],

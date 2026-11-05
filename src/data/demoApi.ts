@@ -7,8 +7,9 @@ import { CLUB_PERMS, cleanClubPerms, teamSummary, type ClubInfo, type ClubRole, 
 import { addDays, iso } from "../core/dates";
 import { addRef, isYounger, makeResolver, planSlots, posMatch, refOf, riserSnap, riserYears, slotDepth } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
+import { cleanGift, cleanProgram, cleanSelf } from "../core/program";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -468,6 +469,12 @@ export class DemoApi implements Api {
   async deleteGoalEntry() { this.net(); }
   async saveTalk(_t: string, x: DevTalk) { this.net(); return { ...x, id: newId(x.id) }; }
   async deleteTalk() { this.net(); }
+  async saveProgram(_t: string, p: DevProgram) { this.net(); return cleanProgram({ ...p, at: p.vis ? new Date().toISOString() : p.at }); }
+  async deleteProgram() { this.net(); }
+  async saveSelfSkills(_t: string, x: DevSelf) { this.net(); return cleanSelf({ ...x, at: new Date().toISOString() }); }
+  async savePeerGift(_t: string, g: PeerGift) { this.net(); const skills = cleanGift(g.skills); return skills.length ? { ...g, skills, at: new Date().toISOString() } : null; }
+  /** Demo: Mitspieler rechnet der Store aus dem Kader (Daten bleiben auf dem Gerät) */
+  async peerMates(): Promise<PeerMate[]> { return []; }
   async saveChallenge(_t: string, c: Challenge) { this.net(); return { ...c, id: newId(c.id) }; }
   async deleteChallenge() { this.net(); }
   async saveChallengeEntry(_e: ChallengeEntry) { this.net(); }

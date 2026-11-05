@@ -30,7 +30,7 @@ const VIEWS: { k: string; keys: (defs: StatDef[]) => string[] }[] = [
   { k: "overview", keys: () => ["att", "rpe", "rateG", "min", "scorer", "absDays"] },
   { k: "training", keys: () => ["att", "unexc", "marks", "rpeRate", "extra", "absDays"] },
   { k: "load", keys: () => ["acwr", "load", "rpe", "well", "sleep", "wellRate"] },
-  { k: "games", keys: () => ["games", "starts", "min", "minPct", "goals", "assists", "rateG", "clean"] },
+  { k: "games", keys: () => ["games", "starts", "min", "minPct", "goals", "assists", "pre", "rateG", "clean"] },
   { k: "tests", keys: defs => defs.filter(d => d.cat === "tests").map(d => d.key).slice(0, MAX_COLS) },
   { k: "dev", keys: () => ["devC", "devS", "marks", "rateG", "att"] },
 ];

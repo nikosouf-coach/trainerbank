@@ -14,16 +14,19 @@ import { freeDateSlot, recurringOn } from "../core/units";
 import { applyChallenge, entryOf } from "../core/challenge";
 import { cleanBody, demoMe, putMsg, toggleReaction, visibleChats } from "../core/chat";
 import { indivUnit } from "../core/dev";
+import { cleanGift, cleanProgram, cleanSelf, matesOf, peerOpen } from "../core/program";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
+import { emptyTeamData } from "../core/types";
 import { ApiError, isOffline, isStaffRole, type Api, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type FeedbackKind, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type ThemeMode, type UserInfo, type UserPrefs } from "./api";
 import { startCrashReports } from "./crash";
 import { cleanCode, type PendingInvite } from "./invite";
@@ -240,8 +243,10 @@ function useStoreValue() {
       const c = JSON.parse(raw) as { v: number; uid: string; user?: UserInfo; m: Membership; D: TeamData; consents: ConsentState | null; at: string };
       if (c.v !== 1 || (user && c.uid !== user.id) || Date.now() - Date.parse(c.at) > CACHE_DAYS * 86400e3) return false;
       if (!user) await loadOutbox(c.uid);
-      applyOutbox(c.D, obRef.current, c.m.teamId);
-      set({ phase: "ready", active: c.m, D: c.D, memberships: [c.m], consents: c.consents, user: user || c.user || { id: c.uid, email: "", displayName: "", lang },
+      // Stand einer älteren App-Version: neue Bereiche (z. B. Entwicklungsprogramm) leer ergänzen
+      const D: TeamData = { ...emptyTeamData(c.D.team), ...c.D };
+      applyOutbox(D, obRef.current, c.m.teamId);
+      set({ phase: "ready", active: c.m, D, memberships: [c.m], consents: c.consents, user: user || c.user || { id: c.uid, email: "", displayName: "", lang },
         lang: user?.lang || lang, offline: true, cachedAt: c.at, version: ref.current.version + 1 });
       return true;
     } catch { return false; }
@@ -886,6 +891,34 @@ function useStoreValue() {
     saveTalk: (x: DevTalk) => upsert("talks", x, (api, t) => api.saveTalk(t, x), { ok: translator(ref.current.lang).t("dv_talkSaved") }),
     deleteTalk: (id: string) => change(D => { D.talks = D.talks.filter(x => x.id !== id); D.goals.forEach(g => { if (g.talkId === id) g.talkId = null; }); }, api => api.deleteTalk(id)),
 
+    // ---------- Entwicklungsprogramm ----------
+    /** Programm eines Spielers speichern (ein Programm je Spieler; Freigabe = Spieler sieht es unter „Mein Weg“) */
+    saveProgram: (p: DevProgram, ok?: string) => {
+      const x = cleanProgram(p);
+      return change(D => { D.programs = [...D.programs.filter(y => y.pid !== x.pid), x]; },
+        async (api, t) => { const saved = await api.saveProgram(t, x); const D = ref.current.D; if (D) D.programs = [...D.programs.filter(y => y.pid !== saved.pid), saved]; },
+        { ok: ok ?? translator(ref.current.lang).t("ep_saved") });
+    },
+    deleteProgram: (pid: string) => change(D => { D.programs = D.programs.filter(y => y.pid !== pid); }, api => api.deleteProgram(pid), { ok: translator(ref.current.lang).t("ep_deleted") }),
+    /** Selbstanalyse des Spielers: Waffen und weitere Stärken */
+    saveSelfSkills: (x: DevSelf) => {
+      const v = cleanSelf({ ...x, at: new Date().toISOString() });
+      return change(D => { D.selfSkills = [...D.selfSkills.filter(y => y.pid !== v.pid), v]; },
+        async (api, t) => { const saved = await api.saveSelfSkills(t, v); const D = ref.current.D; if (D) D.selfSkills = [...D.selfSkills.filter(y => y.pid !== saved.pid), saved]; },
+        { ok: translator(ref.current.lang).t("ep_selfSaved") });
+    },
+    /** Stärken-Runde: einem Mitspieler bis zu drei Stärken schenken (leere Liste = zurücknehmen) */
+    savePeerGift: (g: PeerGift) => {
+      const x: PeerGift = { ...g, skills: cleanGift(g.skills), at: new Date().toISOString() };
+      const same = (y: PeerGift) => y.giver === x.giver && y.target === x.target;
+      return change(D => { D.peerGifts = [...D.peerGifts.filter(y => !same(y)), ...(x.skills.length ? [x] : [])]; },
+        async (api, t) => { const saved = await api.savePeerGift(t, x); const D = ref.current.D; if (D && saved) { const i = D.peerGifts.findIndex(same); if (i >= 0) D.peerGifts[i] = saved; } },
+        { ok: translator(ref.current.lang).t(x.skills.length ? "ep_peerSaved" : "ep_peerRemoved") });
+    },
+    /** Stärken-Runde starten oder beenden (Team-Einstellung; Recht „Notizen“) */
+    setPeerRound: (r: PeerRound | null, ok?: string) => change(D => { D.team.settings = { ...D.team.settings, peer: r }; },
+      (api, id) => api.updateTeam(id, { settings: { ...ref.current.D!.team.settings } }), { ok }),
+
     // ---------- Wochenchallenge ----------
     saveChallenge: (c: Challenge) => upsert("challenges", c, (api, t) => api.saveChallenge(t, c), { ok: translator(ref.current.lang).t("cg_saved") }),
     deleteChallenge: (id: string) => change(D => { D.challenges = D.challenges.filter(x => x.id !== id); D.chEntries = D.chEntries.filter(x => x.cid !== id); delete D.chTotals[id]; }, api => api.deleteChallenge(id)),
@@ -1181,6 +1214,7 @@ function useStoreValue() {
     saveDutyDefs: "tasks", saveFineRules: "tasks", saveDuty: "tasks", saveFine: "tasks", deleteFine: "tasks", saveTask: "tasks", deleteTask: "tasks",
     saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
     saveAssessment: "notes", deleteAssessment: "notes", saveGoal: "notes", deleteGoal: "notes", saveGoalEntry: "notes", deleteGoalEntry: "notes", saveTalk: "notes", deleteTalk: "notes",
+    saveProgram: "notes", deleteProgram: "notes", setPeerRound: "notes",
     savePlan: "plan", deletePlan: "plan",
     saveScout: "scout", deleteScout: "scout", saveScoutReport: "scout", deleteScoutReport: "scout", saveScoutList: "scout", deleteScoutList: "scout",
     saveSquadPlan: "scout", deleteSquadPlan: "scout", takeOverScout: ["scout"],
@@ -1238,7 +1272,11 @@ function useStoreValue() {
   const myPlans: MpAvail[] = useMemo(() => !s.D || staffView ? [] : isDemo ? (mePid ? availFor(s.D.plans, s.D.planLogs, mePid, new Date()) : []) : s.D.myPlans,
     [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, themeMode, perms, can, chats, chatMeId, chatMod, myPlans };
+  // Stärken-Runde (Spieler): Mitspieler – Demo aus dem Kader, echt vom Server (nur während einer Runde)
+  const peerMates: PeerMate[] = useMemo(() => !s.D || staffView ? [] : isDemo ? (mePid && peerOpen(s.D.team.settings, iso(new Date())) ? matesOf(s.D.players, mePid) : []) : s.D.peerMates,
+    [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, themeMode, perms, can, chats, chatMeId, chatMod, myPlans, peerMates };
 }
 
 export type Store = ReturnType<typeof useStoreValue>;

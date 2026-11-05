@@ -3,6 +3,7 @@ import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "
 import type { ChatFolderPrefs } from "../core/chat";
 import type { StatPeriod } from "../core/stats";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+  DevProgram, DevSelf, PeerGift, PeerMate,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -257,6 +258,14 @@ export interface Api {
   /** Gespräch mit interner Notiz (eigene Tabelle, nie für Spieler) */
   saveTalk(teamId: string, t: DevTalk): Promise<DevTalk>;
   deleteTalk(id: string): Promise<void>;
+  // Entwicklungsprogramm (Trainerteam mit Recht „Notizen“; Spieler: Selbstanalyse und Stärken-Runde)
+  saveProgram(teamId: string, p: DevProgram): Promise<DevProgram>;
+  deleteProgram(pid: string): Promise<void>;
+  saveSelfSkills(teamId: string, s: DevSelf): Promise<DevSelf>;
+  /** Stärken für einen Mitspieler (nur während einer Runde); leere Liste = zurücknehmen */
+  savePeerGift(teamId: string, g: PeerGift): Promise<PeerGift | null>;
+  /** Mitspieler für die Stärken-Runde (nur Spieler, nur während einer Runde: Vorname, Initial, Nummer, Position) */
+  peerMates(teamId: string): Promise<PeerMate[]>;
   // Wochenchallenge
   saveChallenge(teamId: string, c: Challenge): Promise<Challenge>;
   deleteChallenge(id: string): Promise<void>;

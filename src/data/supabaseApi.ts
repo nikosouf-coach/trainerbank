@@ -10,8 +10,10 @@ import { cleanPainMap } from "../core/pain";
 import { cleanUnit } from "../core/units";
 import { cleanContent, fmtOf } from "../core/matchplan";
 import { cleanPlanContent } from "../core/scout";
+import { cleanGift, cleanProgram, cleanSelf, peerOpen, programContent } from "../core/program";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+  DevProgram, DevSelf, PeerGift, PeerMate,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -27,7 +29,7 @@ import { cleanCrew } from "../core/day";
 
 type Row = Record<string, any>;
 const KNOWN_CODES = ["invalid_years", "managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
-  "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew"];
+  "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew", "peer_closed"];
 /** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
 const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams", "feedback_rate"];
 
@@ -131,6 +133,10 @@ const mapGoal = (r: Row): Goal => ({ id: r.id, pid: r.player_id, title: r.title,
 const mapGoalEntry = (r: Row): GoalEntry => ({ id: r.id, goalId: r.goal_id, pid: r.player_id, date: r.date, value: Number(r.value), note: r.note || "", by: r.by_player ? "player" : "coach" });
 const mapTalk = (r: Row, notes = ""): DevTalk => ({ id: r.id, pid: r.player_id, date: r.date, kind: r.kind || "event", player: r.player_view || "", strengths: r.strengths || "", focus: r.focus || "",
   agreements: Array.isArray(r.agreements) ? r.agreements : [], notes, next: r.next_date || null, vis: !!r.visible });
+// Entwicklungsprogramm (Inhalt als JSON; die App bereinigt auf die Grenzen des Katalogs)
+const mapProgram = (r: Row): DevProgram => cleanProgram({ ...(r.content && typeof r.content === "object" && !Array.isArray(r.content) ? r.content : {}), pid: r.player_id, vis: !!r.visible, at: r.published_at || null });
+const mapSelf = (r: Row): DevSelf => cleanSelf({ pid: r.player_id, weapons: r.weapons || [], skills: r.skills || [], at: r.updated_at || null });
+const mapGift = (r: Row): PeerGift => ({ giver: r.giver_id, target: r.target_id, skills: cleanGift(r.skills), at: r.updated_at || "" });
 const mapChallenge = (r: Row): Challenge => ({ id: r.id, ws: r.week_start, title: r.title, text: r.text || "", kind: r.kind, unit: r.unit || "", target: numOrNull(r.target), teamTarget: numOrNull(r.team_target),
   lower: !!r.lower_better, groupId: r.group_id || null, key: r.key || null });
 const mapChEntry = (r: Row): ChallengeEntry => ({ cid: r.challenge_id, pid: r.player_id, value: numOrNull(r.value), days: Array.isArray(r.days) ? r.days : [], done: !!r.done, at: r.updated_at || "" });
@@ -344,7 +350,7 @@ export class SupabaseApi implements Api {
       D.exercises = exercises.map(mapExercise); D.templates = templates.map(mapTemplate); D.staff = staffP.map(mapStaff);
       D.findings = findings.map(mapFinding);
       D.tests = tests.map(mapTest);
-      for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started, conceded: r.conceded ?? null, saves: r.saves ?? null };
+      for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started, conceded: r.conceded ?? null, saves: r.saves ?? null, pre: r.pre_assists ?? null };
       D.ratings = ratings.map(mapRating);
       D.videos = videos.map(mapVideo);
     }
@@ -352,7 +358,7 @@ export class SupabaseApi implements Api {
       // Spielerentwicklung, Wochenchallenge, Individualtraining (Spieler: eigene bzw. freigegebene – Zugriffsregeln)
       const mods = D.team.modules, dev = mods.entwicklung !== false, ch = mods.challenge !== false;
       const none = Promise.resolve([] as Row[]);
-      const [ass, goals, gEntries, talks, tNotes, chs, chE, indiv] = await Promise.all([
+      const [ass, goals, gEntries, talks, tNotes, chs, chE, indiv, progs, selfs, gifts] = await Promise.all([
         dev ? q(sb.from("player_assessments").select("*").eq("team_id", tid).order("date")) : none,
         dev ? q(sb.from("player_goals").select("*").eq("team_id", tid).order("created_at")) : none,
         dev ? all((a, b) => sb.from("goal_entries").select("*").eq("team_id", tid).order("date").range(a, b)) : none,
@@ -361,10 +367,16 @@ export class SupabaseApi implements Api {
         ch ? q(sb.from("team_challenges").select("*").eq("team_id", tid).gte("week_start", addDays(today, -400)).order("week_start")) : none,
         ch ? all((a, b) => sb.from("challenge_entries").select("*").eq("team_id", tid).gte("updated_at", addDays(today, -400)).range(a, b)) : none,
         dev ? q(sb.from("indiv_requests").select("*").eq("team_id", tid).or(`status.eq.open,updated_at.gte.${addDays(today, -180)}`).order("created_at")) : none,
+        // Entwicklungsprogramm (Spieler: eigenes freigegebenes Programm, eigene Selbstanalyse, selbst geschenkte Stärken – Zugriffsregeln)
+        dev ? q(sb.from("dev_programs").select("*").eq("team_id", tid)).catch(() => [] as Row[]) : none,
+        dev ? q(sb.from("dev_self").select("*").eq("team_id", tid)).catch(() => [] as Row[]) : none,
+        dev ? all((a, b) => sb.from("dev_peer_skills").select("*").eq("team_id", tid).gte("updated_at", addDays(today, -400)).order("updated_at").range(a, b)).catch(() => [] as Row[]) : none,
       ]);
       const nMap = new Map(tNotes.map(r => [r.talk_id as string, r.text as string]));
       D.assessments = ass.map(mapAssessment); D.goals = goals.map(mapGoal); D.goalEntries = gEntries.map(mapGoalEntry);
       D.talks = talks.map(r => mapTalk(r, nMap.get(r.id) || "")); D.challenges = chs.map(mapChallenge); D.chEntries = chE.map(mapChEntry); D.indiv = indiv.map(mapIndiv);
+      D.programs = progs.map(mapProgram); D.selfSkills = selfs.map(mapSelf); D.peerGifts = gifts.map(mapGift);
+      if (!staff && dev && peerOpen(D.team.settings, today)) { try { D.peerMates = await this.peerMates(tid); } catch { D.peerMates = []; } }
       if (!staff && ch && D.challenges.length) {
         const ws = monday(today);
         for (const w of [ws, addDays(ws, -7)]) if (D.challenges.some(c => c.ws === w)) { try { for (const x of await this.challengeTotals(tid, w)) D.chTotals[x.cid] = x; } catch { /* ohne Teamsumme */ } }
@@ -639,7 +651,7 @@ export class SupabaseApi implements Api {
   async saveStat(teamId: string, matchId: string, pid: string, st: MatchStat | null) {
     if (!st) { await q(this.sb.from("match_stats").delete().eq("match_id", matchId).eq("player_id", pid)); return; }
     await q(this.sb.from("match_stats").upsert({ team_id: teamId, match_id: matchId, player_id: pid, minutes: st.min, goals: st.goals, assists: st.assists, started: st.start,
-      conceded: st.conceded ?? null, saves: st.saves ?? null }));
+      conceded: st.conceded ?? null, saves: st.saves ?? null, pre_assists: st.pre ?? null }));
   }
   async saveRating(teamId: string, x: Rating) {
     const row: Row = { team_id: teamId, player_id: x.pid, date: x.date, kind: x.kind, rating: x.rating, text: x.text || null, visible: x.vis,
@@ -832,6 +844,27 @@ export class SupabaseApi implements Api {
     return mapTalk(r, note);
   }
   async deleteTalk(id: string) { await q(this.sb.from("dev_talks").delete().eq("id", id)); }
+
+  // ---------- Entwicklungsprogramm ----------
+  async saveProgram(_teamId: string, p: DevProgram) {
+    // Team und Freigabezeitpunkt setzt die Datenbank (Trigger)
+    const r = await q<Row>(this.sb.from("dev_programs").upsert({ player_id: p.pid, content: programContent(p), visible: p.vis }, { onConflict: "player_id" }).select().single());
+    return mapProgram(r);
+  }
+  async deleteProgram(pid: string) { await q(this.sb.from("dev_programs").delete().eq("player_id", pid)); }
+  async saveSelfSkills(_teamId: string, x: DevSelf) {
+    const v = cleanSelf(x);
+    return mapSelf(await q<Row>(this.sb.from("dev_self").upsert({ player_id: v.pid, weapons: v.weapons, skills: v.skills }, { onConflict: "player_id" }).select().single()));
+  }
+  async savePeerGift(_teamId: string, g: PeerGift) {
+    const skills = cleanGift(g.skills);
+    if (!skills.length) { await q(this.sb.from("dev_peer_skills").delete().eq("giver_id", g.giver).eq("target_id", g.target)); return null; }
+    return mapGift(await q<Row>(this.sb.from("dev_peer_skills").upsert({ giver_id: g.giver, target_id: g.target, skills }, { onConflict: "giver_id,target_id" }).select().single()));
+  }
+  async peerMates(teamId: string): Promise<PeerMate[]> {
+    const rows = await q<Row[]>(this.sb.rpc("peer_targets", { p_team: teamId }));
+    return (rows || []).map(r => ({ id: r.id, name: `${r.first_name || ""} ${r.last_initial ? r.last_initial + "." : ""}`.trim(), nr: r.shirt_number ?? null, pos: r.pos || "" }));
+  }
 
   // ---------- Wochenchallenge ----------
   async saveChallenge(teamId: string, c: Challenge) {

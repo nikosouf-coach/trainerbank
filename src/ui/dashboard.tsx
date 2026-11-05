@@ -16,10 +16,10 @@ export const DASH_COACH = ["next", "focus", "status", "week", "phase", "ai", "ma
 export type DashKey = typeof DASH_COACH[number];
 /**
  * Karten der Spieler-Startseite – nach Wichtigkeit: erst was heute zu tun ist (Einträge, Körper, Nachrichten, Reha),
- * dann Plan, nächster Termin, Aufgaben, Bewertung, Programm und eine Kurzübersicht (Challenge, Ziele, Woche, Kasse);
- * die ausführlichen Karten dazu sind standardmäßig aus.
+ * dann Plan, nächster Termin, Aufgaben, „Mein Weg“ (Entwicklungsprogramm), Bewertung, Programm und eine Kurzübersicht
+ * (Challenge, Ziele, Woche, Kasse); die ausführlichen Karten dazu sind standardmäßig aus.
  */
-export const DASH_PLAYER = ["todo", "body", "msgs", "reha", "plan", "dates", "tasks", "rating", "program", "quick", "challenge", "devgoals", "pot", "rings", "kasse", "badges"] as const;
+export const DASH_PLAYER = ["todo", "body", "msgs", "reha", "plan", "dates", "tasks", "weg", "rating", "program", "quick", "challenge", "devgoals", "pot", "rings", "kasse", "badges"] as const;
 /** Standardmäßig aus (Details – auf Wunsch zuschaltbar) */
 const DEF_OFF: Record<"coach" | "player", string[]> = {
   coach: ["matchday", "tasks", "inbox", "attn", "absent", "events", "last", "load"],
@@ -27,10 +27,16 @@ const DEF_OFF: Record<"coach" | "player", string[]> = {
 };
 /** Bereiche der Spieler-Leiste, die man ausblenden kann (Heute, Eintragen und Ich bleiben immer) */
 export const PLAYER_TABS_OPTIONAL = ["kalender", "chat", "daten", "tipps"] as const;
-/** Standard: Tipps ausgeblendet (unter „Ich“ erreichbar), damit die Leiste mit Kalender bei sechs Einträgen bleibt */
-const PLAYER_HIDE_DEFAULT = ["tipps"];
-/** Ausgeblendete Bereiche der Spieler-Leiste */
-export const playerHidden = (prefs: { navPlayer?: { hide?: string[] } }): string[] => prefs.navPlayer?.hide ?? PLAYER_HIDE_DEFAULT;
+/**
+ * Standard: Tipps ausgeblendet (unter „Ich“ erreichbar), damit die Leiste mit Kalender bei sechs Einträgen bleibt. Mit
+ * „Mein Weg“ (Entwicklungsprogramm, immer in der Leiste) zusätzlich „Meine Daten“ – ebenfalls unter „Ich“ erreichbar.
+ */
+const PLAYER_HIDE_DEFAULT = ["tipps"], PLAYER_HIDE_DEFAULT_WEG = ["tipps", "daten"];
+/** Ausgeblendete Bereiche der Spieler-Leiste (weg: „Mein Weg“ ist in der Leiste) */
+export const playerHidden = (prefs: { navPlayer?: { hide?: string[] } }, weg = false): string[] => prefs.navPlayer?.hide ?? (weg ? PLAYER_HIDE_DEFAULT_WEG : PLAYER_HIDE_DEFAULT);
+/** „Mein Weg“ für Spieler: Spielerentwicklung an und für Spieler sichtbar (wie playerSees("dev")) */
+export const hasWeg = (D: { team: { modules: { entwicklung?: boolean }; settings: { playerView?: { dev?: boolean } } } } | null | undefined): boolean =>
+  !!D && !!D.team.modules.entwicklung && D.team.settings.playerView?.dev !== false;
 
 export interface DashItem { k: string; on: boolean }
 type Who = "coach" | "player";
@@ -95,7 +101,7 @@ export function DashEditor({ visible, onClose, available, who = "coach", extra }
 /** Spieler: Bereiche der unteren Leiste ein-/ausblenden (Heute, Eintragen und Ich bleiben) */
 export function PlayerTabsEditor() {
   const s = useStore(); const { t } = s.tr;
-  const hide = playerHidden(s.prefs);
+  const hide = playerHidden(s.prefs, hasWeg(s.D));
   const chatOn = !!s.D && s.D.team.modules.chat !== false;
   return (
     <Col gap={4} testID="ptabs-edit">

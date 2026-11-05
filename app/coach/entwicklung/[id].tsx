@@ -1,19 +1,22 @@
-// Trainer – Entwicklung eines Spielers: Kompetenzprofil (Trainer/Selbst), Ziele, Gespräche, Saisonrückblick.
+// Trainer – Entwicklung eines Spielers: Entwicklungsprogramm (Herzstück: Spielerkarte, Perform, Improve, Sichten),
+// Kompetenzprofil (Trainer/Selbst), Ziele, Gespräche, Saisonrückblick.
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable } from "react-native";
 import { assessmentsOf, posGroupOf } from "../../../src/core/dev";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { AssessSheet, GoalList, ProfileView, ReviewView, TalkList } from "../../../src/ui/dev";
+import { CoachProgramView } from "../../../src/ui/program";
 import { Banner, Btn, Card, CardTitle, Header, Info, Muted, Row, Screen, Seg } from "../../../src/ui/kit";
 import type { Player } from "../../../src/core/types";
 
-type Tab = "profil" | "ziele" | "gespraeche" | "rueckblick";
+type Tab = "programm" | "profil" | "ziele" | "gespraeche" | "rueckblick";
+const TABS: Tab[] = ["programm", "profil", "ziele", "gespraeche", "rueckblick"];
 
 export default function EntwicklungSpieler() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const router = useRouter();
   const { id = "", tab: tab0 } = useLocalSearchParams<{ id: string; tab?: string }>();
-  const [tab, setTab] = useState<Tab>((["profil", "ziele", "gespraeche", "rueckblick"] as Tab[]).includes(tab0 as Tab) ? tab0 as Tab : "profil");
+  const [tab, setTab] = useState<Tab>(TABS.includes(tab0 as Tab) ? tab0 as Tab : "programm");
   const [assess, setAssess] = useState<{ p: Player; by: "coach" | "self" } | null>(null);
   const [asked, setAsked] = useState(false);
   const p = E.P(id);
@@ -31,8 +34,9 @@ export default function EntwicklungSpieler() {
       <Header eyebrow={`${t("dv_title")} · ${t("pgr_" + pg)}`} title={E.name(p)} onBack={back} backLabel={t("btn_back")} info={<Info title={t("dv_title")} text={t("dv_info")} />} />
       {openIq ? <Pressable testID="dev-iq" accessibilityRole="button" onPress={() => router.push("/coach/individual")}><Banner>{`${t("iq_open")}: ${openIq} · ${t("iq_answer")}`}</Banner></Pressable> : null}
       <Seg testID="dev-tab" value={tab} onChange={setTab} wrap options={[
-        { key: "profil", label: t("dv_profile") }, { key: "ziele", label: t("dv_goals") }, { key: "gespraeche", label: t("dv_talks") }, { key: "rueckblick", label: t("dv_review") },
+        { key: "programm", label: t("ep_ovProg") }, { key: "profil", label: t("dv_profile") }, { key: "ziele", label: t("dv_goals") }, { key: "gespraeche", label: t("dv_talks") }, { key: "rueckblick", label: t("dv_review") },
       ]} />
+      {tab === "programm" ? <CoachProgramView p={p} /> : null}
       {tab === "profil" ? <Card testID="dev-profile-card">
         <CardTitle title={t("dv_profile")} info={<Info title={t("dv_profile")} text={t("dv_profileInfo")} />} />
         <Row wrap gap={8}>

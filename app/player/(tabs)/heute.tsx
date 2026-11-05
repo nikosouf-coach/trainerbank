@@ -1,6 +1,6 @@
 // Spieler – Heute: aufs Wesentliche reduziert (Standard nach Wichtigkeit): Einträge (Morgen-Check, RPE), Körper heute,
-// Trainer-Nachrichten, Reha, Matchplan, nächster Termin (→ Kalender), Aufgaben, neue Bewertung, Programm und eine
-// Kurzübersicht (Challenge, Ziele, Woche, Kasse). Die ausführlichen Karten lassen sich unter „Startseite anpassen“
+// Trainer-Nachrichten, Reha, Matchplan, nächster Termin (→ Kalender), Aufgaben, „Mein Weg“ (Entwicklungsprogramm),
+// neue Bewertung, Programm und eine Kurzübersicht (Challenge, Ziele, Woche, Kasse). Die ausführlichen Karten lassen sich unter „Startseite anpassen“
 // dazuschalten.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -21,6 +21,7 @@ import { PlayerTasksCard } from "../../../src/ui/tasks/widgets";
 import { MyKasseCard } from "../../../src/ui/kasse";
 import { ChallengeCard } from "../../../src/ui/challenge";
 import { MyGoalsCard } from "../../../src/ui/dev";
+import { WegCard } from "../../../src/ui/program";
 import { PlayerPlansCard } from "../../../src/ui/matchplan/cards";
 import { radius, useTheme } from "../../../src/ui/theme";
 
@@ -58,6 +59,7 @@ export default function PlayerHeute() {
     plan: <PlayerPlansCard />,
     dates: <NextDates pid={p.id} max={1} onMore={() => router.push("/player/kalender")} />,
     tasks: <PlayerTasksCard pid={p.id} />,
+    weg: E.playerSees("dev") ? <WegCard p={p} onOpen={() => router.push("/player/weg")} /> : null,
     rating: <NewRating pid={p.id} />,
     program: <PlayerProgramCard pid={p.id} />,
     quick: <PlayerQuick p={p} g={g} />,
@@ -69,7 +71,7 @@ export default function PlayerHeute() {
     badges: <Badges g={g} compact />,
   };
   const available = (k: string): boolean => ({ todo: !!E.mods.belastung, body: seesLoad && (!!E.mods.belastung || !!E.mods.regeneration), challenge: !!E.mods.challenge,
-    devgoals: E.playerSees("dev"), pot: E.playerSees("goals") } as Record<string, boolean>)[k] ?? true;
+    devgoals: E.playerSees("dev"), weg: E.playerSees("dev"), pot: E.playerSees("goals") } as Record<string, boolean>)[k] ?? true;
 
   return (
     <Screen testID="player-heute">

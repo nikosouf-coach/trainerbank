@@ -10,7 +10,7 @@ export type IconName =
   | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people" | "scout" | "search" | "filter" | "up" | "down"
   | "board" | "ball" | "video" | "stopwatch" | "trend" | "whistle" | "sun" | "book" | "checklist" | "wallet" | "phone" | "shield" | "club"
   | "grid" | "key" | "sliders" | "help" | "pen" | "undo" | "redo" | "copy" | "layers" | "minus" | "curve" | "frame" | "note"
-  | "clock" | "heart" | "pulse" | "home" | "chart" | "export";
+  | "clock" | "heart" | "pulse" | "home" | "chart" | "export" | "weg";
 
 const P: Record<IconName, React.ReactNode> = {
   heute: <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -83,6 +83,8 @@ const P: Record<IconName, React.ReactNode> = {
   home: <><Path d="M4 11l8-6.5 8 6.5" /><Path d="M6 9.5V20h12V9.5" /><Path d="M10 20v-5h4v5" /></>,
   chart: <><Path d="M4 4v16h16" /><Path d="M8.5 16.5v-4M12.5 16.5V8M16.5 16.5v-6" /></>,
   export: <><Path d="M12 3.5v11" /><Path d="M7.5 10l4.5 4.5 4.5-4.5" /><Path d="M4.5 16.5V20h15v-3.5" /></>,
+  // Mein Weg: Weg mit Kurven zur Fahne (Entwicklungsprogramm)
+  weg: <><Path d="M4 21c4.5 0 9-1 9-3.8S6.5 14.2 6.5 11.5 10 7.5 15 8" /><Path d="M18 9.5V3l3.2 1.5L18 6" /></>,
 };
 
 export function Icon({ name, size = 22, color = "#000", strokeWidth = 1.8 }: { name: IconName; size?: number; color?: ColorValue; strokeWidth?: number }) {

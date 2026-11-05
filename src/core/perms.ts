@@ -55,7 +55,7 @@ export function viewFor(D: TeamData, perms: ReadonlySet<Perm>, strip: boolean): 
   const m = { ...D.team.modules };
   if (!health) { m.belastung = false; m.regeneration = false; m.wachstum = false; }
   if (!medical) m.befunde = false;
-  // Spielerentwicklung (Ziele, Kompetenzprofil, Gespräche) gehört zum Recht „Notizen & Bewertungen“
+  // Spielerentwicklung (Entwicklungsprogramm, Ziele, Kompetenzprofil, Gespräche) gehört zum Recht „Notizen & Bewertungen“
   if (!notes) m.entwicklung = false;
   // Kaderplanung & Scouting (externe Spieler, Abgänge) nur mit Recht „Scouting“
   if (!scout) m.kaderplanung = false;
@@ -63,7 +63,7 @@ export function viewFor(D: TeamData, perms: ReadonlySet<Perm>, strip: boolean): 
   if (strip) {
     if (!health) { V.rpe = {}; V.rpeU = {}; V.well = {}; V.extra = {}; V.growth = {}; }
     if (!medical) V.findings = [];
-    if (!notes) { V.notes = {}; V.assessments = []; V.goals = []; V.goalEntries = []; V.talks = []; }
+    if (!notes) { V.notes = {}; V.assessments = []; V.goals = []; V.goalEntries = []; V.talks = []; V.programs = []; V.selfSkills = []; V.peerGifts = []; }
     if (!scout) { V.scouts = []; V.scoutReports = []; V.scoutLists = []; V.squadPlans = []; }
   }
   return V;
@@ -77,7 +77,7 @@ export function teamPatchPerms(patch: Record<string, unknown>, before: Record<st
     const a = before.settings as Record<string, unknown>;
     for (const k of new Set([...Object.keys(a), ...Object.keys(ps)])) {
       if (same(a[k], ps[k])) continue;
-      need.add(["days", "dauer", "fix", "spieltag", "anstoss", "units", "indivReq", "challengeRank"].includes(k) ? "plan" : k === "duties" || k === "fines" ? "tasks" : k === "tests" || k === "testRank" || k === "customTests" ? "perf" : k === "kasse" ? "cash" : "admin");
+      need.add(["days", "dauer", "fix", "spieltag", "anstoss", "units", "indivReq", "challengeRank"].includes(k) ? "plan" : k === "duties" || k === "fines" ? "tasks" : k === "tests" || k === "testRank" || k === "customTests" ? "perf" : k === "kasse" ? "cash" : k === "peer" ? "notes" : "admin");
     }
   }
   if ("principles" in patch && !same(patch.principles, before.principles)) need.add("plan");

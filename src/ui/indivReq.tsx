@@ -14,12 +14,16 @@ import { useTheme, type Colors } from "./theme";
 
 export const iqColor = (c: Colors, st: IndivRequest["status"]): string => ({ open: c.warn, accepted: c.ok, declined: c.crit, cancelled: c.build }[st]);
 
-/** Spieler: anfragen und eigene Anfragen sehen */
-export function IndivRequestCard({ pid }: { pid: string }) {
+/**
+ * Spieler: anfragen und eigene Anfragen sehen. preset: Vorauswahl (z. B. aus dem Entwicklungsprogramm: Thema, Text,
+ * Trainer); bare: ohne Karte (in einem Blatt), dann nur das Formular; onSent: nach dem Senden.
+ */
+export function IndivRequestCard({ pid, preset, bare, onSent }: { pid: string; preset?: { topic?: IndivTopic; note?: string; ask?: string | null }; bare?: boolean; onSent?: () => void }) {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
-  const [topic, setTopic] = useState<IndivTopic>("technik"); const [note, setNote] = useState(""); const [wish, setWish] = useState(""); const [busy, setBusy] = useState(false);
+  const [topic, setTopic] = useState<IndivTopic>(preset?.topic || "technik"); const [note, setNote] = useState(preset?.note || ""); const [wish, setWish] = useState(""); const [busy, setBusy] = useState(false);
   // bei wem? „any“ = ganzes Trainerteam; Vorauswahl nach Thema, bis der Spieler selbst wählt
-  const staff = E.D.staff, [ask, setAsk] = useState<string>("any"), [askSet, setAskSet] = useState(false);
+  const staff = E.D.staff, preAsk = preset?.ask && staff.some(x => x.id === preset.ask) ? preset.ask : null;
+  const [ask, setAsk] = useState<string>(preAsk || (preset?.topic ? suggestStaff(preset.topic, staff) : null) || "any"), [askSet, setAskSet] = useState(!!preAsk);
   const pickTopic = (k: IndivTopic) => { setTopic(k); if (!askSet) setAsk(suggestStaff(k, staff) || "any"); };
   const staffName = (id: string | null | undefined) => id ? staff.find(x => x.id === id)?.name || null : null;
   const mine = E.D.indiv.filter(r => r.pid === pid).sort((a, b) => a.created < b.created ? 1 : -1);
@@ -29,13 +33,11 @@ export function IndivRequestCard({ pid }: { pid: string }) {
     try {
       await s.requestIndiv({ id: tmpId(), pid, topic, note: note.trim(), wish: wish.trim(), status: "open", answer: "", date: null, slot: null, staffId: null, created: new Date().toISOString(), ask: ask === "any" ? null : ask });
       setNote(""); setWish(""); setAskSet(false);
+      onSent?.();
     }
     finally { setBusy(false); }
   };
-  return (
-    <Card testID="iq-card">
-      <CardTitle title={t("iq_req")} info={<Info title={t("iq_title")} text={t("iq_reqInfo")} />} />
-      {off ? <Muted>{t("iq_off")}</Muted> : open >= MAX_OPEN_REQUESTS ? <Banner>{tf("iq_maxOpen", { n: open })}</Banner> : <>
+  const form = off ? <Muted>{t("iq_off")}</Muted> : open >= MAX_OPEN_REQUESTS ? <Banner>{tf("iq_maxOpen", { n: open })}</Banner> : <>
         <Muted small>{t("iq_reqInfo")}</Muted>
         <Col gap={6}><T v="small" bold>{t("iq_topic")}</T>
           <ChoiceChips testID="iq-topic" value={topic} onChange={pickTopic} options={INDIV_TOPICS.filter(k => k !== "tw" || E.D.players.find(p => p.id === pid)?.pos === "TW" || (E.D.players.find(p => p.id === pid)?.groups || []).some(g => E.D.groups.find(x => x.id === g)?.kind === "tw")).map(k => ({ key: k, label: t("iq_t_" + k) }))} />
@@ -47,7 +49,12 @@ export function IndivRequestCard({ pid }: { pid: string }) {
         <Field testID="iq-note" label={t("iq_note")} value={note} onChangeText={setNote} placeholder={t("iq_notePh")} multiline maxLength={1000} />
         <Field testID="iq-wish" label={t("iq_wish")} value={wish} onChangeText={setWish} placeholder={t("iq_wishPh")} maxLength={300} />
         <Btn testID="iq-send" kind="primary" label={t("iq_send")} disabled={busy || !note.trim()} onPress={send} style={{ alignSelf: "flex-start" }} />
-      </>}
+      </>;
+  if (bare) return <Col gap={12} testID="iq-form">{form}</Col>;
+  return (
+    <Card testID="iq-card">
+      <CardTitle title={t("iq_req")} info={<Info title={t("iq_title")} text={t("iq_reqInfo")} />} />
+      {form}
       {mine.length ? <Col gap={8}>
         <T v="eyebrow">{t("iq_mine")}</T>
         {mine.slice(0, 6).map(r => (

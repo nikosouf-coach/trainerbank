@@ -3461,6 +3461,122 @@ commit;
 delete from public.feedback where user_id = :'p2';
 
 -- =====================================================================
+-- T52 Entwicklungsprogramm: Programm, Selbstanalyse, Stärken-Runde, Pre-Assists
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.dev_programs (player_id, content, visible) values (%L, '{"tag": "FESTMACHEN", "xf": ["festmachen", "schusstechnik"], "sit": ["Wenn ich den Ball festmache"], "zones": ["o3"], "improve": [], "coach": {"weapons": ["festmachen"], "skills": []}, "peers": []}', false)$q$, tst.get('max')),
+                   1, 'T52 Trainerteam legt Programm an (Entwurf)');
+select tst.throws(format($q$insert into public.dev_programs (player_id, content) values (%L, '{"xf": ["a", "b", "c", "d"]}')$q$, tst.get('p2_player')), 'T52 höchstens drei Waffen im X-Faktor', 'check constraint');
+select tst.throws(format($q$insert into public.dev_programs (player_id, content) values (%L, '[]')$q$, tst.get('p2_player')), 'T52 Inhalt ist ein Objekt', 'check constraint');
+select tst.throws(format($q$insert into public.dev_programs (player_id, content) values (%L, jsonb_build_object('tag', repeat('X', 30)))$q$, tst.get('p2_player')), 'T52 Motto höchstens 24 Zeichen', 'check constraint');
+select tst.throws(format($q$insert into public.dev_programs (player_id, content) values (%L, jsonb_build_object('sit', jsonb_build_array(repeat('x', 17000))))$q$, tst.get('p2_player')), 'T52 Programm höchstens 16 KB', 'check constraint');
+do $$ begin
+  perform tst.eq((select team_id::text || '/' || coalesce(published_at::text, '-') from public.dev_programs where player_id = tst.get('max')::uuid), tst.get('team_a') || '/-',
+                 'T52 Team aus dem Spieler, Entwurf ohne Freigabezeitpunkt');
+end $$;
+select tst.affects(format($q$update public.teams set settings = settings || jsonb_build_object('peer', jsonb_build_object('since', current_date - 1, 'until', current_date + 7)) where id = %L$q$, tst.get('team_a')),
+                   1, 'T52 Trainerteam startet die Stärken-Runde');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.dev_programs)::text, '0', 'T52 Spieler sieht den Entwurf nicht');
+end $$;
+select tst.affects(format($q$insert into public.dev_self (player_id, weapons, skills) values (%L, '{physis,schusstechnik}', '{kopfball}')$q$, tst.get('max')), 1, 'T52 Spieler speichert seine Selbstanalyse');
+select tst.throws(format($q$insert into public.dev_self (player_id, weapons) values (%L, '{physis}')$q$, tst.get('erik')), 'T52 Selbstanalyse nur für sich selbst', 'row-level security');
+select tst.throws(format($q$update public.dev_self set weapons = '{physis,physis}' where player_id = %L$q$, tst.get('max')), 'T52 Selbstanalyse ohne Doppelungen', 'check constraint');
+select tst.throws(format($q$update public.dev_self set weapons = '{"Freitext mit Leerzeichen"}' where player_id = %L$q$, tst.get('max')), 'T52 nur Schlüssel aus dem Katalog', 'check constraint');
+select tst.throws(format($q$update public.dev_self set skills = '{physis}' where player_id = %L$q$, tst.get('max')), 'T52 Waffe nicht zugleich weitere Stärke', 'check constraint');
+do $$ begin
+  perform tst.ok((select count(*) from public.peer_targets(tst.get('team_a')::uuid)) >= 2, 'T52 Mitspieler für die Runde');
+  perform tst.ok(not exists (select 1 from public.peer_targets(tst.get('team_a')::uuid) t where t.id = tst.get('max')::uuid), 'T52 Mitspielerliste ohne sich selbst');
+  perform tst.eq((select t.first_name || ' ' || t.last_initial from public.peer_targets(tst.get('team_a')::uuid) t where t.id = tst.get('p2_player')::uuid), 'Paul N',
+                 'T52 Mitspieler nur mit Vorname und Initial');
+  perform tst.eq((select count(*) from public.peer_targets(tst.get('team_b')::uuid))::text, '0', 'T52 fremdes Team: keine Mitspielerliste');
+end $$;
+select tst.affects(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{kopfball,physis}')$q$, tst.get('max'), tst.get('p2_player')), 1, 'T52 Spieler schenkt einem Mitspieler Stärken');
+select tst.affects(format($q$update public.dev_peer_skills set skills = '{kopfball,physis,abschluss}' where giver_id = %L and target_id = %L$q$, tst.get('max'), tst.get('p2_player')), 1, 'T52 Spieler ändert seine Stärken');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut}')$q$, tst.get('max'), tst.get('max')), 'T52 nicht an sich selbst', 'check constraint');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut,ruhe,einsatz,physis}')$q$, tst.get('max'), tst.get('erik')), 'T52 höchstens drei Stärken', 'check constraint');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{}')$q$, tst.get('max'), tst.get('erik')), 'T52 mindestens eine Stärke', 'check constraint');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{"Du bist schlecht"}')$q$, tst.get('max'), tst.get('erik')), 'T52 kein Freitext in der Runde', 'check constraint');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut}')$q$, tst.get('p2_player'), tst.get('erik')), 'T52 nur im eigenen Namen', 'row-level security');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut}')$q$, tst.get('max'), tst.get('tom_b')), 'T52 nur an Mitspieler im eigenen Team', 'different_teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.affects(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut,physis}')$q$, tst.get('p2_player'), tst.get('max')), 1, 'T52 zweiter Spieler schenkt Stärken');
+do $$ begin
+  perform tst.eq((select count(*) from public.dev_peer_skills where giver_id <> tst.get('p2_player')::uuid)::text, '0', 'T52 Spieler sehen nur selbst verschenkte Stärken');
+  perform tst.eq((select count(*) from public.dev_programs)::text, '0', 'T52 Mitspieler sehen fremde Programme nicht');
+  perform tst.eq((select count(*) from public.dev_self)::text, '0', 'T52 Mitspieler sehen fremde Selbstanalysen nicht');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select array_to_string(skills, ',') from public.dev_peer_skills where target_id = tst.get('p2_player')::uuid), 'kopfball,physis,abschluss', 'T52 Trainerteam sieht die Stärken-Runde');
+  perform tst.eq((select array_to_string(weapons, ',') from public.dev_self where player_id = tst.get('max')::uuid), 'physis,schusstechnik', 'T52 Trainerteam sieht die Selbstanalyse');
+end $$;
+select tst.affects(format($q$update public.dev_self set weapons = '{mut}' where player_id = %L$q$, tst.get('max')), 0, 'T52 Trainerteam ändert die Selbstanalyse nicht');
+select tst.affects(format($q$update public.dev_programs set visible = true, content = content || '{"peers": ["mut", "physis"]}' where player_id = %L$q$, tst.get('max')), 1, 'T52 Programm freigeben');
+do $$ begin
+  perform tst.ok((select published_at is not null from public.dev_programs where player_id = tst.get('max')::uuid), 'T52 Freigabe setzt den Zeitpunkt');
+end $$;
+select tst.affects(format($q$insert into public.match_stats (team_id, match_id, player_id, minutes, goals, assists, started, pre_assists)
+                             values (%L, (select id from public.matches where team_id = %L order by date limit 1), %L, 90, 1, 0, true, 2)
+                             on conflict (match_id, player_id) do update set pre_assists = excluded.pre_assists$q$, tst.get('team_a'), tst.get('team_a'), tst.get('max')), 1, 'T52 Pre-Assists speichern');
+select tst.throws(format($q$update public.match_stats set pre_assists = 25 where player_id = %L$q$, tst.get('max')), 'T52 Pre-Assists 0–20', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select content ->> 'tag' from public.dev_programs), 'FESTMACHEN', 'T52 Spieler sieht sein freigegebenes Programm');
+  perform tst.eq((select count(*) from public.dev_peer_skills where target_id = tst.get('max')::uuid)::text, '0', 'T52 Empfänger sehen keine Einträge der Runde');
+  perform tst.eq((select pre_assists::text from public.match_stats where player_id = tst.get('max')::uuid and pre_assists is not null limit 1), '2', 'T52 Spieler sieht seine Pre-Assists');
+end $$;
+select tst.affects(format($q$update public.dev_programs set content = '{}' where player_id = %L$q$, tst.get('max')), 0, 'T52 Spieler ändert sein Programm nicht');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{peer,until}', to_jsonb((current_date - 2)::text)) where id = %L$q$, tst.get('team_a')), 1, 'T52 Trainerteam beendet die Runde');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut}')$q$, tst.get('max'), tst.get('erik')), 'T52 nach der Runde wird nichts mehr geschenkt', 'peer_closed');
+do $$ begin
+  perform tst.eq((select count(*) from public.peer_targets(tst.get('team_a')::uuid))::text, '0', 'T52 nach der Runde keine Mitspielerliste');
+end $$;
+commit;
+
+-- Löschfrist der Stärken-Runde (12 Monate)
+alter table public.dev_peer_skills disable trigger dev_peer_skills_prepare;
+insert into public.dev_peer_skills (giver_id, target_id, team_id, skills, updated_at)
+values (tst.get('tom')::uuid, tst.get('erik')::uuid, tst.get('team_a')::uuid, '{einsatz}', now() - interval '13 months');
+alter table public.dev_peer_skills enable trigger dev_peer_skills_prepare;
+begin;
+set local role service_role;
+do $$ begin
+  perform tst.eq(public.purge_old_peer_skills()::text, '1', 'T52 Einträge der Stärken-Runde nach 12 Monaten gelöscht');
+  perform tst.eq((select count(*) from public.dev_peer_skills)::text, '2', 'T52 jüngere Einträge bleiben');
+end $$;
+commit;
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -3478,7 +3594,12 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v8', 'T21b Exportformat v8');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v9', 'T21b Exportformat v9');
+  perform tst.ok(x ?& array['dev_program', 'dev_self', 'peer_skills_given', 'peer_skills_received'], 'T21b Export enthält Entwicklungsprogramm und Stärken-Runde');
+  perform tst.eq(x -> 'dev_program' -> 0 -> 'content' ->> 'tag', 'FESTMACHEN', 'T21b Export: freigegebenes Programm');
+  perform tst.eq(x -> 'dev_self' -> 0 -> 'weapons' ->> 0, 'physis', 'T21b Export: eigene Selbstanalyse');
+  perform tst.eq(x -> 'peer_skills_given' -> 0 ->> 'to', 'Paul', 'T21b Export: verschenkte Stärken nur mit Vornamen');
+  perform tst.eq((x -> 'peer_skills_received')::text, '{"mut": 1, "physis": 1}', 'T21b Export: erhaltene Stärken als Summe ohne Namen');
   perform tst.eq(jsonb_array_length(x -> 'feedback')::text, '3', 'T21b Export enthält die eigenen Rückmeldungen');
   perform tst.ok(not ((x -> 'feedback' -> 0) ? 'shot_path'), 'T21b Export ohne Speicherpfade der Bildschirmfotos');
   perform tst.ok(x ? 'match_plan_views', 'T21b Export enthält das Zugriffsprotokoll der Matchpläne');
