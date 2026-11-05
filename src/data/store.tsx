@@ -15,13 +15,14 @@ import { applyChallenge, entryOf } from "../core/challenge";
 import { cleanBody, demoMe, putMsg, toggleReaction, visibleChats } from "../core/chat";
 import { indivUnit } from "../core/dev";
 import { cleanGift, cleanProgram, cleanSelf, matesOf, peerOpen } from "../core/program";
+import { cleanPoll, pollsFor, sortPolls } from "../core/polls";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -919,6 +920,62 @@ function useStoreValue() {
     setPeerRound: (r: PeerRound | null, ok?: string) => change(D => { D.team.settings = { ...D.team.settings, peer: r }; },
       (api, id) => api.updateTeam(id, { settings: { ...ref.current.D!.team.settings } }), { ok }),
 
+    // ---------- Umfragen ----------
+    /** Umfrage anlegen oder ändern (Fragen nur ohne Antworten); announce = Chat, in dem sie angekündigt wird */
+    savePoll: (p: Poll, announce?: string | null) => {
+      const tr0 = translator(ref.current.lang), isNew = p.id.startsWith("tmp-");
+      const x = cleanPoll({ ...p, created: p.created || new Date().toISOString() });
+      return change(D => { const i = D.polls.findIndex(y => y.id === x.id); if (i >= 0) D.polls[i] = x; else D.polls.unshift(x); delete D.pollResults[x.id]; },
+        async (api, t) => {
+          const saved = await api.savePoll(t, x);
+          const D = ref.current.D; if (D) { const i = D.polls.findIndex(y => y.id === x.id); if (i >= 0) D.polls[i] = saved; }
+          if (announce) await actions.chatSend(announce, tr0.tf("um_shareMsg", { t: saved.title }));
+        }, { ok: tr0.t(isNew ? "um_started" : "um_saved") });
+    },
+    /** Beenden, wieder öffnen oder Ende ändern (geht auch, wenn schon geantwortet wurde) */
+    setPollState: (p: Poll, st: { closed: boolean; until: string | null }, ok?: string) =>
+      change(D => { const x = D.polls.find(y => y.id === p.id); if (x) { x.closed = st.closed; x.until = st.until; } delete D.pollResults[p.id]; },
+        async api => { const saved = await api.setPollState(p.id, st); const D = ref.current.D; if (D) { const i = D.polls.findIndex(y => y.id === p.id); if (i >= 0) D.polls[i] = saved; } }, { ok }),
+    deletePoll: (id: string) => change(D => { D.polls = D.polls.filter(x => x.id !== id); D.pollAnswers = D.pollAnswers.filter(a => a.pollId !== id); delete D.pollResults[id]; },
+      api => api.deletePoll(id), { ok: translator(ref.current.lang).t("um_deleted") }),
+    /** Eigene Antwort speichern bzw. ändern (Spieler) */
+    answerPoll: (p: Poll, pid: string, answers: Record<string, PollValue>) => {
+      const a: PollAnswer = { pollId: p.id, pid, answers, at: new Date().toISOString() };
+      const same = (x: PollAnswer) => x.pollId === p.id && x.pid === pid;
+      return change(D => {
+        const had = D.pollAnswers.some(same);
+        D.pollAnswers = [...D.pollAnswers.filter(x => !same(x)), a];
+        const x = D.polls.find(y => y.id === p.id); if (x && !had) x.answers++;
+        delete D.pollResults[p.id];
+      }, async api => { const saved = await api.savePollAnswer(a); const D = ref.current.D; if (D) { const i = D.pollAnswers.findIndex(same); if (i >= 0) D.pollAnswers[i] = saved; } },
+      { ok: translator(ref.current.lang).t("um_thanks") });
+    },
+    /** Eigene Antwort zurückziehen, solange die Umfrage läuft */
+    withdrawPollAnswer: (p: Poll, pid: string) => {
+      const same = (x: PollAnswer) => x.pollId === p.id && x.pid === pid;
+      return change(D => {
+        const had = D.pollAnswers.some(same);
+        D.pollAnswers = D.pollAnswers.filter(x => !same(x));
+        const x = D.polls.find(y => y.id === p.id); if (x && had) x.answers = Math.max(0, x.answers - 1);
+        delete D.pollResults[p.id];
+      }, api => api.deletePollAnswer(p.id, pid), { ok: translator(ref.current.lang).t("um_withdrawn") });
+    },
+    /** Ergebnis vom Server laden (Demo: rechnet die Oberfläche mit der Sicht der Person) */
+    loadPollResults: async (pollId: string) => {
+      const { api, D } = ref.current; if (!D || api.kind === "demo") return;
+      try { D.pollResults[pollId] = await api.pollResults(pollId); bump(); }
+      catch (e) { if (isOffline(e)) set({ offline: true }); else toast(errText(e)); }
+    },
+    /** Spieler dürfen Abstimmungen starten (Team-Einstellung; Recht „Nachrichten“) */
+    setPlayerPolls: (on: boolean) => change(D => { D.team.settings = { ...D.team.settings, polls: { ...(D.team.settings.polls || {}), players: on } }; },
+      (api, id) => api.updateTeam(id, { settings: { ...ref.current.D!.team.settings } }), { ok: translator(ref.current.lang).t(on ? "um_playersOn" : "um_playersOff") }),
+    /** An die Umfrage erinnern: kurze Nachricht vom Trainerteam an die Spieler (sichtbar bis zum Ende der Umfrage) */
+    remindPoll: async (p: Poll, pids: string[], text: string) => {
+      const today = iso(new Date()), bis = p.until && p.until >= today ? p.until : addDays(today, 3);
+      for (const pid of pids) await actions.saveMessage(pid, { id: tmpId(), date: today, typ: "info", text, bis });
+      toast(translator(ref.current.lang).t("um_reminded"));
+    },
+
     // ---------- Wochenchallenge ----------
     saveChallenge: (c: Challenge) => upsert("challenges", c, (api, t) => api.saveChallenge(t, c), { ok: translator(ref.current.lang).t("cg_saved") }),
     deleteChallenge: (id: string) => change(D => { D.challenges = D.challenges.filter(x => x.id !== id); D.chEntries = D.chEntries.filter(x => x.cid !== id); delete D.chTotals[id]; }, api => api.deleteChallenge(id)),
@@ -1215,6 +1272,8 @@ function useStoreValue() {
     saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
     saveAssessment: "notes", deleteAssessment: "notes", saveGoal: "notes", deleteGoal: "notes", saveGoalEntry: "notes", deleteGoalEntry: "notes", saveTalk: "notes", deleteTalk: "notes",
     saveProgram: "notes", deleteProgram: "notes", setPeerRound: "notes",
+    // Umfragen: Trainerteam mit „Nachrichten“ (Spieler verwalten eigene Abstimmungen – prüft der Server)
+    savePoll: "messages", setPollState: "messages", deletePoll: "messages", setPlayerPolls: "messages", remindPoll: "messages",
     savePlan: "plan", deletePlan: "plan",
     saveScout: "scout", deleteScout: "scout", saveScoutReport: "scout", deleteScoutReport: "scout", saveScoutList: "scout", deleteScoutList: "scout",
     saveSquadPlan: "scout", deleteSquadPlan: "scout", takeOverScout: ["scout"],
@@ -1276,7 +1335,11 @@ function useStoreValue() {
   const peerMates: PeerMate[] = useMemo(() => !s.D || staffView ? [] : isDemo ? (mePid && peerOpen(s.D.team.settings, iso(new Date())) ? matesOf(s.D.players, mePid) : []) : s.D.peerMates,
     [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, themeMode, perms, can, chats, chatMeId, chatMod, myPlans, peerMates };
+  // Umfragen (Spieler): an ihn gerichtete und eigene – Demo nach den Zugriffsregeln, echt liefert der Server nur diese
+  const myPolls: Poll[] = useMemo(() => !s.D || staffView || !mePid ? [] : isDemo ? pollsFor(s.D, mePid, iso(new Date())) : sortPolls(s.D.polls, iso(new Date())),
+    [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, themeMode, perms, can, chats, chatMeId, chatMod, myPlans, peerMates, myPolls };
 }
 
 export type Store = ReturnType<typeof useStoreValue>;

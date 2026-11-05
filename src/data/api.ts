@@ -3,7 +3,7 @@ import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "
 import type { ChatFolderPrefs } from "../core/chat";
 import type { StatPeriod } from "../core/stats";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -266,6 +266,17 @@ export interface Api {
   savePeerGift(teamId: string, g: PeerGift): Promise<PeerGift | null>;
   /** Mitspieler für die Stärken-Runde (nur Spieler, nur während einer Runde: Vorname, Initial, Nummer, Position) */
   peerMates(teamId: string): Promise<PeerMate[]>;
+  // Umfragen (Trainerteam mit Recht „Nachrichten“; Spieler: eigene Abstimmungen, wenn erlaubt, und Antworten)
+  /** Umfrage anlegen bzw. Fragen und Einstellungen ändern (nur ohne Antworten) */
+  savePoll(teamId: string, p: Poll): Promise<Poll>;
+  /** Beenden, wieder öffnen, Ende ändern (geht auch mit Antworten) */
+  setPollState(id: string, s: { closed: boolean; until: string | null }): Promise<Poll>;
+  deletePoll(id: string): Promise<void>;
+  /** Eigene Antwort speichern (eine je Spieler und Umfrage) */
+  savePollAnswer(a: PollAnswer): Promise<PollAnswer>;
+  deletePollAnswer(pollId: string, pid: string): Promise<void>;
+  /** Ergebnis vom Server (anonym erst ab drei Antworten; Freitexte nur fürs Trainerteam) */
+  pollResults(pollId: string): Promise<PollResult>;
   // Wochenchallenge
   saveChallenge(teamId: string, c: Challenge): Promise<Challenge>;
   deleteChallenge(id: string): Promise<void>;

@@ -41,6 +41,11 @@ test("Sicht ohne Gesundheits-/Befund-/Notizrecht: Module aus, Demo-Daten ausgebl
   assert.ok(Object.keys(D.rpe).length > 0 && D.team.modules.belastung, "Original bleibt");
   const R = viewFor(D, new Set(["plan"]), false);
   assert.equal(R.rpe, D.rpe, "ohne strip bleiben Daten (Server filtert)");
+  // Umfragen nur mit „Nachrichten“
+  D.polls = [{ id: "u1" } as never]; D.pollAnswers = [{ pollId: "u1", pid: "p1", answers: { q1: 0 }, at: "" }];
+  const M = viewFor(D, new Set(PERMS.filter(p => p !== "messages")), true);
+  assert.deepEqual(M.polls, []); assert.deepEqual(M.pollAnswers, []); assert.equal(D.polls.length, 1, "Original bleibt");
+  assert.equal(viewFor(D, new Set(PERMS), true).polls.length, 1);
 });
 
 test("Benötigte Rechte für Team-Änderungen: nur echte Änderungen zählen", () => {
@@ -49,6 +54,7 @@ test("Benötigte Rechte für Team-Änderungen: nur echte Änderungen zählen", (
   assert.deepEqual(teamPatchPerms({ settings: { ...D.team.settings, testRank: "best" } }, team), ["perf"]);
   assert.deepEqual(teamPatchPerms({ settings: { ...D.team.settings, fines: [] } }, team), ["tasks"]);
   assert.deepEqual(teamPatchPerms({ settings: { ...D.team.settings, playerAbs: false } }, team), ["admin"]);
+  assert.deepEqual(teamPatchPerms({ settings: { ...D.team.settings, polls: { players: !D.team.settings.polls?.players } } }, team), ["messages"]);
   assert.deepEqual(teamPatchPerms({ name: D.team.name, club: D.team.club }, team), [], "unverändert = kein Recht nötig");
   assert.deepEqual(teamPatchPerms({ name: "Neu" }, team), ["admin"]);
   assert.deepEqual(teamPatchPerms({ settings: { ...D.team.settings, dauer: 75 }, principles: D.team.principles }, team), ["plan"]);

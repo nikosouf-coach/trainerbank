@@ -82,7 +82,7 @@ FÜR TRAINERINNEN UND TRAINER
 • Wachstum im Blick: Körpergröße erfassen und Wachstumsphasen im Jugendbereich berücksichtigen
 • Potenziale und Ziele für jeden Spieler – auf Wunsch für den Spieler sichtbar
 • Kurze Nachrichten an einzelne Spieler, z. B. Pause, Regeneration oder Zusatzaufgabe
-• Team-Chat statt WhatsApp-Gruppe: Teamchat, Trainerteam, Gruppen und Einzelchats – ohne Telefonnummern, mit Kinderschutz für Jugendteams
+• Team-Chat statt WhatsApp-Gruppe – ohne Telefonnummern, mit Kinderschutz für Jugendteams – und Umfragen, auf Wunsch anonym
 • Spielerentwicklung mit individuellem Entwicklungsprogramm (X-Faktor, Entwicklungsfelder mit Weg und Ziel), Kompetenzprofil, messbaren Zielen und Entwicklungsgesprächen
 • Wochenchallenge für zu Hause und Anfragen für Individualtraining
 • Eigene Trainingsarten und Spielprinzipien
@@ -96,7 +96,7 @@ FÜR SPIELERINNEN UND SPIELER
 • Zusatzsport wie Schulsport oder Fitnessstudio ergänzen
 • Abwesenheiten selbst melden
 • Persönliche Tipps zu Erholung und Belastung
-• „Mein Weg“: Spielerkarte mit X-Faktor, Entwicklungsfelder, Ziele und Stärken-Runde – dazu Team-Chat und Wochenchallenge
+• „Mein Weg“: Spielerkarte mit X-Faktor, Entwicklungsfelder, Ziele und Stärken-Runde – dazu Team-Chat, Umfragen und Wochenchallenge
 
 KI-COACH (OPTIONAL)
 Stell Fragen zu Training, Belastung und Erholung. Der KI-Coach ist freiwillig, erst nach gesonderter Einwilligung nutzbar und hat ein Tageslimit. Antworten sind als KI-generiert gekennzeichnet.
@@ -147,7 +147,7 @@ FOR COACHES
 • Growth tracking: record height and take growth phases in youth football into account
 • Potentials and goals for each player – visible to the player if you choose
 • Short messages to individual players, e.g. rest, recovery or extra task
-• Team chat instead of a WhatsApp group: team chat, coaching staff, groups and direct messages – no phone numbers, with safeguarding for youth teams
+• Team chat instead of a WhatsApp group – no phone numbers, with safeguarding for youth teams – plus polls, anonymous if you like
 • Player development with an individual development programme (X-factor, focus areas with a plan and a goal), competency profile, measurable goals and development talks
 • Weekly challenge for at home and requests for individual sessions
 • Custom session types and playing principles
@@ -161,7 +161,7 @@ FOR PLAYERS
 • Add extra sport such as school PE or the gym
 • Report absences yourself
 • Personal tips on recovery and load
-• “My path”: player card with X-factor, focus areas, goals and a strengths round – plus team chat and the weekly challenge
+• “My path”: player card with X-factor, focus areas, goals and a strengths round – plus team chat, polls and the weekly challenge
 
 AI COACH (OPTIONAL)
 Ask questions about training, load and recovery. The AI coach is optional, only available after separate consent and has a daily limit. Answers are labelled as AI-generated.
@@ -332,7 +332,7 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Benutzerinhalte | Fotos oder Videos | ja | ja | nein | App-Funktionalität | optionales Profilfoto, Fotos von Befunden (Arztbriefe) |
 | Gesundheit & Fitness | Gesundheit (Ergänzung) | ja | ja | nein | App-Funktionalität | Befunde (Bild/PDF) und deren KI-Zusammenfassung, Leistungstests |
 | Benutzerinhalte | E-Mails oder Textnachrichten | ja | ja | nein | App-Funktionalität | Chat-Nachrichten, Reaktionen, Meldungen; Trainer-Nachrichten an Spieler |
-| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen, Selbsteinschätzung, Ziele, Gesprächsprotokolle, Entwicklungsprogramm, Selbstanalyse, Stärken-Runde, Challenge-Einträge, Anfragen für Individualtraining |
+| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen, Selbsteinschätzung, Ziele, Gesprächsprotokolle, Entwicklungsprogramm, Selbstanalyse, Stärken-Runde, Antworten in Umfragen, Challenge-Einträge, Anfragen für Individualtraining |
 | Identifikatoren | Benutzer-ID | ja | ja | nein | App-Funktionalität | Konto-ID |
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |

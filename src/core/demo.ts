@@ -13,6 +13,7 @@ import { challengeDefsFor, fromDef } from "./challenge";
 import { demoPeople } from "./chat";
 import { compsOf, posGroupOf } from "./dev";
 import { cleanGift, cleanProgram, cleanSelf } from "./program";
+import { cleanPoll, pollTemplates } from "./polls";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -239,6 +240,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoUnits(D, lang, now);
   demoDev(D, lang, now);
   demoProgram(D, lang, now);
+  demoPolls(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -710,6 +712,65 @@ function demoProgram(D: TeamData, lang: Lang, now: Date): void {
     for (const target of pick(givers.filter(x => x !== giver), 2 + Math.floor(r() * 2))) add(giver, target, pick(typical(P(target)!.pos), 1 + Math.floor(r() * 3)), Math.floor(r() * 4));
   }
   add("p17", "p8", ["zweikampf", "fuehrung"], 1);
+}
+
+/**
+ * Umfragen der Demo: laufende Abstimmung mit Namen (Fahrt zum Auswärtsspiel), anonymer Fragebogen zur Trainingswoche
+ * (Ergebnisse fürs Trainerteam, mit Freitexten), Abstimmung für den Mannschaftsrat (Gruppe), beendete Abstimmung
+ * (Mannschaftsabend) und eine Abstimmung, die ein Spieler gestartet hat. Der Stürmer (p17) hat bei Fahrt und
+ * Fragebogen noch nicht geantwortet – so zeigt die Spieler-Ansicht beides. Eigener Zufallsgenerator.
+ */
+function demoPolls(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", r = rng(611), TODAY = iso(now), at = (d: number, h = 0) => new Date(now.getTime() + d * 86400e3 + h * 3600e3).toISOString();
+  const P = D.players.filter(p => p.active !== false);
+  if (P.length < 8) return;
+  D.team.settings.polls = { players: true };
+  const tpl = pollTemplates(lang), T = (k: string) => tpl.find(x => x.key === k)!;
+  // Konto des Demo-Trainers (wie DemoApi) – sein Name kommt aus dem Trainerprofil
+  const coach = { author: D.staff.find(x => x.id === "s1")?.name || "", createdBy: "demo-user" };
+  const short = (pid: string) => { const p = D.players.find(x => x.id === pid); return p ? `${p.vn} ${p.nn.slice(0, 1)}.` : ""; };
+  const nextAway = [...D.matches].filter(m => m.date >= TODAY && !m.heim).sort((a, b) => a.date < b.date ? -1 : 1)[0];
+  const ans = (pollId: string, pid: string, answers: Record<string, number | number[] | string>, d: number) => D.pollAnswers.push({ pollId, pid, answers, at: at(d) });
+  const pick = (w: number[]) => { let x = r() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < w.length; i++) { x -= w[i]; if (x < 0) return i; } return w.length - 1; };
+
+  // 1. Fahrt zum nächsten Auswärtsspiel (mit Namen, Ergebnisse für alle)
+  const trip = T("trip"), tripTitle = nextAway ? (en ? `Away at ${nextAway.gegner}: how are you getting there?` : `Auswärts bei ${nextAway.gegner}: Wie kommst du hin?`) : trip.title;
+  D.polls.push(cleanPoll({ ...trip, id: "dpo1", title: tripTitle, questions: trip.questions.map(q => ({ ...q, text: tripTitle })), until: nextAway ? addDays(nextAway.date, -1) : addDays(TODAY, 3), ...coach, created: at(-1, -3) }));
+  P.filter(p => p.id !== "p17").slice(0, 14).forEach((p, i) => ans("dpo1", p.id, { q1: pick([7, 3, 1]) }, -1 + i * 0.05));
+
+  // 2. Fragebogen zur Trainingswoche (anonym, Ergebnisse fürs Trainerteam)
+  const week = T("week");
+  D.polls.push(cleanPoll({ ...week, id: "dpo2", until: addDays(TODAY, 3), ...coach, created: at(-2, -2) }));
+  const texts = en
+    ? ["More small-sided games with goals, please.", "Thursday was really hard after the match.", "Finishing drills were great.", "Explain the tactics a bit more slowly.", "More music in the warm-up 😄"]
+    : ["Mehr Spielformen mit Toren bitte.", "Donnerstag war nach dem Spiel echt hart.", "Torschuss-Übungen waren super.", "Taktik bitte etwas langsamer erklären.", "Mehr Musik beim Aufwärmen 😄"];
+  P.filter(p => p.id !== "p17").slice(2, 13).forEach((p, i) => ans("dpo2", p.id, {
+    q1: 2 + pick([1, 3, 4, 2]), q2: 2 + pick([1, 2, 4, 3]), q3: pick([5, 2, 1, 2]), ...(i < texts.length ? { q4: texts[i] } : {}),
+  }, -2 + i * 0.1));
+
+  // 3. Mannschaftsrat (Gruppe): Termin für das nächste Treffen – mehrere Antworten möglich
+  const council = D.groups.find(g => g.id === "g3");
+  const councilIds = P.filter(p => (p.groups || []).includes("g3")).map(p => p.id);
+  if (council && councilIds.length) {
+    const text = en ? "Team council: when shall we meet?" : "Mannschaftsrat: Wann treffen wir uns?";
+    D.polls.push(cleanPoll({ id: "dpo3", kind: "quick", title: text, questions: [{ id: "q1", type: "multi", text, options: en ? ["Monday 6 pm", "Tuesday 7 pm", "Thursday after training"] : ["Montag 18 Uhr", "Dienstag 19 Uhr", "Donnerstag nach dem Training"], required: true, lo: "", hi: "" }],
+      anonymous: false, results: "all", groupId: council.id, until: addDays(TODAY, 4), ...coach, created: at(-1, -1) }));
+    ans("dpo3", councilIds[0], { q1: [1, 2] }, -0.5);
+  }
+
+  // 4. Von einem Spieler gestartet (in der Demo erlaubt das Trainerteam eigene Abstimmungen): Kicken am freien Samstag
+  const by = P.find(p => p.id === "p8") || P[0];
+  const kick = en ? "Free Saturday: who's up for a kickabout at 11?" : "Freier Samstag: Wer kickt um 11 Uhr mit?";
+  D.polls.push(cleanPoll({ id: "dpo4", kind: "quick", title: kick, questions: [{ id: "q1", type: "single", text: kick, options: en ? ["I'm in", "Can't make it"] : ["Bin dabei", "Kann nicht"], required: true, lo: "", hi: "" }],
+    anonymous: false, results: "all", groupId: null, until: addDays(TODAY, 2), byPlayer: true, authorPid: by.id, author: short(by.id), createdBy: by.userId || null, created: at(0, -5) }));
+  [by, ...P.filter(p => p.id !== by.id && p.id !== "p17").slice(4, 9)].forEach((p, i) => ans("dpo4", p.id, { q1: i === 3 ? 1 : 0 }, -0.2));
+
+  // 5. Beendet: Mannschaftsabend
+  const food = T("food");
+  D.polls.push(cleanPoll({ ...food, id: "dpo5", until: addDays(TODAY, -9), closed: true, ...coach, created: at(-14) }));
+  P.slice(0, 17).forEach((p, i) => ans("dpo5", p.id, { q1: pick([6, 3, 2]) }, -14 + i * 0.2));
+
+  for (const p of D.polls) p.answers = D.pollAnswers.filter(a => a.pollId === p.id).length;
 }
 
 /** Chat der Demo: Teamchat, Trainerteam, Torhüter-Gruppe, Einzelchats (Jugend: transparent), eigene Gruppe, eine Meldung. */

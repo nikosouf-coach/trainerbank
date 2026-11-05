@@ -8,8 +8,9 @@ import { addDays, iso } from "../core/dates";
 import { addRef, isYounger, makeResolver, planSlots, posMatch, refOf, riserSnap, riserYears, slotDepth } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import { cleanGift, cleanProgram, cleanSelf } from "../core/program";
+import { cleanAnswers, cleanPoll, pollOpen, pollResult } from "../core/polls";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -475,6 +476,34 @@ export class DemoApi implements Api {
   async savePeerGift(_t: string, g: PeerGift) { this.net(); const skills = cleanGift(g.skills); return skills.length ? { ...g, skills, at: new Date().toISOString() } : null; }
   /** Demo: Mitspieler rechnet der Store aus dem Kader (Daten bleiben auf dem Gerät) */
   async peerMates(): Promise<PeerMate[]> { return []; }
+  // Umfragen: Antworten und Ergebnisse bleiben auf dem Gerät (der Store ändert die Daten selbst)
+  async savePoll(_t: string, p: Poll) {
+    this.net();
+    return cleanPoll({ ...p, id: newId(p.id), created: p.created || new Date().toISOString() });
+  }
+  async setPollState(id: string, st: { closed: boolean; until: string | null }) {
+    this.net();
+    const p = this.data?.polls.find(x => x.id === id);
+    if (!p) throw new ApiError("not_found");
+    return { ...p, closed: st.closed, until: st.until };
+  }
+  async deletePoll() { this.net(); }
+  async savePollAnswer(a: PollAnswer) {
+    this.net();
+    const p = this.data?.polls.find(x => x.id === a.pollId);
+    if (!p) throw new ApiError("not_found");
+    if (!pollOpen(p, iso(new Date()))) throw new ApiError("poll_closed");
+    const answers = cleanAnswers(p, a.answers);
+    if (!answers) throw new ApiError("invalid_answer");
+    return { ...a, answers, at: new Date().toISOString() };
+  }
+  async deletePollAnswer() { this.net(); }
+  /** Demo: Ergebnis wie der Server für das Trainerteam (die Spieler-Ansicht rechnet der Store mit eigener Sicht) */
+  async pollResults(pollId: string) {
+    const D = this.data, p = D?.polls.find(x => x.id === pollId);
+    if (!D || !p) throw new ApiError("not_found");
+    return pollResult(D, p, { staff: true });
+  }
   async saveChallenge(_t: string, c: Challenge) { this.net(); return { ...c, id: newId(c.id) }; }
   async deleteChallenge() { this.net(); }
   async saveChallengeEntry(_e: ChallengeEntry) { this.net(); }

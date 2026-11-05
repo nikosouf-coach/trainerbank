@@ -3577,6 +3577,279 @@ end $$;
 commit;
 
 -- =====================================================================
+-- T53 Umfragen: Abstimmung, Fragebogen, Zielgruppe, anonym, Ergebnisse, Abstimmungen von Spielern, Löschfrist
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (
+  insert into public.polls (team_id, kind, title, questions)
+  values (tst.get('team_a')::uuid, 'quick', 'Wie kommst du hin?',
+          '[{"id": "q1", "type": "single", "text": "Wie kommst du hin?", "options": ["Bus", "Selbst"], "required": true, "lo": "", "hi": ""}]')
+  returning id
+) select tst.put('poll_q', id::text) from ins;
+with ins as (
+  insert into public.polls (team_id, kind, title, intro, questions, anonymous, results)
+  values (tst.get('team_a')::uuid, 'survey', 'Feedback', 'Anonym, dauert eine Minute.',
+          '[{"id": "q1", "type": "scale", "text": "Wie war die Woche?", "options": [], "required": true, "lo": "locker", "hi": "hart"},
+            {"id": "q2", "type": "text", "text": "Was noch?", "options": [], "required": false, "lo": "", "hi": ""}]', true, 'staff')
+  returning id
+) select tst.put('poll_s', id::text) from ins;
+with g as (insert into public.team_groups (team_id, name, kind, visible) values (tst.get('team_a')::uuid, 'Umfrage-Gruppe', 'custom', false) returning id)
+select tst.put('grp_poll', id::text) from g;
+select tst.affects(format($q$insert into public.group_members (group_id, player_id) values (%L, %L)$q$, tst.get('grp_poll'), tst.get('p2_player')), 1, 'T53 Mitglied der Gruppe');
+with ins as (
+  insert into public.polls (team_id, kind, title, questions, group_id)
+  values (tst.get('team_a')::uuid, 'quick', 'Nur für die Gruppe?',
+          '[{"id": "q1", "type": "multi", "text": "Nur für die Gruppe?", "options": ["Mo", "Di", "Do"], "required": true, "lo": "", "hi": ""}]', tst.get('grp_poll')::uuid)
+  returning id
+) select tst.put('poll_g', id::text) from ins;
+do $$ begin
+  perform tst.eq((select count(*) from public.polls where team_id = tst.get('team_a')::uuid)::text, '3', 'T53 Trainerteam legt Abstimmung, Fragebogen und Gruppen-Abstimmung an');
+  perform tst.ok((select not by_player and author_player is null and author_name <> '' and answer_count = 0 and created_by = tst.uid('coachA')
+                    from public.polls where id = tst.get('poll_q')::uuid), 'T53 Autor und Zähler setzt der Server');
+end $$;
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Zwei?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a", "b"], "required": true}, {"id": "q2", "type": "single", "text": "B?", "options": ["a", "b"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Abstimmung hat genau eine Frage', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Skala?', '[{"id": "q1", "type": "scale", "text": "A?", "options": [], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Abstimmung nur mit Auswahl', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Eine?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 mindestens zwei Antworten', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Doppelt?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["Bus", " bus"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 keine doppelten Antworten', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'survey', 'IDs', '[{"id": "q1", "type": "text", "text": "A?", "options": [], "required": true}, {"id": "q1", "type": "text", "text": "B?", "options": [], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 eindeutige Frage-IDs', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, intro, questions) values (%L, 'quick', 'Intro?', 'Text', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a", "b"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Einleitung nur im Fragebogen', 'polls_intro_survey');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions, group_id) values (%L, 'quick', 'Fremd?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a", "b"], "required": true}]', %L)$q$, tst.get('team_a'), tst.get('grp_b')),
+                  'T53 nur Gruppen des eigenen Teams', 'different_teams');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Fremdes Team?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a", "b"], "required": true}]')$q$, tst.get('team_b')),
+                  'T53 keine Umfrage in fremden Teams', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select string_agg(title, ',' order by title) from public.polls), 'Feedback,Wie kommst du hin?', 'T53 Spieler sieht die an ihn gerichteten Umfragen (nicht die Gruppe ohne ihn)');
+end $$;
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 1}')$q$, tst.get('poll_q'), tst.get('max')), 1, 'T53 Spieler stimmt ab');
+select tst.affects(format($q$update public.poll_answers set answers = '{"q1": 0}' where poll_id = %L$q$, tst.get('poll_q')), 1, 'T53 Spieler ändert seine Antwort');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 0}')$q$, tst.get('poll_q'), tst.get('erik')), 'T53 nur im eigenen Namen', 'row-level security');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": [0]}')$q$, tst.get('poll_g'), tst.get('max')), 'T53 nicht angesprochen: Umfrage unbekannt', 'not_found');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": 2}' where poll_id = %L$q$, tst.get('poll_q')), 'T53 Index außerhalb', 'invalid_answer');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": "0"}' where poll_id = %L$q$, tst.get('poll_q')), 'T53 Auswahl als Zahl', 'invalid_answer');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": 0, "x": 1}' where poll_id = %L$q$, tst.get('poll_q')), 'T53 nur bekannte Fragen', 'invalid_answer');
+select tst.throws(format($q$update public.poll_answers set answers = '{}' where poll_id = %L$q$, tst.get('poll_q')), 'T53 leere Antwort', 'invalid_answer');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q2": "Nur Text"}')$q$, tst.get('poll_s'), tst.get('max')), 'T53 Pflichtfrage fehlt', 'invalid_answer');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 6}')$q$, tst.get('poll_s'), tst.get('max')), 'T53 Skala 1–5', 'invalid_answer');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, jsonb_build_object('q1', 3, 'q2', repeat('x', 501)))$q$, tst.get('poll_s'), tst.get('max')), 'T53 Freitext höchstens 500 Zeichen', 'invalid_answer');
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 4, "q2": "Mehr Spielformen"}')$q$, tst.get('poll_s'), tst.get('max')), 1, 'T53 Spieler beantwortet den Fragebogen');
+do $$ begin
+  perform tst.eq((public.poll_results(tst.get('poll_q')::uuid) -> 'questions' -> 0 ->> 'counts') || '/' || (public.poll_results(tst.get('poll_q')::uuid) -> 'questions' -> 0 -> 'voters' ->> 0),
+                 '[1, 0]/["Max M."]', 'T53 Ergebnis mit Namen nach der eigenen Antwort');
+  perform tst.ok(not (public.poll_results(tst.get('poll_q')::uuid) ? 'missing'), 'T53 Spieler sehen nicht, wer fehlt');
+end $$;
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_s')), 'T53 Ergebnisse nur fürs Trainerteam', 'forbidden');
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_g')), 'T53 nicht angesprochen: kein Ergebnis', 'forbidden');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Ich frage', '[{"id": "q1", "type": "single", "text": "Ich frage", "options": ["a", "b"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Spieler-Abstimmungen sind aus', 'polls_off');
+select tst.affects(format($q$update public.polls set title = 'Geändert' where id = %L$q$, tst.get('poll_q')), 0, 'T53 Spieler ändert fremde Umfragen nicht');
+select tst.affects(format($q$delete from public.polls where id = %L$q$, tst.get('poll_q')), 0, 'T53 Spieler löscht fremde Umfragen nicht');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.polls)::text, '3', 'T53 Mitglied sieht auch die Gruppen-Abstimmung (Gruppe nicht freigegeben)');
+  perform tst.eq((select count(*) from public.team_groups where id = tst.get('grp_poll')::uuid)::text, '0', 'T53 Name der verborgenen Gruppe bleibt verborgen');
+end $$;
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 0}'), (%L, %L, '{"q1": 2}'), (%L, %L, '{"q1": [0, 2]}')$q$,
+                          tst.get('poll_q'), tst.get('p2_player'), tst.get('poll_s'), tst.get('p2_player'), tst.get('poll_g'), tst.get('p2_player')), 3, 'T53 zweiter Spieler antwortet dreimal');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": [0, 0]}' where poll_id = %L$q$, tst.get('poll_g')), 'T53 Mehrfachauswahl ohne Doppelungen', 'invalid_answer');
+do $$ begin
+  perform tst.eq((select count(*) from public.poll_answers)::text, '3', 'T53 Spieler sieht nur eigene Antworten');
+  perform tst.eq(public.poll_results(tst.get('poll_q')::uuid) -> 'questions' -> 0 ->> 'counts', '[2, 0]', 'T53 Ergebnis zählt beide Stimmen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$
+declare
+  r jsonb;
+begin
+  perform tst.eq((select string_agg(answer_count::text, ',' order by title) from public.polls where team_id = tst.get('team_a')::uuid), '2,1,2', 'T53 Zähler: Fragebogen 2, Gruppe 1, Fahrt 2');
+  perform tst.eq((select count(*) from public.poll_answers)::text, '0', 'T53 Trainerteam liest keine einzelnen Antworten');
+  r := public.poll_results(tst.get('poll_s')::uuid);
+  perform tst.eq((r ->> 'hidden') || '/' || (r ->> 'n') || '/' || jsonb_array_length(r -> 'questions'), 'true/2/0', 'T53 anonym: unter drei Antworten kein Ergebnis');
+  perform tst.ok(not (r ? 'missing') and not (r ? 'respondents'), 'T53 anonym: auch nicht, wer fehlt');
+  r := public.poll_results(tst.get('poll_q')::uuid);
+  perform tst.eq((select string_agg(e ->> 'name', ',' order by e ->> 'name') from jsonb_array_elements(r -> 'respondents') e), 'Max M.,Paul N.', 'T53 mit Namen: wer geantwortet hat');
+  perform tst.ok(jsonb_array_length(r -> 'missing') >= 2 and (r ->> 'targets')::int = jsonb_array_length(r -> 'missing') + 2, 'T53 mit Namen: wer fehlt');
+  r := public.poll_results(tst.get('poll_g')::uuid);
+  perform tst.eq((r ->> 'targets') || '/' || (r -> 'questions' -> 0 ->> 'counts') || '/' || (r -> 'questions' -> 0 ->> 'answered'), '1/[1, 0, 1]/1', 'T53 Gruppe: Zielgruppe und Mehrfachauswahl');
+end $$;
+select tst.throws(format($q$update public.polls set title = 'Neu' where id = %L$q$, tst.get('poll_q')), 'T53 nach Antworten bleibt die Frage fest', 'poll_answered');
+select tst.throws(format($q$update public.polls set anonymous = false where id = %L$q$, tst.get('poll_s')), 'T53 anonym bleibt anonym', 'poll_answered');
+select tst.throws(format($q$update public.polls set results = 'all' where id = %L$q$, tst.get('poll_s')), 'T53 Sichtbarkeit der Ergebnisse bleibt fest', 'poll_answered');
+select tst.affects(format($q$update public.polls set until = current_date + 5, answer_count = 99 where id = %L$q$, tst.get('poll_q')), 1, 'T53 Ende ändern geht');
+do $$ begin
+  perform tst.eq((select answer_count::text from public.polls where id = tst.get('poll_q')::uuid), '2', 'T53 Zähler lässt sich nicht setzen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 5, "q2": "Gut so"}')$q$, tst.get('poll_s'), tst.get('p4_player')), 1, 'T53 dritte Antwort im Fragebogen');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$
+declare
+  r jsonb := public.poll_results(tst.get('poll_s')::uuid);
+begin
+  perform tst.eq((r ->> 'hidden') || '/' || (r -> 'questions' -> 0 ->> 'counts') || '/' || (r -> 'questions' -> 0 ->> 'avg'), 'false/[0, 1, 0, 1, 1]/3.7', 'T53 anonym ab drei Antworten: Verteilung und Schnitt');
+  perform tst.eq((select string_agg(e ->> 'text', ',' order by e ->> 'text') from jsonb_array_elements(r -> 'questions' -> 1 -> 'texts') e), 'Gut so,Mehr Spielformen', 'T53 Freitexte fürs Trainerteam');
+  perform tst.ok((select bool_and(not (e ? 'name')) from jsonb_array_elements(r -> 'questions' -> 1 -> 'texts') e), 'T53 anonyme Freitexte ohne Namen');
+  perform tst.ok((r -> 'questions' -> 0 -> 'voters') is null, 'T53 anonym: keine Namen bei Antworten');
+end $$;
+select tst.affects(format($q$update public.teams set settings = settings || '{"polls": {"players": true}}' where id = %L$q$, tst.get('team_a')), 1, 'T53 Trainerteam erlaubt Spieler-Abstimmungen');
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.polls)::text, '0', 'T53 ohne Recht „Nachrichten“ keine Umfragen');
+end $$;
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_q')), 'T53 ohne Recht „Nachrichten“ kein Ergebnis', 'forbidden');
+select tst.throws(format($q$update public.teams set settings = settings || '{"polls": {"players": false}}' where id = %L$q$, tst.get('team_a')),
+                  'T53 Spieler-Abstimmungen erlauben braucht „Nachrichten“', 'polls needs messages');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.polls where team_id = tst.get('team_a')::uuid)::text, '0', 'T53 fremdes Trainerteam sieht keine Umfragen');
+end $$;
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_q')), 'T53 fremdes Trainerteam: kein Ergebnis', 'forbidden');
+commit;
+
+-- Abstimmungen von Spielern: immer mit Namen, fürs ganze Team, höchstens zwei laufende
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+with ins as (
+  insert into public.polls (team_id, kind, title, questions)
+  values (tst.get('team_a')::uuid, 'quick', 'Kicken am Samstag?',
+          '[{"id": "q1", "type": "single", "text": "Kicken am Samstag?", "options": ["Bin dabei", "Kann nicht"], "required": true, "lo": "", "hi": ""}]')
+  returning id
+) select tst.put('poll_p1', id::text) from ins;
+do $$ begin
+  perform tst.eq((select by_player::text || '/' || author_player::text || '/' || author_name from public.polls where id = tst.get('poll_p1')::uuid),
+                 'true/' || tst.get('max') || '/Max M.', 'T53 Spieler startet eine Abstimmung (Autor mit Kurznamen)');
+end $$;
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions, anonymous) values (%L, 'quick', 'Anonym?', '[{"id": "q1", "type": "single", "text": "Anonym?", "options": ["a", "b"], "required": true}]', true)$q$, tst.get('team_a')),
+                  'T53 Spieler-Abstimmungen immer mit Namen', 'polls_player_rules');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions, group_id) values (%L, 'quick', 'Gruppe?', '[{"id": "q1", "type": "single", "text": "Gruppe?", "options": ["a", "b"], "required": true}]', %L)$q$, tst.get('team_a'), tst.get('grp_poll')),
+                  'T53 Spieler-Abstimmungen ans ganze Team', 'polls_player_rules');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'survey', 'Fragebogen?', '[{"id": "q1", "type": "text", "text": "Frei?", "options": [], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Spieler starten keine Fragebögen', 'polls_player_rules');
+with ins as (
+  insert into public.polls (team_id, kind, title, questions)
+  values (tst.get('team_a')::uuid, 'quick', 'Zweite?', '[{"id": "q1", "type": "single", "text": "Zweite?", "options": ["Ja", "Nein"], "required": true, "lo": "", "hi": ""}]')
+  returning id
+) select tst.put('poll_p1b', id::text) from ins;
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Dritte?', '[{"id": "q1", "type": "single", "text": "Dritte?", "options": ["Ja", "Nein"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 höchstens zwei laufende Abstimmungen je Spieler', 'limit');
+select tst.affects(format($q$update public.polls set closed_at = now() where id = %L$q$, tst.get('poll_p1b')), 1, 'T53 Spieler beendet seine Abstimmung');
+with ins as (
+  insert into public.polls (team_id, kind, title, questions)
+  values (tst.get('team_a')::uuid, 'quick', 'Dritte?', '[{"id": "q1", "type": "single", "text": "Dritte?", "options": ["Ja", "Nein"], "required": true, "lo": "", "hi": ""}]')
+  returning id
+) select tst.put('poll_p1c', id::text) from ins;
+select tst.throws(format($q$update public.polls set closed_at = null where id = %L$q$, tst.get('poll_p1b')), 'T53 Wiederöffnen zählt zur Grenze', 'limit');
+select tst.affects(format($q$update public.polls set title = 'Kicken am Sonntag?', questions = jsonb_set(questions, '{0,text}', '"Kicken am Sonntag?"') where id = %L$q$, tst.get('poll_p1')),
+                   1, 'T53 Spieler ändert seine Abstimmung ohne Antworten');
+select tst.affects(format($q$delete from public.polls where id = %L$q$, tst.get('poll_p1c')), 1, 'T53 Spieler löscht seine Abstimmung');
+do $$ begin
+  perform tst.eq(public.poll_results(tst.get('poll_p1')::uuid) ->> 'n', '0', 'T53 Autor sieht das Ergebnis seiner Abstimmung');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 0}')$q$, tst.get('poll_p1'), tst.get('p2_player')), 1, 'T53 Mitspieler stimmt bei der Spieler-Abstimmung ab');
+select tst.affects(format($q$update public.polls set closed_at = now() where id = %L$q$, tst.get('poll_p1')), 0, 'T53 Mitspieler beendet fremde Abstimmungen nicht');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$update public.polls set title = 'Vom Trainer', questions = jsonb_set(questions, '{0,text}', '"Vom Trainer"') where id = %L$q$, tst.get('poll_p1b')),
+                  'T53 Trainerteam ändert Spieler-Abstimmungen nicht', 'forbidden');
+select tst.affects(format($q$update public.polls set closed_at = now() where id = %L$q$, tst.get('poll_p1')), 1, 'T53 Trainerteam beendet eine Spieler-Abstimmung');
+select tst.affects(format($q$delete from public.polls where id = %L$q$, tst.get('poll_p1b')), 1, 'T53 Trainerteam löscht eine Spieler-Abstimmung');
+select tst.affects(format($q$update public.polls set until = current_date - 1 where id = %L$q$, tst.get('poll_q')), 1, 'T53 Ende liegt in der Vergangenheit');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 1}') on conflict (poll_id, player_id) do update set answers = excluded.answers$q$, tst.get('poll_q'), tst.get('p2_player')),
+                  'T53 nach dem Ende keine Antworten mehr', 'poll_closed');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": 1}' where poll_id = %L$q$, tst.get('poll_p1')), 'T53 beendete Abstimmung: Antwort bleibt', 'poll_closed');
+select tst.affects(format($q$delete from public.poll_answers where poll_id = %L$q$, tst.get('poll_q')), 0, 'T53 nach dem Ende nicht zurückziehen');
+select tst.affects(format($q$delete from public.poll_answers where poll_id = %L$q$, tst.get('poll_g')), 1, 'T53 Antwort zurückziehen, solange die Umfrage läuft');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select answer_count::text from public.polls where id = tst.get('poll_g')::uuid), '0', 'T53 Zähler sinkt beim Zurückziehen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.eq(public.poll_results(tst.get('poll_q')::uuid) -> 'questions' -> 0 ->> 'counts', '[2, 0]', 'T53 nach dem Ende: Ergebnis auch ohne eigene Antwort');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '';
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_q')), 'T53 Ergebnis nur angemeldet', 'not_authenticated');
+commit;
+
+-- Löschfrist: 12 Monate nach dem Ende (ohne Ende: nach dem Start)
+insert into public.polls (team_id, kind, title, questions, closed_at, created_at) values
+  (tst.get('team_a')::uuid, 'quick', 'Uralt beendet', '[{"id": "q1", "type": "single", "text": "Uralt", "options": ["a", "b"], "required": true}]', now() - interval '13 months', now() - interval '14 months'),
+  (tst.get('team_a')::uuid, 'quick', 'Alt ohne Ende', '[{"id": "q1", "type": "single", "text": "Alt", "options": ["a", "b"], "required": true}]', null, now() - interval '13 months');
+insert into public.polls (team_id, kind, title, questions, until, created_at) values
+  (tst.get('team_a')::uuid, 'quick', 'Ende vor 11 Monaten', '[{"id": "q1", "type": "single", "text": "Jünger", "options": ["a", "b"], "required": true}]', current_date - 330, now() - interval '12 months');
+begin;
+set local role service_role;
+do $$ begin
+  perform tst.eq(public.purge_old_polls()::text, '2', 'T53 Umfragen 12 Monate nach dem Ende gelöscht');
+  perform tst.ok(exists (select 1 from public.polls where title = 'Ende vor 11 Monaten') and exists (select 1 from public.polls where id = tst.get('poll_q')::uuid), 'T53 jüngere Umfragen bleiben');
+end $$;
+commit;
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -3594,7 +3867,10 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v9', 'T21b Exportformat v9');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v10', 'T21b Exportformat v10');
+  perform tst.eq(jsonb_array_length(x -> 'poll_answers')::text, '2', 'T21b Export: eigene Antworten aus Umfragen');
+  perform tst.ok((select bool_and(e ? 'questions' and e ? 'answers') from jsonb_array_elements(x -> 'poll_answers') e), 'T21b Export: Antworten mit den Fragen');
+  perform tst.eq(x -> 'polls_started' -> 0 ->> 'title', 'Kicken am Sonntag?', 'T21b Export: selbst gestartete Abstimmung');
   perform tst.ok(x ?& array['dev_program', 'dev_self', 'peer_skills_given', 'peer_skills_received'], 'T21b Export enthält Entwicklungsprogramm und Stärken-Runde');
   perform tst.eq(x -> 'dev_program' -> 0 -> 'content' ->> 'tag', 'FESTMACHEN', 'T21b Export: freigegebenes Programm');
   perform tst.eq(x -> 'dev_self' -> 0 -> 'weapons' ->> 0, 'physis', 'T21b Export: eigene Selbstanalyse');

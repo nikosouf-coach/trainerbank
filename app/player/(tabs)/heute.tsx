@@ -1,5 +1,5 @@
 // Spieler – Heute: aufs Wesentliche reduziert (Standard nach Wichtigkeit): Einträge (Morgen-Check, RPE), Körper heute,
-// Trainer-Nachrichten, Reha, Matchplan, nächster Termin (→ Kalender), Aufgaben, „Mein Weg“ (Entwicklungsprogramm),
+// Trainer-Nachrichten, offene Umfragen, Reha, Matchplan, nächster Termin (→ Kalender), Aufgaben, „Mein Weg“ (Entwicklungsprogramm),
 // neue Bewertung, Programm und eine Kurzübersicht (Challenge, Ziele, Woche, Kasse). Die ausführlichen Karten lassen sich unter „Startseite anpassen“
 // dazuschalten.
 import { useRouter } from "expo-router";
@@ -22,6 +22,7 @@ import { MyKasseCard } from "../../../src/ui/kasse";
 import { ChallengeCard } from "../../../src/ui/challenge";
 import { MyGoalsCard } from "../../../src/ui/dev";
 import { WegCard } from "../../../src/ui/program";
+import { PlayerPollsCard } from "../../../src/ui/polls";
 import { PlayerPlansCard } from "../../../src/ui/matchplan/cards";
 import { radius, useTheme } from "../../../src/ui/theme";
 
@@ -55,6 +56,7 @@ export default function PlayerHeute() {
       </Pressable>
     ) : null,
     msgs: msgs.length ? <Col gap={10}>{msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}</Col> : null,
+    polls: s.myPolls.length ? <PlayerPollsCard onAll={() => router.push("/player/umfragen")} /> : null,
     reha: <PlayerRehaCard pid={p.id} />,
     plan: <PlayerPlansCard />,
     dates: <NextDates pid={p.id} max={1} onMore={() => router.push("/player/kalender")} />,

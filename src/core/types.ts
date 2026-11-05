@@ -78,6 +78,8 @@ export interface TeamSettings {
   challengeRank?: boolean;
   /** Stärken-Runde des Entwicklungsprogramms (Spieler schenken einander Stärken); fehlt = noch keine Runde */
   peer?: PeerRound | null;
+  /** Umfragen: Spieler dürfen selbst Abstimmungen starten (Standard: aus; Recht „Nachrichten“) */
+  polls?: PollSettings | null;
 }
 /**
  * Chat: wer Einzelchats starten darf (aus / nur mit dem Trainerteam / auch Spieler untereinander), ob das ganze Trainerteam
@@ -404,6 +406,56 @@ export interface PeerMate { id: string; name: string; nr: number | null; pos: st
 /** Stärken-Runde des Teams (Team-Einstellungen, Recht „notes“): Spieler schenken einander Stärken von `since` bis `until` */
 export interface PeerRound { since: string; until: string }
 
+// ---------- Umfragen ----------
+/** quick = Abstimmung (eine Frage mit Antworten), survey = Fragebogen (mehrere Fragen) */
+export type PollKind = "quick" | "survey";
+/** Einfachauswahl, Mehrfachauswahl, Skala 1–5, Freitext */
+export type PollQType = "single" | "multi" | "scale" | "text";
+export interface PollQuestion {
+  /** stabil innerhalb der Umfrage (q1, q2 …) */ id: string;
+  type: PollQType; text: string;
+  /** Antworten bei Auswahl (2–10), sonst leer */ options: string[];
+  required: boolean;
+  /** Skala: Beschriftung bei 1 und 5 */ lo: string; hi: string;
+}
+/** Wer die Ergebnisse sieht: alle Angesprochenen (nach eigener Antwort bzw. nach dem Ende) oder nur das Trainerteam */
+export type PollResultsVis = "all" | "staff";
+export interface Poll {
+  id: string; kind: PollKind;
+  /** Abstimmung: die Frage; Fragebogen: der Titel */ title: string;
+  intro: string; questions: PollQuestion[];
+  /** anonym: niemand sieht, wer was geantwortet hat; Ergebnisse erst ab drei Antworten */ anonymous: boolean;
+  results: PollResultsVis;
+  /** Zielgruppe: Gruppe des Teams, null = ganzes Team */ groupId: string | null;
+  /** letzter Tag (Zeitzone des Teams), null = ohne Ende */ until: string | null;
+  /** von Hand beendet */ closed: boolean;
+  /** von einem Spieler gestartet */ byPlayer: boolean; authorPid: string | null;
+  /** Name der Person, die die Umfrage gestartet hat */ author: string;
+  /** Konto der Person, die sie gestartet hat */ createdBy: string | null;
+  created: string;
+  /** so viele haben geantwortet (zählt der Server; anonyme Antworten liest niemand einzeln) */ answers: number;
+}
+export type PollValue = number | number[] | string;
+/** Antwort eines Spielers: Frage-ID → Index (Einfachauswahl), Indizes (Mehrfachauswahl), 1–5 (Skala), Text */
+export interface PollAnswer { pollId: string; pid: string; answers: Record<string, PollValue>; at: string }
+export interface PollQResult {
+  id: string;
+  /** so viele haben die Frage beantwortet (Mehrfachauswahl: Personen, nicht Kreuze) */ answered: number;
+  /** Auswahl: Anzahl je Antwort; Skala: Anzahl je Stufe 1–5 */ counts: number[];
+  /** Ergebnisse mit Namen: wer welche Antwort gewählt hat (Vorname, Initial) */ voters?: string[][];
+  /** Skala: Durchschnitt */ avg: number | null;
+  /** Freitext (nur Trainerteam; anonym ohne Namen und gemischt) */ texts?: { text: string; name?: string }[];
+}
+/** Ergebnis einer Umfrage – vom Server (poll_results) bzw. in der Demo berechnet */
+export interface PollResult {
+  pollId: string; n: number; targets: number;
+  /** anonym und weniger als drei Antworten: keine Einzelergebnisse */ hidden: boolean;
+  questions: PollQResult[];
+  /** mit Namen (nur Trainerteam): wer geantwortet hat und wer noch nicht */
+  respondents?: { pid: string; name: string }[]; missing?: { pid: string; name: string }[];
+}
+export interface PollSettings { players?: boolean }
+
 // ---------- Chat ----------
 export type ChatKind = "team" | "staff" | "group" | "direct" | "custom";
 export interface Chat {
@@ -602,6 +654,9 @@ export interface TeamData {
   /** Entwicklungsprogramme (Spieler: eigenes, wenn freigegeben), Selbstanalysen (Spieler: eigene), Stärken-Runde
    *  (Trainerteam: alle Einträge; Spieler: nur selbst verschenkte) und Mitspieler für die Runde (nur Spieler-App) */
   programs: DevProgram[]; selfSkills: DevSelf[]; peerGifts: PeerGift[]; peerMates: PeerMate[];
+  /** Umfragen (Spieler: die an sie gerichteten und eigene), Antworten (Spieler: eigene; Trainerteam mit „Nachrichten“:
+   *  alle zu Umfragen mit Namen), Ergebnisse je Umfrage (vom Server geladen bzw. in der Demo berechnet) */
+  polls: Poll[]; pollAnswers: PollAnswer[]; pollResults: Record<string, PollResult>;
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -672,6 +727,7 @@ export function emptyTeamData(team: Team): TeamData {
     stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], duties: [], fines: [], tasks: [], cash: [], waivers: [], inactive: [],
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     programs: [], selfSkills: [], peerGifts: [], peerMates: [],
+    polls: [], pollAnswers: [], pollResults: {},
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],

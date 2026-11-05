@@ -11,9 +11,10 @@ import { cleanUnit } from "../core/units";
 import { cleanContent, fmtOf } from "../core/matchplan";
 import { cleanPlanContent } from "../core/scout";
 import { cleanGift, cleanProgram, cleanSelf, peerOpen, programContent } from "../core/program";
+import { cleanPoll } from "../core/polls";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -29,9 +30,10 @@ import { cleanCrew } from "../core/day";
 
 type Row = Record<string, any>;
 const KNOWN_CODES = ["invalid_years", "managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
-  "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew", "peer_closed"];
+  "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew", "peer_closed",
+  "polls_off", "poll_closed", "poll_answered", "invalid_answer"];
 /** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
-const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams", "feedback_rate"];
+const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams", "feedback_rate", "open_polls", "polls"];
 
 function fail(error: { message?: string; details?: string; code?: string } | null | undefined): never {
   const msg = error?.message || "unknown";
@@ -137,6 +139,22 @@ const mapTalk = (r: Row, notes = ""): DevTalk => ({ id: r.id, pid: r.player_id, 
 const mapProgram = (r: Row): DevProgram => cleanProgram({ ...(r.content && typeof r.content === "object" && !Array.isArray(r.content) ? r.content : {}), pid: r.player_id, vis: !!r.visible, at: r.published_at || null });
 const mapSelf = (r: Row): DevSelf => cleanSelf({ pid: r.player_id, weapons: r.weapons || [], skills: r.skills || [], at: r.updated_at || null });
 const mapGift = (r: Row): PeerGift => ({ giver: r.giver_id, target: r.target_id, skills: cleanGift(r.skills), at: r.updated_at || "" });
+const mapPoll = (r: Row): Poll => cleanPoll({
+  id: r.id, kind: r.kind, title: r.title, intro: r.intro || "", questions: r.questions || [], anonymous: !!r.anonymous, results: r.results,
+  groupId: r.group_id || null, until: r.until || null, closed: !!r.closed_at, byPlayer: !!r.by_player, authorPid: r.author_player || null,
+  author: r.author_name || "", createdBy: r.created_by || null, created: r.created_at || "", answers: Number(r.answer_count) || 0,
+});
+const mapPollAnswer = (r: Row): PollAnswer => ({ pollId: r.poll_id, pid: r.player_id, answers: r.answers || {}, at: r.updated_at || "" });
+const nameList = (x: unknown): { pid: string; name: string }[] => Array.isArray(x) ? x.map((y: Row) => ({ pid: String(y.pid), name: String(y.name || "") })) : [];
+const mapPollResult = (r: Row): PollResult => ({
+  pollId: r.pollId, n: Number(r.n) || 0, targets: Number(r.targets) || 0, hidden: !!r.hidden,
+  questions: (Array.isArray(r.questions) ? r.questions : []).map((x: Row) => ({
+    id: String(x.id), answered: Number(x.answered) || 0, counts: (Array.isArray(x.counts) ? x.counts : []).map(Number), avg: x.avg == null ? null : Number(x.avg),
+    ...(Array.isArray(x.voters) ? { voters: x.voters.map((v: unknown) => Array.isArray(v) ? v.map(String) : []) } : {}),
+    ...(Array.isArray(x.texts) ? { texts: x.texts.map((t: Row) => ({ text: String(t.text || ""), ...(t.name ? { name: String(t.name) } : {}) })) } : {}),
+  })),
+  ...(r.respondents ? { respondents: nameList(r.respondents) } : {}), ...(r.missing ? { missing: nameList(r.missing) } : {}),
+});
 const mapChallenge = (r: Row): Challenge => ({ id: r.id, ws: r.week_start, title: r.title, text: r.text || "", kind: r.kind, unit: r.unit || "", target: numOrNull(r.target), teamTarget: numOrNull(r.team_target),
   lower: !!r.lower_better, groupId: r.group_id || null, key: r.key || null });
 const mapChEntry = (r: Row): ChallengeEntry => ({ cid: r.challenge_id, pid: r.player_id, value: numOrNull(r.value), days: Array.isArray(r.days) ? r.days : [], done: !!r.done, at: r.updated_at || "" });
@@ -396,6 +414,17 @@ export class SupabaseApi implements Api {
           for (const c of D.chats) D.chatMore[c.id] = msgs.length >= CHAT_MAX || (L.old[c.id] || "") < from;
         } catch { /* Chat optional: Rest der App lädt trotzdem */ }
       }
+    }
+    {
+      // Umfragen: Trainerteam mit Recht „Nachrichten“ alle, Spieler die an sie gerichteten und eigenen; Antworten nur
+      // die eigenen (Ergebnisse lädt die App bei Bedarf über poll_results)
+      try {
+        const [polls, answers] = await Promise.all([
+          q(sb.from("polls").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
+          all((a, b) => sb.from("poll_answers").select("poll_id, player_id, answers, updated_at").eq("team_id", tid).range(a, b)),
+        ]);
+        D.polls = polls.map(mapPoll); D.pollAnswers = answers.map(mapPollAnswer);
+      } catch { /* Umfragen optional: Rest der App lädt trotzdem */ }
     }
     if (D.team.modules.matchplan !== false) {
       // Matchpläne: Trainerteam liest Pläne und Zugriffsprotokoll; Spieler nur die Liste freigegebener Pläne
@@ -865,6 +894,25 @@ export class SupabaseApi implements Api {
     const rows = await q<Row[]>(this.sb.rpc("peer_targets", { p_team: teamId }));
     return (rows || []).map(r => ({ id: r.id, name: `${r.first_name || ""} ${r.last_initial ? r.last_initial + "." : ""}`.trim(), nr: r.shirt_number ?? null, pos: r.pos || "" }));
   }
+
+  // ---------- Umfragen ----------
+  async savePoll(teamId: string, p: Poll) {
+    // Autor, Zähler und Zeitpunkte setzt die Datenbank (Trigger); Fragen nur, solange niemand geantwortet hat
+    const x = cleanPoll(p);
+    const row: Row = { kind: x.kind, title: x.title, intro: x.intro, questions: x.questions, anonymous: x.anonymous, results: x.results, group_id: x.groupId, until: x.until };
+    return mapPoll(x.id.startsWith("tmp-")
+      ? await q<Row>(this.sb.from("polls").insert({ ...row, team_id: teamId }).select().single())
+      : await q<Row>(this.sb.from("polls").update(row).eq("id", x.id).select().single()));
+  }
+  async setPollState(id: string, st: { closed: boolean; until: string | null }) {
+    return mapPoll(await q<Row>(this.sb.from("polls").update({ closed_at: st.closed ? new Date().toISOString() : null, until: st.until }).eq("id", id).select().single()));
+  }
+  async deletePoll(id: string) { await q(this.sb.from("polls").delete().eq("id", id)); }
+  async savePollAnswer(a: PollAnswer) {
+    return mapPollAnswer(await q<Row>(this.sb.from("poll_answers").upsert({ poll_id: a.pollId, player_id: a.pid, answers: a.answers }, { onConflict: "poll_id,player_id" }).select().single()));
+  }
+  async deletePollAnswer(pollId: string, pid: string) { await q(this.sb.from("poll_answers").delete().eq("poll_id", pollId).eq("player_id", pid)); }
+  async pollResults(pollId: string) { return mapPollResult(await q<Row>(this.sb.rpc("poll_results", { p_poll: pollId }))); }
 
   // ---------- Wochenchallenge ----------
   async saveChallenge(teamId: string, c: Challenge) {

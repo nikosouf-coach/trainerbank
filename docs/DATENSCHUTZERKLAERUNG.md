@@ -42,6 +42,9 @@
   Einschätzungen, Gesprächsprotokolle und dein Entwicklungsprogramm siehst du, wenn das Trainerteam sie freigibt. In
   der Stärken-Runde schenkst du Mitspielern bis zu drei Stärken aus einer festen Liste – nur Positives, kein Freitext;
   wer was geschenkt hat, sieht nur das Trainerteam, nie der Mitspieler.
+- **Umfragen:** Mitmachen ist freiwillig. Vor dem Antworten siehst du, ob eine Umfrage mit Namen oder anonym ist und
+  wer das Ergebnis sieht. Bei anonymen Umfragen sieht niemand, was du geantwortet hast oder ob du mitgemacht hast;
+  Ergebnisse gibt es erst ab drei Antworten. Freitexte sieht nur das Trainerteam.
 - **Matchplan:** Gibt dein Trainerteam einen Matchplan frei, kannst du ihn bis Spielende ansehen. Er ist vertraulich:
   Er wird mit deinem Namen als Wasserzeichen angezeigt, und es wird festgehalten, wann du ihn geöffnet hast (und ob
   ein Screenshot erkannt wurde). Das Protokoll wird nach 6 Monaten gelöscht.
@@ -158,8 +161,9 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.37 | Kaderplanung und Scouting | **Saisonplanung:** Grundordnung, je Position Soll, Anforderungsprofil, eingeplante Spieler und Schattenkandidaten in Reihenfolge, dein Stand für die Saison (offen, fest, Perspektive, unsicher, Abgang; das Erreichen der Altersgrenze berechnet die App aus deinem Geburtsjahr) mit kurzer Notiz, Notizen zur Saison. **Aufrücker:** Spieler jüngerer Teams des Vereins mit Vorname, Nachname, Position, Jahrgang und Team. **Scouting** (Spieler, die Trainerbank nicht nutzen): Vor- und Nachname, Jahrgang bzw. Geburtsdatum, Positionen, starker Fuß, Größe, Verein und Mannschaft/Liga, Status (beobachten, Sichtung, Probetraining, Gespräche, Zusage, Absage, kein Interesse), Priorität, Einschätzung von aktuellem Niveau und Potenzial, Merkmale, Merklisten, Quelle, Kontaktweg (z. B. „über den Vater“), Videolink, Notiz, nächster Schritt, Berichte (Datum, Anlass, Art der Beobachtung, Minuten, Position, Bewertung 1–5 je Bereich und Kompetenz, Gesamteindruck, Empfehlung, Stärken, Entwicklungsfelder, Fazit, Verfasser), Datum der Information nach Art. 14 DSGVO; **keine Gesundheitsdaten** | Trainerteam; Aufrücker aus den Kaderdaten der Vereinsteams | – |
 | 4.38 | Rückmeldungen aus der App | Art (Fehler, Unklar, Wunsch, Lob), dein Text, optional ein Bildschirmfoto, die zuletzt geöffnete Seite (ohne IDs), App-Version, Gerätemodell und Betriebssystem, dein Konto (für Rückfragen), das aktive Team und deine Rolle dort; Status (offen, erledigt) | du | freiwillig |
 | 4.39 | Absturzberichte | nur wenn du sie auf deinem Gerät einschaltest: Fehlermeldung und Stelle im Programmcode, App-Version und Build, Kanal der Updates, Gerätemodell, Betriebssystem, Zeitpunkt, die zuletzt geöffneten Seiten (ohne IDs) und eine zufällige Kennung der Installation (zum Zählen absturzfreier Sitzungen); **keine** Namen, E-Mail- oder IP-Adressen, keine Gesundheitsdaten, keine Bildschirmfotos, keine Netzwerk- oder Konsolendaten | dein Gerät | freiwillig |
-| 4.41 | Entwicklungsprogramm und Stärken-Runde | **Programm:** Motto, X-Faktor (bis zu drei Stärken), Situationen, in denen du den Unterschied machst, stärkster Bereich auf dem Feld, bis zu vier Entwicklungsfelder (Art, Thema, wo du dich verbesserst, wen du um Hilfe fragen kannst, wie es gelingt, verknüpftes Ziel), Sicht des Trainerteams (Stärken), ausgewählte Stärken aus der Stärken-Runde, Freigabe und Zeitpunkt; dazu Saisonzahlen aus 4.18 (nur für die Anzeige). **Selbstanalyse:** bis zu drei Waffen und drei weitere Stärken aus einer festen Liste. **Stärken-Runde:** Zeitraum der Runde; je Mitspieler die Stärken (1–3 aus einer festen Liste, kein Freitext), die du ihm geschenkt hast, mit Zeitpunkt | Trainerteam, du, deine Mitspieler (Stärken-Runde) | Selbstanalyse und Stärken-Runde freiwillig |
 | 4.40 | App-Updates | beim Start fragt die App bei Expo nach einer neuen Version: IP-Adresse, Plattform, App-Version, Laufzeitversion und Kanal (Test oder Store) | dein Gerät | – |
+| 4.41 | Entwicklungsprogramm und Stärken-Runde | **Programm:** Motto, X-Faktor (bis zu drei Stärken), Situationen, in denen du den Unterschied machst, stärkster Bereich auf dem Feld, bis zu vier Entwicklungsfelder (Art, Thema, wo du dich verbesserst, wen du um Hilfe fragen kannst, wie es gelingt, verknüpftes Ziel), Sicht des Trainerteams (Stärken), ausgewählte Stärken aus der Stärken-Runde, Freigabe und Zeitpunkt; dazu Saisonzahlen aus 4.18 (nur für die Anzeige). **Selbstanalyse:** bis zu drei Waffen und drei weitere Stärken aus einer festen Liste. **Stärken-Runde:** Zeitraum der Runde; je Mitspieler die Stärken (1–3 aus einer festen Liste, kein Freitext), die du ihm geschenkt hast, mit Zeitpunkt | Trainerteam, du, deine Mitspieler (Stärken-Runde) | Selbstanalyse und Stärken-Runde freiwillig |
+| 4.42 | Umfragen | **Umfrage:** Art (Abstimmung oder Fragebogen), Titel, Einleitung, Fragen mit Antwortmöglichkeiten, mit Namen oder anonym, wer das Ergebnis sieht, Zielgruppe (Team oder Gruppe), Ende, beendet, wer sie gestartet hat (Trainerteam mit Namen, Spieler mit Vorname und Initial), Zeitpunkte, Zahl der Antworten. **Deine Antwort:** je Frage die gewählte(n) Antwort(en), die Stufe 1–5 oder dein Freitext, mit Zeitpunkt | Trainerteam mit Recht „Nachrichten“; bei Umfragen mit Namen und „Ergebnisse für alle“ auch die Angesprochenen; bei anonymen Umfragen niemand einzeln | freiwillig |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -226,6 +230,19 @@ kein Freitext – und deine Auswahl bis zum Ende der Runde ändern oder zurückn
 und das Trainerteam mit dem Recht „Notizen & Bewertungen“; dein Mitspieler sieht nie, von wem eine Stärke kommt, und
 auch nicht, wie oft sie genannt wurde – nur die Stärken, die das Trainerteam in sein Programm übernimmt. Einträge der
 Stärken-Runde werden nach 12 Monaten automatisch gelöscht.
+
+**Umfragen (4.42):** Umfragen startet das Trainerteam mit dem Recht „Nachrichten“. Erlaubt es das Trainerteam, können
+auch Spieler Abstimmungen starten – dann immer mit Namen, für das ganze Team und mit Ergebnis für alle; das Trainerteam
+sieht sie und kann sie beenden oder löschen. Vor dem Antworten siehst du, ob die Umfrage mit Namen oder anonym ist und
+wer das Ergebnis sieht. **Mit Namen** sieht das Trainerteam, wer was gewählt hat und wer noch nicht geantwortet hat;
+bei „Ergebnisse für alle“ sehen auch die Angesprochenen nach ihrer Antwort bzw. nach dem Ende, wer was gewählt hat.
+**Anonym:** Technisch speichert die App, von wem eine Antwort stammt – nur damit du einmal antwortest und deine Antwort
+ändern oder zurückziehen kannst. Angezeigt wird aber niemandem, wer was geantwortet hat oder wer mitgemacht hat;
+Ergebnisse gibt es erst ab drei Antworten, Freitexte ohne Namen und nicht in der Reihenfolge des Eingangs. Freitexte
+sieht in jedem Fall nur das Trainerteam. Solange die Umfrage läuft, kannst du deine Antwort ändern oder zurückziehen.
+Sobald jemand geantwortet hat, lassen sich Fragen und Einstellungen nicht mehr ändern – eine anonyme Umfrage bleibt
+anonym. Umfragen werden mit allen Antworten 12 Monate nach ihrem Ende gelöscht (ohne Ende 12 Monate nach dem Start),
+früher, wenn das Trainerteam oder – bei eigenen Abstimmungen – der Spieler sie löscht.
 
 **Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
 geschafft haben, sowie die gemeinsame Summe – nicht deine Werte. Nur wenn das Trainerteam die Bestenliste einschaltet,
@@ -306,7 +323,7 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen) | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
 | Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests, Angaben zum Schmerz (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26, 4.27 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
 | Übernahme der Belastung beim Hochziehen oder Wechsel innerhalb des Vereins (Gesundheitsdaten) | 4.36 | wie die Belastungssteuerung: ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO (gleicher Zweck; nur mit Recht „Gesundheitsdaten“ in beiden Teams) |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
@@ -463,6 +480,8 @@ bleibt unberührt.
 | deine Selbstanalyse | ja | mit Recht „Notizen & Bewertungen“ | nein | nein |
 | Stärken, die du in der Stärken-Runde schenkst | ja | mit Recht „Notizen & Bewertungen“ | nein – der Mitspieler sieht nur, was das Trainerteam in sein Programm übernimmt, nie von wem | nein |
 | Stärken, die dir geschenkt werden | nur, was das Trainerteam in dein Programm übernimmt (ohne Namen und Anzahl); im Datenexport die Anzahl je Stärke | mit Recht „Notizen & Bewertungen“ (mit Namen) | nein | nein |
+| deine Antworten in Umfragen mit Namen | ja | mit Recht „Nachrichten“ (wer was gewählt hat, wer fehlt, Freitexte mit Namen) | nur bei „Ergebnisse für alle“: die Angesprochenen nach ihrer Antwort bzw. nach dem Ende (Auswahl mit Namen, Skala zusammengefasst, keine Freitexte) | nein |
+| deine Antworten in anonymen Umfragen | ja | mit Recht „Nachrichten“ nur zusammengefasst ab drei Antworten (Freitexte ohne Namen) – nie, wer was geantwortet oder ob du mitgemacht hast | nur zusammengefasst bei „Ergebnisse für alle“ (ohne Freitexte) | nein |
 | deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
 | deine Chat-Nachrichten | ja | in Chats, in denen das Trainerteam Mitglied ist; in Jugendteams auch Einzelchats Trainer–Spieler (Recht „Nachrichten“) | Mitglieder des jeweiligen Chats | nein |
@@ -687,6 +706,7 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Spielerentwicklung (Einschätzungen, Ziele, Fortschritt, Gespräche, interne Notizen) | bei Löschung durch das Trainerteam (eigene Selbsteinschätzungen und Ziele auch durch dich), Löschung des Spielerprofils oder des Teams |
 | Entwicklungsprogramm, Selbstanalyse | bei Löschung durch das Trainerteam (deine Selbstanalyse auch durch dich), Löschung des Spielerprofils oder des Teams |
 | Stärken-Runde | automatisch **12 Monate** nach dem Eintrag; sofort beim Zurücknehmen, bei Löschung durch das Trainerteam, des Spielerprofils (des Schenkenden oder des Empfängers) oder des Teams |
+| Umfragen und Antworten | automatisch **12 Monate** nach dem Ende der Umfrage (ohne Ende: nach dem Start); deine Antwort sofort beim Zurückziehen (solange die Umfrage läuft); sonst bei Löschung der Umfrage, deines Spielerprofils oder des Teams |
 | Wochenchallenge | mit der Challenge, dem Spielerprofil oder dem Team |
 | Anfragen für Individualtraining | automatisch 12 Monate nach Abschluss (zugesagt, abgesagt, zurückgezogen); offene mit dem Spielerprofil bzw. Team |
 | Chat-Nachrichten und Reaktionen | automatisch **24 Monate** nach dem Senden; sofort bei Löschung deines Kontos; gelöschte Nachrichten verlieren ihren Text sofort; Einzel- und eigene Chats auch, wenn alle Mitglieder sie verlassen |
