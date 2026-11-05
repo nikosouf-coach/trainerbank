@@ -27,11 +27,7 @@
   },
   "submit": {
     "production": {
-      "ios": {
-        "ascAppId": "ERSETZEN_DURCH_APP_STORE_CONNECT_APP_ID"
-      },
       "android": {
-        "serviceAccountKeyPath": "./google-play-service-account.json",
         "track": "internal",
         "releaseStatus": "draft"
       }

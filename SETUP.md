@@ -149,18 +149,24 @@ Beim allerersten Build legt EAS die Zertifikate für Apple und den Schlüssel f�
 deinem Apple-Konto. Das geht nur einmal interaktiv am Rechner (Windows, Mac oder Linux):
 
 ```bash
-# Node.js 22 LTS von nodejs.org installieren, dann im Terminal:
+# Node.js (LTS-Version) von nodejs.org installieren. Den Code holen – mit git oder auf GitHub über
+# „Code → Download ZIP“ (entpacken und im Ordner ein Terminal öffnen):
 git clone https://github.com/nikosouf-coach/trainerbank.git
 cd trainerbank
 npm ci
 npx eas-cli@latest login
 npx eas-cli@latest build --platform all --profile production
+# iPhone-Version zu TestFlight hochladen; legt die App in App Store Connect an
+npx eas-cli@latest submit --platform ios --latest
 ```
 
 Bei den Fragen jeweils die Vorschläge annehmen (Apple-Anmeldung mit Zwei-Faktor-Code, Zertifikate und Android-Schlüssel
-von EAS erzeugen lassen). Danach laufen alle weiteren Builds über GitHub → **Actions → App bauen → Run workflow**
-(Plattform, Profil `production`, optional **einreichen**). Ein Build dauert 15–30 Minuten; die Dateien stehen auf
-expo.dev unter **Builds**.
+von EAS erzeugen lassen). Ein Build dauert 15–30 Minuten; die Dateien stehen auf expo.dev unter **Builds**. Beim
+Hochladen legt EAS die App in App Store Connect an (Name „Trainerbank“, falls vergeben mit Zusatz, z. B. „Trainerbank –
+Teamplaner“). Danach die Apple-ID der App (Zahl in App Store Connect unter **App-Informationen**) in `eas.json` unter
+`submit.production.ios.ascAppId` eintragen. Ab dann laufen alle weiteren Builds über GitHub → **Actions → App bauen →
+Run workflow** (Plattform, Profil `production`, optional **einreichen**). Die Android-Datei (.aab) für den ersten
+Upload bei Google auf expo.dev herunterladen (Schritt 9).
 
 ## 8. Korrekturen ohne Store-Prüfung (EAS Update)
 
@@ -185,10 +191,10 @@ Alle Texte, Screenshots-Motive, Datenschutz-Angaben und Review-Notizen stehen in
    Organisation), Anthropic (DPA in der Console, erst mit KI-Coach).
 3. Die Datenschutz-Folgenabschätzung ([`docs/DSFA.md`](docs/DSFA.md)) durchgehen und unterschreiben.
 
-**Apple:** App Store Connect → **Apps → +** → Name „Trainerbank“ (falls vergeben: mit Zusatz, z. B. „Trainerbank –
-Teamplaner“), Bundle-ID wie oben, SKU `trainerbank`. Die App-ID (Zahl) in `eas.json` bei `ascAppId` eintragen. Dann
-GitHub → **App bauen** → Plattform `ios`, Profil `production`, **einreichen** anhaken. Die Version erscheint in
-TestFlight. Für den Piloten unter **TestFlight → Externe Tests** eine Gruppe anlegen, den **öffentlichen Link**
+**Apple:** Die App in App Store Connect legt der erste Upload in Schritt 7 an; die Apple-ID der App steht danach in
+`eas.json` bei `ascAppId`. Jede neue Version: GitHub → **App bauen** → Plattform `ios`, Profil `production`,
+**einreichen** anhaken. Die Version erscheint in TestFlight. Für den Piloten unter **TestFlight → Externe Tests** eine
+Gruppe anlegen, den **öffentlichen Link**
 einschalten (die erste Version braucht eine kurze Beta-Prüfung durch Apple) und den Link als
 `EXPO_PUBLIC_INSTALL_IOS` eintragen. Nach dem Test unter „App Store“ einreichen.
 
