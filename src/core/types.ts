@@ -140,6 +140,8 @@ export interface Modules {
   archiv: boolean; vorbereitung: boolean; kontakte: boolean;
   /** Spielerentwicklung (Ziele, Kompetenzprofil, Selbsteinschätzung, Gespräche), Wochenchallenge, Chat */
   entwicklung: boolean; challenge: boolean; chat: boolean;
+  /** Größen & Ausrüstung (Spieler tragen ihre Größen ein, Bestellliste fürs Trainerteam) */
+  ausruestung: boolean;
 }
 export interface Team {
   id: string;
@@ -462,6 +464,13 @@ export type EmRel = "mother" | "father" | "guardian" | "partner" | "sibling" | "
 /** Notfallkontakt (Person, die das Trainerteam im Notfall anruft) */
 export interface EmContact { name: string; rel: EmRel; phone: string }
 
+// ---------- Größen & Ausrüstung ----------
+/**
+ * Größen eines Spielers: Oberteil und Hose (Kinder 116–176 oder XS–3XL), Schuhe (EU, halbe Größen), Torwarthandschuhe;
+ * dazu Name für die Beflockung und ein Hinweis (z. B. „fällt klein aus“). Leere Angaben: null bzw. "".
+ */
+export interface PlayerSizes { top: string | null; bottom: string | null; shoes: number | null; gloves: number | null; print: string; note: string }
+
 // ---------- Chat ----------
 export type ChatKind = "team" | "staff" | "group" | "direct" | "custom";
 export interface Chat {
@@ -669,6 +678,8 @@ export interface TeamData {
   emergencyMed: Record<string, string>;
   /** Notfallkontakte wurden geladen (sonst zeigt die App „fehlt“ nicht an – z. B. ohne Verbindung beim ersten Start) */
   emergencyOk: boolean;
+  /** Größen je Spieler (Trainerteam mit Recht „Kader“; Spieler: eigene) und ob sie geladen wurden */
+  sizes: Record<string, PlayerSizes>; sizesOk: boolean;
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -740,7 +751,7 @@ export function emptyTeamData(team: Team): TeamData {
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     programs: [], selfSkills: [], peerGifts: [], peerMates: [],
     polls: [], pollAnswers: [], pollResults: {},
-    emergency: {}, emergencyMed: {}, emergencyOk: false,
+    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false,
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],

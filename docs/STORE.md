@@ -80,8 +80,8 @@ FÜR TRAINERINNEN UND TRAINER
 • Anwesenheit in Sekunden erfassen
 • Abwesenheiten mit Grund und stufenweiser Rückkehr ins Training
 • Notfallkontakte jedes Spielers griffbereit – mit einem Tipp anrufen, auch ohne Netz
+• Größen für Trikots & Co.: Spieler tragen sie selbst ein, die Bestellliste entsteht automatisch
 • Wachstum im Blick: Körpergröße erfassen und Wachstumsphasen im Jugendbereich berücksichtigen
-• Potenziale und Ziele für jeden Spieler – auf Wunsch für den Spieler sichtbar
 • Kurze Nachrichten an einzelne Spieler, z. B. Pause oder Zusatzaufgabe
 • Team-Chat statt WhatsApp-Gruppe – ohne Telefonnummern, mit Kinderschutz für Jugendteams – und Umfragen, auf Wunsch anonym
 • Spielerentwicklung mit individuellem Entwicklungsprogramm (X-Faktor, Entwicklungsfelder mit Weg und Ziel), Kompetenzprofil, messbaren Zielen und Entwicklungsgesprächen
@@ -113,7 +113,7 @@ DATENSCHUTZ VON ANFANG AN
 • Datenexport und Kontolöschung direkt in der App
 
 SPORTWISSENSCHAFTLICH FUNDIERT
-Die Methoden beruhen auf etablierten sportwissenschaftlichen Ansätzen, etwa Session-RPE nach Foster et al. (2001) und dem Wellness-Fragebogen nach Hooper & Mackinnon (1995). Die Quellen stehen in den Info-Texten der App.
+Die Methoden beruhen auf etablierten sportwissenschaftlichen Ansätzen, etwa Session-RPE nach Foster et al. (2001) und dem Wellness-Fragebogen nach Hooper & Mackinnon (1995). Die Quellen stehen in der App.
 
 Auf dem Smartphone, [dem Tablet] und im Browser – auf Deutsch und Englisch.
 
@@ -146,8 +146,8 @@ FOR COACHES
 • Take attendance in seconds
 • Absences with reason and a step-by-step return to training
 • Every player's emergency contacts at hand – call with one tap, even offline
+• Kit sizes: players add their own, the order list builds itself
 • Growth tracking: record height and take growth phases in youth football into account
-• Potentials and goals for each player – visible to the player if you choose
 • Short messages to individual players, e.g. rest or an extra task
 • Team chat instead of a WhatsApp group – no phone numbers, with safeguarding for youth teams – plus polls, anonymous if you like
 • Player development with an individual development programme (X-factor, focus areas with a plan and a goal), competency profile, measurable goals and development talks
@@ -179,7 +179,7 @@ PRIVACY BUILT IN
 • Data export and account deletion right in the app
 
 BASED ON SPORTS SCIENCE
-The methods are based on established sports-science approaches, such as session RPE (Foster et al., 2001) and the wellness questionnaire by Hooper & Mackinnon (1995). Sources are listed in the app's info texts.
+The methods are based on established sports-science approaches, such as session RPE (Foster et al., 2001) and the wellness questionnaire by Hooper & Mackinnon (1995). Sources are listed in the app.
 
 On your phone, [tablet] and in the browser – in German and English.
 
@@ -193,8 +193,8 @@ Legal notice: [Impressum-URL]
 ```
 <!-- desc-en:end -->
 
-Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE 3.926 Zeichen, EN 3.607 Zeichen. Für die Preisangabe
-bleiben statt des Platzhalters rund 140 Zeichen (DE) bzw. 410 Zeichen (EN) – vor dem Einreichen nachzählen.
+Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE 3.928 Zeichen, EN 3.582 Zeichen. Für die Preisangabe
+bleiben statt des Platzhalters rund 140 Zeichen (DE) bzw. 430 Zeichen (EN) – vor dem Einreichen nachzählen.
 
 ### Formulierungsregeln für alle Store- und Werbetexte
 
@@ -339,7 +339,7 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Identifikatoren | Benutzer-ID | ja | ja | nein | App-Funktionalität | Konto-ID |
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |
-| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen), Noten, Kontaktliste des Teams |
+| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen), Noten, Kontaktliste des Teams, Kleider- und Schuhgrößen mit Name für die Beflockung |
 | Finanzinformationen | Sonstige Finanzinformationen | ja | ja | nein | App-Funktionalität | Mannschaftskasse: Beiträge, Zahlungen, Geldstrafen, Kassenbuch (keine Konto- oder Kartendaten, keine Zahlungsabwicklung) |
 | Benutzerinhalte | Kundensupport | ja | ja | nein | App-Funktionalität | Rückmeldungen aus der App („Feedback / Fehler melden“): Text, optional Bildschirmfoto |
 | Diagnose | Absturzdaten | ja (nur nach Zustimmung auf dem Gerät) | nein | nein | App-Funktionalität | Absturzberichte über Sentry ohne Konto-Bezug |
@@ -377,7 +377,7 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 | Personenbezogene Daten | E-Mail-Adresse | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung |
 | Personenbezogene Daten | Telefonnummer | ja | nein | nein | Pflicht (Notfallkontakt beim Beitreten als Spieler) | App-Funktionalität (Notfallkontakte) |
 | Personenbezogene Daten | Nutzer-IDs | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung, Betrugsprävention/Sicherheit |
-| Personenbezogene Daten | Sonstige Informationen | ja | nein | nein | Pflicht (Geburtsdatum), sonst optional | App-Funktionalität |
+| Personenbezogene Daten | Sonstige Informationen | ja | nein | nein | Pflicht (Geburtsdatum), sonst optional | App-Funktionalität (z. B. Position, Kleider- und Schuhgrößen) |
 | Gesundheit und Fitness | Gesundheitsinformationen | ja | nein | nein | optional | App-Funktionalität |
 | Gesundheit und Fitness | Fitnessinformationen | ja | nein | nein | optional | App-Funktionalität |
 | Nachrichten | Sonstige In-App-Nachrichten | ja | nein | nein | optional | App-Funktionalität (Team-Chat, Trainer-Nachrichten) |

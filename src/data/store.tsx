@@ -17,13 +17,14 @@ import { indivUnit } from "../core/dev";
 import { cleanGift, cleanProgram, cleanSelf, matesOf, peerOpen } from "../core/program";
 import { cleanPoll, pollsFor, sortPolls } from "../core/polls";
 import { cleanContacts, cleanMed } from "../core/emergency";
+import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -1023,6 +1024,21 @@ function useStoreValue() {
       toast(tr0.t("nf_reminded"));
     },
 
+    // ---------- Größen & Ausrüstung ----------
+    /** Größen eines Spielers speichern (Spieler: eigene; Trainerteam: Recht „Kader“); alles leer = löschen */
+    saveSizes: (pid: string, sizes: PlayerSizes) => {
+      const x = cleanSizes(sizes);
+      return changeOk(D => { if (sizesEmpty(x)) delete D.sizes[pid]; else D.sizes[pid] = x; },
+        async api => { const saved = await api.saveSizes(pid, x); const D = ref.current.D; if (D) { if (saved) D.sizes[pid] = saved; else delete D.sizes[pid]; } },
+        { ok: translator(ref.current.lang).t("gr_saved") });
+    },
+    /** Spieler mit Konto an fehlende Größen erinnern (Nachricht vom Trainerteam, 7 Tage sichtbar) */
+    remindSizes: async (pids: string[]) => {
+      const tr0 = translator(ref.current.lang), today = iso(new Date());
+      for (const pid of pids) await actions.saveMessage(pid, { id: tmpId(), date: today, typ: "info", text: tr0.t("gr_remindMsg"), bis: addDays(today, 7) });
+      toast(tr0.t("gr_reminded"));
+    },
+
     // ---------- Wochenchallenge ----------
     saveChallenge: (c: Challenge) => upsert("challenges", c, (api, t) => api.saveChallenge(t, c), { ok: translator(ref.current.lang).t("cg_saved") }),
     deleteChallenge: (id: string) => change(D => { D.challenges = D.challenges.filter(x => x.id !== id); D.chEntries = D.chEntries.filter(x => x.cid !== id); delete D.chTotals[id]; }, api => api.deleteChallenge(id)),
@@ -1322,7 +1338,7 @@ function useStoreValue() {
     // Umfragen: Trainerteam mit „Nachrichten“ (Spieler verwalten eigene Abstimmungen – prüft der Server)
     savePoll: "messages", setPollState: "messages", deletePoll: "messages", setPlayerPolls: "messages", remindPoll: "messages",
     // Notfallkontakte: Kontakte „Kader“, Hinweise (Gesundheitsdaten) „Gesundheitsdaten“, Erinnerung „Nachrichten“
-    saveEmergency: "squad", saveEmergencyMed: "health", remindEmergency: "messages",
+    saveEmergency: "squad", saveEmergencyMed: "health", remindEmergency: "messages", saveSizes: "squad", remindSizes: "messages",
     savePlan: "plan", deletePlan: "plan",
     saveScout: "scout", deleteScout: "scout", saveScoutReport: "scout", deleteScoutReport: "scout", saveScoutList: "scout", deleteScoutList: "scout",
     saveSquadPlan: "scout", deleteSquadPlan: "scout", takeOverScout: ["scout"],

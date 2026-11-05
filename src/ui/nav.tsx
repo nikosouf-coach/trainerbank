@@ -49,6 +49,7 @@ export const NAV: NavItem[] = [
   { k: "videos", href: "/coach/videos", icon: "video", short: "nvb_videos", title: "sp_lib", sub: "sp_libSub", group: "spiel", tab: true, need: x => !!x.mods.videos },
   { k: "scouting", href: "/coach/scouting", icon: "scout", short: "nav_scout", title: "m_kaderplanung", sub: "sk_menuSub", group: "spiel", tab: true, need: x => !!x.mods.kaderplanung && x.can("scout") },
   { k: "aufgaben", href: "/coach/aufgaben", icon: "checklist", short: "nvb_aufgaben", title: "tk_title2", sub: "tk_menuSub", group: "orga", tab: true },
+  { k: "groessen", href: "/coach/groessen", icon: "shirt", short: "nvb_groessen", title: "gr_title", sub: "gr_menuSub", group: "orga", tab: true, need: x => x.mods.ausruestung !== false && x.can("squad") },
   { k: "kasse", href: "/coach/kasse", icon: "wallet", short: "nvb_kasse", title: "ks_title", sub: "ks_menuSub", group: "orga", tab: true, need: x => x.can("cash") },
   { k: "kontakte", href: "/coach/kontakte", icon: "phone", short: "nvb_kontakte", title: "ct_title", sub: "ct_sub", group: "orga", tab: true, need: x => !!x.mods.kontakte },
   { k: "team", href: "/coach/team", icon: "shield", short: "nvb_team", title: "mh_team", sub: "nvs_team", group: "setup", tab: true },

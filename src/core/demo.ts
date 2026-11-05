@@ -15,6 +15,7 @@ import { compsOf, posGroupOf } from "./dev";
 import { cleanGift, cleanProgram, cleanSelf } from "./program";
 import { cleanPoll, pollTemplates } from "./polls";
 import { cleanContacts } from "./emergency";
+import { cleanSizes } from "./sizes";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -243,6 +244,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoProgram(D, lang, now);
   demoPolls(D, lang, now);
   demoEmergency(D, lang);
+  demoSizes(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -797,6 +799,28 @@ function demoEmergency(D: TeamData, lang: Lang): void {
     : { p3: "Asthma – Spray ist in der Sporttasche.", p9: "Allergie gegen Wespenstiche – Notfallset (Adrenalin-Pen) in der Seitentasche der Tasche." };
   for (const [pid, note] of Object.entries(med)) if (D.players.some(p => p.id === pid)) D.emergencyMed[pid] = note;
   D.emergencyOk = true;
+}
+
+/** Größen: die meisten Spieler haben sie eingetragen (passend zum Alter), drei fehlen, einer ist unvollständig */
+function demoSizes(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", missing = new Set(["p4", "p12", "p20"]);
+  const adultTop = ["S", "M", "M", "L", "M", "L", "XL", "M", "S", "L", "M"], adultShoe = [41, 42, 42.5, 43, 44, 44.5, 45, 43, 42, 46, 43.5];
+  D.players.forEach((p, i) => {
+    if (missing.has(p.id) || p.active === false) return;
+    const age = p.geb ? ageOn(p.geb, now) : 18;
+    let top: string, bottom: string, shoes: number;
+    if (age <= 9) { top = ["128", "140"][i % 2]; bottom = top; shoes = 31 + (i % 4); }
+    else if (age <= 12) { top = ["140", "152", "164"][i % 3]; bottom = ["140", "152", "152"][i % 3]; shoes = 35 + (i % 5) * 0.5; }
+    else if (age <= 15) { top = ["164", "176", "XS", "S"][i % 4]; bottom = ["164", "164", "XS", "S"][i % 4]; shoes = 39 + (i % 6) * 0.5; }
+    else { top = adultTop[i % adultTop.length]; bottom = i % 3 === 0 && top !== "S" ? ["S", "M", "L", "XL"][Math.max(0, ["M", "L", "XL"].indexOf(top))] : top; shoes = adultShoe[i % adultShoe.length]; }
+    D.sizes[p.id] = cleanSizes({
+      top, bottom: p.id === "p16" ? null : bottom, shoes,
+      gloves: p.pos === "TW" ? 9 + (i % 2) * 0.5 : null,
+      print: i % 6 === 0 ? p.nn.toUpperCase() : "",
+      note: i % 7 === 3 ? (en ? "Shorts run small – one size up, please." : "Hosen fallen bei mir klein aus – lieber eine Größe größer.") : "",
+    });
+  });
+  D.sizesOk = true;
 }
 
 /** Chat der Demo: Teamchat, Trainerteam, Torhüter-Gruppe, Einzelchats (Jugend: transparent), eigene Gruppe, eine Meldung. */

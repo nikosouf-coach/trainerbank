@@ -13,9 +13,10 @@ import { cleanPlanContent } from "../core/scout";
 import { cleanGift, cleanProgram, cleanSelf, peerOpen, programContent } from "../core/program";
 import { cleanPoll } from "../core/polls";
 import { cleanContacts, cleanMed } from "../core/emergency";
+import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -145,6 +146,8 @@ const mapPoll = (r: Row): Poll => cleanPoll({
   groupId: r.group_id || null, until: r.until || null, closed: !!r.closed_at, byPlayer: !!r.by_player, authorPid: r.author_player || null,
   author: r.author_name || "", createdBy: r.created_by || null, created: r.created_at || "", answers: Number(r.answer_count) || 0,
 });
+// Größen (Schuhe und Handschuhe kommen als Zahl bzw. Text „42.5“)
+const mapSizes = (r: Row): PlayerSizes => cleanSizes({ top: r.top, bottom: r.bottom, shoes: r.shoes, gloves: r.gloves, print: r.print_name || "", note: r.note || "" });
 const mapPollAnswer = (r: Row): PollAnswer => ({ pollId: r.poll_id, pid: r.player_id, answers: r.answers || {}, at: r.updated_at || "" });
 const nameList = (x: unknown): { pid: string; name: string }[] => Array.isArray(x) ? x.map((y: Row) => ({ pid: String(y.pid), name: String(y.name || "") })) : [];
 const mapPollResult = (r: Row): PollResult => ({
@@ -438,6 +441,14 @@ export class SupabaseApi implements Api {
         for (const r of em) { const L = cleanContacts(r.contacts); if (L.length) D.emergency[r.player_id] = L; }
         for (const r of med) { const n = cleanMed(r.note); if (n) D.emergencyMed[r.player_id] = n; }
         D.emergencyOk = true;
+      } catch { /* optional – ohne geladene Daten zeigt die App „fehlt“ nicht an */ }
+    }
+    if (D.team.modules.ausruestung !== false) {
+      // Größen (Trainerteam mit „Kader“; Spieler: eigene)
+      try {
+        const rows = await all((a, b) => sb.from("player_sizes").select("player_id, top, bottom, shoes, gloves, print_name, note").eq("team_id", tid).range(a, b));
+        for (const r of rows) { const x = mapSizes(r); if (!sizesEmpty(x)) D.sizes[r.player_id] = x; }
+        D.sizesOk = true;
       } catch { /* optional – ohne geladene Daten zeigt die App „fehlt“ nicht an */ }
     }
     if (D.team.modules.matchplan !== false) {
@@ -940,6 +951,14 @@ export class SupabaseApi implements Api {
     if (!n) { await q(this.sb.from("player_emergency_med").delete().eq("player_id", pid)); return ""; }
     const r = await q<Row>(this.sb.from("player_emergency_med").upsert({ player_id: pid, note: n }, { onConflict: "player_id" }).select("note").single());
     return cleanMed(r.note);
+  }
+
+  // ---------- Größen & Ausrüstung ----------
+  async saveSizes(pid: string, sizes: PlayerSizes) {
+    const x = cleanSizes(sizes);
+    if (sizesEmpty(x)) { await q(this.sb.from("player_sizes").delete().eq("player_id", pid)); return null; }
+    const row = { player_id: pid, top: x.top, bottom: x.bottom, shoes: x.shoes, gloves: x.gloves, print_name: x.print || null, note: x.note || null };
+    return mapSizes(await q<Row>(this.sb.from("player_sizes").upsert(row, { onConflict: "player_id" }).select("top, bottom, shoes, gloves, print_name, note").single()));
   }
 
   // ---------- Wochenchallenge ----------

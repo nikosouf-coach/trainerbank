@@ -9,7 +9,7 @@ import { posGroup } from "../core/classes";
 import { STAT_CATS, STAT_PERIODS, compareStat, periodRange, statValue, statsFor, teamValue, type Range, type StatDef, type StatPeriod, type StatVal } from "../core/stats";
 import type { Player } from "../core/types";
 import type { UserPrefs } from "../data/api";
-import { shareTextFile } from "../data/files";
+import { fileSafe, shareTextFile } from "../data/files";
 import { useEngine, useStore } from "../data/store";
 import { ratingColor } from "./games";
 import { Icon } from "./icons";
@@ -328,8 +328,6 @@ export function SquadValueSheet({ visible, onClose, cat }: { visible: boolean; o
 // ---------- Seite ----------
 const POS = ["TW", "Abwehr", "Mittelfeld", "Sturm"] as const;
 /** Dateiname ohne Umlaute und Sonderzeichen (Teilen auf dem Handy, Excel) */
-const fileSafe = (x: string): string => x.replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/Ä/g, "Ae").replace(/Ö/g, "Oe").replace(/Ü/g, "Ue").replace(/ß/g, "ss")
-  .replace(/[^A-Za-z0-9_-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
 
 export function StatsScreen() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();

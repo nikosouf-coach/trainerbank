@@ -3913,6 +3913,69 @@ select tst.throws(format($q$insert into public.player_emergency (player_id, cont
 commit;
 
 -- =====================================================================
+-- T55 Größen: Spieler selbst und Trainerteam mit Recht Kader; Werte aus den Listen bzw. Bereichen
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$insert into public.player_sizes (player_id, top, bottom, shoes) values (%L, 'M', 'S', 42.5)$q$, tst.get('max')), 1, 'T55 Spieler trägt seine Größen ein');
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and updated_by = tst.uid('p1') from public.player_sizes where player_id = tst.get('max')::uuid), 'T55 Team und Konto setzt der Server');
+end $$;
+select tst.affects(format($q$insert into public.player_sizes (player_id, top, shoes, print_name) values (%L, 'L', 43, 'MAXI') on conflict (player_id) do update set top = excluded.top, shoes = excluded.shoes, print_name = excluded.print_name$q$, tst.get('max')), 1, 'T55 erneut speichern wie die App (upsert)');
+select tst.throws(format($q$insert into public.player_sizes (player_id, top) values (%L, 'M')$q$, tst.get('erik')), 'T55 nur für sich selbst', 'row-level security');
+select tst.throws(format($q$update public.player_sizes set top = 'XXXL' where player_id = %L$q$, tst.get('max')), 'T55 Kleidergröße aus der Liste', 'player_sizes_top_valid');
+select tst.throws(format($q$update public.player_sizes set bottom = 'm' where player_id = %L$q$, tst.get('max')), 'T55 Hose aus der Liste (Großbuchstaben)', 'player_sizes_bottom_valid');
+select tst.throws(format($q$update public.player_sizes set shoes = 42.3 where player_id = %L$q$, tst.get('max')), 'T55 Schuhe nur in halben Größen', 'player_sizes_shoes_valid');
+select tst.throws(format($q$update public.player_sizes set shoes = 51 where player_id = %L$q$, tst.get('max')), 'T55 Schuhe höchstens 50', 'player_sizes_shoes_valid');
+select tst.throws(format($q$update public.player_sizes set gloves = 3.5 where player_id = %L$q$, tst.get('max')), 'T55 Handschuhe ab 4', 'player_sizes_gloves_valid');
+select tst.throws(format($q$update public.player_sizes set print_name = %L where player_id = %L$q$, repeat('X', 21), tst.get('max')), 'T55 Beflockung höchstens 20 Zeichen', 'player_sizes_print_valid');
+select tst.throws(format($q$update public.player_sizes set print_name = %L where player_id = %L$q$, E'MAX\nI', tst.get('max')), 'T55 Beflockung ohne Zeilenumbruch', 'player_sizes_print_valid');
+select tst.throws(format($q$update public.player_sizes set note = '  ' where player_id = %L$q$, tst.get('max')), 'T55 Hinweis nicht leer', 'player_sizes_note_valid');
+select tst.throws(format($q$update public.player_sizes set top = null, bottom = null, shoes = null, gloves = null, print_name = null, note = null where player_id = %L$q$, tst.get('max')), 'T55 kein leerer Eintrag', 'player_sizes_not_empty');
+select tst.throws(format($q$update public.player_sizes set player_id = %L where player_id = %L$q$, tst.get('erik'), tst.get('max')), 'T55 Spieler lässt sich nicht wechseln', 'forbidden');
+select tst.affects(format($q$update public.player_sizes set gloves = 9.5, note = 'Hosen fallen klein aus' where player_id = %L$q$, tst.get('max')), 1, 'T55 Handschuhe und Hinweis');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_sizes)::text, '0', 'T55 Mitspieler sehen keine Größen');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select top || '/' || bottom || '/' || shoes::text || '/' || print_name from public.player_sizes where player_id = tst.get('max')::uuid), 'L/S/43.0/MAXI', 'T55 Recht Kader: Größen sichtbar');
+end $$;
+select tst.affects(format($q$insert into public.player_sizes (player_id, top, bottom, shoes) values (%L, 'XL', 'L', 45)$q$, tst.get('erik')), 1, 'T55 Trainerteam trägt Größen für einen Spieler ein');
+commit;
+update public.team_staff set perms = array['health']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_sizes)::text, '0', 'T55 ohne Recht Kader keine Größen');
+end $$;
+select tst.affects(format($q$update public.player_sizes set top = 'S' where player_id = %L$q$, tst.get('erik')), 0, 'T55 ohne Recht Kader keine Änderung');
+select tst.throws(format($q$insert into public.player_sizes (player_id, top) values (%L, 'M')$q$, tst.get('tom')), 'T55 ohne Recht Kader nichts eintragen', 'row-level security');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_sizes where team_id = tst.get('team_a')::uuid)::text, '0', 'T55 fremdes Trainerteam sieht keine Größen');
+end $$;
+select tst.throws(format($q$insert into public.player_sizes (player_id, top) values (%L, 'M')$q$, tst.get('tom')), 'T55 fremdes Trainerteam trägt nichts ein', 'row-level security');
+commit;
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -3930,7 +3993,8 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v11', 'T21b Exportformat v11');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v12', 'T21b Exportformat v12');
+  perform tst.eq(jsonb_array_length(x -> 'sizes')::text || '/' || (x -> 'sizes' -> 0 ->> 'top') || '/' || (x -> 'sizes' -> 0 ->> 'print_name'), '1/L/MAXI', 'T21b Export: eigene Größen');
   perform tst.eq(jsonb_array_length(x -> 'emergency_contacts')::text || '/' || jsonb_array_length(x -> 'emergency_contacts' -> 0 -> 'contacts')::text || '/' || jsonb_array_length(x -> 'emergency_notes')::text,
                  '1/2/1', 'T21b Export: Notfallkontakte und Hinweis');
   perform tst.eq(jsonb_array_length(x -> 'poll_answers')::text, '2', 'T21b Export: eigene Antworten aus Umfragen');

@@ -70,6 +70,8 @@ export function viewFor(D: TeamData, perms: ReadonlySet<Perm>, strip: boolean): 
     // Notfallkontakte mit „Kader“ oder „Gesundheitsdaten“, Hinweise (Gesundheitsdaten) nur mit „Gesundheitsdaten“
     if (!squad && !health) { V.emergency = {}; V.emergencyOk = false; }
     if (!health) V.emergencyMed = {};
+    // Größen gehören zum Recht „Kader“
+    if (!squad) { V.sizes = {}; V.sizesOk = false; }
   }
   return V;
 }

@@ -52,6 +52,11 @@ test("Sicht ohne Gesundheits-/Befund-/Notizrecht: Module aus, Demo-Daten ausgebl
   assert.equal(Object.keys(sq.emergency).length, 1); assert.deepEqual(sq.emergencyMed, {});
   assert.equal(Object.keys(he.emergency).length, 1); assert.equal(he.emergencyMed.p1, "Asthma");
   assert.deepEqual(no.emergency, {}); assert.deepEqual(no.emergencyMed, {});
+  // Größen nur mit „Kader“
+  D.sizes = { p1: { top: "M", bottom: "M", shoes: 43, gloves: null, print: "", note: "" } }; D.sizesOk = true;
+  assert.equal(viewFor(D, new Set(["squad"]), true).sizes.p1.top, "M");
+  const hs = viewFor(D, new Set(["health"]), true);
+  assert.deepEqual(hs.sizes, {}); assert.equal(hs.sizesOk, false, "ohne Recht: nichts als fehlend melden");
 });
 
 test("Benötigte Rechte für Team-Änderungen: nur echte Änderungen zählen", () => {

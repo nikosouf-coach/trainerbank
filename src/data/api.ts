@@ -3,7 +3,7 @@ import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "
 import type { ChatFolderPrefs } from "../core/chat";
 import type { StatPeriod } from "../core/stats";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -281,6 +281,8 @@ export interface Api {
   saveEmergency(pid: string, contacts: EmContact[]): Promise<EmContact[]>;
   /** Hinweise für den Notfall; leer = löschen */
   saveEmergencyMed(pid: string, note: string): Promise<string>;
+  /** Größen (Spieler: eigene; Trainerteam mit Recht „Kader“); alles leer = löschen (Ergebnis null) */
+  saveSizes(pid: string, s: PlayerSizes): Promise<PlayerSizes | null>;
   // Wochenchallenge
   saveChallenge(teamId: string, c: Challenge): Promise<Challenge>;
   deleteChallenge(id: string): Promise<void>;

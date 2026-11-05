@@ -10,7 +10,7 @@ export type IconName =
   | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people" | "scout" | "search" | "filter" | "up" | "down"
   | "board" | "ball" | "video" | "stopwatch" | "trend" | "whistle" | "sun" | "book" | "checklist" | "wallet" | "phone" | "shield" | "club"
   | "grid" | "key" | "sliders" | "help" | "pen" | "undo" | "redo" | "copy" | "layers" | "minus" | "curve" | "frame" | "note"
-  | "clock" | "heart" | "pulse" | "home" | "chart" | "export" | "weg" | "poll";
+  | "clock" | "heart" | "pulse" | "home" | "chart" | "export" | "weg" | "poll" | "shirt";
 
 const P: Record<IconName, React.ReactNode> = {
   heute: <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -87,6 +87,7 @@ const P: Record<IconName, React.ReactNode> = {
   weg: <><Path d="M4 21c4.5 0 9-1 9-3.8S6.5 14.2 6.5 11.5 10 7.5 15 8" /><Path d="M18 9.5V3l3.2 1.5L18 6" /></>,
   // Umfragen: Balken eines Ergebnisses mit Haken
   poll: <><Path d="M4 6h8" /><Path d="M4 12h14" /><Path d="M4 18h5" /><Path d="M14.5 17.5l2 2 3.5-4" /></>,
+  shirt: <Path d="M8.5 3.5L3 6.5l2 4.2 3-1.4V20.5h8V9.3l3 1.4 2-4.2-5.5-3c-.6 1.6-2 2.7-3.5 2.7s-2.9-1.1-3.5-2.7z" />,
 };
 
 export function Icon({ name, size = 22, color = "#000", strokeWidth = 1.8 }: { name: IconName; size?: number; color?: ColorValue; strokeWidth?: number }) {
