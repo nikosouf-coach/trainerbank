@@ -142,6 +142,8 @@ export interface Modules {
   entwicklung: boolean; challenge: boolean; chat: boolean;
   /** Größen & Ausrüstung (Spieler tragen ihre Größen ein, Bestellliste fürs Trainerteam) */
   ausruestung: boolean;
+  /** Fahrgemeinschaften zu Spielen und Terminen */
+  fahrten: boolean;
 }
 export interface Team {
   id: string;
@@ -483,6 +485,19 @@ export interface Nomination { matchId: string; pid: string; standby: boolean; an
 /** Kader aus Sicht eines Spielers (nur veröffentlicht und für alle sichtbar): Vorname und Initial, Nummer, Position */
 export interface SquadMate { pid: string; name: string; nr: number | null; pos: string; standby: boolean }
 
+// ---------- Fahrgemeinschaften ----------
+/** Wofür gefahren wird: ein Spiel oder ein Termin */
+export type RideKind = "match" | "event";
+/**
+ * Fahrt zu einem Spiel oder Termin: wer fährt (Spieler bzw. seine Eltern – driverPid – oder das Trainerteam, dann
+ * null), Bezeichnung („Mama von Luca“), freie Plätze, Abfahrt (Uhrzeit, Treffpunkt), Hinweis
+ */
+export interface Ride { id: string; kind: RideKind; refId: string; driverPid: string | null; driver: string; seats: number; time: string | null; place: string; note: string }
+/** Platz in einer Fahrt */
+export interface RideSeat { rideId: string; pid: string }
+/** Spieler sucht eine Mitfahrgelegenheit */
+export interface RideNeed { kind: RideKind; refId: string; pid: string }
+
 // ---------- Chat ----------
 export type ChatKind = "team" | "staff" | "group" | "direct" | "custom";
 export interface Chat {
@@ -695,6 +710,8 @@ export interface TeamData {
   /** Kader je Spiel (Trainerteam: alle; Spieler: veröffentlichte, in denen sie stehen oder die für alle sichtbar sind),
    *  Nominierungen (Trainerteam: alle; Spieler: eigene), Kaderlisten für Spieler (Schlüssel = Spiel) */
   squads: Record<string, MatchSquad>; noms: Nomination[]; squadMates: Record<string, SquadMate[]>;
+  /** Fahrgemeinschaften: Fahrten, Plätze, wer sucht; Namen (Vorname und Initial) für Spieler – das Trainerteam nimmt den Kader */
+  rides: Ride[]; rideSeats: RideSeat[]; rideNeeds: RideNeed[]; rideNames: Record<string, string>;
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -766,7 +783,7 @@ export function emptyTeamData(team: Team): TeamData {
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     programs: [], selfSkills: [], peerGifts: [], peerMates: [],
     polls: [], pollAnswers: [], pollResults: {},
-    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {},
+    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {}, rides: [], rideSeats: [], rideNeeds: [], rideNames: {},
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],

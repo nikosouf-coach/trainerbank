@@ -54,6 +54,9 @@
 - **Kader fürs Spiel:** Nominiert dich dein Trainerteam für ein Spiel, siehst du das auf der Startseite – mit Treffpunkt
   und, wenn das Trainerteam es freigibt, wer noch dabei ist (Vorname und Initial). Wer nicht nominiert ist, sieht
   nichts. Ist es erlaubt, sagst du in der App zu oder ab; den Grund einer Absage sieht nur das Trainerteam.
+- **Fahrgemeinschaften:** Für Auswärtsspiele und Termine kannst du Plätze anbieten (z. B. „Mama von Max fährt, 3 Plätze
+  frei, Abfahrt 13:15 am Vereinsheim“), bei einer Fahrt mitfahren oder Bescheid sagen, dass du eine Mitfahrgelegenheit
+  suchst. Das sehen alle in deinem Team – mit Vorname und Initial. Adressen und Telefonnummern gehören nicht hinein.
 - **Matchplan:** Gibt dein Trainerteam einen Matchplan frei, kannst du ihn bis Spielende ansehen. Er ist vertraulich:
   Er wird mit deinem Namen als Wasserzeichen angezeigt, und es wird festgehalten, wann du ihn geöffnet hast (und ob
   ein Screenshot erkannt wurde). Das Protokoll wird nach 6 Monaten gelöscht.
@@ -176,6 +179,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.43 | Notfallkontakte | **Notfallkontakt:** eine oder zwei Personen, die das Trainerteam im Notfall anruft – Name, Beziehung zu dir (z. B. Mutter, Vater, erziehungsberechtigte Person, Partner/in, Geschwister, Großeltern) und Telefonnummer –, dazu wer zuletzt geändert hat und wann. **Hinweise für den Notfall:** Freitext, z. B. Allergien, Asthma, Diabetes, Notfallmedikament und wo es liegt (Gesundheitsdaten) | du; das Trainerteam mit Recht „Kader“ (z. B. für Spieler ohne Konto), Hinweise mit Recht „Gesundheitsdaten“ | Notfallkontakt Pflicht beim Beitreten als Spieler; Hinweise freiwillig, Einwilligung erforderlich |
 | 4.44 | Größen & Ausrüstung | Größe für Oberteil und Hose, Schuhgröße, bei Torhütern Handschuhgröße, Name für die Beflockung, Hinweis (z. B. „fällt klein aus“), wer zuletzt geändert hat und wann; daraus erstellte Bestelllisten (CSV-Datei oder Text mit Rückennummer, Name, Beflockung und Größen) | du; das Trainerteam mit Recht „Kader“ (z. B. für Spieler ohne Konto) | freiwillig |
 | 4.45 | Kader-Nominierung | Spiel, im Kader oder auf Abruf, Treffpunkt (Uhrzeit, Ort) und Hinweis des Trainerteams, ob die Nominierten den Kader sehen, Zeitpunkt der Veröffentlichung; deine Zu- oder Absage mit freiwilligem Grund, Zeitpunkt und ob das Trainerteam die Antwort eingetragen hat | Trainerteam mit Recht „Planung“; du (Antwort) | Antwort freiwillig |
+| 4.46 | Fahrgemeinschaften | Spiel oder Termin, wer fährt (du bzw. deine Eltern – mit einer Bezeichnung wie „Mama von Max“ – oder das Trainerteam), Zahl der Plätze, Abfahrt (Uhrzeit, Ort), Hinweis; wer mitfährt; wer eine Mitfahrgelegenheit sucht; Zeitpunkte | du; das Trainerteam (zuordnen, eigene Fahrten); Fahrer (Suchende mitnehmen, Mitfahrer austragen) | freiwillig |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -298,6 +302,19 @@ ab; einen Grund für eine Absage musst du nicht angeben – bei Krankheit genüg
 Den Grund sieht nur das Trainerteam. Antworten kann auch das Trainerteam eintragen (z. B. wenn du persönlich Bescheid
 gibst); das ist dann so gekennzeichnet. Kader mit allen Antworten werden 12 Monate nach dem Spiel gelöscht.
 
+**Fahrgemeinschaften (4.46):** Damit alle zu Auswärtsspielen und Terminen kommen, bieten Spieler bzw. ihre Eltern Plätze
+an (wer fährt, wie viele Plätze frei sind, Abfahrt mit Uhrzeit und Ort, Hinweis), andere fahren mit oder sagen
+Bescheid, dass sie eine Mitfahrgelegenheit suchen. Das sehen alle in deinem Team (Trainerteam und Spieler mit Konto) –
+Spieler sehen die Namen nur mit Vorname und Initial des Nachnamens. Du trägst nur dich selbst ein oder aus und bietest
+nur deine eigene Fahrt an; wer fährt, kann Spieler mitnehmen, die eine Fahrt suchen, und Mitfahrer wieder austragen;
+das Trainerteam ordnet Spieler zu und kann eigene Fahrten anlegen sowie den Stand im Teamchat teilen. Fällt eine Fahrt
+aus oder wirst du ausgetragen, suchst du für das Spiel automatisch wieder eine Mitfahrgelegenheit – das ist für alle im
+Team sichtbar, du kannst es jederzeit beenden. Bitte trag keine Adressen, Telefonnummern oder Angaben zur Gesundheit ein;
+Absprachen gehören in den Chat. Wer eine Mitfahrgelegenheit sucht, wird am Tag nach dem Spiel bzw. Termin gelöscht, die
+Fahrten mit ihren Mitfahrern 30 Tage danach – vorher, wenn die Fahrt, das Spiel, der Termin oder dein Spielerprofil
+gelöscht wird. Die Fahrgemeinschaft ist eine Absprache unter euch; Trainerbank vermittelt keine Fahrten und ist nicht
+Beförderer.
+
 **Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
 geschafft haben, sowie die gemeinsame Summe – nicht deine Werte. Nur wenn das Trainerteam die Bestenliste einschaltet,
 erscheinen bei Bestleistungs-Challenges die drei besten Werte mit Vorname und Initial.
@@ -377,7 +394,7 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen, Größen und Bestelllisten, Kader-Nominierung | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42, 4.44, 4.45 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen, Größen und Bestelllisten, Kader-Nominierung, Fahrgemeinschaften | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42, 4.44–4.46 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
 | Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests, Angaben zum Schmerz (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26, 4.27 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
 | Übernahme der Belastung beim Hochziehen oder Wechsel innerhalb des Vereins (Gesundheitsdaten) | 4.36 | wie die Belastungssteuerung: ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO (gleicher Zweck; nur mit Recht „Gesundheitsdaten“ in beiden Teams) |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
@@ -547,6 +564,7 @@ bleibt unberührt.
 | deine Größen und der Name für die Beflockung | ja | mit Recht „Kader“ (auch als Bestellliste zum Weitergeben, z. B. an einen Ausrüster) | nein | nein |
 | deine Nominierung für ein Spiel | nach dem Veröffentlichen | ja (ändern mit Recht „Planung“) | wenn freigegeben: die anderen Nominierten (Vorname, Initial, Nummer, Position) | nein |
 | deine Zu- oder Absage und ihr Grund | ja | ja | nein | nein |
+| deine Fahrt (wer fährt, Plätze, Abfahrt, Hinweis), dass du mitfährst oder eine Mitfahrgelegenheit suchst | ja | ja (mit vollem Namen) | ja – mit Vorname und Initial | nein |
 | deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
 | deine Chat-Nachrichten | ja | in Chats, in denen das Trainerteam Mitglied ist; in Jugendteams auch Einzelchats Trainer–Spieler (Recht „Nachrichten“) | Mitglieder des jeweiligen Chats | nein |
@@ -775,6 +793,7 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Notfallkontakte und Hinweise für den Notfall | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Hinweise auch beim Widerruf der Einwilligung in Gesundheitsdaten |
 | Größen | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Exportierte Bestelllisten liegen beim Trainerteam bzw. beim Empfänger der Bestellung – dort gelten deren Löschfristen |
 | Kader-Nominierungen mit Zu- und Absagen | automatisch **12 Monate** nach dem Spiel; sonst mit dem Kader, dem Spiel, deinem Spielerprofil oder dem Team |
+| Fahrgemeinschaften | „sucht eine Mitfahrgelegenheit“ automatisch am **Tag nach** dem Spiel bzw. Termin; Fahrten mit Mitfahrern automatisch **30 Tage** danach; sofort beim Austragen bzw. Löschen der Fahrt; sonst mit dem Spiel, dem Termin, deinem Spielerprofil oder dem Team |
 | Wochenchallenge | mit der Challenge, dem Spielerprofil oder dem Team |
 | Anfragen für Individualtraining | automatisch 12 Monate nach Abschluss (zugesagt, abgesagt, zurückgezogen); offene mit dem Spielerprofil bzw. Team |
 | Chat-Nachrichten und Reaktionen | automatisch **24 Monate** nach dem Senden; sofort bei Löschung deines Kontos; gelöschte Nachrichten verlieren ihren Text sofort; Einzel- und eigene Chats auch, wenn alle Mitglieder sie verlassen |

@@ -4119,6 +4119,202 @@ do $$ begin
 end $$;
 
 -- =====================================================================
+-- T57 Fahrgemeinschaften: Lesen alle im Team, Schreiben nur über die Funktionen; Spieler nur eigene Fahrt bzw. sich
+--     selbst, Fahrer nehmen Suchende mit, Plätze nicht überbucht, Wechsel, Löschen mit erneuter Suche, Löschfrist
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.matches (team_id, date, time, opponent, home) values (tst.get('team_a')::uuid, current_date + 4, '15:00', 'T57 Auswärts', false) returning id)
+select tst.put('m57', id::text) from ins;
+with ins as (insert into public.matches (team_id, date, time, opponent, home) values (tst.get('team_a')::uuid, current_date - 2, '15:00', 'T57 vorbei', false) returning id)
+select tst.put('m57old', id::text) from ins;
+with ins as (insert into public.team_events (team_id, date, time, title, type) values (tst.get('team_a')::uuid, current_date + 6, '10:00', 'T57 Turnier', 'sonst') returning id)
+select tst.put('e57', id::text) from ins;
+do $$
+declare
+  r public.rides;
+begin
+  r := public.ride_save(null, 'match', tst.get('m57')::uuid, null, E'  Vereins\nbus  ', 2, '13:30', '  Vereinsheim ', '   ');
+  perform tst.put('r57bus', r.id::text);
+  perform tst.ok(r.team_id = tst.get('team_a')::uuid and r.ref_id = tst.get('m57')::uuid and r.event_id is null and r.driver_pid is null
+                 and r.driver_label = 'Vereins bus' and r.depart_time = '13:30' and r.depart_place = 'Vereinsheim' and r.note is null,
+                 'T57 Trainerteam legt eine Fahrt an (Texte bereinigt)');
+  perform public.ride_join(r.id, tst.get('tom')::uuid);
+  perform public.ride_need('match', tst.get('m57')::uuid, tst.get('erik')::uuid, true);
+  perform public.ride_need('match', tst.get('m57')::uuid, tst.get('erik')::uuid, true);
+  perform tst.eq((select count(*) from public.ride_seats where ride_id = r.id)::text || '/' || (select count(*) from public.ride_needs where ref_id = tst.get('m57')::uuid)::text,
+                 '1/1', 'T57 Trainerteam ordnet zu und trägt Suchende ein (doppelt nur einmal)');
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and ref_id = tst.get('m57')::uuid from public.ride_seats where ride_id = r.id), 'T57 Team und Ziel des Platzes setzt der Server');
+end $$;
+select tst.throws(format($q$insert into public.rides (team_id, match_id, seats) values (%L, %L, 3)$q$, tst.get('team_a'), tst.get('m57')), 'T57 kein direktes Anlegen', 'permission denied');
+select tst.throws(format($q$delete from public.ride_seats where ride_id = %L$q$, tst.get('r57bus')), 'T57 kein direktes Austragen', 'permission denied');
+select tst.throws(format($q$update public.ride_needs set player_id = %L$q$, tst.get('max')), 'T57 kein direktes Ändern', 'permission denied');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, null, null, 9, null, null, null)$q$, tst.get('m57')), 'T57 höchstens 8 Plätze', 'invalid_seats');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, null, null, 3, null, null, null)$q$, tst.get('m57old')), 'T57 keine Fahrt für vergangene Spiele', 'ride_past');
+select tst.throws(format($q$select public.ride_need('match', %L, %L, true)$q$, tst.get('m57old'), tst.get('tom')), 'T57 keine Suche für vergangene Spiele', 'ride_past');
+select tst.throws(format($q$select public.ride_save(null, 'event', %L, null, null, 3, null, null, null)$q$, tst.get('m57')), 'T57 Ziel muss zur Art passen', 'not_found');
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('p46b')), 'T57 nur Spieler des eigenen Teams', 'different_teams');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, %L, null, 3, null, null, null)$q$, tst.get('m57'), tst.get('p46b')), 'T57 Fahrer aus dem eigenen Team', 'different_teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare
+  r public.rides;
+begin
+  perform tst.eq((select count(*) from public.rides where ref_id = tst.get('m57')::uuid)::text || '/' || (select count(*) from public.ride_seats)::text || '/' || (select count(*) from public.ride_needs)::text,
+                 '1/1/1', 'T57 Spieler sehen Fahrten, Plätze und Suchende im Team');
+  perform tst.eq((select string_agg(name, ', ' order by name) from public.ride_names(tst.get('team_a')::uuid)), 'Erik B., Tom O.', 'T57 Namen der Beteiligten mit Vorname und Initial');
+  r := public.ride_save(null, 'match', tst.get('m57')::uuid, tst.get('max')::uuid, 'Mama von Max', 2, '13:15', 'Parkplatz am Vereinsheim', 'nur Hinfahrt');
+  perform tst.put('r57max', r.id::text);
+  perform tst.ok(r.driver_pid = tst.get('max')::uuid and r.seats = 2 and r.driver_label = 'Mama von Max' and r.note = 'nur Hinfahrt', 'T57 Spieler bietet die eigene Fahrt an');
+  perform public.ride_join(r.id, tst.get('erik')::uuid);
+  perform tst.eq((select count(*) from public.ride_needs where ref_id = tst.get('m57')::uuid)::text || '/' || (select count(*) from public.ride_seats where ride_id = r.id)::text,
+                 '0/1', 'T57 Fahrer nimmt einen Suchenden mit – der sucht nicht mehr');
+end $$;
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, %L, null, 3, null, null, null)$q$, tst.get('m57'), tst.get('erik')), 'T57 Spieler bieten keine Fahrt für andere an', 'forbidden');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, null, null, 3, null, null, null)$q$, tst.get('m57')), 'T57 Spieler legen keine Fahrt des Trainerteams an', 'forbidden');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, %L, null, 3, null, null, null)$q$, tst.get('m57'), tst.get('max')), 'T57 je Ziel nur eine eigene Fahrt', 'already_in_ride');
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('max')), 'T57 Fahrer fährt nicht zusätzlich mit', 'already_in_ride');
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57max'), tst.get('tom')), 'T57 Fahrer nimmt nur Suchende mit', 'forbidden');
+select tst.throws(format($q$select public.ride_leave(%L, %L)$q$, tst.get('r57bus'), tst.get('tom')), 'T57 Spieler tragen andere nicht aus', 'forbidden');
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('erik')), 'T57 Spieler ordnen niemanden der Fahrt des Trainerteams zu', 'forbidden');
+select tst.throws(format($q$select public.ride_delete(%L)$q$, tst.get('r57bus')), 'T57 Spieler löschen fremde Fahrten nicht', 'forbidden');
+select tst.throws(format($q$select public.ride_save(%L, 'match', %L, null, 'Bus', 2, null, null, null)$q$, tst.get('r57bus'), tst.get('m57')), 'T57 Spieler ändern fremde Fahrten nicht', 'forbidden');
+select tst.throws(format($q$select public.ride_need('match', %L, %L, true)$q$, tst.get('m57'), tst.get('tom')), 'T57 Spieler tragen andere nicht als suchend ein', 'forbidden');
+select tst.throws(format($q$select public.ride_need('match', %L, %L, true)$q$, tst.get('m57'), tst.get('max')), 'T57 Fahrer sucht nicht zusätzlich', 'already_in_ride');
+do $$ begin
+  perform public.ride_leave(tst.get('r57max')::uuid, tst.get('erik')::uuid, true);
+  perform tst.eq((select count(*) from public.ride_seats where ride_id = tst.get('r57max')::uuid)::text || '/' || (select count(*) from public.ride_needs where player_id = tst.get('erik')::uuid)::text,
+                 '0/1', 'T57 Fahrer trägt einen Mitfahrer aus – der sucht wieder');
+  perform public.ride_join(tst.get('r57max')::uuid, tst.get('erik')::uuid);
+  perform public.ride_save(tst.get('r57max')::uuid, 'match', tst.get('m57')::uuid, null, 'Mama von Max', 1, '13:20', 'Parkplatz', null);
+  perform tst.eq((select seats::text || '/' || depart_time || '/' || coalesce(note, '-') || '/' || driver_pid::text from public.rides where id = tst.get('r57max')::uuid),
+                 '1/13:20/-/' || tst.get('max'), 'T57 Fahrer ändert die eigene Fahrt (Fahrer bleibt)');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57max'), tst.get('p2_player')), 'T57 volle Fahrt', 'ride_full');
+do $$ begin
+  perform public.ride_join(tst.get('r57bus')::uuid, tst.get('p2_player')::uuid);
+  perform public.ride_join(tst.get('r57bus')::uuid, tst.get('p2_player')::uuid);
+  perform tst.eq((select count(*) from public.ride_seats where ride_id = tst.get('r57bus')::uuid)::text, '2', 'T57 Spieler fährt mit (zweimal = einmal)');
+end $$;
+select tst.throws(format($q$select public.ride_need('match', %L, %L, true)$q$, tst.get('m57'), tst.get('p2_player')), 'T57 Mitfahrer sucht nicht zusätzlich', 'already_in_ride');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, %L, null, 3, null, null, null)$q$, tst.get('m57'), tst.get('p2_player')), 'T57 Mitfahrer bietet nicht zusätzlich an', 'already_in_ride');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$select public.ride_save(%L, 'match', %L, null, 'Vereinsbus', 1, null, null, null)$q$, tst.get('r57bus'), tst.get('m57')), 'T57 Plätze nicht unter die Zahl der Mitfahrer', 'seats_taken');
+do $$ begin
+  perform public.ride_save(tst.get('r57max')::uuid, 'match', tst.get('m57')::uuid, null, 'Mama von Max', 3, '13:20', 'Parkplatz', null);
+  perform tst.eq((select seats::text from public.rides where id = tst.get('r57max')::uuid), '3', 'T57 Trainerteam ändert jede Fahrt');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform public.ride_join(tst.get('r57max')::uuid, tst.get('p2_player')::uuid);
+  perform tst.eq((select string_agg(ride_id::text, ',') from public.ride_seats where player_id = tst.get('p2_player')::uuid), tst.get('r57max'), 'T57 Wechsel gibt den alten Platz frei');
+  perform public.ride_leave(tst.get('r57max')::uuid, tst.get('p2_player')::uuid);
+  perform public.ride_need('match', tst.get('m57')::uuid, tst.get('p2_player')::uuid, true);
+  perform tst.eq((select count(*) from public.ride_seats where player_id = tst.get('p2_player')::uuid)::text || '/' || (select count(*) from public.ride_needs where player_id = tst.get('p2_player')::uuid)::text,
+                 '0/1', 'T57 austragen und Mitfahrgelegenheit suchen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform public.ride_join(tst.get('r57max')::uuid, tst.get('tom')::uuid);
+  perform tst.eq((select string_agg(ride_id::text, ',') from public.ride_seats where player_id = tst.get('tom')::uuid), tst.get('r57max'), 'T57 Trainerteam setzt einen Mitfahrer um');
+  perform tst.eq(public.ride_delete(tst.get('r57max')::uuid)::text, '2', 'T57 Fahrt gelöscht: ihre Mitfahrer suchen wieder');
+  perform tst.eq((select string_agg(p.first_name, ', ' order by p.first_name) from public.ride_needs n join public.players p on p.id = n.player_id where n.ref_id = tst.get('m57')::uuid),
+                 'Erik, Paul, Tom', 'T57 Suchende nach dem Löschen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare
+  r public.rides;
+begin
+  r := public.ride_save(null, 'event', tst.get('e57')::uuid, tst.get('max')::uuid, null, 2, null, null, null);
+  perform tst.put('r57ev', r.id::text);
+  perform tst.ok(r.event_id = tst.get('e57')::uuid and r.match_id is null and r.ref_id = tst.get('e57')::uuid and r.driver_label is null and r.depart_time is null,
+                 'T57 Fahrt zu einem Termin');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform public.ride_join(tst.get('r57ev')::uuid, tst.get('p2_player')::uuid);
+  perform tst.eq((select count(*) from public.ride_seats where ride_id = tst.get('r57ev')::uuid)::text, '1', 'T57 Mitfahren beim Termin');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.rides where team_id = tst.get('team_a')::uuid)::text || '/' || (select count(*) from public.ride_needs where team_id = tst.get('team_a')::uuid)::text
+                 || '/' || (select count(*) from public.ride_names(tst.get('team_a')::uuid))::text, '0/0/0', 'T57 fremdes Trainerteam sieht keine Fahrgemeinschaften');
+end $$;
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('tom')), 'T57 fremdes Trainerteam ordnet nicht zu', 'not_found');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, null, null, 3, null, null, null)$q$, tst.get('m57')), 'T57 fremdes Trainerteam legt keine Fahrt an', 'not_found');
+select tst.throws(format($q$select public.ride_delete(%L)$q$, tst.get('r57bus')), 'T57 fremdes Trainerteam löscht nichts', 'not_found');
+commit;
+
+begin;
+set local role anon;
+select tst.throws(format($q$select public.ride_names(%L)$q$, tst.get('team_a')), 'T57 anon darf ride_names nicht aufrufen', 'permission denied');
+select tst.throws(format($q$select count(*) from public.rides$q$), 'T57 anon liest keine Fahrten', 'permission denied');
+commit;
+
+update public.teams set modules = modules || '{"fahrten": false}'::jsonb where id = tst.get('team_a')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('p2_player')), 'T57 Modul aus: keine neuen Einträge', 'rides_off');
+do $$ begin
+  perform public.ride_need('match', tst.get('m57')::uuid, tst.get('p2_player')::uuid, false);
+  perform tst.eq((select count(*) from public.ride_needs where player_id = tst.get('p2_player')::uuid and ref_id = tst.get('m57')::uuid)::text, '0', 'T57 Modul aus: Suche beenden geht');
+end $$;
+commit;
+update public.teams set modules = modules - 'fahrten' where id = tst.get('team_a')::uuid;
+
+-- Löschfrist und Cascade (als Betreiber angelegt)
+with ins as (insert into public.matches (team_id, date, opponent, home) values (tst.get('team_a')::uuid, current_date - 40, 'T57 lange her', false) returning id)
+select tst.put('m57gone', id::text) from ins;
+insert into public.rides (team_id, match_id, seats) values (tst.get('team_a')::uuid, tst.get('m57gone')::uuid, 3), (tst.get('team_a')::uuid, tst.get('m57old')::uuid, 3);
+insert into public.ride_needs (team_id, match_id, player_id) values (tst.get('team_a')::uuid, tst.get('m57old')::uuid, tst.get('tom')::uuid);
+do $$ begin
+  perform tst.eq(public.purge_old_rides()::text, '2', 'T57 Löschfrist: alte Fahrt und vergangene Suche gelöscht');
+  perform tst.eq((select count(*) from public.rides where match_id = tst.get('m57gone')::uuid)::text || '/' || (select count(*) from public.rides where match_id = tst.get('m57old')::uuid)::text
+                 || '/' || (select count(*) from public.ride_needs where match_id = tst.get('m57old')::uuid)::text || '/' || (select count(*) from public.rides where match_id = tst.get('m57')::uuid)::text,
+                 '0/1/0/1', 'T57 Löschfrist: Fahrten 30 Tage, Suchen bis zum Tag, kommende bleiben');
+end $$;
+delete from public.matches where id in (tst.get('m57')::uuid, tst.get('m57old')::uuid, tst.get('m57gone')::uuid);
+do $$ begin
+  perform tst.eq((select count(*) from public.rides where match_id is not null and team_id = tst.get('team_a')::uuid)::text || '/' || (select count(*) from public.ride_needs where match_id is not null and team_id = tst.get('team_a')::uuid)::text
+                 || '/' || (select count(*) from public.ride_seats s where s.team_id = tst.get('team_a')::uuid and s.ref_id <> tst.get('e57')::uuid)::text, '0/0/0', 'T57 Spiel gelöscht: Fahrten, Plätze und Suchen weg');
+end $$;
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -4136,7 +4332,10 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v13', 'T21b Exportformat v13');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v14', 'T21b Exportformat v14');
+  perform tst.eq(jsonb_array_length(x -> 'rides_offered')::text || '/' || (x -> 'rides_offered' -> 0 ->> 'target') || '/' || (x -> 'rides_offered' -> 0 ->> 'passengers'),
+                 '1/T57 Turnier/1', 'T21b Export: eigene Fahrten als Fahrer (ohne Namen der Mitfahrer)');
+  perform tst.ok(jsonb_typeof(x -> 'ride_seats') = 'array' and jsonb_typeof(x -> 'ride_needs') = 'array', 'T21b Export enthält Plätze und Suchen');
   perform tst.eq(jsonb_array_length(x -> 'nominations')::text || '/' || (x -> 'nominations' -> 0 ->> 'answer') || '/' || (x -> 'nominations' -> 0 ->> 'opponent'), '1/yes/T56 FC', 'T21b Export: eigene Nominierungen');
   perform tst.eq(jsonb_array_length(x -> 'sizes')::text || '/' || (x -> 'sizes' -> 0 ->> 'top') || '/' || (x -> 'sizes' -> 0 ->> 'print_name'), '1/L/MAXI', 'T21b Export: eigene Größen');
   perform tst.eq(jsonb_array_length(x -> 'emergency_contacts')::text || '/' || jsonb_array_length(x -> 'emergency_contacts' -> 0 -> 'contacts')::text || '/' || jsonb_array_length(x -> 'emergency_notes')::text,

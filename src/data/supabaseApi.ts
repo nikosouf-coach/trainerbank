@@ -15,9 +15,10 @@ import { cleanPoll } from "../core/polls";
 import { cleanContacts, cleanMed } from "../core/emergency";
 import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { cleanReason, cleanSquad } from "../core/nomination";
+import { cleanRide } from "../core/rides";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate, Ride, RideKind,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -34,7 +35,8 @@ import { cleanCrew } from "../core/day";
 type Row = Record<string, any>;
 const KNOWN_CODES = ["invalid_years", "managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
   "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew", "peer_closed",
-  "polls_off", "poll_closed", "poll_answered", "invalid_answer", "answers_off", "match_started"];
+  "polls_off", "poll_closed", "poll_answered", "invalid_answer", "answers_off", "match_started",
+  "ride_full", "already_in_ride", "seats_taken", "ride_past", "rides_off", "invalid_seats"];
 /** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
 const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams", "feedback_rate", "open_polls", "polls"];
 
@@ -154,6 +156,7 @@ const mapNom = (r: Row): Nomination => ({
   reason: r.answer === "no" ? cleanReason(r.reason) : "", at: r.answered_at || null, byStaff: !!r.answered_by_staff,
 });
 const mapMate = (r: Row): SquadMate => ({ pid: r.player_id, name: String(r.name || ""), nr: r.nr == null ? null : Number(r.nr), pos: String(r.pos || ""), standby: !!r.standby });
+const mapRide = (r: Row): Ride => cleanRide({ id: r.id, kind: r.match_id ? "match" : "event", refId: r.match_id || r.event_id, driverPid: r.driver_pid, driver: r.driver_label || "", seats: r.seats, time: r.depart_time, place: r.depart_place || "", note: r.note || "" });
 // Größen (Schuhe und Handschuhe kommen als Zahl bzw. Text „42.5“)
 const mapSizes = (r: Row): PlayerSizes => cleanSizes({ top: r.top, bottom: r.bottom, shoes: r.shoes, gloves: r.gloves, print: r.print_name || "", note: r.note || "" });
 const mapPollAnswer = (r: Row): PollAnswer => ({ pollId: r.poll_id, pid: r.player_id, answers: r.answers || {}, at: r.updated_at || "" });
@@ -463,6 +466,21 @@ export class SupabaseApi implements Api {
         for (const r of sqs) D.squads[r.match_id] = mapSquad(r);
         D.noms = noms.map(mapNom);
         for (const r of mates || []) (D.squadMates[r.match_id] ||= []).push(mapMate(r));
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.fahrten !== false) {
+      // Fahrgemeinschaften: alle im Team; Namen der Beteiligten (Vorname und Initial) für Spieler vom Server
+      try {
+        const [rides, seats, needs, names] = await Promise.all([
+          all((a, b) => sb.from("rides").select("id, match_id, event_id, driver_pid, driver_label, seats, depart_time, depart_place, note").eq("team_id", tid).order("created_at").order("id").range(a, b)),
+          all((a, b) => sb.from("ride_seats").select("ride_id, player_id").eq("team_id", tid).order("created_at").order("player_id").range(a, b)),
+          all((a, b) => sb.from("ride_needs").select("match_id, event_id, player_id").eq("team_id", tid).order("created_at").order("id").range(a, b)),
+          staff ? Promise.resolve([] as Row[]) : q<Row[]>(sb.rpc("ride_names", { p_team: tid })),
+        ]);
+        D.rides = rides.map(mapRide);
+        D.rideSeats = seats.map(r => ({ rideId: String(r.ride_id), pid: String(r.player_id) }));
+        D.rideNeeds = needs.map(r => ({ kind: r.match_id ? "match" as const : "event" as const, refId: String(r.match_id || r.event_id), pid: String(r.player_id) }));
+        for (const r of names || []) D.rideNames[r.player_id] = String(r.name || "");
       } catch { /* optional: Rest der App lädt trotzdem */ }
     }
     if (D.team.modules.ausruestung !== false) {
@@ -998,6 +1016,19 @@ export class SupabaseApi implements Api {
   async answerNomination(matchId: string, _pid: string, answer: NomAnswer, reason: string) {
     return mapNom(await q<Row>(this.sb.rpc("answer_nomination", { p_match: matchId, p_answer: answer, p_reason: answer === "no" ? cleanReason(reason) || null : null })));
   }
+
+  // ---------- Fahrgemeinschaften (Regeln in der Datenbank: ride_save … ride_need) ----------
+  async saveRide(r: Ride) {
+    const x = cleanRide(r);
+    return mapRide(await q<Row>(this.sb.rpc("ride_save", {
+      p_id: x.id.startsWith("tmp-") ? null : x.id, p_kind: x.kind, p_ref: x.refId, p_driver_pid: x.driverPid, p_driver: x.driver || null,
+      p_seats: x.seats, p_time: x.time, p_place: x.place || null, p_note: x.note || null,
+    })));
+  }
+  async deleteRide(id: string) { return Number(await q<number | null>(this.sb.rpc("ride_delete", { p_id: id }))) || 0; }
+  async joinRide(rideId: string, pid: string) { await q(this.sb.rpc("ride_join", { p_ride: rideId, p_player: pid })); }
+  async leaveRide(rideId: string, pid: string, need: boolean) { await q(this.sb.rpc("ride_leave", { p_ride: rideId, p_player: pid, p_need: need })); }
+  async setRideNeed(kind: RideKind, refId: string, pid: string, on: boolean) { await q(this.sb.rpc("ride_need", { p_kind: kind, p_ref: refId, p_player: pid, p_on: on })); }
 
   // ---------- Größen & Ausrüstung ----------
   async saveSizes(pid: string, sizes: PlayerSizes) {

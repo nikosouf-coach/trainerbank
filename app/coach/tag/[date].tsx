@@ -20,6 +20,7 @@ import { GroupChip } from "../../../src/ui/squad/Groups";
 import { DayUnitsCard } from "../../../src/ui/units";
 import { CoachPlanCard } from "../../../src/ui/matchplan/cards";
 import { CoachSquadCard } from "../../../src/ui/nomination";
+import { RidesLink } from "../../../src/ui/rides";
 import { Icon } from "../../../src/ui/icons";
 import { radius, rpeColor, useTheme, withAlpha } from "../../../src/ui/theme";
 
@@ -85,11 +86,12 @@ export default function Trainingstag() {
         <Row wrap gap={6}>
           {E.mods.spielanalyse && date <= E.TODAY ? <Btn small kind="primary" label={t("sp_open")} onPress={() => router.push("/coach/spiel/" + x.match!.id)} /> : null}
           <CoachSquadCard match={x.match} compact />
+          <RidesLink area="coach" kind="match" refId={x.match.id} />
           <CoachPlanCard match={x.match} compact />
           {sess && E.mods.beteiligung ? <Btn small label={t("day_attOpen")} onPress={() => router.push("/coach/einheit/" + date)} /> : null}
         </Row>
       </Card> : null}
-      {x.events.map(e => <Card key={e.id} tone={c.event}><T bold>{t("it_event")}: {e.titel}</T>{e.zeit ? <Muted small>{e.zeit}</Muted> : null}</Card>)}
+      {x.events.map(e => <Card key={e.id} tone={c.event}><T bold>{t("it_event")}: {e.titel}</T>{e.zeit ? <Muted small>{e.zeit}</Muted> : null}<RidesLink area="coach" kind="event" refId={e.id} /></Card>)}
       {!tr && !x.match && !units.length ? <Banner testID="td-free">{x.brk ? t("vb_noTraining") : t("td_freeD")}</Banner> : null}
 
       {/* Einheiten des Tages (Mannschaftstraining + weitere Einheiten) */}

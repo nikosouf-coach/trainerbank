@@ -77,7 +77,7 @@ FÜR TRAINERINNEN UND TRAINER
 • Mehrere Einheiten am Tag, z. B. Athletik vor dem Mannschaftstraining oder eine Reha-Gruppe
 • Torhüter im Blick: Torwarttraining, Sprünge als Belastung, Gegentore, Paraden und Torwarttests
 • Trainingseindruck in Sekunden: nur besonders gute oder schwache Leistungen markieren
-• Kader fürs Spiel nominieren, Zu- und Absagen in der App, Anwesenheit in Sekunden
+• Kader fürs Spiel mit Zu- und Absagen, Fahrgemeinschaften, Anwesenheit in Sekunden
 • Abwesenheiten mit Grund und stufenweiser Rückkehr ins Training
 • Notfallkontakte jedes Spielers griffbereit – mit einem Tipp anrufen, auch ohne Netz
 • Größen für Trikots & Co.: Spieler tragen sie selbst ein, die Bestellliste entsteht automatisch
@@ -143,7 +143,7 @@ FOR COACHES
 • Several sessions per day, e.g. athletics before team training or a rehab group
 • Goalkeepers in focus: goalkeeper sessions, jumps as load, goals conceded, saves and goalkeeper tests
 • Training impressions in seconds: only mark particularly good or weak performances
-• Nominate the match squad, players say yes or no in the app, attendance in seconds
+• Match squad with yes/no replies, carpools to away games, attendance in seconds
 • Absences with reason and a step-by-step return to training
 • Every player's emergency contacts at hand – call with one tap, even offline
 • Kit sizes: players add their own, the order list builds itself
@@ -193,7 +193,7 @@ Legal notice: [Impressum-URL]
 ```
 <!-- desc-en:end -->
 
-Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE 3.919 Zeichen, EN 3.584 Zeichen. Für die Preisangabe
+Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE 3.920 Zeichen, EN 3.581 Zeichen. Für die Preisangabe
 bleiben statt des Platzhalters rund 150 Zeichen (DE) bzw. 430 Zeichen (EN) – vor dem Einreichen nachzählen.
 
 ### Formulierungsregeln für alle Store- und Werbetexte
@@ -335,7 +335,7 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Benutzerinhalte | Fotos oder Videos | ja | ja | nein | App-Funktionalität | optionales Profilfoto, Fotos von Befunden (Arztbriefe) |
 | Gesundheit & Fitness | Gesundheit (Ergänzung) | ja | ja | nein | App-Funktionalität | Befunde (Bild/PDF) und deren KI-Zusammenfassung, Leistungstests |
 | Benutzerinhalte | E-Mails oder Textnachrichten | ja | ja | nein | App-Funktionalität | Chat-Nachrichten, Reaktionen, Meldungen; Trainer-Nachrichten an Spieler |
-| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen, Selbsteinschätzung, Ziele, Gesprächsprotokolle, Entwicklungsprogramm, Selbstanalyse, Stärken-Runde, Antworten in Umfragen, Zu- und Absagen zu Kader-Nominierungen, Challenge-Einträge, Anfragen für Individualtraining |
+| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen, Selbsteinschätzung, Ziele, Gesprächsprotokolle, Entwicklungsprogramm, Selbstanalyse, Stärken-Runde, Antworten in Umfragen, Zu- und Absagen zu Kader-Nominierungen, Fahrgemeinschaften (angebotene Fahrten, Mitfahrer, Suchen), Challenge-Einträge, Anfragen für Individualtraining |
 | Identifikatoren | Benutzer-ID | ja | ja | nein | App-Funktionalität | Konto-ID |
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |

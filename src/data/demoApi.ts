@@ -12,8 +12,9 @@ import { cleanAnswers, cleanPoll, pollOpen, pollResult } from "../core/polls";
 import { cleanContacts, cleanMed } from "../core/emergency";
 import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { answersAllowed, applyAnswer, cleanSquad } from "../core/nomination";
+import { cleanRide } from "../core/rides";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -531,6 +532,12 @@ export class DemoApi implements Api {
     if (!answersAllowed(D.team, m, new Date())) throw new ApiError("match_started");
     return applyAnswer(n, answer, reason, new Date().toISOString(), false);
   }
+  // Fahrgemeinschaften: die Regeln prüft der Store vorab wie der Server (core/rides) – die Demo bestätigt nur
+  async saveRide(r: Ride) { this.net(); const x = cleanRide(r); return { ...x, id: newId(x.id) }; }
+  async deleteRide() { this.net(); return 0; }
+  async joinRide() { this.net(); }
+  async leaveRide() { this.net(); }
+  async setRideNeed() { this.net(); }
   /** Demo: Ergebnis wie der Server für das Trainerteam (die Spieler-Ansicht rechnet der Store mit eigener Sicht) */
   async pollResults(pollId: string) {
     const D = this.data, p = D?.polls.find(x => x.id === pollId);

@@ -40,6 +40,16 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `migrations/20261008…24_matchplan.sql` | Matchplan: `match_plans` (Inhalt, freigegebener Auszug, Zeitraum, nur Kader), `match_plan_views` (Zugriffsprotokoll, 6 Monate); Spieler nur über `my_match_plans`/`match_plan_open`/`match_plan_event`; Modul `matchplan`; `merge_players` v7, Export v6 |
 | `migrations/20261008…25_verein.sql` | Paket D – Verein: `clubs`, `club_staff`, `teams.club_id`, `team_staff.club_id` (Zugriff über den Verein, gespiegelt von `club_sync`, geschützt durch `team_staff_club_guard`), `players.linked_from`/`origin`; RPCs `club_create`, `club_link_team`, `club_unlink_team`, `club_join`, `club_set_staff`, `club_remove_staff`, `club_regenerate_codes`, `club_delete`, `my_clubs`, `club_staff_list`, `club_teams`, `club_overview`, `club_move_player`, `club_announce`, `team_staff_rights`; Export v7 |
 | `migrations/20261008…26_scouting.sql` | Paket E – Kaderplanung & Scouting: Recht `scout` (Standard für Owner/Trainer, im Verein Leitung/NLZ), `scout_lists`, `scout_players` (externe Spieler, keine Gesundheitsdaten, `informed_at` für Art. 14), `scout_reports` (Autor vom Server, neuer Bericht = Aktivität), `squad_plans` (eine Planung je Team und Saison); alles nur mit `staff_can(team,'scout')`; `club_risers(team, years)` (Aufrücker aus jüngeren Vereinsteams, nur Name/Position/Jahrgang/Team); Löschfristen (6/24 Monate, Saisonplanungen ab der übernächsten Saison) |
+| `migrations/20261008…27_individual_trainer.sql` | Individualtraining beim Wunsch-Trainer anfragen (`indiv_requests.ask_staff`); der angefragte Trainer sieht die Anfrage auch ohne Recht „Planung“ |
+| `migrations/20261008…28_zustaendigkeiten.sql` | Trainingstag: mehrere Zuständigkeiten je Block (`session_blocks.crew`, höchstens 6) |
+| `migrations/20261008…29_eigene_tests.sql` | Eigene Tests des Teams (`teams.settings.customTests`, Tests `c:<id>`), Richtung in `my_test_ranks` |
+| `migrations/20261008…30_rueckmeldungen.sql` | Rückmeldungen aus der App: `feedback`, `app_admins`, privater Bucket `feedback`, `feedback_list`/`feedback_set_done`/`feedback_delete`, `purge_old_feedback` (täglich) |
+| `migrations/20261105…01_entwicklungsprogramm.sql` | Entwicklungsprogramm: `dev_programs`, `dev_self`, `dev_peer_skills` (Stärken-Runde), `peer_targets`, `match_stats.pre_assists`; `merge_players` v8, Export v9, `purge_old_peer_skills` |
+| `migrations/20261105…02_umfragen.sql` | Umfragen: `polls`, `poll_answers`, `poll_results` (anonym ab drei Antworten), Spieler-Abstimmungen; `merge_players` v9, Export v10, `purge_old_polls` |
+| `migrations/20261105…03_notfallkontakte.sql` | Notfallkontakte: `player_emergency` (Kader oder Gesundheitsdaten), `player_emergency_med` (nur Gesundheitsdaten); `merge_players` v10, Export v11 |
+| `migrations/20261105…04_groessen.sql` | Größen & Ausrüstung: `player_sizes` (feste Listen und Bereiche, Recht „Kader“); `merge_players` v11, Export v12 |
+| `migrations/20261105…05_nominierung.sql` | Kader-Nominierung: `match_squads`, `match_nominations`, `answer_nomination`, `squad_mates`; `merge_players` v12, Export v13, `purge_old_squads` |
+| `migrations/20261105…06_fahrgemeinschaften.sql` | Fahrgemeinschaften: `rides`, `ride_seats`, `ride_needs` (lesen Team, schreiben nur über `ride_save`/`ride_delete`/`ride_join`/`ride_leave`/`ride_need`), `ride_names`; `merge_players` v13, Export v14, `purge_old_rides` |
 | `functions/chat-push` | Push bei neuen Chat-Nachrichten (vom Trigger per pg_net, Header `x-cron-secret`): Empfänger aus `chat_push_targets`, Titel/Text ohne Nachrichteninhalt (`_shared/chat.ts`), Versand über Expo (`_shared/expo.ts`) |
 | `functions/finding` | Befund-Auswertung: prüft Recht „Befunde“ (`staff_can(team,'medical')`) und Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
@@ -98,10 +108,15 @@ Zweiter Job (aus `…06_hardening.sql`): `purge-stale-health-data` täglich 03:3
 Zusatzsport-Einträge älter als 24 Monate sowie `push_log` und `ai_usage` älter als 30 Tage
 (`select public.purge_stale_health_data();` liefert die Anzahl gelöschter Zeilen).
 
+Weitere Löschfristen planen die Migrationen ebenfalls per `pg_cron` ein (täglich, nachts UTC), z. B.
+`purge-old-polls`, `purge-old-squads` und `purge-old-rides` (Suchen nach Fahrgemeinschaften am Tag nach dem Spiel,
+Fahrten 30 Tage danach). Fehlte `pg_cron` beim `db push`, meldet die Migration das per NOTICE – dann den
+`do $$ … cron.schedule(…) … $$`-Block am Ende der jeweiligen Migration im SQL-Editor ausführen.
+
 Kontrolle:
 
 ```sql
-select jobname, schedule, active from cron.job;   -- push-reminders, purge-stale-health-data
+select jobname, schedule, active from cron.job;   -- push-reminders, purge-stale-health-data, purge-old-… (Löschfristen)
 select status, return_message, start_time from cron.job_run_details order by start_time desc limit 5;
 select status_code, content from net._http_response order by created desc limit 5;
 ```

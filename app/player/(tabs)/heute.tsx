@@ -24,6 +24,7 @@ import { MyGoalsCard } from "../../../src/ui/dev";
 import { WegCard } from "../../../src/ui/program";
 import { PlayerPollsCard } from "../../../src/ui/polls";
 import { PlayerSquadCard } from "../../../src/ui/nomination";
+import { PlayerRidesCard } from "../../../src/ui/rides";
 import { PlayerEmergencyCard } from "../../../src/ui/emergency";
 import { PlayerPlansCard } from "../../../src/ui/matchplan/cards";
 import { radius, useTheme } from "../../../src/ui/theme";
@@ -59,6 +60,7 @@ export default function PlayerHeute() {
     ) : null,
     msgs: msgs.length ? <Col gap={10}>{msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}</Col> : null,
     squad: s.mySquads.length ? <PlayerSquadCard /> : null,
+    rides: <PlayerRidesCard />,
     polls: s.myPolls.length ? <PlayerPollsCard onAll={() => router.push("/player/umfragen")} /> : null,
     reha: <PlayerRehaCard pid={p.id} />,
     plan: <PlayerPlansCard />,
@@ -76,7 +78,7 @@ export default function PlayerHeute() {
     badges: <Badges g={g} compact />,
   };
   const available = (k: string): boolean => ({ todo: !!E.mods.belastung, body: seesLoad && (!!E.mods.belastung || !!E.mods.regeneration), challenge: !!E.mods.challenge,
-    devgoals: E.playerSees("dev"), weg: E.playerSees("dev"), pot: E.playerSees("goals") } as Record<string, boolean>)[k] ?? true;
+    devgoals: E.playerSees("dev"), weg: E.playerSees("dev"), pot: E.playerSees("goals"), rides: E.mods.fahrten !== false } as Record<string, boolean>)[k] ?? true;
 
   return (
     <Screen testID="player-heute">

@@ -1,5 +1,5 @@
 // Startseite Trainer: „Spieltag-Check“ fürs nächste Spiel (bis 7 Tage vorher) – alles, was vor dem Anpfiff
-// organisiert sein muss, auf einen Blick: Matchplan (angelegt, freigegeben, gesehen), Aufstellung, Ausfälle,
+// organisiert sein muss, auf einen Blick: Kader, Fahrgemeinschaften (auswärts), Matchplan (angelegt, freigegeben, gesehen), Aufstellung, Ausfälle,
 // Belastung (überlastete Spieler dosieren), Dienste am Spieltag und offene Aufgaben. Jede Zeile führt direkt hin.
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
@@ -7,10 +7,12 @@ import { Pressable, Text, View } from "react-native";
 import { addDays } from "../core/dates";
 import { changedSincePublish, seenStats, shareState, squadOf } from "../core/matchplan";
 import { nomsOf, squadCounts } from "../core/nomination";
+import { needsOf, rideActive, rideSummary } from "../core/rides";
 import { useEngine } from "../data/store";
 import { Card, Col, Row, T } from "./kit";
 import { Icon } from "./icons";
 import { dutyName } from "./tasks/widgets";
+import { ridesHref, summaryText } from "./rides";
 import { radius, useTheme, withAlpha } from "./theme";
 
 type State = "ok" | "todo" | "warn" | "info";
@@ -42,6 +44,13 @@ export function useMatchdayChecks(): { m: ReturnType<typeof useNextMatch>; check
       else if (answersOn && k.no) L.push({ k: "squad", state: "warn", title: tf("md_squadNo", { n: k.no }), sub: names(noms.filter(n => n.answer === "no").map(n => n.pid)), href });
       else if (answersOn && k.open) L.push({ k: "squad", state: "todo", title: tf("md_squadOpen", { o: k.open }), sub: tf("nm_answerLine", { y: k.yes, n: k.no, o: k.open }), href });
       else L.push({ k: "squad", state: "ok", title: t("md_squadOk"), sub: tf("nm_countLine", { s: k.squad, b: k.standby }), href });
+    }
+    // Fahrgemeinschaften (Auswärtsspiel oder schon Fahrten): Suchende, noch keine Fahrten, steht
+    if (E.mods.fahrten !== false && (!m.heim || rideActive(E.D, m.id))) {
+      const sum = rideSummary(E.D, m.id), need = needsOf(E.D, m.id), href = ridesHref("coach", { kind: "match", id: m.id });
+      if (need.length) L.push({ k: "rides", state: "warn", title: need.length === 1 ? t("md_ridesNeed1") : tf("md_ridesNeed", { n: need.length }), sub: names(need), href });
+      else if (!sum.rides) L.push({ k: "rides", state: "todo", title: t("md_ridesNone"), sub: t("md_ridesNoneSub"), href });
+      else L.push({ k: "rides", state: "ok", title: t("md_ridesOk"), sub: summaryText(E, sum), href });
     }
     // Matchplan
     if (E.mods.matchplan) {

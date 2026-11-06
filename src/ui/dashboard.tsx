@@ -12,7 +12,7 @@ import { radius, useTheme } from "./theme";
  * wichtig“ (bündelt Spieltag-Check, Posteingang, Aufgaben, Überlastung), Belastung im Team, die Woche und laufende
  * Umfragen (nur wenn es welche gibt) – die ausführlichen Karten lassen sich unter „Startseite anpassen“ dazuschalten.
  */
-export const DASH_COACH = ["next", "squad", "focus", "status", "week", "polls", "phase", "ai", "matchday", "tasks", "inbox", "attn", "absent", "events", "last", "load"] as const;
+export const DASH_COACH = ["next", "squad", "rides", "focus", "status", "week", "polls", "phase", "ai", "matchday", "tasks", "inbox", "attn", "absent", "events", "last", "load"] as const;
 export type DashKey = typeof DASH_COACH[number];
 /**
  * Karten der Spieler-Startseite – nach Wichtigkeit: erst was heute zu tun ist (Einträge, Körper, Nachrichten, offene
@@ -20,7 +20,7 @@ export type DashKey = typeof DASH_COACH[number];
  * dann Plan, nächster Termin, Aufgaben, „Mein Weg“ (Entwicklungsprogramm), Bewertung, Programm und eine Kurzübersicht
  * (Challenge, Ziele, Woche, Kasse); die ausführlichen Karten dazu sind standardmäßig aus.
  */
-export const DASH_PLAYER = ["todo", "body", "msgs", "squad", "polls", "reha", "plan", "dates", "tasks", "weg", "rating", "program", "quick", "challenge", "devgoals", "pot", "rings", "kasse", "badges"] as const;
+export const DASH_PLAYER = ["todo", "body", "msgs", "squad", "rides", "polls", "reha", "plan", "dates", "tasks", "weg", "rating", "program", "quick", "challenge", "devgoals", "pot", "rings", "kasse", "badges"] as const;
 /** Standardmäßig aus (Details – auf Wunsch zuschaltbar) */
 const DEF_OFF: Record<"coach" | "player", string[]> = {
   coach: ["matchday", "tasks", "inbox", "attn", "absent", "events", "last", "load"],

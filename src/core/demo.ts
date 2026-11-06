@@ -17,6 +17,7 @@ import { cleanPoll, pollTemplates } from "./polls";
 import { cleanContacts } from "./emergency";
 import { cleanSizes } from "./sizes";
 import { absentOn, cleanSquad, squadMatesOf, squadSort } from "./nomination";
+import { defaultDepart } from "./rides";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -247,6 +248,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoEmergency(D, lang);
   demoSizes(D, lang, now);
   demoSquads(D, lang, now);
+  demoRides(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -831,6 +833,33 @@ function demoSquads(D: TeamData, lang: Lang, now: Date): void {
     });
   });
   D.squadMates[m.id] = squadMatesOf(D, m.id);
+}
+
+/**
+ * Fahrgemeinschaften zum nächsten Auswärtsspiel: zwei Fahrten von Eltern und eine des Trainerteams mit Mitfahrern (am
+ * Tag nicht abwesend), zwei Spieler suchen noch; p17 hat noch nichts eingetragen (zeigt die Karte auf „Heute“).
+ */
+function demoRides(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", TODAY = iso(now), tr = translator(lang);
+  const m = D.matches.filter(x => x.date >= TODAY && !x.heim && !x.result).sort((a, b) => (a.date + a.zeit < b.date + b.zeit ? -1 : 1))[0];
+  if (!m) return;
+  const ok = (pid: string) => { const p = D.players.find(x => x.id === pid); return !!p && p.active !== false && !absentOn(D, pid, m.date); };
+  const used = new Set<string>(["p17"]);
+  const take = (pref: string[], n: number): string[] => {
+    const out: string[] = [];
+    for (const pid of [...pref, ...D.players.map(p => p.id)]) { if (out.length >= n) break; if (!used.has(pid) && ok(pid)) { out.push(pid); used.add(pid); } }
+    return out;
+  };
+  const time = defaultDepart({ kind: "match", time: m.zeit, away: true }) || null, place = en ? "Clubhouse car park" : "Parkplatz am Vereinsheim";
+  const ride = (id: string, driverPid: string | null, driver: string, seats: number, note: string, pax: string[]) => {
+    D.rides.push({ id, kind: "match", refId: m.id, driverPid, driver, seats, time, place, note });
+    for (const pid of pax) D.rideSeats.push({ rideId: id, pid });
+  };
+  const [d1] = take(["p10"], 1), [d2] = take(["p4"], 1);
+  if (d1) ride("dr1", d1, tr.tf("fg_mumOf", { n: D.players.find(p => p.id === d1)!.vn }), 3, en ? "Straight back after the match" : "Rückfahrt direkt nach dem Spiel", take(["p12", "p14"], 2));
+  if (d2) ride("dr2", d2, "", 4, "", take(["p6", "p9"], 2));
+  ride("dr3", null, "", 3, en ? "Please be on time." : "Bitte pünktlich sein.", take(["p3", "p7"], 2));
+  for (const pid of take(["p19", "p21"], 2)) D.rideNeeds.push({ kind: "match", refId: m.id, pid });
 }
 
 /** Größen: die meisten Spieler haben sie eingetragen (passend zum Alter), drei fehlen, einer ist unvollständig */

@@ -19,13 +19,14 @@ import { cleanPoll, pollsFor, sortPolls } from "../core/polls";
 import { cleanContacts, cleanMed } from "../core/emergency";
 import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { applyAnswer, cleanSquad, mySquads as mySquadsOf, squadMatesOf, type MySquad } from "../core/nomination";
+import { applyRide, cleanRide, dropRideRef, rideCheck, rideName, type RideOp } from "../core/rides";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -367,6 +368,22 @@ function useStoreValue() {
     await changeOk(local, remote, opts);
   }, [changeOk]);
 
+  // Fahrgemeinschaften: eigene Spielerzeile (Demo: gewählter Spieler), Name für Hinweise; erst prüfen wie der Server
+  // (sonst Hinweis, nichts ändern), dann lokal anwenden und senden
+  const rideMe = (): string | null => ref.current.api.kind === "demo" ? ref.current.demoPlayer : ref.current.active?.playerId || null;
+  const rideWho = (pid: string): string => { const D = ref.current.D; return D ? rideName(D, pid, asStaff()) : ""; };
+  const rideRun = async (op: RideOp, remote: (api: Api) => Promise<unknown>, ok: (tr0: Translator, n: number) => string): Promise<boolean> => {
+    const { D, lang } = ref.current; if (!D) return false;
+    const today = iso(new Date()), tr0 = translator(lang);
+    const err = rideCheck(D, op, { staff: asStaff(), me: rideMe() }, today);
+    if (err) { toast(tr0.t("err_" + err)); return false; }
+    const msg = ok(tr0, 0);
+    let n = 0;
+    const done = await changeOk(D2 => { n = applyRide(D2, op, today); }, api => remote(api));
+    if (done) toast(op.k === "delete" ? ok(tr0, n) : msg);
+    return done;
+  };
+
   /** Eintrag senden (an das jeweilige Api) – gibt bei neuen Datensätzen den gespeicherten Stand zurück */
   async function exec(api: Api, teamId: string, o: OutboxOp): Promise<Extra | Absence | void> {
     const sid = (id: string): string => id.startsWith("c-") ? id.slice(2) : id;
@@ -701,10 +718,10 @@ function useStoreValue() {
     // Kalender & Plan
     saveMatch: (m: Match) => { const isNew = m.id.startsWith("tmp-"); return change(D => { if (isNew) D.matches.push(m); else Object.assign(D.matches.find(x => x.id === m.id)!, m); D.matches.sort((a, b) => a.date < b.date ? -1 : 1); },
       async (api, id) => { const saved = await api.saveMatch(id, m); replaceIn(ref.current.D!.matches, m, saved); }, { plan: true }); },
-    deleteMatch: (id: string) => change(D => { D.matches = D.matches.filter(x => x.id !== id); }, (api, t) => api.deleteMatch(t, id), { plan: true }),
+    deleteMatch: (id: string) => change(D => { D.matches = D.matches.filter(x => x.id !== id); delete D.squads[id]; D.noms = D.noms.filter(n => n.matchId !== id); dropRideRef(D, id); }, (api, t) => api.deleteMatch(t, id), { plan: true }),
     saveEvent: (e: TeamEvent) => { const isNew = e.id.startsWith("tmp-"); return change(D => { if (isNew) D.events.push(e); else Object.assign(D.events.find(x => x.id === e.id)!, e); },
       async (api, id) => { const saved = await api.saveEvent(id, e); replaceIn(ref.current.D!.events, e, saved); }, { plan: true }); },
-    deleteEvent: (id: string) => change(D => { D.events = D.events.filter(x => x.id !== id); }, (api, t) => api.deleteEvent(t, id), { plan: true }),
+    deleteEvent: (id: string) => change(D => { D.events = D.events.filter(x => x.id !== id); dropRideRef(D, id); }, (api, t) => api.deleteEvent(t, id), { plan: true }),
     setCal: (date: string, ov: CalOverride | null) => change(D => { if (ov) D.cal[date] = ov; else delete D.cal[date]; }, (api, t) => api.setCal(t, date, ov), { plan: true }),
     setOver: (date: string, ov: PlanOverride | null) => change(D => { if (ov) D.over[date] = ov; else delete D.over[date]; }, (api, t) => api.setOver(t, date, ov), { plan: true }),
     setWeekMode: (ws: string, mode: WeekMode) => change(D => { if (mode === "normal") delete D.wkMode[ws]; else D.wkMode[ws] = mode; }, (api, t) => api.setWeekMode(t, ws, mode), { plan: true }),
@@ -1066,6 +1083,28 @@ function useStoreValue() {
       for (const pid of pids) await actions.saveMessage(pid, { id: tmpId(), date: today, typ: "info", text, bis: until < today ? today : until });
       toast(tr0.t("nm_reminded"));
     },
+
+    // ---------- Fahrgemeinschaften ----------
+    /** Fahrt anbieten bzw. ändern (Spieler: eigene; Trainerteam: alle) */
+    saveRide: (r: Ride) => {
+      const x = cleanRide(r), isNew = x.id.startsWith("tmp-"), staff = asStaff();
+      return rideRun({ k: "save", ride: x }, async api => {
+        const saved = await api.saveRide(x), D = ref.current.D;
+        if (D) { const i = D.rides.findIndex(y => y.id === x.id); if (i >= 0) D.rides[i] = saved; else D.rides.push(saved); }
+      }, tr0 => tr0.t(!isNew ? "fg_saved" : staff ? "fg_added" : "fg_offered"));
+    },
+    /** Fahrt löschen (Trainerteam oder der Fahrer) – Mitfahrer kommender Ziele suchen wieder */
+    deleteRide: (id: string) => rideRun({ k: "delete", id }, api => api.deleteRide(id),
+      (tr0, n) => n ? (n === 1 ? tr0.t("fg_deleted1") : tr0.tf("fg_deletedN", { n })) : tr0.t("fg_deleted")),
+    /** Mitfahren bzw. zuordnen (wechselt ggf. aus einer anderen Fahrt zum selben Ziel) */
+    joinRide: (rideId: string, pid: string) => rideRun({ k: "join", rideId, pid }, api => api.joinRide(rideId, pid),
+      tr0 => pid === rideMe() ? tr0.t("fg_joined") : tr0.tf("fg_joinedN", { n: rideWho(pid) })),
+    /** Austragen; need: sucht danach wieder (wenn andere austragen) */
+    leaveRide: (rideId: string, pid: string, need = false) => rideRun({ k: "leave", rideId, pid, need }, api => api.leaveRide(rideId, pid, need),
+      tr0 => pid === rideMe() ? tr0.t("fg_left") : tr0.tf(need ? "fg_removedNeed" : "fg_removed", { n: rideWho(pid) })),
+    /** Mitfahrgelegenheit suchen bzw. nicht mehr suchen */
+    setRideNeed: (kind: RideKind, refId: string, pid: string, on: boolean) => rideRun({ k: "need", kind, refId, pid, on }, api => api.setRideNeed(kind, refId, pid, on),
+      tr0 => on ? (pid === rideMe() ? tr0.t("fg_needOnT") : tr0.tf("fg_needOnN", { n: rideWho(pid) })) : tr0.t("fg_needOffT")),
 
     // ---------- Größen & Ausrüstung ----------
     /** Größen eines Spielers speichern (Spieler: eigene; Trainerteam: Recht „Kader“); alles leer = löschen */

@@ -3,7 +3,7 @@ import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "
 import type { ChatFolderPrefs } from "../core/chat";
 import type { StatPeriod } from "../core/stats";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -293,6 +293,17 @@ export interface Api {
   setNomAnswer(matchId: string, pid: string, answer: NomAnswer | null, reason: string): Promise<Nomination>;
   /** Antwort des Spielers (eigene Nominierung – der Server bestimmt den Spieler; pid nur für die Demo) */
   answerNomination(matchId: string, pid: string, answer: NomAnswer, reason: string): Promise<Nomination>;
+  // Fahrgemeinschaften (Schreiben nur über die Funktionen der Datenbank; Regeln: core/rides)
+  /** Fahrt anlegen bzw. ändern – Spieler nur die eigene, das Trainerteam alle; Ziel und Fahrer bleiben beim Ändern */
+  saveRide(r: Ride): Promise<Ride>;
+  /** Fahrt löschen; Mitfahrer kommender Ziele suchen danach wieder (Ergebnis: wie viele) */
+  deleteRide(id: string): Promise<number>;
+  /** Mitfahren (Trainerteam: jeden zuordnen; Spieler: sich selbst; Fahrer: Suchende mitnehmen) – Wechsel gibt den alten Platz frei */
+  joinRide(rideId: string, pid: string): Promise<void>;
+  /** Austragen (Trainerteam, der Spieler selbst oder der Fahrer); need: sucht danach wieder */
+  leaveRide(rideId: string, pid: string, need: boolean): Promise<void>;
+  /** Mitfahrgelegenheit suchen bzw. nicht mehr suchen (Trainerteam oder der Spieler selbst) */
+  setRideNeed(kind: RideKind, refId: string, pid: string, on: boolean): Promise<void>;
   // Wochenchallenge
   saveChallenge(teamId: string, c: Challenge): Promise<Challenge>;
   deleteChallenge(id: string): Promise<void>;
