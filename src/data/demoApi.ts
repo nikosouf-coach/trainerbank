@@ -15,9 +15,11 @@ import { answersAllowed, applyAnswer, cleanSquad } from "../core/nomination";
 import { cleanRide } from "../core/rides";
 import { cleanSuspension } from "../core/cards";
 import { cleanAccident } from "../core/accidents";
-import { cleanPhotoConsent } from "../core/photos";
+import { cleanPhotoConsent, PHOTO_CHANNELS } from "../core/photos";
+import { cleanPost, DEMO_PARENT, isMinor } from "../core/parents";
+import { emptyTeamData } from "../core/types";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, Suspension, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile, PhotoConsent, Accident } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, Suspension, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile, PhotoConsent, Accident, AbsenceType, ParentPost } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -544,6 +546,104 @@ export class DemoApi implements Api {
   // Karten & Sperren
   async saveSuspension(_t: string, s: Suspension) { this.net(); const x = cleanSuspension(s); return { ...x, id: newId(x.id) }; }
   async deleteSuspension() { this.net(); }
+  // ---------- Eltern-Zugang (Demo: Elternteil „demo-parent“, verknüpft mit einem minderjährigen Spieler) ----------
+  private parentConsent: Record<string, { parental: boolean; health: boolean }> = {};
+  private parentAbs = new Set<string>();
+  async guardianChildren() {
+    this.net();
+    const D = this.mainTeam(), today = iso(new Date());
+    return D.guardians.filter(g => g.userId === DEMO_PARENT).map(g => {
+      const p = D.players.find(x => x.id === g.pid);
+      return { linkId: g.id, pid: g.pid, vn: p?.vn || "", nn: p?.nn || "", teamId: "demo", team: D.team.name, club: D.team.club, cls: D.team.cls,
+        status: g.status, relation: g.relation, access: g.status === "active" && (g.adultOk || isMinor(p, today)) && D.team.modules.eltern !== false, off: D.team.modules.eltern === false };
+    });
+  }
+  async guardianChildData(pid: string) {
+    this.net();
+    const S = this.mainTeam(), today = iso(new Date()), from = addDays(today, -14), to = addDays(today, 60);
+    if (!S.guardians.some(g => g.pid === pid && g.userId === DEMO_PARENT && g.status === "active")) throw new ApiError("not_found");
+    const p = S.players.find(x => x.id === pid);
+    if (!p) throw new ApiError("not_found");
+    const D = emptyTeamData({ ...S.team, joinCode: "", staffCode: "" });
+    D.players = [{ ...p, kg: null, photo: null, groups: [] }];
+    D.matches = S.matches.filter(m => m.date >= from && m.date <= to).map(m => ({ ...m, result: null }));
+    D.events = S.events.filter(e => e.date >= from && e.date <= to);
+    for (const [d, v] of Object.entries(S.cal)) if (d >= from && d <= to) D.cal[d] = { ...v };
+    D.phases = S.phases.filter(x => x.kind === "break" && x.vis && x.to >= from && x.from <= to).map(x => ({ ...x, weeks: {}, program: [], note: "" }));
+    // wie der Server: Krankheit bzw. Verletzung nur bei eigenen Abmeldungen, sonst nur „abwesend“
+    const hide = (a: Absence) => !this.parentAbs.has(a.id) && (a.typ === "krank" || a.typ === "verletzung");
+    const mine = S.absences.filter(a => a.pid === pid && (a.bis || to) >= from && a.von <= to);
+    D.absences = mine.map(a => ({ ...a, typ: hide(a) ? "sonst" as const : a.typ, stufe: null, notiz: "", area: undefined }));
+    D.noms = S.noms.filter(n => n.pid === pid && S.squads[n.matchId]?.published && D.matches.some(m => m.id === n.matchId && m.date >= addDays(today, -1))).map(n => ({ ...n }));
+    for (const n of D.noms) D.squads[n.matchId] = { ...S.squads[n.matchId], showAll: false };
+    if (S.photos[pid]) D.photos[pid] = { ...S.photos[pid] };
+    const posts = S.parentPosts.map(x => { const r = S.parentReads.find(y => y.postId === x.id && y.userId === DEMO_PARENT); return { ...x, readAt: r?.readAt ?? null, ackedAt: r?.ackedAt ?? null }; });
+    return { D, consents: { ...(this.parentConsent[pid] || { parental: false, health: false }) }, posts, guardians: S.guardians.filter(g => g.pid === pid).length,
+      mineAbs: D.absences.filter(a => this.parentAbs.has(a.id)).map(a => a.id), awayAbs: mine.filter(hide).map(a => a.id),
+      parentAbs: D.absences.filter(a => this.parentAbs.has(a.id)).map(a => a.id) };
+  }
+  async guardianRedeem(): Promise<{ vn: string; team: string }> { this.net(); throw new ApiError("demo"); }
+  async guardianAbsence(pid: string, a: { typ: AbsenceType; von: string; bis: string | null }) {
+    this.net();
+    if (a.typ === "krank" && !this.parentConsent[pid]?.health) throw new ApiError("consent_required");
+    const x: Absence = { id: newId(""), pid, typ: a.typ, von: a.von, bis: a.bis || a.von, stufe: null, notiz: "", by: "player" };
+    this.mainTeam().absences.push(x); this.parentAbs.add(x.id);
+    return x;
+  }
+  async guardianAbsenceDelete(id: string) { this.net(); const S = this.mainTeam(); S.absences = S.absences.filter(a => a.id !== id); this.parentAbs.delete(id); }
+  async guardianAnswer(matchId: string, pid: string, answer: NomAnswer, reason: string) {
+    this.net();
+    const n = this.mainTeam().noms.find(x => x.matchId === matchId && x.pid === pid);
+    if (!n) throw new ApiError("not_found");
+    Object.assign(n, { answer, reason: answer === "no" ? reason.trim().slice(0, 200) : "", at: new Date().toISOString(), byStaff: false, byGuardian: true });
+  }
+  async guardianConsent(pid: string, kind: "parental" | "health_data", give: boolean) {
+    this.net();
+    const c = this.parentConsent[pid] ||= { parental: false, health: false };
+    if (kind === "parental") c.parental = give; else c.health = give;
+    this.mainTeam().guardianConsents[pid] = { ...c };
+  }
+  async parentPostRead(postId: string, ack: boolean) {
+    this.net();
+    const S = this.mainTeam(), now = new Date().toISOString(), r = S.parentReads.find(x => x.postId === postId && x.userId === DEMO_PARENT);
+    if (r) { if (ack && !r.ackedAt) r.ackedAt = now; } else S.parentReads.push({ postId, userId: DEMO_PARENT, readAt: now, ackedAt: ack ? now : null });
+  }
+  async guardianRemove(linkId: string) { this.net(); const S = this.mainTeam(); S.guardians = S.guardians.filter(g => g.id !== linkId); }
+  async guardianInvite(_pid: string) {
+    this.net();
+    const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789", c = Array.from({ length: 10 }, () => A[Math.floor(Math.random() * A.length)]).join("");
+    return { code: c.slice(0, 5) + "-" + c.slice(5), expires: new Date(Date.now() + 14 * 864e5).toISOString() };
+  }
+  async guardianDecide(linkId: string, ok: boolean) {
+    this.net();
+    const S = this.mainTeam(), g = S.guardians.find(x => x.id === linkId);
+    if (!g || !ok) { S.guardians = S.guardians.filter(x => x.id !== linkId); return null; }
+    g.status = "active"; g.confirmedAt = g.confirmedAt || new Date().toISOString();
+    return { ...g };
+  }
+  async saveParentPost(_t: string, p: ParentPost) {
+    this.net();
+    const x = cleanPost(p);
+    return { ...x, id: newId(x.id), at: x.at || new Date().toISOString(), author: x.author || this.user.displayName };
+  }
+  async deleteParentPost() { this.net(); }
+  async guardianAdultOk(linkId: string, ok: boolean) {
+    this.net();
+    const g = this.mainTeam().guardians.find(x => x.id === linkId);
+    if (!g) throw new ApiError("not_found");
+    g.adultOk = ok;
+    return { ...g };
+  }
+  /** wie der Server: nur Widerrufe bzw. unverändert → Erklärung bleibt; sonst gilt sie als Erklärung der Eltern (heute) */
+  async guardianPhoto(pid: string, c: PhotoConsent) {
+    this.net();
+    const S = this.mainTeam(), old = cleanPhotoConsent(S.photos[pid]), x = cleanPhotoConsent(c);
+    const withdraw = PHOTO_CHANNELS.every(ch => x[ch] === old[ch] || x[ch] === false);
+    const saved: PhotoConsent = { ...x, by: withdraw && old.by ? old.by : "parents", on: withdraw && old.on ? old.on : iso(new Date()), note: old.note, at: new Date().toISOString() };
+    S.photos[pid] = saved;
+    return { ...saved };
+  }
+
   async savePhotoConsent(_pid: string, c: PhotoConsent) { this.net(); return { ...cleanPhotoConsent(c), at: new Date().toISOString() }; }
   async saveAccident(_t: string, a: Accident) { this.net(); const x = cleanAccident(a); return { ...x, id: newId(x.id), at: new Date().toISOString() }; }
   async deleteAccident() { this.net(); }

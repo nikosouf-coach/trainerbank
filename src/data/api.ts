@@ -3,14 +3,31 @@ import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "
 import type { ChatFolderPrefs } from "../core/chat";
 import type { StatPeriod } from "../core/stats";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, Suspension, PhotoConsent, Accident,
-  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, Suspension, PhotoConsent, Accident, GuardianLink, GuardianRelation, ParentPost,
+  Absence, AbsenceType, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 
 export type Role = "owner" | "coach" | "physio" | "pending" | "player";
 export const isStaffRole = (r: Role | undefined | null): boolean => r === "owner" || r === "coach" || r === "physio";
 
+/** Eltern-Zugang: verknüpftes Kind aus Sicht der Eltern */
+export interface GuardianChild {
+  linkId: string; pid: string; vn: string; nn: string; teamId: string; team: string; club: string; cls: string;
+  status: "pending" | "active"; relation: GuardianRelation; access: boolean;
+  /** Modul „Eltern-Zugang“ im Team ausgeschaltet (Verknüpfung bleibt, ohne Zugang) */
+  off: boolean;
+}
+/** Paket fürs Kind (nur, was Eltern sehen dürfen) */
+export interface ChildData {
+  D: TeamData; consents: { parental: boolean; health: boolean }; posts: ParentPost[]; guardians: number;
+  /** Abmeldungen, die dieser Elternteil selbst eingetragen hat (darf er zurücknehmen) */
+  mineAbs: string[];
+  /** Abwesenheiten ohne Art (Krankheit bzw. Verletzung, vom Trainerteam oder vom Kind eingetragen): nur „abwesend“ */
+  awayAbs: string[];
+  /** von Eltern eingetragen (auch vom anderen Elternteil) */
+  parentAbs: string[];
+}
 export interface Membership { teamId: string; club: string; name: string; role: Role; playerId?: string | null;
   /** Trainerteam: einzelne Rechte (null/fehlend = Standard der Rolle, core/perms) */
   perms?: string[] | null;
@@ -308,6 +325,28 @@ export interface Api {
   /** Sperre eintragen bzw. ändern (Urteil, aufgehoben = 0 Spiele, sonstige) */
   saveSuspension(teamId: string, s: Suspension): Promise<Suspension>;
   deleteSuspension(id: string): Promise<void>;
+  // ---------- Eltern-Zugang ----------
+  /** Eltern: eigene Verknüpfungen (auch wartende) */
+  guardianChildren(): Promise<GuardianChild[]>;
+  /** Eltern: Paket fürs Kind (nur nötige Felder, Zeitfenster) als TeamData fürs Kind */
+  guardianChildData(pid: string): Promise<ChildData>;
+  guardianRedeem(code: string, name: string, relation: GuardianRelation): Promise<{ vn: string; team: string }>;
+  guardianAbsence(pid: string, a: { typ: AbsenceType; von: string; bis: string | null }): Promise<Absence>;
+  guardianAbsenceDelete(id: string): Promise<void>;
+  guardianAnswer(matchId: string, pid: string, answer: NomAnswer, reason: string): Promise<void>;
+  guardianConsent(pid: string, kind: "parental" | "health_data", give: boolean): Promise<void>;
+  parentPostRead(postId: string, ack: boolean): Promise<void>;
+  /** Verknüpfung lösen: Trainerteam (Recht „Kader“), der Elternteil selbst oder das volljährige Kind */
+  guardianRemove(linkId: string): Promise<void>;
+  /** Trainerteam: Einladungscode (14 Tage, für bis zu zwei Elternteile), Anfrage bestätigen/ablehnen, Elterninfo */
+  guardianInvite(pid: string): Promise<{ code: string; expires: string }>;
+  guardianDecide(linkId: string, ok: boolean): Promise<GuardianLink | null>;
+  saveParentPost(teamId: string, p: ParentPost): Promise<ParentPost>;
+  deleteParentPost(id: string): Promise<void>;
+  /** volljähriges Kind: Zugang der Eltern verlängern bzw. beenden */
+  guardianAdultOk(linkId: string, ok: boolean): Promise<GuardianLink>;
+  /** Eltern: Foto-Erlaubnis fürs minderjährige Kind (gilt als Erklärung der Eltern; nur Widerrufe lassen sie unverändert) */
+  guardianPhoto(pid: string, c: PhotoConsent): Promise<PhotoConsent>;
   /** Foto-Erlaubnis speichern (Trainerteam: Recht „Kader“; Spieler: eigene – Ja ab 18, Nein immer; prüft der Server) */
   savePhotoConsent(pid: string, c: PhotoConsent): Promise<PhotoConsent>;
   /** Unfallmeldung anlegen bzw. ändern, löschen (Recht „Gesundheitsdaten“) */

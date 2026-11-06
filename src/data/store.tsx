@@ -22,6 +22,7 @@ import { applyAnswer, cleanSquad, mySquads as mySquadsOf, squadMatesOf, type MyS
 import { applyRide, cleanRide, dropRideRef, rideCheck, rideName, type RideOp } from "../core/rides";
 import { cleanSuspension, withCard } from "../core/cards";
 import { cleanAccident } from "../core/accidents";
+import { cleanInviteCode, cleanPost } from "../core/parents";
 import { groupOf } from "../core/classes";
 import { canSelfConsent, cleanPhotoConsent, photoAge, selfChange } from "../core/photos";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
@@ -30,15 +31,15 @@ import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, CardKind, Suspension, PhotoChannel, PhotoConsent, Accident,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, CardKind, Suspension, PhotoChannel, PhotoConsent, Accident, GuardianRelation, ParentPost,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 import { emptyTeamData } from "../core/types";
-import { ApiError, isOffline, isStaffRole, type Api, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type FeedbackKind, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type ThemeMode, type UserInfo, type UserPrefs } from "./api";
+import { ApiError, isOffline, isStaffRole, type Api, type ChildData, type GuardianChild, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type FeedbackKind, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type ThemeMode, type UserInfo, type UserPrefs } from "./api";
 import { startCrashReports } from "./crash";
-import { cleanCode, type PendingInvite } from "./invite";
+import { cleanInviteOf, type PendingInvite } from "./invite";
 import { appInfo } from "./release";
 import { DemoApi, type DemoSetup } from "./demoApi";
 import { hasSupabase } from "./supabase";
@@ -56,7 +57,9 @@ const CACHE_MAX = 2_500_000, CACHE_DAYS = 14;
 let tmp = 1;
 export const tmpId = (): string => "tmp-" + Date.now().toString(36) + "-" + (tmp++);
 
-export type Phase = "loading" | "signedOut" | "noTeam" | "pending" | "ready";
+export type Phase = "loading" | "signedOut" | "noTeam" | "pending" | "ready" | "parent";
+/** Eltern-Ansicht: verknüpfte Kinder und je Kind das Paket vom Server */
+export interface ParentState { children: GuardianChild[]; data: Record<string, ChildData>; sel: string | null }
 
 interface State {
   phase: Phase;
@@ -74,8 +77,12 @@ interface State {
   /** Spieler mit Einwilligung in Gesundheitsdaten (Automatik „RPE zu spät“ gilt nur für sie) */
   healthPlayers: string[];
   toastMsg: string | null;
-  /** Nur im Demo-Modus: Trainer- oder Spieleransicht und gewählter Spieler. */
-  demoView: "coach" | "player";
+  /** Nur im Demo-Modus: Trainer-, Spieler- oder Eltern-Ansicht und gewählter Spieler. */
+  demoView: "coach" | "player" | "parent";
+  /** Eltern-Zugang: geladene Eltern-Ansicht, eigene Verknüpfungen (auch für Trainer/Spieler mit eigenen Kindern), Ansicht aktiv */
+  parent: ParentState | null;
+  myChildren: GuardianChild[];
+  parentMode: boolean;
   demoPlayer: string | null;
   /** Nur im Demo-Modus: als Co-Trainer ansehen (StaffProfile.id), sonst null = Cheftrainer */
   demoStaff: string | null;
@@ -116,7 +123,7 @@ function makeApi(): Api {
 function useStoreValue() {
   const [s, setS] = useState<State>(() => ({
     phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(), themeLocal: "system",
-    consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
+    consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null, parent: null, myChildren: [], parentMode: false,
     outbox: [], offline: false, syncing: false, cachedAt: null, clubs: [], risers: {}, appAdmin: false, feedbackOpen: 0, crashPref: null, pendingInvite: null,
   }));
   const ref = useRef(s); ref.current = s;
@@ -162,7 +169,12 @@ function useStoreValue() {
   const loadActive = useCallback(async (api: Api, m: Membership | null, extra: Partial<State> = {}) => {
     // Vereine (Übersicht, Anfragen) – ohne Netz bleibt der letzte Stand
     const clubsP = api.myClubs().catch(() => ref.current.clubs);
-    if (!m) { set({ phase: "noTeam", active: null, D: null, ...extra, clubs: await clubsP }); return; }
+    if (!m) {
+      const kids = await api.guardianChildren().catch(() => [] as GuardianChild[]);
+      if (kids.length) { set({ phase: "parent", active: null, D: null, myChildren: kids, parentMode: true, ...extra, clubs: await clubsP }); await loadParentOf(api, kids); return; }
+      set({ phase: "noTeam", active: null, D: null, myChildren: [], ...extra, clubs: await clubsP }); return;
+    }
+    api.guardianChildren().then(kids => { if (ref.current.api === api) set({ myChildren: kids }); }).catch(() => undefined);
     if (m.role === "pending") { set({ phase: "pending", active: m, D: null, ...extra, clubs: await clubsP }); return; }
     const [D, clubs] = await Promise.all([api.loadTeam(m), clubsP]);
     extra = { clubs, ...extra };
@@ -181,6 +193,16 @@ function useStoreValue() {
     if (isStaffRole(m.role) && api.kind === "supabase" && effectivePerms(m.role, m.perms).has("plan")) afterCoachLoad(api, m, D);
   }, [set]);
 
+  // ---------- Eltern-Ansicht laden (je Kind mit Zugang das Paket vom Server) ----------
+  async function loadParentOf(api: Api, kids?: GuardianChild[]) {
+    const children = kids ?? await api.guardianChildren();
+    const data: Record<string, ChildData> = {};
+    await Promise.all(children.filter(c => c.access).map(async c => { try { data[c.pid] = await api.guardianChildData(c.pid); } catch { /* kein Zugang (mehr) */ } }));
+    if (ref.current.api !== api) return;
+    const old = ref.current.parent?.sel;
+    set({ parent: { children, data, sel: old && children.some(c => c.pid === old) ? old : children[0]?.pid || null }, myChildren: children });
+  }
+
   const boot = useCallback(async () => {
     const api = ref.current.api;
     let lang = ref.current.lang;
@@ -192,8 +214,8 @@ function useStoreValue() {
     } catch { /* optional */ }
     try {
       const raw = await AsyncStorage.getItem(K_INVITE), inv = raw ? JSON.parse(raw) as Partial<PendingInvite> : null;
-      const code = cleanCode(inv?.code);
-      if (inv && code && (inv.kind === "player" || inv.kind === "staff")) set({ pendingInvite: { kind: inv.kind, code } });
+      const code = cleanInviteOf(inv?.kind, inv?.code);
+      if (inv && code && (inv.kind === "player" || inv.kind === "staff" || inv.kind === "parent")) set({ pendingInvite: { kind: inv.kind, code } });
     } catch { /* optional */ }
     let user: UserInfo | null = null;
     try {
@@ -482,7 +504,7 @@ function useStoreValue() {
   /** Konto im Chat (Demo: gewählte Ansicht – Spieler, Co-Trainer oder Cheftrainer) */
   const meNow = (st: State = ref.current): string => {
     if (!st.D) return st.user?.id || "";
-    if (st.api instanceof DemoApi) { const me = demoMe(st.D, st.demoView, st.demoPlayer, st.demoStaff, st.user?.id || ""); st.api.chatMe = me; return me; }
+    if (st.api instanceof DemoApi) { const me = demoMe(st.D, st.demoView === "player" ? "player" : "coach", st.demoPlayer, st.demoStaff, st.user?.id || ""); st.api.chatMe = me; return me; }
     return st.user?.id || "";
   };
   const canModerate = (st: State = ref.current): boolean => asStaff(st) && permsNow(st).has("messages");
@@ -584,7 +606,54 @@ function useStoreValue() {
       await loadActive(api, ms[0], { api, user, memberships: ms, demoView: "coach", demoPlayer: null, demoStaff: null });
     },
     leaveDemo: () => { obRef.current = []; set({ api: makeApi(), phase: "loading", D: null, active: null, user: null, outbox: [], offline: false, cachedAt: null, appAdmin: false, feedbackOpen: 0 }); setTimeout(() => boot(), 0); },
-    setDemoView: (v: "coach" | "player", pid?: string | null, staffId?: string | null) => set({ demoView: v, demoPlayer: pid ?? ref.current.demoPlayer, demoStaff: v === "coach" ? (staffId ?? null) : ref.current.demoStaff }),
+    setDemoView: (v: "coach" | "player" | "parent", pid?: string | null, staffId?: string | null) => {
+      set({ demoView: v, demoPlayer: pid ?? ref.current.demoPlayer, demoStaff: v === "coach" ? (staffId ?? null) : ref.current.demoStaff, parentMode: v === "parent" });
+      if (v === "parent") loadParentOf(ref.current.api).catch(e => toast(errText(e)));
+    },
+
+    // ---------- Eltern-Zugang: Eltern-Ansicht ----------
+    /** Eltern-Ansicht öffnen bzw. verlassen (Trainer oder Spieler mit eigenen Kindern) */
+    setParentMode: async (on: boolean) => {
+      set({ parentMode: on });
+      // ohne Netz bzw. Fehler: zurück in die bisherige Ansicht (sonst bliebe der Ladebildschirm stehen)
+      if (on) { try { await loadParentOf(ref.current.api); } catch (e) { set({ parentMode: false }); toast(errText(e)); } }
+    },
+    parentSelect: (pid: string) => { const P = ref.current.parent; if (P) set({ parent: { ...P, sel: pid } }); },
+    parentReload: async () => { try { await loadParentOf(ref.current.api); } catch (e) { toast(errText(e)); } },
+    /** Code einlösen: Anfrage an das Trainerteam (wartet auf Bestätigung) */
+    parentRedeem: async (code: string, name: string, relation: GuardianRelation): Promise<boolean> => {
+      const api = ref.current.api;
+      try {
+        const r = await api.guardianRedeem(cleanInviteCode(code), name.trim(), relation);
+        toast(translator(ref.current.lang).tf("el_redeemed", { n: r.vn, t: r.team }));
+        if (ref.current.phase === "noTeam") { set({ phase: "loading" }); await loadActive(api, null); }
+        else await loadParentOf(api);
+        return true;
+      } catch (e) { toast(errText(e)); return false; }
+    },
+    /** Eltern: Aktion ausführen und das Paket des Kindes neu laden */
+    parentDo: async (pid: string, fn: (api: Api) => Promise<unknown>, okKey?: string): Promise<boolean> => {
+      const api = ref.current.api;
+      try {
+        await fn(api);
+        const data = await api.guardianChildData(pid).catch(() => null);
+        const P = ref.current.parent;
+        // Demo: Paket und Teamdaten sind dasselbe Objekt – version neu, damit auch die Trainer-Ansicht neu rechnet
+        if (P) { const d = { ...P.data }; if (data) d[pid] = data; else delete d[pid]; set({ parent: { ...P, data: d }, version: ref.current.version + 1 }); }
+        if (okKey) toast(translator(ref.current.lang).t(okKey));
+        return true;
+      } catch (e) { toast(errText(e)); return false; }
+    },
+    /** Eltern lösen die Verknüpfung selbst */
+    parentLeave: async (linkId: string): Promise<boolean> => {
+      const api = ref.current.api;
+      try {
+        await api.guardianRemove(linkId);
+        toast(translator(ref.current.lang).t("el_left"));
+        if (ref.current.phase === "parent") { set({ phase: "loading", parent: null }); await loadActive(api, null); } else await loadParentOf(api);
+        return true;
+      } catch (e) { toast(errText(e)); return false; }
+    },
     selectTeam: async (m: Membership) => { set({ phase: "loading" }); try { await loadActive(ref.current.api, m); } catch (e) { toast(errText(e)); } },
     createTeam: async (input: CreateTeamInput & { me?: Partial<StaffProfile>; staff?: { name: string; role: StaffRoleKey }[]; logoUri?: string | null; prefs?: UserPrefs }) => {
       const api = ref.current.api;
@@ -1129,6 +1198,47 @@ function useStoreValue() {
         { ok: translator(ref.current.lang).t("ph_saved") });
     },
 
+    /** Spieler 14–17: der Erklärung der Eltern selbst zustimmen (einzelne Kanäle vorher mit „Nein“ ausnehmen) */
+    photoConfirm: (pid: string, v: Partial<Record<PhotoChannel, boolean>> = {}) => {
+      const D0 = ref.current.D;
+      if (!pid || !D0) return Promise.resolve(false);
+      const today = iso(new Date()), x: PhotoConsent = { ...selfChange(D0.photos[pid], v, false, today), by: "both", on: today };
+      return changeOk(D => { D.photos[pid] = x; },
+        async api => { const saved = await api.savePhotoConsent(pid, x); const D = ref.current.D; if (D) D.photos[pid] = saved; },
+        { ok: translator(ref.current.lang).t("ph_confirmed") });
+    },
+
+    // ---------- Eltern-Zugang: Trainerteam und volljährige Spieler ----------
+    /** Einladungscode für die Eltern eines Kindes (14 Tage, bis zu zwei Elternteile) – der Code wird nur jetzt angezeigt */
+    guardianInvite: async (pid: string): Promise<{ code: string; expires: string } | null> => {
+      try {
+        const r = await ref.current.api.guardianInvite(pid);
+        const D = ref.current.D;
+        if (D) { D.guardianInvites = [...D.guardianInvites.filter(i => i.pid !== pid), { pid, expires: r.expires, usesLeft: Math.max(0, 2 - D.guardians.filter(g => g.pid === pid).length) }]; set({ version: ref.current.version + 1 }); }
+        return r;
+      } catch (e) { toast(errText(e)); return null; }
+    },
+    /** Anfrage bestätigen bzw. ablehnen (Trainerteam, Recht „Kader“) */
+    guardianDecide: (linkId: string, ok: boolean) => changeOk(D => {
+      if (ok) D.guardians = D.guardians.map(g => g.id === linkId ? { ...g, status: "active" as const, confirmedAt: g.confirmedAt || new Date().toISOString() } : g);
+      else D.guardians = D.guardians.filter(g => g.id !== linkId);
+    }, api => api.guardianDecide(linkId, ok), { ok: translator(ref.current.lang).t(ok ? "el_confirmed" : "el_declined") }),
+    /** Verknüpfung lösen (Trainerteam oder volljähriges Kind) */
+    guardianRemove: (linkId: string) => changeOk(D => { D.guardians = D.guardians.filter(g => g.id !== linkId); },
+      api => api.guardianRemove(linkId), { ok: translator(ref.current.lang).t("el_removed") }),
+    /** Volljähriges Kind: Zugang der Eltern verlängern bzw. beenden */
+    guardianAdultOk: (linkId: string, ok: boolean) => changeOk(D => { D.guardians = D.guardians.map(g => g.id === linkId ? { ...g, adultOk: ok } : g); },
+      api => api.guardianAdultOk(linkId, ok), { ok: translator(ref.current.lang).t(ok ? "el_adultOn" : "el_adultOff") }),
+    /** Elterninfo schreiben bzw. ändern, löschen */
+    saveParentPost: (p: ParentPost) => {
+      const x = cleanPost(p), isNew = x.id.startsWith("tmp-");
+      return changeOk(D => { if (isNew) D.parentPosts = [{ ...x, at: new Date().toISOString(), author: x.author || "" }, ...D.parentPosts]; else D.parentPosts = D.parentPosts.map(z => z.id === x.id ? { ...z, ...x, at: z.at, author: z.author } : z); },
+        async (api, t) => { const saved = await api.saveParentPost(t, x); const D = ref.current.D; if (D) replaceIn(D.parentPosts, x, saved); },
+        { ok: translator(ref.current.lang).t("el_postSaved") });
+    },
+    deleteParentPost: (id: string) => changeOk(D => { D.parentPosts = D.parentPosts.filter(z => z.id !== id); D.parentReads = D.parentReads.filter(r => r.postId !== id); },
+      api => api.deleteParentPost(id), { ok: translator(ref.current.lang).t("el_postDeleted") }),
+
     // ---------- Unfallmeldungen ----------
     /** Unfallmeldung anlegen bzw. ändern (Trainerteam, Recht „Gesundheitsdaten“) */
     saveAccident: (a: Accident) => {
@@ -1470,6 +1580,7 @@ function useStoreValue() {
     saveMessage: "messages", deleteMessage: "messages",
     saveStat: "perf", saveTest: "perf", deleteTest: "perf", saveCard: "perf", saveSuspension: "perf", deleteSuspension: "perf",
     savePhotoConsent: "squad", saveAccident: "health", deleteAccident: "health",
+    guardianDecide: "squad", saveParentPost: "squad", deleteParentPost: "squad",
     saveDutyDefs: "tasks", saveFineRules: "tasks", saveDuty: "tasks", saveFine: "tasks", deleteFine: "tasks", saveTask: "tasks", deleteTask: "tasks",
     saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
     saveAssessment: "notes", deleteAssessment: "notes", saveGoal: "notes", deleteGoal: "notes", saveGoalEntry: "notes", deleteGoalEntry: "notes", saveTalk: "notes", deleteTalk: "notes",
@@ -1518,7 +1629,8 @@ function useStoreValue() {
   // Rolle für die Oberfläche (im Demo-Modus umschaltbar)
   const isDemo = s.api.kind === "demo";
   const role = s.active?.role;
-  const viewAs: "coach" | "player" | null = !s.active ? null : isDemo ? s.demoView : role === "player" ? "player" : isStaffRole(role) ? "coach" : null;
+  const viewAs: "coach" | "player" | "parent" | null = s.phase === "parent" || (s.parentMode && !isDemo) ? "parent"
+    : !s.active ? null : isDemo ? s.demoView : role === "player" ? "player" : isStaffRole(role) ? "coach" : null;
   const mePid = isDemo ? s.demoPlayer : s.active?.playerId || null;
 
   // Eigenes Trainerprofil (Staff mit verknüpftem Konto)
@@ -1527,7 +1639,7 @@ function useStoreValue() {
   const themeMode: ThemeMode = prefs.theme || s.themeLocal;
 
   // Chat: wer bin ich, welche Chats sehe ich (Demo: wie die Zugriffsregeln; echt: liefert der Server nur Erlaubtes)
-  const chatMeId = s.D ? (isDemo ? demoMe(s.D, s.demoView, s.demoPlayer, s.demoStaff, s.user?.id || "") : s.user?.id || "") : "";
+  const chatMeId = s.D ? (isDemo ? demoMe(s.D, s.demoView === "player" ? "player" : "coach", s.demoPlayer, s.demoStaff, s.user?.id || "") : s.user?.id || "") : "";
   const chatMod = staffView && perms.has("messages");
   const chats = useMemo(() => !s.D ? [] : isDemo ? visibleChats(s.D, chatMeId, chatMod) : s.D.chats, [s.D, s.version, chatMeId, chatMod, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
 

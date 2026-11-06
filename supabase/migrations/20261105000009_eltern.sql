@@ -7,12 +7,14 @@
 -- - guardian_invites: Einladungscode je Kind (nur als Hash gespeichert, 14 Tage gültig, für bis zu zwei Elternteile);
 --   guardian_code_attempts begrenzt Fehlversuche (10 je Stunde)
 -- - parent_posts / parent_post_reads: Elterninfo vom Trainerteam (Recht „squad“), gelesen und bestätigt
--- - guardian_child_data: alles, was Eltern sehen, als ein Paket (Datenminimierung: nur nötige Felder, Zeitfenster)
+-- - guardian_child_data: alles, was Eltern sehen, als ein Paket (Datenminimierung: nur nötige Felder, Zeitfenster;
+--   Krankheit und Verletzung nur bei eigenen Abmeldungen, sonst nur „abwesend“)
 -- - guardian_absence, guardian_answer, guardian_consent, parent_post_read: Abmelden, Zu-/Absage, Einwilligungen
 -- - Einwilligungen für Kinder unter 16 (Art. 8 DSGVO): bestätigte Eltern willigen selbst ein (consents mit player_id);
 --   missing_health_consent und photo_consent_save berücksichtigen das
 -- - Löschfristen (purge_guardians, täglich): Einladungen nach Ablauf, unbestätigte Anfragen nach 30 Tagen,
---   Verknüpfungen 30 Tage nach dem 18. Geburtstag (außer das Kind hat verlängert), Elterninfo nach 12 Monaten
+--   Verknüpfungen 30 Tage nach dem 18. Geburtstag (außer das Kind hat verlängert), Elterninfo nach 12 Monaten;
+--   endet eine Verknüpfung, enden auch die Einwilligungen dieses Elternteils fürs Kind (Widerruf als Nachweis)
 -- - merge_players v16, Export v17
 -- =====================================================================
 
@@ -93,7 +95,20 @@ as $$
                      from public.players p where p.id = p_player), false)
 $$;
 
--- Bestätigter Elternteil des Kindes mit Zugang (minderjährig oder vom volljährigen Kind verlängert)
+-- Modul „Eltern-Zugang“ im Team an? (fehlt der Schlüssel: an, außer im Erwachsenenbereich – wie in der App)
+-- Aus: Eltern sehen nichts und können nichts eintragen, Codes gelten nicht; Verknüpfungen bleiben bestehen
+create or replace function public.team_parents_on(p_team uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce((select coalesce((t.modules ->> 'eltern')::boolean, t.age_class not in ('sen', 'ue32'))
+                     from public.teams t where t.id = p_team), false)
+$$;
+
+-- Bestätigter Elternteil des Kindes mit Zugang (minderjährig oder vom volljährigen Kind verlängert, Modul an)
 create or replace function public.is_guardian_of(p_player uuid)
 returns boolean
 language sql
@@ -103,7 +118,7 @@ set search_path = public
 as $$
   select exists (select 1 from public.player_guardians g
                   where g.player_id = p_player and g.user_id = auth.uid() and g.status = 'active'
-                    and (g.adult_ok or public.player_minor(g.player_id)))
+                    and (g.adult_ok or public.player_minor(g.player_id)) and public.team_parents_on(g.team_id))
 $$;
 
 create or replace function public.is_guardian_in_team(p_team uuid)
@@ -115,7 +130,7 @@ set search_path = public
 as $$
   select exists (select 1 from public.player_guardians g
                   where g.team_id = p_team and g.user_id = auth.uid() and g.status = 'active'
-                    and (g.adult_ok or public.player_minor(g.player_id)))
+                    and (g.adult_ok or public.player_minor(g.player_id))) and public.team_parents_on(p_team)
 $$;
 
 -- Einwilligung eines Elternteils (bestimmter Nutzer) für das Kind
@@ -192,10 +207,10 @@ begin
 end;
 $$;
 
-revoke all on function public.player_minor(uuid), public.is_guardian_of(uuid), public.is_guardian_in_team(uuid),
+revoke all on function public.team_parents_on(uuid), public.player_minor(uuid), public.is_guardian_of(uuid), public.is_guardian_in_team(uuid),
   public.guardian_consent_given(uuid, text, uuid), public.guardian_consent_ok(uuid, text), public.guardian_code_hash(text),
   public.generate_guardian_code() from public, anon;
-grant execute on function public.player_minor(uuid), public.is_guardian_of(uuid), public.is_guardian_in_team(uuid),
+grant execute on function public.team_parents_on(uuid), public.player_minor(uuid), public.is_guardian_of(uuid), public.is_guardian_in_team(uuid),
   public.guardian_consent_ok(uuid, text) to authenticated;
 
 -- ---------------------------------------------------------------------
@@ -316,6 +331,9 @@ begin
   if v_team is null or not public.staff_can(v_team, 'squad') then
     raise exception 'forbidden' using errcode = '42501';
   end if;
+  if not public.team_parents_on(v_team) then
+    raise exception 'module_off' using errcode = 'P0001';
+  end if;
   if (select p.birthdate from public.players p where p.id = p_player) is null then
     raise exception 'birthdate_required' using errcode = 'P0001';
   end if;
@@ -369,6 +387,9 @@ begin
   end if;
   if exists (select 1 from public.players p where p.id = v_inv.player_id and p.user_id = v_uid) then
     return jsonb_build_object('ok', false, 'error', 'own_player');
+  end if;
+  if not public.team_parents_on(v_inv.team_id) then
+    return jsonb_build_object('ok', false, 'error', 'module_off');
   end if;
   select id into v_link from public.player_guardians where player_id = v_inv.player_id and user_id = v_uid;
   if v_link is null then
@@ -428,6 +449,25 @@ begin
 end;
 $$;
 
+-- Verknüpfung gelöst (Eltern, Trainerteam, volljähriges Kind oder Löschfrist): die Einwilligungen dieses Elternteils
+-- für das Kind enden mit – als Widerruf mit Zeitpunkt (der Nachweis bleibt), neue Verknüpfung = neue Einwilligung
+create or replace function public.player_guardians_ended()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.consents set withdrawn_at = now()
+   where user_id = old.user_id and player_id = old.player_id and kind in ('parental', 'health_data') and withdrawn_at is null;
+  return old;
+end;
+$$;
+revoke all on function public.player_guardians_ended() from public, anon, authenticated;
+drop trigger if exists player_guardians_ended on public.player_guardians;
+create trigger player_guardians_ended after delete on public.player_guardians
+  for each row execute function public.player_guardians_ended();
+
 -- Volljähriges Kind verlängert bzw. beendet den Zugang seiner Eltern
 create or replace function public.guardian_adult_ok(p_link uuid, p_ok boolean)
 returns public.player_guardians
@@ -455,14 +495,15 @@ $$;
 -- ---------------------------------------------------------------------
 create or replace function public.guardian_children()
 returns table (link_id uuid, player_id uuid, first_name text, last_name text, team_id uuid, team_name text, club text,
-               age_class text, status text, relation text, access boolean)
+               age_class text, status text, relation text, access boolean, module_on boolean)
 language sql
 stable
 security definer
 set search_path = public
 as $$
   select g.id, g.player_id, p.first_name, coalesce(p.last_name, ''), g.team_id, t.name, t.club, t.age_class, g.status, g.relation,
-         g.status = 'active' and (g.adult_ok or public.player_minor(g.player_id))
+         g.status = 'active' and (g.adult_ok or public.player_minor(g.player_id)) and public.team_parents_on(g.team_id),
+         public.team_parents_on(g.team_id)
     from public.player_guardians g
     join public.players p on p.id = g.player_id
     join public.teams t on t.id = g.team_id
@@ -513,8 +554,13 @@ begin
     'breaks', coalesce((select jsonb_agg(jsonb_build_object('id', s.id, 'title', s.title, 'date_from', s.date_from, 'date_to', s.date_to) order by s.date_from)
                           from public.season_phases s
                          where s.team_id = v_team and s.kind = 'break' and s.visible and s.date_to >= v_from and s.date_from <= v_to), '[]'::jsonb),
-    'absences', coalesce((select jsonb_agg(jsonb_build_object('id', a.id, 'player_id', a.player_id, 'type', a.type, 'from_date', a.from_date, 'to_date', a.to_date,
-                                                              'reported_by_player', a.reported_by_player, 'mine', a.created_by is not distinct from v_uid) order by a.from_date)
+    -- Krankheit und Verletzung (Gesundheitsdaten) nur bei eigenen Abmeldungen – sonst nur „abwesend“ (Art leer)
+    'absences', coalesce((select jsonb_agg(jsonb_build_object('id', a.id, 'player_id', a.player_id,
+                                                              'type', case when a.created_by is not distinct from v_uid or a.type not in ('krank', 'verletzung') then a.type end,
+                                                              'from_date', a.from_date, 'to_date', a.to_date,
+                                                              'reported_by_player', a.reported_by_player, 'mine', a.created_by is not distinct from v_uid,
+                                                              'by_parent', exists (select 1 from public.player_guardians g where g.player_id = a.player_id and g.user_id = a.created_by))
+                                                 order by a.from_date)
                             from public.absences a
                            where a.player_id = p_player and coalesce(a.to_date, v_to) >= v_from and a.from_date <= v_to), '[]'::jsonb),
     'noms', coalesce((select jsonb_agg(jsonb_build_object('match_id', n.match_id, 'player_id', n.player_id, 'standby', n.standby, 'answer', n.answer,

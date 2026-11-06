@@ -18,17 +18,18 @@ import { cleanReason, cleanSquad } from "../core/nomination";
 import { cleanRide } from "../core/rides";
 import { cleanCard, cleanSuspension } from "../core/cards";
 import { cleanAccident } from "../core/accidents";
+import { cleanPost } from "../core/parents";
 import { cleanPhotoConsent } from "../core/photos";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate, Ride, RideKind, Suspension, PhotoConsent, Accident,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate, Ride, RideKind, Suspension, PhotoConsent, Accident, GuardianLink, GuardianRelation, ParentPost, AbsenceType,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 import { emptyTeamData } from "../core/types";
 import {
-  ApiError, CONSENT_VERSION, type AiRequest, type Api, type ChatEvent, type ChatListData, type ConsentKind, type ConsentState, type CreateTeamInput,
+  ApiError, CONSENT_VERSION, isStaffRole, type AiRequest, type Api, type ChatEvent, type ChatListData, type ConsentKind, type ConsentState, type CreateTeamInput,
   type FeedbackInput, type FeedbackItem, type JoinProfile, type Membership, type PublishedDay, type Role, type StaffEntry, type TeamPatch, type UserInfo, type UserPrefs,
 } from "./api";
 import { supabase } from "./supabase";
@@ -156,8 +157,11 @@ const mapPoll = (r: Row): Poll => cleanPoll({
 const mapSquad = (r: Row): MatchSquad => cleanSquad({ matchId: r.match_id, meetTime: r.meet_time, meetPlace: r.meet_place || "", note: r.note || "", showAll: r.show_all !== false, published: r.published_at || null });
 const mapNom = (r: Row): Nomination => ({
   matchId: r.match_id, pid: r.player_id, standby: !!r.standby, answer: r.answer === "yes" || r.answer === "no" ? r.answer : null,
-  reason: r.answer === "no" ? cleanReason(r.reason) : "", at: r.answered_at || null, byStaff: !!r.answered_by_staff,
+  reason: r.answer === "no" ? cleanReason(r.reason) : "", at: r.answered_at || null, byStaff: !!r.answered_by_staff, byGuardian: !!r.answered_by_guardian,
 });
+const mapGuardian = (r: Row): GuardianLink => ({ id: r.id, pid: r.player_id, userId: r.user_id, name: r.name || "", relation: r.relation, status: r.status === "active" ? "active" : "pending",
+  adultOk: !!r.adult_ok, at: r.created_at, confirmedAt: r.confirmed_at || null });
+const mapPost = (r: Row): ParentPost => cleanPost({ id: r.id, title: r.title, body: r.body, needAck: !!r.need_ack, author: r.author || "", at: r.created_at, readAt: r.read_at ?? null, ackedAt: r.acked_at ?? null });
 const mapMate = (r: Row): SquadMate => ({ pid: r.player_id, name: String(r.name || ""), nr: r.nr == null ? null : Number(r.nr), pos: String(r.pos || ""), standby: !!r.standby });
 const mapRide = (r: Row): Ride => cleanRide({ id: r.id, kind: r.match_id ? "match" : "event", refId: r.match_id || r.event_id, driverPid: r.driver_pid, driver: r.driver_label || "", seats: r.seats, time: r.depart_time, place: r.depart_place || "", note: r.note || "" });
 const mapPhoto = (r: Row): PhotoConsent => cleanPhotoConsent({ web: r.web, social: r.social, press: r.press, name: r.name_ok, by: r.given_by, on: r.given_on, note: r.note || "", at: r.updated_at });
@@ -483,6 +487,26 @@ export class SupabaseApi implements Api {
       try {
         const rows = await all((a, b) => sb.from("player_suspensions").select("*").eq("team_id", tid).order("start_date").order("id").range(a, b));
         D.suspensions = rows.map(mapSusp);
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.eltern !== false) {
+      // Eltern-Zugang: Verknüpfungen (Trainerteam mit Recht „Kader“; Spieler: eigene), Einladungen und Elterninfo (Trainerteam)
+      try {
+        D.guardians = (await all((a, b) => sb.from("player_guardians").select("*").eq("team_id", tid).order("created_at").range(a, b))).map(mapGuardian);
+        if (isStaffRole(m.role)) {
+          const [inv, posts, gc] = await Promise.all([
+            q<Row[]>(sb.from("guardian_invites").select("player_id, uses_left, expires_at").eq("team_id", tid)),
+            q<Row[]>(sb.from("parent_posts").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(200)),
+            q<Row[]>(sb.rpc("team_guardian_consents", { p_team: tid })),
+          ]);
+          D.guardianInvites = inv.map(r => ({ pid: r.player_id, expires: r.expires_at, usesLeft: r.uses_left }));
+          D.parentPosts = posts.map(mapPost);
+          if (D.parentPosts.length) {
+            const reads = await all((a, b) => sb.from("parent_post_reads").select("*").in("post_id", D.parentPosts.map(x => x.id)).order("post_id").range(a, b));
+            D.parentReads = reads.map(r => ({ postId: r.post_id, userId: r.user_id, readAt: r.read_at, ackedAt: r.acked_at || null }));
+          }
+          for (const r of gc) { const x = D.guardianConsents[r.player_id] ||= { parental: false, health: false }; if (r.kind === "parental") x.parental = true; else x.health = true; }
+        }
       } catch { /* optional: Rest der App lädt trotzdem */ }
     }
     if (D.team.modules.fotos !== false) {
@@ -1070,6 +1094,68 @@ export class SupabaseApi implements Api {
       : await q<Row>(this.sb.from("player_suspensions").update(row).eq("id", y.id).select().single()));
   }
   async deleteSuspension(id: string) { await q(this.sb.from("player_suspensions").delete().eq("id", id)); }
+
+  // ---------- Eltern-Zugang ----------
+  async guardianChildren() {
+    const rows = await q<Row[]>(this.sb.rpc("guardian_children"));
+    return rows.map(r => ({ linkId: r.link_id, pid: r.player_id, vn: r.first_name, nn: r.last_name || "", teamId: r.team_id, team: r.team_name, club: r.club || "",
+      cls: r.age_class || "", status: r.status === "active" ? "active" as const : "pending" as const, relation: r.relation, access: !!r.access, off: r.module_on === false }));
+  }
+  async guardianChildData(pid: string) {
+    const x = await q<Row>(this.sb.rpc("guardian_child_data", { p_player: pid }));
+    const D = emptyTeamData(mapTeam(x.team));
+    D.players = [mapPlayer(x.player)];
+    D.matches = (x.matches || []).map(mapMatch);
+    D.events = (x.events || []).map(mapEvent);
+    for (const r of x.cal || []) D.cal[r.date] = { cancel: r.cancel, extra: r.extra, zeit: r.time || undefined, dauer: r.duration || undefined };
+    D.phases = (x.breaks || []).map((r: Row) => mapPhase({ ...r, kind: "break", visible: true }));
+    // Art leer = Krankheit bzw. Verletzung, die nicht dieser Elternteil eingetragen hat (Gesundheitsdaten): nur „abwesend“
+    D.absences = (x.absences || []).map((r: Row) => mapAbs({ ...r, type: r.type || "sonst", stage: null, note: null }));
+    D.noms = (x.noms || []).map(mapNom);
+    for (const r of x.squads || []) D.squads[r.match_id] = mapSquad(r);
+    if (x.photo) D.photos[pid] = mapPhoto(x.photo);
+    return { D, consents: { parental: !!x.consents?.parental, health: !!x.consents?.health_data }, posts: (x.posts || []).map(mapPost), guardians: x.guardians || 0,
+      mineAbs: (x.absences || []).filter((r: Row) => r.mine).map((r: Row) => r.id as string),
+      awayAbs: (x.absences || []).filter((r: Row) => !r.type).map((r: Row) => r.id as string),
+      parentAbs: (x.absences || []).filter((r: Row) => r.by_parent).map((r: Row) => r.id as string) };
+  }
+  async guardianRedeem(code: string, name: string, relation: GuardianRelation) {
+    const r = await q<Row>(this.sb.rpc("guardian_redeem", { p_code: code, p_name: name, p_relation: relation }));
+    if (!r?.ok) throw new ApiError(r?.error || "invalid_code");
+    return { vn: r.first_name || "", team: r.team || "" };
+  }
+  async guardianAbsence(pid: string, a: { typ: AbsenceType; von: string; bis: string | null }) {
+    const r = await q<Row>(this.sb.rpc("guardian_absence", { p_player: pid, p_type: a.typ, p_from: a.von, p_to: a.bis }));
+    return mapAbs({ ...r, stage: null, note: null });
+  }
+  async guardianAbsenceDelete(id: string) { await q(this.sb.rpc("guardian_absence_delete", { p_absence: id })); }
+  async guardianAnswer(matchId: string, pid: string, answer: NomAnswer, reason: string) {
+    await q(this.sb.rpc("guardian_answer", { p_match: matchId, p_player: pid, p_answer: answer, p_reason: reason || null }));
+  }
+  async guardianConsent(pid: string, kind: "parental" | "health_data", give: boolean) {
+    await q(this.sb.rpc("guardian_consent", { p_player: pid, p_kind: kind, p_give: give, p_version: CONSENT_VERSION }));
+  }
+  async parentPostRead(postId: string, ack: boolean) { await q(this.sb.rpc("parent_post_read", { p_post: postId, p_ack: ack })); }
+  async guardianRemove(linkId: string) { await q(this.sb.rpc("guardian_remove", { p_link: linkId })); }
+  async guardianInvite(pid: string) {
+    const rows = await q<Row[]>(this.sb.rpc("guardian_invite_create", { p_player: pid }));
+    return { code: rows[0].invite_code as string, expires: rows[0].invite_expires as string };
+  }
+  async guardianDecide(linkId: string, ok: boolean) {
+    const r = await q<Row | null>(this.sb.rpc("guardian_decide", { p_link: linkId, p_ok: ok }));
+    return r && r.id ? mapGuardian(r) : null;
+  }
+  async saveParentPost(teamId: string, p: ParentPost) {
+    const x = cleanPost(p), row = { title: x.title, body: x.body, need_ack: x.needAck };
+    return mapPost(isTmp(x.id)
+      ? await q<Row>(this.sb.from("parent_posts").insert({ ...row, team_id: teamId }).select().single())
+      : await q<Row>(this.sb.from("parent_posts").update(row).eq("id", x.id).select().single()));
+  }
+  async deleteParentPost(id: string) { await q(this.sb.from("parent_posts").delete().eq("id", id)); }
+  async guardianAdultOk(linkId: string, ok: boolean) { return mapGuardian(await q<Row>(this.sb.rpc("guardian_adult_ok", { p_link: linkId, p_ok: ok }))); }
+  /** dieselbe Funktion wie fürs Trainerteam – der Server erkennt die Eltern und setzt „von den Eltern erklärt“ und das Datum
+   *  (ist der Elternteil zugleich im Trainerteam, gilt dieselbe Erklärung mit heutigem Datum) */
+  async guardianPhoto(pid: string, c: PhotoConsent) { return this.savePhotoConsent(pid, { ...c, by: "parents", on: iso(new Date()) }); }
 
   // ---------- Foto-Erlaubnis ----------
   async savePhotoConsent(pid: string, c: PhotoConsent) {

@@ -4730,6 +4730,8 @@ do $$ begin
 end $$;
 with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date) values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, 'schule', current_date + 5, current_date + 5) returning id)
 select tst.put('abs61s', id::text) from ins;
+with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date) values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, 'verletzung', current_date + 8, current_date + 9) returning id)
+select tst.put('abs61v', id::text) from ins;
 with ins as (insert into public.matches (team_id, date, time, opponent, competition) values (tst.get('team_a')::uuid, current_date + 3, '15:00', 'T61 FC', 'liga') returning id)
 select tst.put('m61', id::text) from ins;
 insert into public.match_squads (match_id, team_id, meet_time, meet_place, published_at) values (tst.get('m61')::uuid, tst.get('team_a')::uuid, '13:45', 'Vereinsheim', now());
@@ -4756,12 +4758,34 @@ begin
                  'T61 Paket: Nominierung des eigenen Kindes mit Treffpunkt, ohne Kaderliste');
   perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'absences') x where x ? 'stage' or x ? 'note'), 'T61 Paket: Abwesenheiten ohne Stufe und Hinweis');
   perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'absences') x where x ->> 'id' = tst.get('abs61')), 'T61 eigene Abmeldung zurückgenommen');
+  perform tst.eq((select string_agg(coalesce(x ->> 'type', 'abwesend'), ',' order by x ->> 'from_date') from jsonb_array_elements(d -> 'absences') x
+                   where x ->> 'id' in (tst.get('abs61s'), tst.get('abs61v'))), 'schule,abwesend',
+                 'T61 Paket: Verletzung vom Trainerteam nur als „abwesend“, andere Abwesenheiten mit Art');
   perform tst.eq((d -> 'posts' -> 0 ->> 'title') || '/' || coalesce(d -> 'posts' -> 0 ->> 'read_at', 'ungelesen'), 'Elternabend/ungelesen', 'T61 Elterninfo im Paket');
   perform public.parent_post_read(tst.get('post61')::uuid, true);
   perform tst.ok((public.guardian_child_data(tst.get('p4_player')::uuid) -> 'posts' -> 0 ->> 'acked_at') is not null, 'T61 Elterninfo gelesen und bestätigt');
 end $$;
 select tst.throws(format($q$insert into public.parent_posts (team_id, title, body) values (%L, 'x', 'y')$q$, tst.get('team_a')), 'T61 Eltern schreiben keine Elterninfo', 'row-level security');
 commit;
+-- Modul aus: Eltern sehen nichts mehr und können nichts eintragen, Codes gelten nicht – die Verknüpfung bleibt
+select tst.put('mods61', modules::text) from public.teams where id = tst.get('team_a')::uuid;
+update public.teams set modules = modules || '{"eltern": false}'::jsonb where id = tst.get('team_a')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('p4_player')), 'T61 Modul aus: kein Paket', 'not_found');
+select tst.throws(format($q$select public.guardian_absence(%L, 'urlaub', public.team_today(%L) + 1, null)$q$, tst.get('p4_player'), tst.get('team_a')), 'T61 Modul aus: kein Abmelden', 'not_found');
+do $$ begin
+  perform tst.eq((select access::text || '/' || module_on::text from public.guardian_children()), 'false/false', 'T61 Modul aus: Verknüpfung bleibt, ohne Zugang');
+  perform tst.eq((select count(*) from public.parent_posts)::text, '0', 'T61 Modul aus: keine Elterninfo');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$select * from public.guardian_invite_create(%L)$q$, tst.get('k61_player')), 'T61 Modul aus: keine Einladung', 'module_off');
+commit;
+update public.teams set modules = tst.get('mods61')::jsonb where id = tst.get('team_a')::uuid;
 begin;
 set local role authenticated;
 set local request.jwt.claim.sub = :'p4';
@@ -4895,6 +4919,9 @@ begin
                  'trainerbank-export-v17/1/1/1', 'T61 Export der Eltern: Verknüpfung, Lesebestätigung, Einwilligung');
   perform public.guardian_remove(tst.get('link_g1')::uuid);
   perform tst.eq((select count(*) from public.guardian_children())::text, '0', 'T61 Eltern lösen die Verknüpfung selbst');
+  perform tst.eq((select count(*) filter (where withdrawn_at is null)::text || '/' || count(*)::text from public.consents
+                   where user_id = tst.uid('g1') and player_id = tst.get('p4_player')::uuid), '0/1',
+                 'T61 Verknüpfung gelöst: Einwilligung der Eltern endet (Widerruf bleibt als Nachweis)');
 end $$;
 commit;
 update public.players set birthdate = date '2012-01-01' where id = tst.get('p4_player')::uuid;

@@ -162,6 +162,10 @@ function MyPhotoForm({ onDone }: { onDone: () => void }) {
   const next = selfChange(cur, v, self, E.TODAY), base = cleanPhotoConsent(cur);
   const dirty = PHOTO_CHANNELS.some(ch => v[ch] !== undefined && v[ch] !== base[ch]);
   const save = async () => { setBusy(true); try { if (p && await s.savePhotoSelf(p.id, v)) onDone(); } finally { setBusy(false); } };
+  // 14–17: Die Eltern haben zugestimmt (z. B. im Eltern-Zugang) – der Spieler stimmt selbst zu (einzelne Kanäle vorher mit „Nein“ ausnehmen)
+  const teen = !self && age != null && age >= 14 && age < 18;
+  const askConfirm = teen && cur?.by === "parents" && PHOTO_CHANNELS.some(ch => next[ch] === true);
+  const confirm = async () => { setBusy(true); try { if (p && await s.photoConfirm(p.id, v)) onDone(); } finally { setBusy(false); } };
   return (
     <Col gap={12}>
       <T v="small">{self ? t("ph_meSelf") : age != null && age < 14 ? t("ph_meKid") : t("ph_meTeen")}</T>
@@ -183,8 +187,16 @@ function MyPhotoForm({ onDone }: { onDone: () => void }) {
           );
         })}
       </View>
+      {askConfirm ? (
+        <Banner testID="ph-me-confirm-box">
+          <Col gap={8}>
+            <T v="small">{tf("ph_meParents", { d: cur?.on ? E.de(cur.on) : "–" })}</T>
+            <Btn small kind="primary" testID="ph-me-confirm" label={t("ph_meConfirm")} disabled={busy} onPress={confirm} style={{ alignSelf: "flex-start" }} />
+          </Col>
+        </Banner>
+      ) : null}
       <Muted small>{t("ph_meRevoke")}</Muted>
-      <Btn kind="primary" testID="ph-me-save" label={t("save")} disabled={busy || !dirty} onPress={save} />
+      <Btn kind={askConfirm ? "default" : "primary"} testID="ph-me-save" label={t("save")} disabled={busy || !dirty} onPress={save} />
     </Col>
   );
 }

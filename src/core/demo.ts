@@ -19,6 +19,7 @@ import { cleanSizes } from "./sizes";
 import { absentOn, cleanSquad, squadMatesOf, squadSort } from "./nomination";
 import { defaultDepart } from "./rides";
 import { cardRules, suspState, suspendedIn } from "./cards";
+import { DEMO_PARENT, demoParentPosts, isMinor } from "./parents";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -259,6 +260,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoRides(D, lang, now);
   demoPhotos(D, lang, now);
   demoAccidents(D, lang, now);
+  demoGuardians(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -960,6 +962,31 @@ function demoAccidents(D: TeamData, lang: Lang, now: Date): void {
     firstAid: en ? "Head coach: ice, tape" : "Cheftrainer: Kühlen, Tape", treatment: en ? "A&E, X-ray without findings" : "Notaufnahme, Röntgen ohne Befund",
     witnesses: en ? "Team-mates" : "Mitspieler", clubOn: addDays(ankle.von, 1), insurerOn: addDays(ankle.von, 3), claimNo: "SV-2026-0815", closed: true, note: "",
   });
+}
+
+/**
+ * Eltern-Zugang: der Demo-Elternteil („demo-parent“) ist mit dem Demo-Spieler bzw. dem ersten Minderjährigen verknüpft,
+ * ein zweiter Elternteil mit einem anderen Kind, eine Anfrage wartet auf Bestätigung, eine Einladung ist offen; zwei
+ * Elterninfos (eine mit Lesebestätigung, die der zweite Elternteil schon bestätigt hat).
+ */
+function demoGuardians(D: TeamData, lang: Lang, now: Date): void {
+  if (D.team.modules.eltern === false) return;
+  const TODAY = iso(now);
+  const minors = D.players.filter(p => isMinor(p, TODAY));
+  const kid = minors.find(p => p.id === "p17") || minors[0];
+  if (!kid) return;
+  const others = minors.filter(p => p.id !== kid.id);
+  const at = (d: number) => new Date(now.getTime() - d * 864e5).toISOString();
+  D.guardians.push({ id: "dg1", pid: kid.id, userId: DEMO_PARENT, name: `Sandra ${kid.nn}`, relation: "mother", status: "active", adultOk: false, at: at(40), confirmedAt: at(39) });
+  if (others[0]) D.guardians.push({ id: "dg2", pid: others[0].id, userId: "demo-parent-2", name: `Michael ${others[0].nn}`, relation: "father", status: "active", adultOk: false, at: at(30), confirmedAt: at(29) });
+  if (others[1]) D.guardians.push({ id: "dg3", pid: others[1].id, userId: "demo-parent-3", name: `Ayşe ${others[1].nn}`, relation: "mother", status: "pending", adultOk: false, at: at(1), confirmedAt: null });
+  if (others[2]) D.guardianInvites.push({ pid: others[2].id, expires: new Date(now.getTime() + 10 * 864e5).toISOString(), usesLeft: 2 });
+  D.parentPosts = demoParentPosts(lang, now);
+  D.parentReads = [
+    { postId: "dpp1", userId: "demo-parent-2", readAt: at(0.5), ackedAt: at(0.5) },
+    { postId: "dpp2", userId: "demo-parent-2", readAt: at(8), ackedAt: null },
+    { postId: "dpp2", userId: DEMO_PARENT, readAt: at(8), ackedAt: null },
+  ];
 }
 
 /** Größen: die meisten Spieler haben sie eingetragen (passend zum Alter), drei fehlen, einer ist unvollständig */

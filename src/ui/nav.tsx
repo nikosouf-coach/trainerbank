@@ -9,6 +9,7 @@ import { accOverdue, openAccidents } from "../core/accidents";
 import { upcomingBirthdays } from "../core/birthdays";
 import { activeSuspensions, cardRules } from "../core/cards";
 import { iso } from "../core/dates";
+import { pendingGuardians } from "../core/parents";
 import type { Perm } from "../core/perms";
 import type { Modules } from "../core/types";
 import { useStore } from "../data/store";
@@ -19,7 +20,8 @@ export type NavGroup = "team" | "training" | "spiel" | "orga" | "setup";
 export const NAV_GROUPS: NavGroup[] = ["team", "training", "spiel", "orga", "setup"];
 
 export interface NavCtx { mods: Partial<Modules>; can: (p: Perm) => boolean; chatOn: boolean;
-  /** Betreiber der App (Rückmeldungen aller Nutzer) */ appAdmin?: boolean }
+  /** Betreiber der App (Rückmeldungen aller Nutzer) */ appAdmin?: boolean;
+  /** eigene Kinder (Eltern-Zugang) – dann gibt es die Eltern-Ansicht */ kids?: number }
 export interface NavItem {
   /** Schlüssel = Name der Seite in der Tab-Navigation (wenn tab) */
   k: string; href: string; icon: IconName;
@@ -42,6 +44,7 @@ export const NAV: NavItem[] = [
   { k: "geburtstage", href: "/coach/geburtstage", icon: "cake", short: "nvb_geburtstage", title: "gb_title", sub: "gb_menuSub", group: "team", tab: true, need: x => x.mods.geburtstage !== false },
   { k: "fotos", href: "/coach/fotos", icon: "camera", short: "nvb_fotos", title: "ph_title", sub: "ph_menuSub", group: "team", tab: true, need: x => x.mods.fotos !== false },
   { k: "unfaelle", href: "/coach/unfaelle", icon: "aid", short: "nvb_unfaelle", title: "ac_title", sub: "ac_menuSub", group: "team", tab: true, need: x => x.mods.unfall !== false && x.can("health") },
+  { k: "eltern", href: "/coach/eltern", icon: "people", short: "nvb_eltern", title: "el_coachTitle", sub: "el_menuSub", group: "team", tab: true, need: x => x.mods.eltern !== false && x.can("squad") },
   { k: "chat", href: "/coach/chat", icon: "chat", short: "nav_chat", title: "nav_chat", sub: "nvs_chat", group: "orga", tab: true, need: x => x.chatOn },
   { k: "umfragen", href: "/coach/umfragen", icon: "poll", short: "nvb_umfragen", title: "um_title", sub: "um_menuSub", group: "orga", tab: true, need: x => x.can("messages") },
   { k: "entwicklung", href: "/coach/entwicklung", icon: "trend", short: "nvb_entwicklung", title: "dv_overview", sub: "dv_menuSub", group: "team", tab: true, need: x => !!x.mods.entwicklung },
@@ -67,6 +70,7 @@ export const NAV: NavItem[] = [
   { k: "nutzung", href: "/coach/nutzung", icon: "people", short: "nu_title", title: "nu_title", sub: "nu_menuSub", group: "setup", tab: false, need: x => x.can("admin") },
   { k: "wiki", href: "/wiki", icon: "help", short: "wk_menu", title: "wk_menu", sub: "wk_menuSub", group: "setup", tab: false },
   { k: "konto", href: "/konto", icon: "person", short: "mh_account", title: "mh_account", sub: "nvs_konto", group: "setup", tab: false },
+  { k: "elternansicht", href: "/parent", icon: "heart", short: "el_parentView", title: "el_parentView", sub: "el_parentViewSub", group: "setup", tab: false, need: x => (x.kids || 0) > 0 },
   { k: "feedback", href: "/feedback", icon: "flag", short: "fb_menu", title: "fb_menu", sub: "fb_menuSub", group: "setup", tab: false },
   { k: "rueckmeldungen", href: "/rueckmeldungen", icon: "note", short: "fbl_title", title: "fbl_title", sub: "fbl_menuSub", group: "setup", tab: false, need: x => !!x.appAdmin },
 ];
@@ -89,7 +93,8 @@ export function barOf(saved: string[] | undefined, avail: NavItem[]): string[] {
 export function useNav() {
   const s = useStore();
   const D = s.D;
-  const x: NavCtx = { mods: D?.team.modules || {}, can: s.can, chatOn: !!D && D.team.modules.chat !== false && chatSettings(D.team).on, appAdmin: s.appAdmin };
+  const x: NavCtx = { mods: D?.team.modules || {}, can: s.can, chatOn: !!D && D.team.modules.chat !== false && chatSettings(D.team).on, appAdmin: s.appAdmin,
+    kids: s.isDemo ? 0 : s.myChildren.length };
   const items = availNav(x);
   const saved = s.prefs.nav;
   const bar = barOf(saved?.bar, items);
@@ -101,7 +106,8 @@ export function useNav() {
     : k === "notfall" && D ? missingEmergency(D).length
     : k === "karten" && D && D.team.modules.karten !== false ? new Set(activeSuspensions(D, cardRules(D.team), iso(new Date())).map(x => x.s.pid)).size
     : k === "geburtstage" && D && D.team.modules.geburtstage !== false ? upcomingBirthdays(D, iso(new Date()), 0).length
-    : k === "unfaelle" && D && D.team.modules.unfall !== false ? openAccidents(D).filter(a => accOverdue(a, iso(new Date()))).length : 0;
+    : k === "unfaelle" && D && D.team.modules.unfall !== false ? openAccidents(D).filter(a => accOverdue(a, iso(new Date()))).length
+    : k === "eltern" && D && D.team.modules.eltern !== false ? pendingGuardians(D).length : 0;
   return { items, bar, hidden, save, reset, badge, custom: !!saved?.bar?.length || !!saved?.hide?.length };
 }
 

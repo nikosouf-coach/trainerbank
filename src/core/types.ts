@@ -154,6 +154,8 @@ export interface Modules {
   fotos: boolean;
   /** Unfallmeldungen für die Sportversicherung (Recht „Gesundheitsdaten“) */
   unfall: boolean;
+  /** Eltern-Zugang (Termine, Abmelden, Elterninfo, Einwilligungen) */
+  eltern: boolean;
 }
 export interface Team {
   id: string;
@@ -284,6 +286,22 @@ export interface Accident {
   /** zuletzt geändert (Server) */
   at?: string | null;
 }
+/** Eltern-Zugang: Verknüpfung Elternkonto ↔ Kind (bestätigt vom Trainerteam), Einladung, Elterninfo */
+export type GuardianRelation = "mother" | "father" | "guardian";
+export interface GuardianLink {
+  id: string; pid: string; userId: string; name: string; relation: GuardianRelation;
+  status: "pending" | "active";
+  /** volljähriges Kind hat den Zugang verlängert */
+  adultOk: boolean;
+  at: string; confirmedAt: string | null;
+}
+export interface GuardianInvite { pid: string; expires: string; usesLeft: number }
+export interface ParentPost {
+  id: string; title: string; body: string; needAck: boolean; author: string; at: string;
+  /** nur in der Eltern-Ansicht: eigener Lesestand */
+  readAt?: string | null; ackedAt?: string | null;
+}
+export interface ParentRead { postId: string; userId: string; readAt: string; ackedAt: string | null }
 export interface Suspension { id: string; pid: string; kind: SuspKind; matchId: string | null; start: string; games: number | null; until: string | null; scope: "league" | "all"; note: string; auto?: boolean }
 /** Note (1–10, eine Nachkommastelle) und Feedback des Trainers zu Spiel oder Training. */
 export interface Rating { id: string; pid: string; date: string; kind: "spiel" | "training"; rating: number | null; text: string; vis: boolean;
@@ -539,7 +557,7 @@ export interface PlayerSizes { top: string | null; bottom: string | null; shoes:
 export interface MatchSquad { matchId: string; meetTime: string | null; meetPlace: string; note: string; showAll: boolean; published: string | null }
 export type NomAnswer = "yes" | "no";
 /** Nominierung: im Kader oder auf Abruf; Zu- oder Absage (mit Grund), wann und ob das Trainerteam sie eingetragen hat */
-export interface Nomination { matchId: string; pid: string; standby: boolean; answer: NomAnswer | null; reason: string; at: string | null; byStaff: boolean }
+export interface Nomination { matchId: string; pid: string; standby: boolean; answer: NomAnswer | null; reason: string; at: string | null; byStaff: boolean; /** von Eltern beantwortet */ byGuardian?: boolean }
 /** Kader aus Sicht eines Spielers (nur veröffentlicht und für alle sichtbar): Vorname und Initial, Nummer, Position */
 export interface SquadMate { pid: string; name: string; nr: number | null; pos: string; standby: boolean }
 
@@ -776,6 +794,13 @@ export interface TeamData {
   photos: Record<string, PhotoConsent>;
   /** Unfallmeldungen (Trainerteam mit Recht „Gesundheitsdaten“; Spieler: eigene) */
   accidents: Accident[];
+  /** Eltern-Zugang: Verknüpfungen (Trainerteam mit Recht „Kader“; Spieler: eigene), offene Einladungen, Elterninfo mit Lesestand,
+   *  geprüfte Einwilligungen der Eltern je Spieler */
+  guardians: GuardianLink[];
+  guardianInvites: GuardianInvite[];
+  parentPosts: ParentPost[];
+  parentReads: ParentRead[];
+  guardianConsents: Record<string, { parental: boolean; health: boolean }>;
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -847,7 +872,7 @@ export function emptyTeamData(team: Team): TeamData {
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     programs: [], selfSkills: [], peerGifts: [], peerMates: [],
     polls: [], pollAnswers: [], pollResults: {},
-    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {}, rides: [], rideSeats: [], rideNeeds: [], rideNames: {}, suspensions: [], photos: {}, accidents: [],
+    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {}, rides: [], rideSeats: [], rideNeeds: [], rideNames: {}, suspensions: [], photos: {}, accidents: [], guardians: [], guardianInvites: [], parentPosts: [], parentReads: [], guardianConsents: {},
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],
