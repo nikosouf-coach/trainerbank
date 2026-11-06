@@ -28,6 +28,7 @@ export function modsFor(depth: Depth, k: ClassKey): Modules {
     leistung: depth !== "org", befunde: depth !== "org", spielanalyse: true, videos: true,
     archiv: true, vorbereitung: depth !== "org", kontakte: true,
     entwicklung: depth !== "org", challenge: true, chat: true, ausruestung: true, fahrten: true, karten: grp !== "u11",
+    geburtstage: true, fotos: true, unfall: true,
   };
   if (grp === "u11") { m.belastung = false; m.regeneration = false; m.wachstum = false; }
   return m;
@@ -89,7 +90,7 @@ export function posGroup(pos: string): PosGroup {
 
 /** Pakete des Baukastens: welche Module zusammengehören. "basis" ist immer enthalten. */
 export const PACKAGES: { key: string; mods: (keyof Modules)[] }[] = [
-  { key: "basis", mods: ["beteiligung", "kontakte", "chat", "ausruestung", "fahrten", "karten"] },
+  { key: "basis", mods: ["beteiligung", "kontakte", "chat", "ausruestung", "fahrten", "karten", "geburtstage", "fotos", "unfall"] },
   { key: "belastung", mods: ["belastung", "regeneration", "wachstum"] },
   { key: "planung", mods: ["planung", "archiv", "vorbereitung"] },
   { key: "leistung", mods: ["leistung", "befunde"] },

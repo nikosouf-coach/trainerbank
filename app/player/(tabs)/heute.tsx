@@ -26,6 +26,7 @@ import { PlayerPollsCard } from "../../../src/ui/polls";
 import { PlayerSquadCard } from "../../../src/ui/nomination";
 import { PlayerRidesCard } from "../../../src/ui/rides";
 import { PlayerCardsNotice } from "../../../src/ui/cards";
+import { PlayerBirthdayCard } from "../../../src/ui/birthdays";
 import { PlayerEmergencyCard } from "../../../src/ui/emergency";
 import { PlayerPlansCard } from "../../../src/ui/matchplan/cards";
 import { radius, useTheme } from "../../../src/ui/theme";
@@ -84,6 +85,7 @@ export default function PlayerHeute() {
   return (
     <Screen testID="player-heute">
       <PlayerHero p={p} g={g} />
+      <PlayerBirthdayCard />
       <PlayerEmergencyCard />
       <PlayerCardsNotice />
       <CrashAsk />

@@ -12,7 +12,7 @@ import { radius, useTheme } from "./theme";
  * wichtig“ (bündelt Spieltag-Check, Posteingang, Aufgaben, Überlastung), Belastung im Team, die Woche und laufende
  * Umfragen (nur wenn es welche gibt) – die ausführlichen Karten lassen sich unter „Startseite anpassen“ dazuschalten.
  */
-export const DASH_COACH = ["next", "squad", "rides", "focus", "status", "week", "polls", "phase", "ai", "matchday", "tasks", "inbox", "attn", "absent", "events", "last", "load"] as const;
+export const DASH_COACH = ["next", "squad", "rides", "birthdays", "focus", "status", "week", "polls", "phase", "ai", "matchday", "tasks", "inbox", "attn", "absent", "events", "last", "load"] as const;
 export type DashKey = typeof DASH_COACH[number];
 /**
  * Karten der Spieler-Startseite – nach Wichtigkeit: erst was heute zu tun ist (Einträge, Körper, Nachrichten, offene

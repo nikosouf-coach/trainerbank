@@ -56,11 +56,17 @@ import { de_rides } from "../i18n/de_rides";
 import { en_rides } from "../i18n/en_rides";
 import { de_cards } from "../i18n/de_cards";
 import { en_cards } from "../i18n/en_cards";
+import { de_birthdays } from "../i18n/de_birthdays";
+import { en_birthdays } from "../i18n/en_birthdays";
+import { de_photos } from "../i18n/de_photos";
+import { en_photos } from "../i18n/en_photos";
+import { de_accidents } from "../i18n/de_accidents";
+import { en_accidents } from "../i18n/en_accidents";
 import type { Dict } from "../i18n/types";
 import type { Lang } from "./types";
 
-const de: Dict = { ...deBase, ...de_app, ...de_coach, ...de_squad, ...de_player, ...de_prep, ...de_more, ...de_steer, ...de_reha, ...de_kasse, ...de_body, ...de_units, ...de_dev, ...de_chat, ...de_match, ...de_club, ...de_scout, ...de_nav, ...de_home, ...de_design, ...de_stats, ...de_pilot, ...de_prog, ...de_polls, ...de_emergency, ...de_sizes, ...de_nomination, ...de_rides, ...de_cards };
-const en: Dict = { ...enBase, ...en_app, ...en_coach, ...en_squad, ...en_player, ...en_prep, ...en_more, ...en_steer, ...en_reha, ...en_kasse, ...en_body, ...en_units, ...en_dev, ...en_chat, ...en_match, ...en_club, ...en_scout, ...en_nav, ...en_home, ...en_design, ...en_stats, ...en_pilot, ...en_prog, ...en_polls, ...en_emergency, ...en_sizes, ...en_nomination, ...en_rides, ...en_cards };
+const de: Dict = { ...deBase, ...de_app, ...de_coach, ...de_squad, ...de_player, ...de_prep, ...de_more, ...de_steer, ...de_reha, ...de_kasse, ...de_body, ...de_units, ...de_dev, ...de_chat, ...de_match, ...de_club, ...de_scout, ...de_nav, ...de_home, ...de_design, ...de_stats, ...de_pilot, ...de_prog, ...de_polls, ...de_emergency, ...de_sizes, ...de_nomination, ...de_rides, ...de_cards, ...de_birthdays, ...de_photos, ...de_accidents };
+const en: Dict = { ...enBase, ...en_app, ...en_coach, ...en_squad, ...en_player, ...en_prep, ...en_more, ...en_steer, ...en_reha, ...en_kasse, ...en_body, ...en_units, ...en_dev, ...en_chat, ...en_match, ...en_club, ...en_scout, ...en_nav, ...en_home, ...en_design, ...en_stats, ...en_pilot, ...en_prog, ...en_polls, ...en_emergency, ...en_sizes, ...en_nomination, ...en_rides, ...en_cards, ...en_birthdays, ...en_photos, ...en_accidents };
 const DICTS: Record<Lang, Dict> = { de, en };
 
 export interface Translator {

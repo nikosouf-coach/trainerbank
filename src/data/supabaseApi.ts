@@ -17,9 +17,11 @@ import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { cleanReason, cleanSquad } from "../core/nomination";
 import { cleanRide } from "../core/rides";
 import { cleanCard, cleanSuspension } from "../core/cards";
+import { cleanAccident } from "../core/accidents";
+import { cleanPhotoConsent } from "../core/photos";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate, Ride, RideKind, Suspension,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate, Ride, RideKind, Suspension, PhotoConsent, Accident,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -158,6 +160,12 @@ const mapNom = (r: Row): Nomination => ({
 });
 const mapMate = (r: Row): SquadMate => ({ pid: r.player_id, name: String(r.name || ""), nr: r.nr == null ? null : Number(r.nr), pos: String(r.pos || ""), standby: !!r.standby });
 const mapRide = (r: Row): Ride => cleanRide({ id: r.id, kind: r.match_id ? "match" : "event", refId: r.match_id || r.event_id, driverPid: r.driver_pid, driver: r.driver_label || "", seats: r.seats, time: r.depart_time, place: r.depart_place || "", note: r.note || "" });
+const mapPhoto = (r: Row): PhotoConsent => cleanPhotoConsent({ web: r.web, social: r.social, press: r.press, name: r.name_ok, by: r.given_by, on: r.given_on, note: r.note || "", at: r.updated_at });
+const mapAccident = (r: Row): Accident => cleanAccident({
+  id: r.id, pid: r.player_id, date: r.accident_date, time: r.accident_time, place: r.place || "", activity: r.activity, matchId: r.match_id, absenceId: r.absence_id,
+  how: r.how || "", injury: r.injury || "", area: r.body_area, firstAid: r.first_aid || "", treatment: r.treatment || "", witnesses: r.witnesses || "",
+  clubOn: r.club_on, insurerOn: r.insurer_on, claimNo: r.claim_no || "", closed: !!r.closed, note: r.note || "", at: r.updated_at,
+});
 const mapSusp = (r: Row): Suspension => cleanSuspension({ id: r.id, pid: r.player_id, kind: r.kind, matchId: r.match_id, start: r.start_date, games: r.games, until: r.until_date, scope: r.scope, note: r.note || "" });
 // Größen (Schuhe und Handschuhe kommen als Zahl bzw. Text „42.5“)
 const mapSizes = (r: Row): PlayerSizes => cleanSizes({ top: r.top, bottom: r.bottom, shoes: r.shoes, gloves: r.gloves, print: r.print_name || "", note: r.note || "" });
@@ -475,6 +483,20 @@ export class SupabaseApi implements Api {
       try {
         const rows = await all((a, b) => sb.from("player_suspensions").select("*").eq("team_id", tid).order("start_date").order("id").range(a, b));
         D.suspensions = rows.map(mapSusp);
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.fotos !== false) {
+      // Foto-Erlaubnis (Trainerteam: alle; Spieler: eigene)
+      try {
+        const rows = await all((a, b) => sb.from("photo_consents").select("*").eq("team_id", tid).order("player_id").range(a, b));
+        for (const r of rows) D.photos[r.player_id] = mapPhoto(r);
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.unfall !== false) {
+      // Unfallmeldungen (Trainerteam mit Recht „Gesundheitsdaten“; Spieler: eigene)
+      try {
+        const rows = await all((a, b) => sb.from("accident_reports").select("*").eq("team_id", tid).order("accident_date").order("id").range(a, b));
+        D.accidents = rows.map(mapAccident);
       } catch { /* optional: Rest der App lädt trotzdem */ }
     }
     if (D.team.modules.fahrten !== false) {
@@ -1048,6 +1070,29 @@ export class SupabaseApi implements Api {
       : await q<Row>(this.sb.from("player_suspensions").update(row).eq("id", y.id).select().single()));
   }
   async deleteSuspension(id: string) { await q(this.sb.from("player_suspensions").delete().eq("id", id)); }
+
+  // ---------- Foto-Erlaubnis ----------
+  async savePhotoConsent(pid: string, c: PhotoConsent) {
+    const x = cleanPhotoConsent(c);
+    const r = await q<Row>(this.sb.rpc("photo_consent_save", {
+      p_player: pid, p_web: x.web, p_social: x.social, p_press: x.press, p_name: x.name, p_by: x.by, p_on: x.on, p_note: x.note || null,
+    }));
+    return mapPhoto(r);
+  }
+
+  // ---------- Unfallmeldungen ----------
+  async saveAccident(teamId: string, a: Accident) {
+    const y = cleanAccident(a);
+    const row: Row = {
+      player_id: y.pid, accident_date: y.date, accident_time: y.time, place: y.place || null, activity: y.activity, match_id: y.matchId, absence_id: y.absenceId,
+      how: y.how, injury: y.injury, body_area: y.area, first_aid: y.firstAid || null, treatment: y.treatment || null, witnesses: y.witnesses || null,
+      club_on: y.clubOn, insurer_on: y.insurerOn, claim_no: y.claimNo || null, closed: y.closed, note: y.note || null,
+    };
+    return mapAccident(y.id.startsWith("tmp-")
+      ? await q<Row>(this.sb.from("accident_reports").insert({ ...row, team_id: teamId }).select().single())
+      : await q<Row>(this.sb.from("accident_reports").update(row).eq("id", y.id).select().single()));
+  }
+  async deleteAccident(id: string) { await q(this.sb.from("accident_reports").delete().eq("id", id)); }
 
   // ---------- Größen & Ausrüstung ----------
   async saveSizes(pid: string, sizes: PlayerSizes) {

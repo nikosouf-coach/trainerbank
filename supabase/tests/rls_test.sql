@@ -4407,6 +4407,179 @@ end $$;
 delete from public.matches where id = tst.get('m58b')::uuid;
 
 -- =====================================================================
+-- T59 Foto-Erlaubnis: Trainerteam mit Recht Kader trägt aus dem Formular ein, Spieler sagen Nein immer und Ja nur
+--     volljährig, Lesen Trainerteam und der Spieler selbst, nur über die Funktion
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$
+declare r public.photo_consents;
+begin
+  r := public.photo_consent_save(tst.get('p4_player')::uuid, true, true, true, true, 'parents', current_date - 30, 'Formular Saisonstart');
+  perform tst.eq(r.given_by || '/' || r.web::text || '/' || r.note, 'parents/true/Formular Saisonstart', 'T59 Trainerteam trägt die Erklärung der Eltern ein');
+  perform tst.ok(r.team_id = tst.get('team_a')::uuid and r.updated_by = tst.uid('coachA'), 'T59 Team und Konto setzt der Server');
+end $$;
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'opa', current_date, null)$q$, tst.get('max')), 'T59 Erklärt von: nur Spieler, Eltern, beide', 'invalid_by');
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'player', current_date + 5, null)$q$, tst.get('max')), 'T59 Datum nicht in der Zukunft', 'date_future');
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'player', current_date, E'a\nb')$q$, tst.get('max')), 'T59 Hinweis einzeilig', 'photo_consents_note_valid');
+select tst.throws(format($q$insert into public.photo_consents (player_id, team_id, web) values (%L, %L, true)$q$, tst.get('tom'), tst.get('team_a')), 'T59 nur über die Funktion', 'permission denied');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$
+declare r public.photo_consents;
+begin
+  perform tst.eq((select count(*) from public.photo_consents)::text, '1', 'T59 Spielerin (14) sieht die eigene Erklärung');
+  r := public.photo_consent_save(tst.get('p4_player')::uuid, true, false, true, true, null, null, null);
+  perform tst.eq(r.social::text || '/' || r.given_by || '/' || r.note, 'false/parents/Formular Saisonstart', 'T59 Minderjährige sagen selbst Nein – Erklärung der Eltern bleibt');
+end $$;
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, null, null, null)$q$, tst.get('p4_player')), 'T59 Minderjährige nehmen ein Nein nicht selbst zurück', 'forbidden');
+select tst.throws(format($q$select public.photo_consent_save(%L, null, false, true, true, null, null, null)$q$, tst.get('p4_player')), 'T59 zurück auf offen nur über das Trainerteam', 'forbidden');
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, null, null, null)$q$, tst.get('max')), 'T59 fremde Erklärung nicht änderbar', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare r public.photo_consents;
+begin
+  r := public.photo_consent_save(tst.get('max')::uuid, true, true, false, null, 'parents', current_date - 400, 'egal');
+  perform tst.eq(r.given_by || '/' || (r.given_on = public.team_today(r.team_id))::text || '/' || r.press::text || '/' || coalesce(r.name_ok::text, 'offen') || '/' || coalesce(r.note, '-'),
+                 'player/true/false/offen/-', 'T59 Volljährige stimmen selbst zu (Erklärung: Spieler, heute)');
+  perform tst.eq((select count(*) from public.photo_consents)::text, '1', 'T59 Spieler sieht nur die eigene Erklärung');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.photo_consents)::text, '0', 'T59 Mitspieler sehen keine Erklärungen');
+end $$;
+commit;
+
+update public.team_staff set perms = array['notes']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.photo_consents where team_id = tst.get('team_a')::uuid)::text, '2', 'T59 ganzes Trainerteam sieht die Erklärungen');
+end $$;
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'both', current_date, null)$q$, tst.get('tom')), 'T59 Eintragen nur mit Recht Kader', 'forbidden');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.photo_consents where team_id = tst.get('team_a')::uuid)::text, '0', 'T59 fremdes Trainerteam sieht nichts');
+end $$;
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'both', current_date, null)$q$, tst.get('tom')), 'T59 fremdes Trainerteam trägt nichts ein', 'not_found');
+commit;
+
+-- =====================================================================
+-- T60 Unfallmeldungen: nur Trainerteam mit Recht Gesundheitsdaten (lesen und schreiben), Spieler lesen die eigenen,
+--     Prüfungen (Tage, Uhrzeit, Tätigkeit, Spiel und Verletzung aus dem Team bzw. vom Spieler), Löschfrist, Spiel gelöscht
+-- =====================================================================
+with ins as (insert into public.matches (team_id, date, opponent) values (tst.get('team_b')::uuid, current_date - 2, 'T60 B') returning id)
+select tst.put('m60b', id::text) from ins;
+with ins as (insert into public.absences (team_id, player_id, type, from_date) values (tst.get('team_a')::uuid, tst.get('tom')::uuid, 'verletzung', current_date - 2) returning id)
+select tst.put('ab60tom', id::text) from ins;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.matches (team_id, date, time, opponent, competition) values (tst.get('team_a')::uuid, current_date - 2, '15:00', 'T60 FC', 'liga') returning id)
+select tst.put('m60', id::text) from ins;
+with ins as (insert into public.absences (team_id, player_id, type, from_date) values (tst.get('team_a')::uuid, tst.get('max')::uuid, 'verletzung', current_date - 2) returning id)
+select tst.put('ab60', id::text) from ins;
+with ins as (insert into public.accident_reports (player_id, accident_date, accident_time, place, activity, match_id, absence_id, how, injury, body_area, first_aid)
+             values (tst.get('max')::uuid, current_date - 2, '15:40', 'Auswärts', 'match', tst.get('m60')::uuid, tst.get('ab60')::uuid, 'Zweikampf an der Seitenlinie', 'Prellung Knie', 'knee:r', 'Kühlen')
+             returning id)
+select tst.put('ac60', id::text) from ins;
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and updated_by = tst.uid('coachA') and match_id = tst.get('m60')::uuid and not closed
+                  from public.accident_reports where id = tst.get('ac60')::uuid), 'T60 Unfall im Spiel – Team und Konto setzt der Server');
+end $$;
+select tst.affects(format($q$insert into public.accident_reports (player_id, accident_date, activity, match_id, how, injury) values (%L, current_date - 1, 'training', %L, 'Umgeknickt', 'Sprunggelenk')$q$, tst.get('tom'), tst.get('m60')), 1, 'T60 Training – zweite Meldung');
+do $$ begin
+  perform tst.ok((select match_id is null from public.accident_reports where player_id = tst.get('tom')::uuid), 'T60 Spiel nur bei Spiel oder Weg');
+end $$;
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date + 5, 'x', 'y')$q$, tst.get('tom')), 'T60 Unfalltag nicht in der Zukunft', 'date_future');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury, club_on) values (%L, current_date - 2, 'x', 'y', current_date - 3)$q$, tst.get('tom')), 'T60 Meldung nicht vor dem Unfall', 'accident_reports_club_after');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury, insurer_on) values (%L, current_date - 2, 'x', 'y', current_date + 9)$q$, tst.get('tom')), 'T60 Meldung nicht in der Zukunft', 'date_future');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, accident_time, how, injury) values (%L, current_date, '25:00', 'x', 'y')$q$, tst.get('tom')), 'T60 Uhrzeit gültig', 'accident_reports_time_valid');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, activity, how, injury) values (%L, current_date, 'party', 'x', 'y')$q$, tst.get('tom')), 'T60 Tätigkeit aus der Liste', 'accident_reports_activity_valid');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, body_area, how, injury) values (%L, current_date, 'Knie rechts', 'x', 'y')$q$, tst.get('tom')), 'T60 Körperregion als Code', 'accident_reports_area_valid');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date, '  ', 'y')$q$, tst.get('tom')), 'T60 Hergang Pflicht', 'accident_reports_how_valid');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, absence_id, how, injury) values (%L, current_date, %L, 'x', 'y')$q$, tst.get('erik'), tst.get('ab60tom')), 'T60 Verletzung desselben Spielers', 'different_player');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, activity, match_id, how, injury) values (%L, current_date, 'match', %L, 'x', 'y')$q$, tst.get('tom'), tst.get('m60b')), 'T60 Spiel aus dem eigenen Team', 'different_teams');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date, 'x', 'y')$q$, tst.get('p46b')), 'T60 nur Spieler des eigenen Teams', 'row-level security');
+select tst.affects(format($q$update public.accident_reports set club_on = current_date - 1, claim_no = 'SV-1' where id = %L$q$, tst.get('ac60')), 1, 'T60 an den Verein gemeldet');
+select tst.throws(format($q$update public.accident_reports set player_id = %L where id = %L$q$, tst.get('tom'), tst.get('ac60')), 'T60 Spieler nicht wechselbar', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*)::text || '/' || max(claim_no) from public.accident_reports), '1/SV-1', 'T60 Spieler sieht die eigene Meldung');
+end $$;
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date, 'x', 'y')$q$, tst.get('max')), 'T60 Spieler melden nicht selbst', 'row-level security');
+select tst.affects($q$update public.accident_reports set closed = true$q$, 0, 'T60 Spieler ändern ihre Meldung nicht');
+select tst.affects($q$delete from public.accident_reports$q$, 0, 'T60 Spieler löschen ihre Meldung nicht');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.accident_reports)::text, '0', 'T60 Mitspieler sehen keine Unfallmeldungen');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad', 'perf']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.accident_reports where team_id = tst.get('team_a')::uuid)::text, '0', 'T60 ohne Recht Gesundheitsdaten keine Unfallmeldungen');
+end $$;
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date, 'x', 'y')$q$, tst.get('tom')), 'T60 ohne Recht Gesundheitsdaten nichts melden', 'row-level security');
+commit;
+update public.team_staff set perms = array['health']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.accident_reports where team_id = tst.get('team_a')::uuid)::text, '2', 'T60 mit Recht Gesundheitsdaten alle Meldungen');
+end $$;
+select tst.affects(format($q$update public.accident_reports set insurer_on = current_date where id = %L$q$, tst.get('ac60')), 1, 'T60 an die Versicherung gemeldet (Recht Gesundheitsdaten)');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.accident_reports where team_id = tst.get('team_a')::uuid)::text, '0', 'T60 fremdes Trainerteam sieht keine Meldungen');
+end $$;
+commit;
+
+insert into public.accident_reports (team_id, player_id, accident_date, how, injury) values (tst.get('team_a')::uuid, tst.get('tom')::uuid, current_date - 1200, 'alt', 'alt');
+do $$ begin
+  perform tst.eq(public.purge_old_accidents()::text, '1', 'T60 Löschfrist: Meldung älter als 36 Monate gelöscht');
+  perform tst.eq((select count(*) from public.accident_reports where team_id = tst.get('team_a')::uuid)::text, '2', 'T60 Löschfrist: aktuelle Meldungen bleiben');
+end $$;
+delete from public.matches where id = tst.get('m60')::uuid;
+delete from public.absences where id = tst.get('ab60')::uuid;
+do $$ begin
+  perform tst.ok((select match_id is null and absence_id is null from public.accident_reports where id = tst.get('ac60')::uuid), 'T60 Spiel und Verletzung gelöscht: Meldung bleibt');
+end $$;
+delete from public.matches where id = tst.get('m60b')::uuid;
+delete from public.absences where id = tst.get('ab60tom')::uuid;
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -4424,7 +4597,9 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v15', 'T21b Exportformat v15');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v16', 'T21b Exportformat v16');
+  perform tst.eq(jsonb_array_length(x -> 'photo_consents')::text || '/' || (x -> 'photo_consents' -> 0 ->> 'declared_by'), '1/player', 'T21b Export: eigene Foto-Erlaubnis');
+  perform tst.eq(jsonb_array_length(x -> 'accident_reports')::text || '/' || (x -> 'accident_reports' -> 0 ->> 'injury') || '/' || (x -> 'accident_reports' -> 0 ->> 'claim_number'), '1/Prellung Knie/SV-1', 'T21b Export: eigene Unfallmeldungen');
   perform tst.eq(jsonb_array_length(x -> 'suspensions')::text || '/' || (x -> 'suspensions' -> 0 ->> 'kind') || '/' || (x -> 'suspensions' -> 0 ->> 'games'), '1/red/3', 'T21b Export: eigene Sperren');
   perform tst.eq(jsonb_array_length(x -> 'rides_offered')::text || '/' || (x -> 'rides_offered' -> 0 ->> 'target') || '/' || (x -> 'rides_offered' -> 0 ->> 'passengers'),
                  '1/T57 Turnier/1', 'T21b Export: eigene Fahrten als Fahrer (ohne Namen der Mitfahrer)');

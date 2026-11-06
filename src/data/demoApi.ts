@@ -14,8 +14,10 @@ import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { answersAllowed, applyAnswer, cleanSquad } from "../core/nomination";
 import { cleanRide } from "../core/rides";
 import { cleanSuspension } from "../core/cards";
+import { cleanAccident } from "../core/accidents";
+import { cleanPhotoConsent } from "../core/photos";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, Suspension, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, Suspension, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile, PhotoConsent, Accident } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -542,6 +544,9 @@ export class DemoApi implements Api {
   // Karten & Sperren
   async saveSuspension(_t: string, s: Suspension) { this.net(); const x = cleanSuspension(s); return { ...x, id: newId(x.id) }; }
   async deleteSuspension() { this.net(); }
+  async savePhotoConsent(_pid: string, c: PhotoConsent) { this.net(); return { ...cleanPhotoConsent(c), at: new Date().toISOString() }; }
+  async saveAccident(_t: string, a: Accident) { this.net(); const x = cleanAccident(a); return { ...x, id: newId(x.id), at: new Date().toISOString() }; }
+  async deleteAccident() { this.net(); }
   /** Demo: Ergebnis wie der Server für das Trainerteam (die Spieler-Ansicht rechnet der Store mit eigener Sicht) */
   async pollResults(pollId: string) {
     const D = this.data, p = D?.polls.find(x => x.id === pollId);

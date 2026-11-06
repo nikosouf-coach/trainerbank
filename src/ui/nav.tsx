@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import { chatSettings } from "../core/chat";
 import { openRequests } from "../core/dev";
 import { missingEmergency } from "../core/emergency";
+import { accOverdue, openAccidents } from "../core/accidents";
+import { upcomingBirthdays } from "../core/birthdays";
 import { activeSuspensions, cardRules } from "../core/cards";
 import { iso } from "../core/dates";
 import type { Perm } from "../core/perms";
@@ -37,6 +39,9 @@ export const NAV: NavItem[] = [
   { k: "kader", href: "/coach/kader", icon: "kader", short: "nav_kader", title: "nav_kader", sub: "nvs_kader", group: "team", tab: true },
   { k: "statistik", href: "/coach/statistik", icon: "chart", short: "nvb_statistik", title: "sx_title", sub: "sx_menuSub", group: "team", tab: true },
   { k: "notfall", href: "/coach/notfall", icon: "phone", short: "nvb_notfall", title: "nf_title", sub: "nf_menuSub", group: "team", tab: true, need: x => x.can("squad") || x.can("health") },
+  { k: "geburtstage", href: "/coach/geburtstage", icon: "cake", short: "nvb_geburtstage", title: "gb_title", sub: "gb_menuSub", group: "team", tab: true, need: x => x.mods.geburtstage !== false },
+  { k: "fotos", href: "/coach/fotos", icon: "camera", short: "nvb_fotos", title: "ph_title", sub: "ph_menuSub", group: "team", tab: true, need: x => x.mods.fotos !== false },
+  { k: "unfaelle", href: "/coach/unfaelle", icon: "aid", short: "nvb_unfaelle", title: "ac_title", sub: "ac_menuSub", group: "team", tab: true, need: x => x.mods.unfall !== false && x.can("health") },
   { k: "chat", href: "/coach/chat", icon: "chat", short: "nav_chat", title: "nav_chat", sub: "nvs_chat", group: "orga", tab: true, need: x => x.chatOn },
   { k: "umfragen", href: "/coach/umfragen", icon: "poll", short: "nvb_umfragen", title: "um_title", sub: "um_menuSub", group: "orga", tab: true, need: x => x.can("messages") },
   { k: "entwicklung", href: "/coach/entwicklung", icon: "trend", short: "nvb_entwicklung", title: "dv_overview", sub: "dv_menuSub", group: "team", tab: true, need: x => !!x.mods.entwicklung },
@@ -94,7 +99,9 @@ export function useNav() {
   /** Zahl am Menüpunkt (z. B. offene Anfragen) */
   const badge = (k: string): number => k === "individual" && D ? openRequests(D).length : k === "rueckmeldungen" ? s.feedbackOpen
     : k === "notfall" && D ? missingEmergency(D).length
-    : k === "karten" && D && D.team.modules.karten !== false ? new Set(activeSuspensions(D, cardRules(D.team), iso(new Date())).map(x => x.s.pid)).size : 0;
+    : k === "karten" && D && D.team.modules.karten !== false ? new Set(activeSuspensions(D, cardRules(D.team), iso(new Date())).map(x => x.s.pid)).size
+    : k === "geburtstage" && D && D.team.modules.geburtstage !== false ? upcomingBirthdays(D, iso(new Date()), 0).length
+    : k === "unfaelle" && D && D.team.modules.unfall !== false ? openAccidents(D).filter(a => accOverdue(a, iso(new Date()))).length : 0;
   return { items, bar, hidden, save, reset, badge, custom: !!saved?.bar?.length || !!saved?.hide?.length };
 }
 

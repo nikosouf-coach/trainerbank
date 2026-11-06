@@ -148,6 +148,12 @@ export interface Modules {
   fahrten: boolean;
   /** Karten und Sperren (Gelb, Gelb-Rot, Rot; Sperren für die nächsten Spiele) */
   karten: boolean;
+  /** Geburtstage (Startseite, Liste, Kalender, Glückwunsch im Teamchat) */
+  geburtstage: boolean;
+  /** Foto-Erlaubnis je Spieler (Website, Social Media, Presse, Name) */
+  fotos: boolean;
+  /** Unfallmeldungen für die Sportversicherung (Recht „Gesundheitsdaten“) */
+  unfall: boolean;
 }
 export interface Team {
   id: string;
@@ -247,6 +253,37 @@ export type SuspKind = "yellow" | "yellow_red" | "red" | "other";
  * Urteil) oder bis zu einem Tag, für Meisterschaftsspiele oder alle Pflichtspiele, Hinweis. auto = aus den Karten nach
  * den Regeln abgeleitet (nicht gespeichert); eine gespeicherte Sperre mit gleichem Auslöser und Grund ersetzt sie.
  */
+/** Foto-Erlaubnis: Kanäle (Vereinswebsite, Social Media des Vereins, Presse und Druck, Name zum Foto) und wer erklärt hat */
+export type PhotoChannel = "web" | "social" | "press" | "name";
+export type PhotoBy = "player" | "parents" | "both";
+export interface PhotoConsent {
+  web: boolean | null; social: boolean | null; press: boolean | null; name: boolean | null;
+  /** wer hat erklärt (null: noch keine Erklärung, nur Ablehnungen des Spielers) */
+  by: PhotoBy | null;
+  /** Datum der Erklärung */
+  on: string | null;
+  /** z. B. „Formular vom 01.09.“ */
+  note: string;
+  /** zuletzt geändert (Server) */
+  at?: string | null;
+}
+/** Unfallmeldung (Sportunfall) – Gesundheitsdaten */
+export type AccActivity = "training" | "match" | "travel" | "other";
+export interface Accident {
+  id: string; pid: string;
+  date: string; time: string | null; place: string;
+  activity: AccActivity; matchId: string | null; absenceId: string | null;
+  /** Hergang */
+  how: string;
+  /** Verletzung (Art, Körperteil) und Körperregion (core/body, z. B. „knee:r“) */
+  injury: string; area: string | null;
+  firstAid: string; treatment: string; witnesses: string;
+  /** an den Verein bzw. an die Versicherung gemeldet am, Schadennummer */
+  clubOn: string | null; insurerOn: string | null; claimNo: string;
+  closed: boolean; note: string;
+  /** zuletzt geändert (Server) */
+  at?: string | null;
+}
 export interface Suspension { id: string; pid: string; kind: SuspKind; matchId: string | null; start: string; games: number | null; until: string | null; scope: "league" | "all"; note: string; auto?: boolean }
 /** Note (1–10, eine Nachkommastelle) und Feedback des Trainers zu Spiel oder Training. */
 export interface Rating { id: string; pid: string; date: string; kind: "spiel" | "training"; rating: number | null; text: string; vis: boolean;
@@ -735,6 +772,10 @@ export interface TeamData {
   rides: Ride[]; rideSeats: RideSeat[]; rideNeeds: RideNeed[]; rideNames: Record<string, string>;
   /** Eingetragene Sperren (Trainerteam; Spieler: eigene) – die Sperren aus Karten leitet core/cards ab */
   suspensions: Suspension[];
+  /** Foto-Erlaubnis je Spieler (Trainerteam: alle; Spieler: eigene) */
+  photos: Record<string, PhotoConsent>;
+  /** Unfallmeldungen (Trainerteam mit Recht „Gesundheitsdaten“; Spieler: eigene) */
+  accidents: Accident[];
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -806,7 +847,7 @@ export function emptyTeamData(team: Team): TeamData {
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     programs: [], selfSkills: [], peerGifts: [], peerMates: [],
     polls: [], pollAnswers: [], pollResults: {},
-    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {}, rides: [], rideSeats: [], rideNeeds: [], rideNames: {}, suspensions: [],
+    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {}, rides: [], rideSeats: [], rideNeeds: [], rideNames: {}, suspensions: [], photos: {}, accidents: [],
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],

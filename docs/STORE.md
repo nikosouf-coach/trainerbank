@@ -330,7 +330,7 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Kontaktinformationen | Name | ja | ja | nein | App-Funktionalität | Anzeigename, Vor-/Nachname, Name der Notfallkontakte |
 | Kontaktinformationen | E-Mail-Adresse | ja | ja | nein | App-Funktionalität | Konto-E-Mail, E-Mail der Erziehungsberechtigten |
 | Kontaktinformationen | Telefonnummer | ja | ja | nein | App-Funktionalität | Telefonnummern der Notfallkontakte (Eltern, Angehörige), die der Spieler oder das Trainerteam einträgt |
-| Gesundheit & Fitness | Gesundheit | ja | ja | nein | App-Funktionalität | Wohlbefinden, Beschwerden, Krankheit/Verletzung, Rückkehrstufe, Größe, Gewicht, Hinweise für den Notfall (z. B. Allergie) |
+| Gesundheit & Fitness | Gesundheit | ja | ja | nein | App-Funktionalität | Wohlbefinden, Beschwerden, Krankheit/Verletzung, Rückkehrstufe, Größe, Gewicht, Hinweise für den Notfall (z. B. Allergie), Unfallmeldungen (Hergang, Verletzung, Behandlung) |
 | Gesundheit & Fitness | Fitness | ja | ja | nein | App-Funktionalität | Session-RPE, Minuten, Zusatzsport |
 | Benutzerinhalte | Fotos oder Videos | ja | ja | nein | App-Funktionalität | optionales Profilfoto, Fotos von Befunden (Arztbriefe) |
 | Gesundheit & Fitness | Gesundheit (Ergänzung) | ja | ja | nein | App-Funktionalität | Befunde (Bild/PDF) und deren KI-Zusammenfassung, Leistungstests |
@@ -339,7 +339,7 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Identifikatoren | Benutzer-ID | ja | ja | nein | App-Funktionalität | Konto-ID |
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |
-| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen, Karten), Sperren, Noten, Kontaktliste des Teams, Kleider- und Schuhgrößen mit Name für die Beflockung |
+| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen, Karten), Sperren, Noten, Kontaktliste des Teams, Kleider- und Schuhgrößen mit Name für die Beflockung, Foto-Erlaubnis |
 | Finanzinformationen | Sonstige Finanzinformationen | ja | ja | nein | App-Funktionalität | Mannschaftskasse: Beiträge, Zahlungen, Geldstrafen, Kassenbuch (keine Konto- oder Kartendaten, keine Zahlungsabwicklung) |
 | Benutzerinhalte | Kundensupport | ja | ja | nein | App-Funktionalität | Rückmeldungen aus der App („Feedback / Fehler melden“): Text, optional Bildschirmfoto |
 | Diagnose | Absturzdaten | ja (nur nach Zustimmung auf dem Gerät) | nein | nein | App-Funktionalität | Absturzberichte über Sentry ohne Konto-Bezug |

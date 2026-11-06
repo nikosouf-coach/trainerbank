@@ -137,6 +137,8 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `ride_seats` (…20261105000006) | pk(`ride_id` → `rides`, `player_id`), `ref_id` (vom Server), je Ziel ein Platz pro Spieler (`ride_seats_once`) | lesen Team; schreiben nur über `ride_join`/`ride_leave` |
 | `ride_needs` (…20261105000006) | Spieler sucht eine Mitfahrgelegenheit: `match_id`/`event_id` (genau eins, Cascade), `ref_id` generiert, je Ziel einmal (`ride_needs_once`) | lesen Team; schreiben nur über `ride_need` (und die Funktionen oben) |
 | `player_suspensions` (…20261105000007) | Eingetragene Sperre: `player_id` (Cascade), `match_id` (Auslöser, `set null`), `kind` (yellow, yellow_red, red, other), `start_date`, `games` (0–30; 0 = aufgehoben; null = bis zum Urteil) oder `until_date` (nicht beides, nicht vor dem Beginn), `scope` (league, all), `note` (1–200, einzeilig); je Auslöser, Spieler und Grund eine (`player_suspensions_once`); `team_id` aus dem Spieler, Auslöser aus demselben Team (`different_teams`), Spieler nicht wechselbar, `updated_by`/`updated_at` vom Server. Sperren aus Karten nach den Regeln (`teams.settings.cards`) berechnet die App (`core/cards`) | Staff lesen, Spieler eigene; schreiben Staff mit `perf` |
+| `photo_consents` (…20261105000008) | Foto-Erlaubnis je Spieler (pk `player_id`, Cascade): `web`, `social`, `press`, `name_ok` (ja/nein/null = offen), `given_by` (player, parents, both), `given_on`, `note` (1–200, einzeilig), `updated_at/by` | lesen Staff und der Spieler selbst; schreiben nur `photo_consent_save` (Staff mit `squad`: Erklärung aus dem Formular; Spieler: Nein immer, Ja nur volljährig – Geburtsdatum, ohne Geburtsdatum nur in `sen`/`ue32` –, dann `given_by = player`, `given_on` heute) |
+| `accident_reports` (…20261105000008) | Unfallmeldung (Gesundheitsdaten): `player_id` (Cascade), `accident_date`, `accident_time` (HH:MM), `place`, `activity` (training, match, travel, other), `match_id` (nur bei match/travel, `set null`), `absence_id` (Verletzung desselben Spielers, `set null`), `how` (1–1000), `injury` (1–300), `body_area` (Code aus core/body), `first_aid`, `treatment`, `witnesses` (je 1–300), `club_on`, `insurer_on` (nicht vor dem Unfall, nicht in der Zukunft), `claim_no`, `closed`, `note`; Trigger `accident_reports_prepare` (Team aus dem Spieler, Spiel aus dem Team, Konto) | lesen Staff mit `health` und der Spieler selbst; schreiben nur Staff mit `health` |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -398,6 +400,8 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   `purge_old_rides()` (täglich) – Suchen am Tag nach dem Ziel, Fahrten 30 Tage danach.
 - `purge_old_suspensions()` (täglich) – eingetragene Sperren 24 Monate nach Beginn bzw. Ende. `teams_perm_guard`: die
   Regeln für Sperren (`settings.cards`) brauchen `perf`.
+- `photo_consent_save(player, web, social, press, name, by, on, note)` – Foto-Erlaubnis speichern (siehe Tabelle; je
+  Spieler serialisiert). `purge_old_accidents()` (täglich) – Unfallmeldungen 36 Monate nach dem Unfall.
 - Notfallkontakte: Beim Beitreten speichert die App den Kontakt (Pflicht) direkt nach `join_team` und vor dem Laden
   des Teams; Prüfung der Kontakte `emergency_contacts_ok(c)` (wie `core/emergency → cleanContacts`).
 - `peer_targets(team)` – Spieler: Mitspieler für die Stärken-Runde (Vorname, Initial, Rückennummer, Position), nur
@@ -410,7 +414,7 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Antwort, nach dem Ende oder bei der eigenen Abstimmung. Hilfen: `team_today(team)`, `poll_running(poll)`,
   `poll_target_me(team, group)`, `poll_my_player(team)`, `poll_group_ok(group, team)`.
 - `purge_old_polls()` (täglich) – Umfragen mit allen Antworten 12 Monate nach dem Ende (ohne Ende: nach dem Start).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v15` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort; v14: eigene Fahrgemeinschaften – Fahrten als Fahrer mit Zahl der Mitfahrer, Plätze mit Fahrer und Abfahrt, Suchen, ohne Namen anderer; v15: eingetragene Sperren – Karten stehen bei den Spieldaten): Profil, Gesundheitsdaten
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v16` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort; v14: eigene Fahrgemeinschaften – Fahrten als Fahrer mit Zahl der Mitfahrer, Plätze mit Fahrer und Abfahrt, Suchen, ohne Namen anderer; v15: eingetragene Sperren – Karten stehen bei den Spieldaten; v16: Foto-Erlaubnis und Unfallmeldungen): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -523,6 +527,12 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Saison, abgeleitete Sperren (Gelbsperre bei jeder x-ten Gelben in Meisterschaftsspielen einer Saison, Gelb-Rot,
   Rot – Spiele oder bis zum Urteil), eingetragene ersetzen abgeleitete, Stand einer Sperre (betroffene Spiele nach dem
   Auslöser, verbüßt, bis, aufgehoben), gesperrt für ein Spiel, Gelb-Warnung, Karte im Spielbericht setzen.
+- `birthdays.ts` – Geburtstage: gültiges Geburtsdatum, nächster Geburtstag mit Alter (29.02. → 28.02.), Liste, die
+  nächsten Tage, Kalendertag, fehlende Geburtsdaten.
+- `photos.ts` – Foto-Erlaubnis: wer zustimmen muss (unter 14 Eltern, 14–17 Eltern und Spieler, ab 18 Spieler), Stand je
+  Kanal (ja, nein, offen, Zustimmung fehlt), eigene Änderung des Spielers (Nein immer, Ja ab 18), Übersicht, neu einholen.
+- `accidents.ts` – Unfallmeldung: Bereinigen, Pflichtangaben, Stand (offen, an den Verein, an die Versicherung,
+  abgeschlossen), Erinnerung nach drei Tagen, Vorlage aus einer Verletzung, Text zum Teilen.
 - `rides.ts` – Fahrgemeinschaften: Bereinigung (Plätze 1–8, Abfahrt, Texte), Ziele (Spiel oder Termin, trainingsfrei
   ohne Fahrten), Ziele der nächsten Tage für die Startseite (Auswärtsspiele und Ziele mit Fahrten), Stand eines
   Spielers (fährt, fährt mit, sucht), Zahlen (Fahrten, Plätze, frei, Suchende), Regeln wie der Server (`rideCheck`)

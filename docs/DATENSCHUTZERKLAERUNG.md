@@ -181,6 +181,8 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.45 | Kader-Nominierung | Spiel, im Kader oder auf Abruf, Treffpunkt (Uhrzeit, Ort) und Hinweis des Trainerteams, ob die Nominierten den Kader sehen, Zeitpunkt der Veröffentlichung; deine Zu- oder Absage mit freiwilligem Grund, Zeitpunkt und ob das Trainerteam die Antwort eingetragen hat | Trainerteam mit Recht „Planung“; du (Antwort) | Antwort freiwillig |
 | 4.46 | Fahrgemeinschaften | Spiel oder Termin, wer fährt (du bzw. deine Eltern – mit einer Bezeichnung wie „Mama von Max“ – oder das Trainerteam), Zahl der Plätze, Abfahrt (Uhrzeit, Ort), Hinweis; wer mitfährt; wer eine Mitfahrgelegenheit sucht; Zeitpunkte | du; das Trainerteam (zuordnen, eigene Fahrten); Fahrer (Suchende mitnehmen, Mitfahrer austragen) | freiwillig |
 | 4.47 | Karten und Sperren | Karten je Spiel (bei den Spieldaten, 4.18); Sperren, die das Trainerteam einträgt (Urteil nach einer Karte, aufgehoben, sonstige Sperre): Grund, Spiel, ab wann, wie viele Spiele oder bis wann, für welche Spiele, Hinweis, wer zuletzt geändert hat und wann; die Regeln des Teams für Sperren | Trainerteam mit Recht „Leistung & Statistik“ | – |
+| 4.48 | Foto-Erlaubnis | je Kanal (Vereinswebsite, Social Media des Vereins, Presse und Druck, Name zum Foto) erlaubt, nicht erlaubt oder offen; wer erklärt hat (du, deine Eltern oder beide), Datum der Erklärung, Hinweis (z. B. „Formular vom 01.09.“), wer zuletzt geändert hat und wann | du (Nein immer, Ja ab 18); das Trainerteam mit Recht „Kader“ (aus dem unterschriebenen Formular) | freiwillig |
+| 4.49 | Unfallmeldungen (Gesundheitsdaten) | Unfalltag und Uhrzeit, Ort, Tätigkeit (Training, Spiel, Hin- oder Rückweg, Sonstiges), Spiel, zugehörige Verletzung, Hergang, Verletzung und Körperregion, Erste Hilfe, Behandlung, Zeugen, wann an den Verein und an die Versicherung gemeldet, Schadennummer, abgeschlossen, Hinweis, wer zuletzt geändert hat und wann | Trainerteam mit Recht „Gesundheitsdaten“ | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -325,6 +327,27 @@ Trainerteam, Mitspieler nicht. Du siehst deine eigenen Sperren und eine Gelb-War
 Sperren gehören zu deinem Datenexport. Eingetragene Sperren
 werden 24 Monate nach ihrem Beginn bzw. Ende gelöscht, Karten mit den Spieldaten.
 
+**Geburtstage:** Aus dem Geburtsdatum im Spielerprofil (4.3) zeigt die App dem Trainerteam, wer heute und in den
+nächsten Tagen Geburtstag hat, und listet alle Geburtstage; „Gratulieren“ öffnet den Teamchat mit einem Vorschlag, den
+das Trainerteam selbst abschickt (das Alter steht nicht darin). Du bekommst an deinem Geburtstag einen Glückwunsch auf
+„Heute“. Mitspieler sehen dein Geburtsdatum nicht. Es werden keine zusätzlichen Daten gespeichert.
+
+**Foto-Erlaubnis (4.48):** Damit der Verein Fotos nur mit Einwilligung veröffentlicht, hält die App fest, ob Fotos von
+dir auf der Vereinswebsite, auf Social Media des Vereins und in Presse und Druck erscheinen dürfen und ob dein Name
+dazu genannt werden darf. Wer zustimmt, hängt vom Alter ab: unter 14 deine Eltern, mit 14 bis 17 deine Eltern und du
+gemeinsam, ab 18 du selbst. Das Trainerteam mit dem Recht „Kader“ trägt die Erklärung aus dem unterschriebenen Formular
+ein (das Formular bleibt beim Verein); volljährig stimmst du in der App selbst zu. „Nein“ kannst du jederzeit selbst
+sagen, auch wenn du minderjährig bist – der Widerruf gilt sofort für neue Veröffentlichungen, bereits veröffentlichte
+Fotos nimmt der Verein auf Wunsch herunter. Die Erklärung sehen das Trainerteam und du, Mitspieler nicht. Die
+Veröffentlichung selbst geschieht außerhalb der App durch den Verein; dafür ist der Verein verantwortlich.
+
+**Unfallmeldungen (4.49):** Hat ein Spieler im Training, im Spiel oder auf dem Weg dorthin einen Sportunfall, kann das
+Trainerteam mit dem Recht „Gesundheitsdaten“ ihn gleich festhalten – Hergang, Verletzung, Erste Hilfe, Behandlung und
+Zeugen – und verfolgen, ob der Verein und die Sportversicherung informiert sind. Die Meldung an die Versicherung macht
+der Verein selbst (z. B. mit dem Text, den die App zusammenstellt); die App sendet nichts an Versicherungen. Die Angaben
+sind Gesundheitsdaten: Sie sehen nur das Trainerteam mit dem Recht „Gesundheitsdaten“ und du selbst (unter „Ich“), und
+sie werden 36 Monate nach dem Unfall automatisch gelöscht.
+
 **Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
 geschafft haben, sowie die gemeinsame Summe – nicht deine Werte. Nur wenn das Trainerteam die Bestenliste einschaltet,
 erscheinen bei Bestleistungs-Challenges die drei besten Werte mit Vorname und Initial.
@@ -404,7 +427,7 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen, Größen und Bestelllisten, Kader-Nominierung, Fahrgemeinschaften, Karten und Sperren | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42, 4.44–4.47 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen, Größen und Bestelllisten, Kader-Nominierung, Fahrgemeinschaften, Karten und Sperren, Geburtstage, Foto-Erlaubnis | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42, 4.44–4.48 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
 | Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests, Angaben zum Schmerz (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26, 4.27 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
 | Übernahme der Belastung beim Hochziehen oder Wechsel innerhalb des Vereins (Gesundheitsdaten) | 4.36 | wie die Belastungssteuerung: ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO (gleicher Zweck; nur mit Recht „Gesundheitsdaten“ in beiden Teams) |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
@@ -422,6 +445,7 @@ Standort** (keine GPS- oder Ortungsdaten).
 | App-Updates laden | 4.40 | Art. 6 Abs. 1 lit. b DSGVO; § 25 Abs. 2 Nr. 2 TDDDG (für eine fehlerfreie und sichere App unbedingt erforderlich) |
 | Beantwortung von Anfragen | 4.17 | Art. 6 Abs. 1 lit. b DSGVO, sonst Art. 6 Abs. 1 lit. f DSGVO |
 | [Vertragsabwicklung und Rechnungsstellung mit Vereinen] | [Rechnungsdaten] | [Art. 6 Abs. 1 lit. b und lit. c DSGVO i. V. m. HGB/AO] |
+| Unfallmeldung für die Sportversicherung (Gesundheitsdaten) | 4.49 | Art. 9 Abs. 2 lit. f DSGVO (Geltendmachung von Ansprüchen des verletzten Spielers aus der Sportversicherung) i. V. m. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und des Spielers an einer vollständigen, zeitnahen Meldung) – [rechtlich prüfen] |
 | Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen | je nach Fall | Art. 6 Abs. 1 lit. f DSGVO, bei Gesundheitsdaten Art. 9 Abs. 2 lit. f DSGVO |
 
 **Begründung für Teamorganisationsdaten (Art. 6 Abs. 1 lit. b und lit. f DSGVO):**
@@ -575,6 +599,8 @@ bleibt unberührt.
 | deine Nominierung für ein Spiel | nach dem Veröffentlichen | ja (ändern mit Recht „Planung“) | wenn freigegeben: die anderen Nominierten (Vorname, Initial, Nummer, Position) | nein |
 | deine Zu- oder Absage und ihr Grund | ja | ja | nein | nein |
 | deine Karten und Sperren | Karten, wenn Spieldaten für Spieler freigegeben sind; deine Sperren und die Gelb-Warnung auf „Heute“ (aus den Karten berechnete nur mit freigegebenen Spieldaten); eingetragene Sperren im Datenexport | ja (eintragen mit Recht „Leistung & Statistik“) | nein | nein |
+| deine Foto-Erlaubnis | ja, unter „Ich“ (ab 18 selbst zustimmen, „Nein“ immer) | ja (eintragen mit Recht „Kader“) | nein | nein |
+| deine Unfallmeldungen | ja, unter „Ich“ (nur lesen) | nur mit Recht „Gesundheitsdaten“ | nein | nein |
 | deine Fahrt (wer fährt, Plätze, Abfahrt, Hinweis), dass du mitfährst oder eine Mitfahrgelegenheit suchst | ja | ja (mit vollem Namen) | ja – mit Vorname und Initial | nein |
 | deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
@@ -805,6 +831,8 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Größen | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Exportierte Bestelllisten liegen beim Trainerteam bzw. beim Empfänger der Bestellung – dort gelten deren Löschfristen |
 | Kader-Nominierungen mit Zu- und Absagen | automatisch **12 Monate** nach dem Spiel; sonst mit dem Kader, dem Spiel, deinem Spielerprofil oder dem Team |
 | Eingetragene Sperren | automatisch **24 Monate** nach Beginn bzw. Ende; sonst mit deinem Spielerprofil oder dem Team (Karten mit den Spieldaten) |
+| Foto-Erlaubnis | sofort beim Ändern (es gilt nur die aktuelle Erklärung); sonst mit deinem Spielerprofil oder dem Team. Das unterschriebene Formular bewahrt der Verein auf |
+| Unfallmeldungen | automatisch **36 Monate** nach dem Unfall; sofort bei Löschung durch das Trainerteam; sonst mit deinem Spielerprofil oder dem Team |
 | Fahrgemeinschaften | „sucht eine Mitfahrgelegenheit“ automatisch am **Tag nach** dem Spiel bzw. Termin; Fahrten mit Mitfahrern automatisch **30 Tage** danach; sofort beim Austragen bzw. Löschen der Fahrt; sonst mit dem Spiel, dem Termin, deinem Spielerprofil oder dem Team |
 | Wochenchallenge | mit der Challenge, dem Spielerprofil oder dem Team |
 | Anfragen für Individualtraining | automatisch 12 Monate nach Abschluss (zugesagt, abgesagt, zurückgezogen); offene mit dem Spielerprofil bzw. Team |

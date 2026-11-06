@@ -21,13 +21,16 @@ import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { applyAnswer, cleanSquad, mySquads as mySquadsOf, squadMatesOf, type MySquad } from "../core/nomination";
 import { applyRide, cleanRide, dropRideRef, rideCheck, rideName, type RideOp } from "../core/rides";
 import { cleanSuspension, withCard } from "../core/cards";
+import { cleanAccident } from "../core/accidents";
+import { groupOf } from "../core/classes";
+import { canSelfConsent, cleanPhotoConsent, photoAge, selfChange } from "../core/photos";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, CardKind, Suspension,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, CardKind, Suspension, PhotoChannel, PhotoConsent, Accident,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -1107,6 +1110,36 @@ function useStoreValue() {
     deleteSuspension: (id: string, ok = "kr_deleted") => changeOk(D => { D.suspensions = D.suspensions.filter(z => z.id !== id); },
       api => api.deleteSuspension(id), { ok: translator(ref.current.lang).t(ok) }),
 
+    // ---------- Foto-Erlaubnis ----------
+    /** Erklärung eintragen (Trainerteam, Recht „Kader“ – z. B. aus dem unterschriebenen Formular) */
+    savePhotoConsent: (pid: string, c: PhotoConsent) => {
+      const x = cleanPhotoConsent(c);
+      return changeOk(D => { D.photos[pid] = x; },
+        async api => { const saved = await api.savePhotoConsent(pid, x); const D = ref.current.D; if (D) D.photos[pid] = saved; },
+        { ok: translator(ref.current.lang).t("ph_saved") });
+    },
+    /** Eigene Erklärung (Spieler): Ja ab 18 bzw. im Erwachsenenbereich ohne Geburtsdatum, Nein immer */
+    savePhotoSelf: (pid: string, v: Partial<Record<PhotoChannel, boolean>>) => {
+      const D0 = ref.current.D;
+      if (!pid || !D0) return Promise.resolve(false);
+      const p = D0.players.find(x => x.id === pid), today = iso(new Date());
+      const x = selfChange(D0.photos[pid], v, canSelfConsent(photoAge(p, today), groupOf(D0.team.cls) === "akt"), today);
+      return changeOk(D => { D.photos[pid] = x; },
+        async api => { const saved = await api.savePhotoConsent(pid, x); const D = ref.current.D; if (D) D.photos[pid] = saved; },
+        { ok: translator(ref.current.lang).t("ph_saved") });
+    },
+
+    // ---------- Unfallmeldungen ----------
+    /** Unfallmeldung anlegen bzw. ändern (Trainerteam, Recht „Gesundheitsdaten“) */
+    saveAccident: (a: Accident) => {
+      const y = cleanAccident(a), isNew = y.id.startsWith("tmp-");
+      return changeOk(D => { if (isNew) D.accidents.push(y); else D.accidents = D.accidents.map(z => z.id === y.id ? y : z); },
+        async (api, t) => { const saved = await api.saveAccident(t, y); const D = ref.current.D; if (D) replaceIn(D.accidents, y, saved); },
+        { ok: translator(ref.current.lang).t("ac_saved") });
+    },
+    deleteAccident: (id: string) => changeOk(D => { D.accidents = D.accidents.filter(z => z.id !== id); },
+      api => api.deleteAccident(id), { ok: translator(ref.current.lang).t("ac_deleted") }),
+
     // ---------- Fahrgemeinschaften ----------
     /** Fahrt anbieten bzw. ändern (Spieler: eigene; Trainerteam: alle) */
     saveRide: (r: Ride) => {
@@ -1436,6 +1469,7 @@ function useStoreValue() {
     saveNote: "notes", savePotential: "notes", deletePotential: "notes", saveRating: "notes", deleteRating: "notes",
     saveMessage: "messages", deleteMessage: "messages",
     saveStat: "perf", saveTest: "perf", deleteTest: "perf", saveCard: "perf", saveSuspension: "perf", deleteSuspension: "perf",
+    savePhotoConsent: "squad", saveAccident: "health", deleteAccident: "health",
     saveDutyDefs: "tasks", saveFineRules: "tasks", saveDuty: "tasks", saveFine: "tasks", deleteFine: "tasks", saveTask: "tasks", deleteTask: "tasks",
     saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
     saveAssessment: "notes", deleteAssessment: "notes", saveGoal: "notes", deleteGoal: "notes", saveGoalEntry: "notes", deleteGoalEntry: "notes", saveTalk: "notes", deleteTalk: "notes",

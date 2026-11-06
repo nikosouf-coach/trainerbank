@@ -49,6 +49,12 @@ export function buildDemo(team: Team, lang: Lang, now: Date = new Date()): TeamD
     if (bd > new Date(now.getFullYear() - a, now.getMonth(), now.getDate())) bd.setFullYear(bd.getFullYear() - 1);
     return { id: "p" + (i + 1), vn: n[0], nn: n[1], pos: n[2], nr: i + 1, geb: iso(bd) };
   });
+  // Geburtstage: p4 hat heute Geburtstag, p11 in drei Tagen (Alter bleibt in der Altersklasse)
+  {
+    const a4 = ageOn(D.players[3].geb, now), a11 = ageOn(D.players[10].geb, now) + 1, in3 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3);
+    D.players[3].geb = iso(new Date(now.getFullYear() - a4, now.getMonth(), now.getDate()));
+    D.players[10].geb = iso(new Date(in3.getFullYear() - a11, in3.getMonth(), in3.getDate()));
+  }
   if (grp === "akt") {
     const o = c.k === "ue32" ? 6 : 0;
     D.players[2].geb = iso(new Date(now.getFullYear() - 36 - o, 2, 4)); D.players[7].geb = iso(new Date(now.getFullYear() - 33 - o, 5, 12)); D.players[16].geb = iso(new Date(now.getFullYear() - 38 - o, 8, 20));
@@ -251,6 +257,8 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoCards(D, lang, now);
   demoSquads(D, lang, now);
   demoRides(D, lang, now);
+  demoPhotos(D, lang, now);
+  demoAccidents(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -895,6 +903,63 @@ function demoCards(D: TeamData, lang: Lang, now: Date): void {
     // in den schon verbüßten Spielen hat er nicht gespielt
     for (const m of suspState(D, dsu, TODAY).covered) if (m.date < TODAY && D.stats[m.id]?.[red]) delete D.stats[m.id][red];
   }
+}
+
+/**
+ * Foto-Erlaubnis: die meisten haben zugestimmt (unter 18 Eltern und Spieler, sonst der Spieler); einer lehnt Social
+ * Media ab, einer will ohne Namen, einer hat noch nichts abgegeben, bei einem fehlt mit 17 die Zustimmung des Spielers
+ * und ein Volljähriger hat nur die Erklärung der Eltern (neu einholen). Der Demo-Spieler p17 ist noch offen.
+ */
+function demoPhotos(D: TeamData, lang: Lang, now: Date): void {
+  const TODAY = iso(now), en = lang === "en", on = addDays(TODAY, -64);
+  const adult = (pid: string) => { const p = D.players.find(x => x.id === pid); return !!p && ageOn(p.geb, now) >= 18; };
+  const yes = { web: true, social: true, press: true, name: true };
+  for (const p of D.players) {
+    if (p.id === "p17" || p.id === "p7") continue;
+    D.photos[p.id] = { ...yes, by: adult(p.id) ? "player" : "both", on, note: en ? "Club form, start of season" : "Formular Saisonstart" };
+  }
+  if (D.photos.p4) D.photos.p4 = { ...D.photos.p4, social: false };
+  if (D.photos.p12) D.photos.p12 = { ...D.photos.p12, name: false };
+  const teen = D.players.find(p => !["p17", "p7", "p4", "p12"].includes(p.id) && !adult(p.id) && ageOn(p.geb, now) >= 14);
+  if (teen) D.photos[teen.id] = { ...D.photos[teen.id], by: "parents", note: en ? "Parents' form – player still to sign" : "Formular der Eltern – Spieler unterschreibt noch" };
+  const grown = D.players.find(p => !["p17", "p7", "p4", "p12", teen?.id].includes(p.id) && adult(p.id));
+  if (grown) D.photos[grown.id] = { ...D.photos[grown.id], by: "parents", on: addDays(TODAY, -400), note: en ? "Parents' form from last season" : "Formular der Eltern aus der Vorsaison" };
+}
+
+/**
+ * Unfallmeldungen: Zerrung von p15 (aus der Verletzung, an den Verein gemeldet), Prellung im letzten Spiel vor ein paar
+ * Tagen (noch nicht gemeldet – Erinnerung) und das Umknicken von p3 (abgeschlossen, mit Schadennummer).
+ */
+function demoAccidents(D: TeamData, lang: Lang, now: Date): void {
+  const TODAY = iso(now), en = lang === "en";
+  const ground = en ? "Home ground, artificial turf" : "Heimplatz, Kunstrasen";
+  const strain = D.absences.find(a => a.pid === "p15" && a.typ === "verletzung");
+  if (strain) D.accidents.push({
+    id: "dac1", pid: "p15", date: strain.von, time: "19:20", place: ground, activity: "training", matchId: null, absenceId: strain.id,
+    how: en ? "Sprint training: felt a sharp pain in the back of the right thigh when accelerating, stopped immediately." : "Sprinttraining: beim Antritt stechender Schmerz hinten im rechten Oberschenkel, sofort abgebrochen.",
+    injury: en ? "Strain, back of the right thigh" : "Zerrung, hinterer Oberschenkel rechts", area: strain.area || null,
+    firstAid: en ? "Assistant coach: ice, compression, elevation" : "Co-Trainer: Kühlen, Kompression, Hochlegen",
+    treatment: en ? `GP on ${addDays(strain.von, 1).slice(8)}.${addDays(strain.von, 1).slice(5, 7)}.` : `Hausarzt am ${addDays(strain.von, 1).slice(8)}.${addDays(strain.von, 1).slice(5, 7)}.`,
+    witnesses: en ? "Coaching staff, team-mates" : "Trainerteam, Mitspieler",
+    clubOn: addDays(strain.von, 2), insurerOn: null, claimNo: "", closed: false, note: "",
+  });
+  const m = D.matches.filter(x => x.date <= addDays(TODAY, -3)).sort((a, b) => a.date < b.date ? 1 : -1)[0];
+  const bruised = D.players.find(p => !["p15", "p3", "p17"].includes(p.id) && (D.stats[m?.id || ""]?.[p.id]?.min || 0) > 0);
+  if (m && bruised) D.accidents.push({
+    id: "dac2", pid: bruised.id, date: m.date, time: m.zeit || null, place: m.heim ? ground : (en ? `Away at ${m.gegner}` : `Auswärts bei ${m.gegner}`), activity: "match", matchId: m.id, absenceId: null,
+    how: en ? "Kicked on the left ankle in a challenge in midfield, played on until the break." : "Im Zweikampf im Mittelfeld auf den linken Knöchel getreten worden, bis zur Pause weitergespielt.",
+    injury: en ? "Bruise, left ankle" : "Prellung, linker Knöchel", area: "ankle:l",
+    firstAid: en ? "Ice at the touchline" : "Kühlen an der Seitenlinie", treatment: "", witnesses: en ? "Referee, assistant coach" : "Schiedsrichter, Co-Trainer",
+    clubOn: null, insurerOn: null, claimNo: "", closed: false, note: "",
+  });
+  const ankle = D.absences.find(a => a.pid === "p3" && a.typ === "verletzung");
+  if (ankle) D.accidents.push({
+    id: "dac3", pid: "p3", date: ankle.von, time: "18:45", place: ground, activity: "training", matchId: null, absenceId: ankle.id,
+    how: en ? "Landed on a team-mate's foot after a header and twisted the right ankle." : "Nach dem Kopfball auf dem Fuß eines Mitspielers gelandet und mit dem rechten Fuß umgeknickt.",
+    injury: en ? "Sprained right ankle" : "Umknicktrauma, Sprunggelenk rechts", area: ankle.area || null,
+    firstAid: en ? "Head coach: ice, tape" : "Cheftrainer: Kühlen, Tape", treatment: en ? "A&E, X-ray without findings" : "Notaufnahme, Röntgen ohne Befund",
+    witnesses: en ? "Team-mates" : "Mitspieler", clubOn: addDays(ankle.von, 1), insurerOn: addDays(ankle.von, 3), claimNo: "SV-2026-0815", closed: true, note: "",
+  });
 }
 
 /** Größen: die meisten Spieler haben sie eingetragen (passend zum Alter), drei fehlen, einer ist unvollständig */

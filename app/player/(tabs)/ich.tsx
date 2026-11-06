@@ -14,6 +14,8 @@ import { GroupChip } from "../../../src/ui/squad/Groups";
 import { MyEmergencyItem } from "../../../src/ui/emergency";
 import { MyKasseCard } from "../../../src/ui/kasse";
 import { MySizesItem } from "../../../src/ui/sizes";
+import { MyPhotoItem } from "../../../src/ui/photos";
+import { MyAccidentsItem } from "../../../src/ui/accidents";
 import { useTheme } from "../../../src/ui/theme";
 
 export default function Ich() {
@@ -80,6 +82,8 @@ export default function Ich() {
       <Card style={{ paddingVertical: 4, gap: 0 }}>
         <MyEmergencyItem />
         <MySizesItem />
+        <MyPhotoItem />
+        <MyAccidentsItem />
         {/* ausgeblendete Bereiche der Leiste bleiben hier erreichbar */}
         {playerHidden(s.prefs, E.playerSees("dev")).filter(k => k !== "chat" || (E.mods.chat !== false)).map(k => (
           <ListItem key={k} testID={"me-tab-" + k} title={t(k === "chat" ? "nav_chat" : "pn_" + k)} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/" + k)} />
