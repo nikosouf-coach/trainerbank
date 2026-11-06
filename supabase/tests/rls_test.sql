@@ -4580,6 +4580,344 @@ delete from public.matches where id = tst.get('m60b')::uuid;
 delete from public.absences where id = tst.get('ab60tom')::uuid;
 
 -- =====================================================================
+-- T61 Eltern-Zugang: Einladung nur fürs Trainerteam (Recht Kader, nur Minderjährige mit Geburtsdatum), Code nur als
+--     Hash, Fehlversuche begrenzt, Bestätigung durch das Trainerteam, höchstens zwei Elternteile; Eltern sehen nur das
+--     Paket ihres Kindes (keine Codes, keine Gesundheitsdetails, keine anderen Kinder, keine Tabellen direkt);
+--     abmelden, zu-/absagen, Elterninfo, Einwilligungen (unter 16), Foto-Erlaubnis; Volljährigkeit; Löschfristen; Export
+-- =====================================================================
+\set g1 'f1000000-0000-4000-8000-0000000000f1'
+\set g2 'f2000000-0000-4000-8000-0000000000f2'
+\set g3 'f3000000-0000-4000-8000-0000000000f3'
+\set gx 'f9000000-0000-4000-8000-0000000000f9'
+\set k61 'f6000000-0000-4000-8000-0000000000f6'
+insert into tst.users (name, id) values ('g1', :'g1'), ('g2', :'g2'), ('g3', :'g3'), ('gx', :'gx'), ('k61', :'k61');
+insert into auth.users (id, email, raw_user_meta_data) values
+  (:'g1', 'g1@test.local', '{"display_name": "Eva"}'), (:'g2', 'g2@test.local', '{"display_name": "Paul"}'),
+  (:'g3', 'g3@test.local', '{"display_name": "Dritter"}'), (:'gx', 'gx@test.local', '{"display_name": "Fremd"}'),
+  (:'k61', 'k61@test.local', '{"display_name": "Kim"}');
+insert into public.players (team_id, first_name, last_name) values (tst.get('team_a')::uuid, 'Ohne', 'Datum') returning tst.put('nobirth', id::text) is not null;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+select tst.put('k61_player', public.join_team(tst.get('join_a'), 'Kim', 'Klein', '2013-03-03', null, null, null)::text);
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.put('code61', (select invite_code from public.guardian_invite_create(tst.get('p4_player')::uuid)));
+select tst.put('code61k', (select invite_code from public.guardian_invite_create(tst.get('k61_player')::uuid)));
+do $$ begin
+  perform tst.ok(tst.get('code61') ~ '^[A-HJKMNP-Z2-9]{5}-[A-HJKMNP-Z2-9]{5}$', 'T61 Einladungscode mit zehn Zeichen');
+  perform tst.eq((select count(*)::text || '/' || min(uses_left)::text from public.guardian_invites where player_id = tst.get('p4_player')::uuid), '1/2', 'T61 Einladung für zwei Elternteile');
+end $$;
+select tst.throws($q$select code_hash from public.guardian_invites$q$, 'T61 der Code liegt nur als Hash vor und ist nicht lesbar', 'permission denied');
+select tst.throws(format($q$select * from public.guardian_invite_create(%L)$q$, tst.get('max')), 'T61 keine Einladung für Volljährige', 'not_minor');
+select tst.throws(format($q$select * from public.guardian_invite_create(%L)$q$, tst.get('nobirth')), 'T61 Einladung braucht das Geburtsdatum', 'birthdate_required');
+commit;
+update public.team_staff set perms = array['notes']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.throws(format($q$select * from public.guardian_invite_create(%L)$q$, tst.get('p4_player')), 'T61 Einladen nur mit Recht Kader', 'forbidden');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+-- Fehlversuche: nach zehn falschen Codes in einer Stunde ist Schluss
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'gx';
+do $$
+declare r jsonb;
+begin
+  for i in 1..10 loop r := public.guardian_redeem('AAAAA-AAAA' || i, 'Fremd', 'guardian'); end loop;
+  perform tst.eq(r ->> 'error', 'invalid_code', 'T61 falscher Code wird abgelehnt');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'gx';
+select tst.throws(format($q$select public.guardian_redeem(%L, 'Fremd', 'guardian')$q$, tst.get('code61')), 'T61 nach zehn Fehlversuchen gesperrt (auch mit richtigem Code)', 'too_many_attempts');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$
+declare r jsonb;
+begin
+  r := public.guardian_redeem(lower(replace(tst.get('code61'), '-', '')), 'Eva Jung', 'mother');
+  perform tst.eq((r ->> 'ok') || '/' || (r ->> 'first_name'), 'true/Lena', 'T61 Code eingelöst (Groß-/Kleinschreibung und Strich egal)');
+  perform tst.put('link_g1', r ->> 'link_id');
+  perform tst.eq((select status || '/' || access::text from public.guardian_children()), 'pending/false', 'T61 wartet auf Bestätigung – noch kein Zugang');
+end $$;
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('p4_player')), 'T61 vor der Bestätigung keine Daten', 'not_found');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin
+  perform tst.put('link_g2', public.guardian_redeem(tst.get('code61'), 'Paul Jung', 'father') ->> 'link_id');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g3';
+do $$ begin
+  perform tst.eq(public.guardian_redeem(tst.get('code61'), 'Dritter', 'guardian') ->> 'error', 'invalid_code', 'T61 höchstens zwei Elternteile je Einladung');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_guardians)::text, '2', 'T61 das Kind sieht, wer als Eltern verknüpft ist');
+  perform tst.eq(public.guardian_redeem(tst.get('code61k'), 'Lena', 'guardian') ->> 'ok', 'true', 'T61 (Kontrolle) andere Einladung einlösbar');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_guardians)::text, '0', 'T61 Mitspieler sehen keine Eltern');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((public.guardian_decide(tst.get('link_g1')::uuid, true)).status, 'active', 'T61 Trainerteam bestätigt');
+  perform tst.ok(public.guardian_decide(tst.get('link_g2')::uuid, true) is not null, 'T61 zweiter Elternteil bestätigt');
+  perform public.guardian_decide((select id from public.player_guardians where player_id = tst.get('k61_player')::uuid and user_id = tst.uid('p4')), false);
+  perform tst.eq((select count(*) from public.player_guardians where player_id = tst.get('k61_player')::uuid)::text, '0', 'T61 abgelehnt: Verknüpfung gelöscht');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$
+declare d jsonb;
+begin
+  d := public.guardian_child_data(tst.get('p4_player')::uuid);
+  perform tst.ok(d -> 'team' ? 'name' and not (d -> 'team' ? 'join_code') and not (d -> 'team' ? 'staff_code'), 'T61 Paket: Team ohne Beitrittscodes');
+  perform tst.eq(d -> 'player' ->> 'first_name', 'Lena', 'T61 Paket: das eigene Kind');
+  perform tst.eq((select count(*) from public.players)::text || '/' || (select count(*) from public.absences)::text || '/' || (select count(*) from public.rpe_entries)::text
+                 || '/' || (select count(*) from public.match_nominations)::text || '/' || (select count(*) from public.teams)::text, '0/0/0/0/0',
+                 'T61 Eltern lesen keine Tabellen direkt (nur das Paket)');
+end $$;
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('max')), 'T61 kein Paket für fremde Kinder', 'not_found');
+-- Abmelden
+select tst.throws(format($q$select public.guardian_absence(%L, 'krank', public.team_today(%L), null)$q$, tst.get('p4_player'), tst.get('team_a')), 'T61 „krank“ nur mit Einwilligung in Gesundheitsdaten', 'consent_required');
+select tst.throws(format($q$select public.guardian_absence(%L, 'verletzung', public.team_today(%L), null)$q$, tst.get('p4_player'), tst.get('team_a')), 'T61 Verletzungen trägt das Trainerteam ein', 'invalid_type');
+select tst.throws(format($q$select public.guardian_absence(%L, 'urlaub', public.team_today(%L) - 30, null)$q$, tst.get('p4_player'), tst.get('team_a')), 'T61 nicht weit rückwirkend', 'invalid_dates');
+do $$
+declare a jsonb;
+begin
+  perform public.guardian_consent(tst.get('p4_player')::uuid, 'health_data', true, 'v1');
+  a := public.guardian_absence(tst.get('p4_player')::uuid, 'krank', public.team_today(tst.get('team_a')::uuid) + 1, public.team_today(tst.get('team_a')::uuid) + 2);
+  perform tst.put('abs61', a ->> 'id');
+  perform tst.eq((a ->> 'type') || '/' || (a ->> 'mine'), 'krank/true', 'T61 mit Einwilligung: krank abgemeldet');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.ok((select reported_by_player and created_by = tst.uid('g1') and stage is null and note is null from public.absences where id = tst.get('abs61')::uuid),
+                 'T61 Trainerteam sieht die Abmeldung der Eltern (ohne Details)');
+end $$;
+with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date) values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, 'schule', current_date + 5, current_date + 5) returning id)
+select tst.put('abs61s', id::text) from ins;
+with ins as (insert into public.matches (team_id, date, time, opponent, competition) values (tst.get('team_a')::uuid, current_date + 3, '15:00', 'T61 FC', 'liga') returning id)
+select tst.put('m61', id::text) from ins;
+insert into public.match_squads (match_id, team_id, meet_time, meet_place, published_at) values (tst.get('m61')::uuid, tst.get('team_a')::uuid, '13:45', 'Vereinsheim', now());
+insert into public.match_nominations (match_id, player_id, standby) values (tst.get('m61')::uuid, tst.get('p4_player')::uuid, false), (tst.get('m61')::uuid, tst.get('max')::uuid, false);
+with ins as (insert into public.parent_posts (team_id, title, body, need_ack) values (tst.get('team_a')::uuid, 'Elternabend', 'Am Freitag um 19 Uhr im Vereinsheim.', true) returning id)
+select tst.put('post61', id::text) from ins;
+do $$ begin
+  perform tst.ok((select author is not null and created_by = tst.uid('coachA') from public.parent_posts where id = tst.get('post61')::uuid), 'T61 Elterninfo: Verfasser setzt der Server');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+select tst.throws(format($q$select public.guardian_absence_delete(%L)$q$, tst.get('abs61s')), 'T61 Eltern löschen keine Einträge des Trainerteams', 'not_found');
+do $$
+declare d jsonb; n public.match_nominations;
+begin
+  perform public.guardian_absence_delete(tst.get('abs61')::uuid);
+  n := public.guardian_answer(tst.get('m61')::uuid, tst.get('p4_player')::uuid, 'no', 'Klassenfahrt');
+  perform tst.eq(n.answer || '/' || n.answered_by_guardian::text || '/' || n.answered_by_staff::text, 'no/true/false', 'T61 Absage der Eltern gekennzeichnet');
+  d := public.guardian_child_data(tst.get('p4_player')::uuid);
+  perform tst.eq(jsonb_array_length(d -> 'noms')::text || '/' || (d -> 'squads' -> 0 ->> 'meet_place') || '/' || (d -> 'squads' -> 0 ->> 'show_all'), '1/Vereinsheim/false',
+                 'T61 Paket: Nominierung des eigenen Kindes mit Treffpunkt, ohne Kaderliste');
+  perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'absences') x where x ? 'stage' or x ? 'note'), 'T61 Paket: Abwesenheiten ohne Stufe und Hinweis');
+  perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'absences') x where x ->> 'id' = tst.get('abs61')), 'T61 eigene Abmeldung zurückgenommen');
+  perform tst.eq((d -> 'posts' -> 0 ->> 'title') || '/' || coalesce(d -> 'posts' -> 0 ->> 'read_at', 'ungelesen'), 'Elternabend/ungelesen', 'T61 Elterninfo im Paket');
+  perform public.parent_post_read(tst.get('post61')::uuid, true);
+  perform tst.ok((public.guardian_child_data(tst.get('p4_player')::uuid) -> 'posts' -> 0 ->> 'acked_at') is not null, 'T61 Elterninfo gelesen und bestätigt');
+end $$;
+select tst.throws(format($q$insert into public.parent_posts (team_id, title, body) values (%L, 'x', 'y')$q$, tst.get('team_a')), 'T61 Eltern schreiben keine Elterninfo', 'row-level security');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.eq((public.answer_nomination(tst.get('m61')::uuid, 'yes')).answered_by_guardian::text, 'false', 'T61 eigene Antwort des Kindes ersetzt die Kennung');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'gx';
+do $$ begin
+  perform tst.eq((select count(*) from public.parent_posts)::text || '/' || (select count(*) from public.guardian_children())::text, '0/0', 'T61 Fremde sehen keine Elterninfo');
+end $$;
+select tst.throws(format($q$select public.parent_post_read(%L, true)$q$, tst.get('post61')), 'T61 Fremde bestätigen nichts', 'not_found');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select count(*)::text || '/' || count(acked_at)::text from public.parent_post_reads where post_id = tst.get('post61')::uuid), '1/1', 'T61 Trainerteam sieht, wer gelesen und bestätigt hat');
+  perform tst.ok(exists (select 1 from public.team_guardian_consents(tst.get('team_a')::uuid) where player_id = tst.get('p4_player')::uuid and kind = 'health_data'), 'T61 geprüfte Einwilligung der Eltern fürs Trainerteam');
+  perform tst.eq((select count(*) from public.consents where player_id = tst.get('p4_player')::uuid and user_id = tst.uid('g1'))::text, '1', 'T61 Trainerteam sieht die Einwilligung der Eltern');
+  perform tst.put('code61k2', (select invite_code from public.guardian_invite_create(tst.get('k61_player')::uuid)));
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_guardian_consents(tst.get('team_a')::uuid))::text, '0', 'T61 Spieler sehen keine Einwilligungen anderer');
+end $$;
+commit;
+
+-- Einwilligung unter 16 (Art. 8): erst die geprüfte Einwilligung der Eltern öffnet Gesundheitsdaten fürs Kind
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform tst.put('link_k61', public.guardian_redeem(tst.get('code61k2'), 'Paul Klein', 'father') ->> 'link_id'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin perform public.guardian_decide(tst.get('link_k61')::uuid, true); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin perform tst.eq(public.missing_health_consent(tst.get('k61_player')::uuid), 'health_data', 'T61 Kind unter 16 ohne Einwilligung: Gesundheitsdaten gesperrt'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform public.guardian_consent(tst.get('k61_player')::uuid, 'health_data', true, 'v1'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin perform tst.eq(public.missing_health_consent(tst.get('k61_player')::uuid), 'parental', 'T61 noch ohne Einwilligung der Eltern in die Nutzung'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform public.guardian_consent(tst.get('k61_player')::uuid, 'parental', true, 'v1'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin perform tst.eq(coalesce(public.missing_health_consent(tst.get('k61_player')::uuid), 'ok'), 'ok', 'T61 mit geprüfter Eltern-Einwilligung frei'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform public.guardian_consent(tst.get('k61_player')::uuid, 'health_data', false, 'v1'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin perform tst.eq(public.missing_health_consent(tst.get('k61_player')::uuid), 'health_data', 'T61 Widerruf der Eltern wirkt sofort'); end $$;
+commit;
+
+-- Foto-Erlaubnis: Erklärung der Eltern, Zustimmung der 14-Jährigen (→ beide), Widerruf lässt „beide“ bestehen
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$ begin
+  perform tst.eq((public.photo_consent_save(tst.get('p4_player')::uuid, true, true, true, true, null, null, null)).given_by, 'parents', 'T61 Eltern erklären die Foto-Erlaubnis');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.eq((public.photo_consent_save(tst.get('p4_player')::uuid, true, true, true, true, 'both', null, null)).given_by, 'both', 'T61 14-Jährige stimmt der Erklärung zu');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$ begin
+  perform tst.eq((public.photo_consent_save(tst.get('p4_player')::uuid, true, false, true, true, null, null, null)).given_by, 'both', 'T61 Widerruf der Eltern lässt die gemeinsame Erklärung bestehen');
+end $$;
+commit;
+
+-- Volljährigkeit: Zugang endet, das volljährige Kind kann ihn verlängern oder Eltern entfernen
+update public.players set birthdate = date '2007-01-01' where id = tst.get('p4_player')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('p4_player')), 'T61 volljährig: kein Zugang mehr', 'not_found');
+do $$ begin perform tst.eq((select access::text from public.guardian_children()), 'false', 'T61 volljährig: Verknüpfung ohne Zugang'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.ok((public.guardian_adult_ok(tst.get('link_g1')::uuid, true)).adult_ok, 'T61 volljähriges Kind verlängert den Zugang');
+  perform public.guardian_remove(tst.get('link_g2')::uuid);
+  perform tst.eq((select count(*) from public.player_guardians)::text, '1', 'T61 volljähriges Kind entfernt einen Elternteil');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$
+declare x jsonb;
+begin
+  perform tst.ok(public.guardian_child_data(tst.get('p4_player')::uuid) ? 'team', 'T61 verlängert: wieder Zugang');
+  x := public.my_data_export();
+  perform tst.eq((x ->> 'format') || '/' || jsonb_array_length(x -> 'guardian_links')::text || '/' || jsonb_array_length(x -> 'parent_post_reads')::text
+                 || '/' || (select count(*) from jsonb_array_elements(x -> 'consents') c where c ->> 'player_id' = tst.get('p4_player'))::text,
+                 'trainerbank-export-v17/1/1/1', 'T61 Export der Eltern: Verknüpfung, Lesebestätigung, Einwilligung');
+  perform public.guardian_remove(tst.get('link_g1')::uuid);
+  perform tst.eq((select count(*) from public.guardian_children())::text, '0', 'T61 Eltern lösen die Verknüpfung selbst');
+end $$;
+commit;
+update public.players set birthdate = date '2012-01-01' where id = tst.get('p4_player')::uuid;
+
+-- Löschfristen
+insert into public.guardian_invites (team_id, player_id, code_hash, uses_left, expires_at)
+values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, public.guardian_code_hash('ALT00-ALT00'), 2, now() - interval '1 day');
+insert into public.player_guardians (team_id, player_id, user_id, name, relation, created_at)
+values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, :'g3', 'Alt Anfrage', 'guardian', now() - interval '40 days');
+do $$ begin
+  perform tst.ok(public.purge_guardians() >= 2, 'T61 Löschfristen: abgelaufene Einladung und alte Anfrage gelöscht');
+  perform tst.eq((select count(*) from public.player_guardians where user_id = tst.uid('g3'))::text, '0', 'T61 alte Anfrage weg');
+end $$;
+
+delete from public.match_nominations where match_id = tst.get('m61')::uuid;
+delete from public.match_squads where match_id = tst.get('m61')::uuid;
+delete from public.matches where id = tst.get('m61')::uuid;
+delete from public.parent_posts where id = tst.get('post61')::uuid;
+delete from public.absences where id = tst.get('abs61s')::uuid;
+delete from public.consents where user_id in (:'g1', :'g2');
+delete from public.players where id in (tst.get('k61_player')::uuid, tst.get('nobirth')::uuid);
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -4597,7 +4935,7 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v16', 'T21b Exportformat v16');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v17', 'T21b Exportformat v17');
   perform tst.eq(jsonb_array_length(x -> 'photo_consents')::text || '/' || (x -> 'photo_consents' -> 0 ->> 'declared_by'), '1/player', 'T21b Export: eigene Foto-Erlaubnis');
   perform tst.eq(jsonb_array_length(x -> 'accident_reports')::text || '/' || (x -> 'accident_reports' -> 0 ->> 'injury') || '/' || (x -> 'accident_reports' -> 0 ->> 'claim_number'), '1/Prellung Knie/SV-1', 'T21b Export: eigene Unfallmeldungen');
   perform tst.eq(jsonb_array_length(x -> 'suspensions')::text || '/' || (x -> 'suspensions' -> 0 ->> 'kind') || '/' || (x -> 'suspensions' -> 0 ->> 'games'), '1/red/3', 'T21b Export: eigene Sperren');
