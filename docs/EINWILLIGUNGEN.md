@@ -22,6 +22,7 @@ Funktion umgesetzt ist.
 | (c) | Einwilligung der Erziehungsberechtigten (Art. 8 DSGVO), umfasst (a) und (b) für das Kind, optional (d) | Spieler unter 16 nach Teambeitritt | ja für die Nutzung durch das Kind | `parental` (+ `parent_email`) | `parental-1.0` |
 | (d) | Einwilligung KI-Coach | alle, beim ersten Öffnen des KI-Coachs | freiwillig | **neu: `ai_coach`** | `ai-1.0` |
 | (e) | Vertraulichkeitszusage Trainerteam (empfohlen) | Staff bei Team-Anlage bzw. Beitritt mit Staff-Code | ja für Staff | **neu: `staff_confidentiality`** | `staff-1.0` |
+| (g) | Eltern-Zugang: Einwilligungen der Eltern in der App für ihr Kind (Nutzung unter 16, Gesundheitsangaben unter 16), Erklärung „sorgeberechtigt“ beim Verknüpfen, Foto-Erlaubnis | bestätigte Eltern minderjähriger Spieler | Nutzung unter 16: ja für die Nutzung durch das Kind; Gesundheitsangaben: freiwillig | `parental`, `health_data` mit `player_id` (Konto = Elternteil) | wie (b)/(c), derzeit `2026-10` |
 
 ### 0.2 Ablauf
 
@@ -39,6 +40,12 @@ Spieler < 16: Registrierung → (a) → Team-Code + Name + Geburtsdatum → Alte
 
 Das Alter wird erst beim Teambeitritt bekannt (Geburtsdatum in `join_team`). Deshalb müssen (b) und (c) **nach** dem
 Beitritt und **vor** der ersten Speicherung von Gesundheitsdaten abgefragt werden.
+
+```
+Eltern (g):   Registrierung → (a) → „Ich bin Elternteil“ → Code vom Trainerteam + Name + Beziehung
+              + Erklärung „sorgeberechtigt, Datenschutzhinweise gelesen“ → Anfrage → Bestätigung durch das Trainerteam
+              → Eltern-Ansicht → Einwilligungen (unter 16: Nutzung, Gesundheitsangaben; jederzeit widerrufbar)
+```
 
 ### 0.3 Pflichtregeln für die Oberfläche
 
@@ -648,12 +655,72 @@ yourself and withdraw your consent at any time.
 > **Prüfhinweis:** Bei Spielern unter 16 Jahren zusätzlich die Einwilligung der Erziehungsberechtigten einholen
 > (Vorlage (c) um diesen Punkt ergänzen).
 
+## (g) Eltern-Zugang – Einwilligungen der Eltern in der App
+
+Gilt nur für Eltern mit eigenem Konto, die das Trainerteam bestätigt hat (siehe Datenschutzerklärung 4.50). Gespeichert
+wird wie bei (b)/(c) in `consents`, mit `user_id` = Elternteil und `player_id` = Kind; zählen tut die Einwilligung nur,
+solange die Verknüpfung besteht und das Kind unter 16 ist (`guardian_consent_ok`, `missing_health_consent`). Wird die
+Verknüpfung gelöst, setzt der Server `withdrawn_at` (Nachweis bleibt). Anrede „Sie“.
+
+### Deutsch
+
+**Beim Verknüpfen (Kästchen, Pflicht):**
+> Ich bin für das Kind sorgeberechtigt und habe die Datenschutzhinweise zum Eltern-Zugang gelesen.
+
+Darunter: Knopf „Datenschutzerklärung lesen“ und der Hinweis *„Bestätigt das Trainerteam die Anfrage nicht innerhalb
+von 30 Tagen, wird sie gelöscht.“* Knopf: **„Anfrage senden“**.
+
+**Einwilligung „Nutzung der App (unter 16)“** – Status „erteilt“/„nicht erteilt“, Knopf „Einwilligen“ bzw. „Widerrufen“:
+> [Vorname] ist unter 16. Damit [Vorname] die App nutzen darf, willigen Sie als Elternteil ein – in die Verarbeitung
+> der Angaben, die [Vorname] und das Trainerteam eintragen (Termine, Training, Rückmeldungen). Einzelheiten stehen in
+> der Datenschutzerklärung.
+
+**Einwilligung „Gesundheitsangaben“ (unter 16):**
+> Dann dürfen Gesundheitsangaben zu [Vorname] gespeichert werden – z. B. „krank“ bei einer Abmeldung, Verletzungen und
+> die Belastung im Training. Sehen kann sie nur das Trainerteam mit dem Recht dafür. Ab 16 willigt [Vorname] selbst ein.
+
+**Hinweis (Info-Symbol):**
+> Unter 16 braucht die Nutzung der App die Einwilligung der Eltern (Art. 8 DSGVO). Gesundheitsangaben – z. B. „krank“,
+> Verletzungen, Belastung – brauchen eine ausdrückliche Einwilligung (Art. 9 DSGVO). Sie können jede Einwilligung
+> jederzeit widerrufen. Das gilt ab dem Widerruf; was vorher gespeichert wurde, bleibt rechtmäßig. Bei gemeinsamem
+> Sorgerecht erklären Sie das im Einvernehmen mit dem anderen Elternteil.
+
+**Ab 16** zeigt die App statt der beiden Einwilligungen:
+> [Vorname] ist 16 oder älter und entscheidet über die Einwilligungen selbst – in die Nutzung der App und in
+> Gesundheitsangaben.
+
+**Foto-Erlaubnis** (je Kanal Ja/Nein, Knopf „Erklärung speichern“):
+> Darf der Verein Fotos von [Vorname] veröffentlichen? Ihre Erklärung gilt ab heute für künftige Veröffentlichungen.
+> (ab 14:) Ab 14 stimmen Sie und [Vorname] gemeinsam zu: Nach Ihrer Erklärung bestätigt [Vorname] sie in der App unter
+> „Ich“ → „Foto-Erlaubnis“. Ein „Nein“ von [Vorname] gilt immer.
+
+### English
+
+**When linking (checkbox, required):** “I have parental responsibility for this child and have read the privacy notes
+on parent access.” Button: **“Send request”**.
+
+**“Using the app (under 16)”:** “[First name] is under 16. For [first name] to use the app, you as a parent consent to
+processing what [first name] and the coaching staff enter (schedule, training, feedback). Details are in the privacy
+policy.”
+
+**“Health data” (under 16):** “Then health data about [first name] may be stored – e.g. “ill” for an absence, injuries
+and training load. Only coaching staff with that permission can see it. From 16, [first name] consents themselves.”
+
+**Photo consent:** “May the club publish photos of [first name]? Your declaration applies from today to future
+publications.”
+
+> **Prüfhinweis:** Kurzfassungen hier und in der App gleich halten (Texte in `src/i18n/de_parents.ts` bzw.
+> `en_parents.ts`). Ob ein Elternteil allein einwilligen kann (gemeinsames Sorgerecht) und ob die Bestätigung durch
+> das Trainerteam als Prüfung nach Art. 8 Abs. 2 DSGVO genügt, rechtlich prüfen (DSFA M-38).
+
 ## Widerruf von Einwilligungen
 
 ### Ort in der App
 
 - Spieler: [Pfad, z. B. „Ich → Datenschutz → Einwilligungen“]
 - Trainerteam: [Pfad, z. B. „Mehr → Datenschutz → Einwilligungen“]
+- Eltern (g): Eltern-Ansicht → „Einwilligungen“ (je Kind; „Verknüpfung lösen“ beendet alle Einwilligungen dieses
+  Elternteils für das Kind)
 
 Der Bildschirm listet jede Einwilligung mit Status, Datum und Version, z. B. *„Gesundheitsdaten – erteilt am
 12.10.2026 (health-1.0)“*, und bietet je Einwilligung den Knopf **„Widerrufen“**. Die Kenntnisnahme (a) ist nicht

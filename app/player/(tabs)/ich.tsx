@@ -11,7 +11,12 @@ import { playerHidden } from "../../../src/ui/dashboard";
 import { GOLD, Goals } from "../../../src/ui/player/parts";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { GroupChip } from "../../../src/ui/squad/Groups";
+import { MyEmergencyItem } from "../../../src/ui/emergency";
 import { MyKasseCard } from "../../../src/ui/kasse";
+import { MySizesItem } from "../../../src/ui/sizes";
+import { MyPhotoItem } from "../../../src/ui/photos";
+import { MyAccidentsItem } from "../../../src/ui/accidents";
+import { MyGuardiansItem } from "../../../src/ui/parent";
 import { useTheme } from "../../../src/ui/theme";
 
 export default function Ich() {
@@ -76,14 +81,21 @@ export default function Ich() {
       </Card>
       {E.playerSees("goals") ? <Goals pid={p.id} /> : null}
       <Card style={{ paddingVertical: 4, gap: 0 }}>
+        <MyEmergencyItem />
+        <MySizesItem />
+        <MyPhotoItem />
+        <MyGuardiansItem />
+        <MyAccidentsItem />
         {/* ausgeblendete Bereiche der Leiste bleiben hier erreichbar */}
-        {playerHidden(s.prefs).filter(k => k !== "chat" || (E.mods.chat !== false)).map(k => (
+        {playerHidden(s.prefs, E.playerSees("dev")).filter(k => k !== "chat" || (E.mods.chat !== false)).map(k => (
           <ListItem key={k} testID={"me-tab-" + k} title={t(k === "chat" ? "nav_chat" : "pn_" + k)} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/" + k)} />
         ))}
         {E.playerSees("dev") ? <ListItem testID="me-dev" title={t("dv_mine")} sub={`${t("dv_myGoals")} · ${t("dv_profile")} · ${t("iq_title")}`} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/entwicklung")} /> : null}
         {E.mods.kontakte && E.playerSees("contacts") ? <ListItem testID="me-kontakte" title={t("ct_title")} sub={t("ct_sub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/kontakte")} /> : null}
+        <ListItem testID="me-umfragen" title={t("um_title")} sub={t("um_meSub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/player/umfragen")} />
         <ListItem testID="me-wiki" title={t("wk_menu")} sub={t("wk_menuSub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/wiki")} />
         <ListItem testID="me-feedback" title={t("fb_menu")} sub={t("fb_menuSub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/feedback")} />
+        {!s.isDemo && s.myChildren.length ? <ListItem testID="me-elternansicht" title={t("el_parentView")} sub={t("el_parentViewSub")} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/parent")} /> : null}
         <ListItem testID="me-konto" title={t("pl_account")} sub={s.isDemo ? t("w_demoHint") : s.user?.email || ""} right={<Icon name="chevron" size={18} color={c.muted} />} onPress={() => router.push("/konto")} />
       </Card>
     </Screen>

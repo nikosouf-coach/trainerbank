@@ -38,8 +38,25 @@
   deinem Vornamen und dem ersten Buchstaben deines Nachnamens. Telefonnummern werden nicht gebraucht. In Jugendteams
   gibt es Einzelchats nur mit dem Trainerteam, und das Trainerteam kann sie mitlesen (Kinderschutz). Push-Mitteilungen
   zeigen nie den Text. Unpassende Nachrichten kannst du melden.
-- **Entwicklung:** Deine Selbsteinschätzung und deine eigenen Ziele sieht dein Trainerteam. Einschätzungen und
-  Gesprächsprotokolle des Trainerteams siehst du, wenn es sie freigibt.
+- **Entwicklung:** Deine Selbsteinschätzung, deine Selbstanalyse und deine eigenen Ziele sieht dein Trainerteam.
+  Einschätzungen, Gesprächsprotokolle und dein Entwicklungsprogramm siehst du, wenn das Trainerteam sie freigibt. In
+  der Stärken-Runde schenkst du Mitspielern bis zu drei Stärken aus einer festen Liste – nur Positives, kein Freitext;
+  wer was geschenkt hat, sieht nur das Trainerteam, nie der Mitspieler.
+- **Umfragen:** Mitmachen ist freiwillig. Vor dem Antworten siehst du, ob eine Umfrage mit Namen oder anonym ist und
+  wer das Ergebnis sieht. Bei anonymen Umfragen sieht niemand, was du geantwortet hast oder ob du mitgemacht hast;
+  Ergebnisse gibt es erst ab drei Antworten. Freitexte sieht nur das Trainerteam.
+- **Notfallkontakt:** Beim Beitreten gibst du mindestens eine Person an, die dein Trainerteam im Notfall anrufen kann
+  (Name, Beziehung zu dir, Telefonnummer) – sag ihr bitte Bescheid. Freiwillig kannst du Hinweise für den Notfall
+  eintragen (z. B. eine Allergie oder wo dein Asthma-Spray ist). Diese Hinweise sind Gesundheitsdaten: Sie sieht nur,
+  wer im Trainerteam das Recht „Gesundheitsdaten“ hat. Mitspieler sehen nichts davon.
+- **Größen:** Freiwillig trägst du deine Kleider- und Schuhgrößen und einen Namen für die Beflockung ein, damit dein
+  Trainerteam z. B. Trikots oder Trainingsanzüge bestellen kann. Sie sieht nur das Trainerteam mit dem Recht „Kader“.
+- **Kader fürs Spiel:** Nominiert dich dein Trainerteam für ein Spiel, siehst du das auf der Startseite – mit Treffpunkt
+  und, wenn das Trainerteam es freigibt, wer noch dabei ist (Vorname und Initial). Wer nicht nominiert ist, sieht
+  nichts. Ist es erlaubt, sagst du in der App zu oder ab; den Grund einer Absage sieht nur das Trainerteam.
+- **Fahrgemeinschaften:** Für Auswärtsspiele und Termine kannst du Plätze anbieten (z. B. „Mama von Max fährt, 3 Plätze
+  frei, Abfahrt 13:15 am Vereinsheim“), bei einer Fahrt mitfahren oder Bescheid sagen, dass du eine Mitfahrgelegenheit
+  suchst. Das sehen alle in deinem Team – mit Vorname und Initial. Adressen und Telefonnummern gehören nicht hinein.
 - **Matchplan:** Gibt dein Trainerteam einen Matchplan frei, kannst du ihn bis Spielende ansehen. Er ist vertraulich:
   Er wird mit deinem Namen als Wasserzeichen angezeigt, und es wird festgehalten, wann du ihn geöffnet hast (und ob
   ein Screenshot erkannt wurde). Das Protokoll wird nach 6 Monaten gelöscht.
@@ -53,10 +70,41 @@
   Vereins sehen dich als möglichen Aufrücker nur mit Name, Position, Jahrgang und Team. Spieler anderer Teams oder
   Vereine, die ein Trainerteam beobachtet (Scouting), werden darüber informiert; Gesundheitsdaten werden dabei nie
   erfasst.
+- **Eltern-Zugang:** Bist du minderjährig, kann dein Trainerteam deinen Eltern einen Code geben. Erst wenn das
+  Trainerteam sie bestätigt hat, sehen sie deine Termine der nächsten Wochen, deine Abmeldungen und Abwesenheiten
+  (Krankheit und Verletzung nur als „abwesend“), deine Nominierung mit Treffpunkt und deine Foto-Erlaubnis; sie können
+  dich abmelden und zu- oder absagen. Deine Belastung, Gesundheitsdetails, Bewertungen, Notizen und Chats sehen sie
+  nicht. Unter „Ich“ siehst du, wer verknüpft ist. Ab 16 entscheidest du selbst über deine Einwilligungen; 30 Tage nach
+  deinem 18. Geburtstag endet der Zugang, außer du verlängerst ihn.
 - Die Daten liegen auf Servern in der EU (Frankfurt). Es gibt **keine Werbung, kein Tracking und keinen Verkauf** von Daten.
 - Der KI-Coach ist freiwillig. Wenn du ihn nutzt, geht deine Frage an einen KI-Anbieter in den USA.
 - Du kannst deine Daten jederzeit in der App herunterladen und dein Konto mit allen Gesundheitsdaten löschen.
 - Fragen? Schreib uns an [E-Mail].
+
+## Kurz erklärt – für Eltern (Eltern-Zugang)
+
+- Mit einem Code vom Trainerteam verknüpfen Sie Ihr Konto mit Ihrem Kind. Sie sehen erst etwas, nachdem das
+  Trainerteam Ihre Anfrage bestätigt hat; es sieht dabei den Namen, den Sie angeben, und ob Sie Mutter, Vater oder
+  erziehungsberechtigt sind. Je Kind sind höchstens zwei Elternteile möglich. Der Code gilt 14 Tage und wird bei uns
+  nur verschlüsselt (als Hash) gespeichert.
+- Sie sehen nur, was Sie für die Organisation brauchen: Team und Trainingszeiten, Training, Spiele und Termine der
+  nächsten Wochen, die Nominierung Ihres Kindes mit Treffpunkt (ohne Kaderliste), seine Abmeldungen und Abwesenheiten,
+  die Foto-Erlaubnis, Elterninfos des Trainerteams und Ihre Einwilligungen. Krankheit oder Verletzung, die das
+  Trainerteam oder Ihr Kind einträgt, sehen Sie nur als „abwesend“.
+- Nicht sichtbar sind Belastung, Schlaf, Gesundheitsdetails, Leistungstests, Bewertungen, Notizen des Trainerteams,
+  Chats und Daten anderer Kinder.
+- Sie können Ihr Kind abmelden (Urlaub, Schule, Sonstiges; „krank“ nur mit Einwilligung in Gesundheitsangaben), bei
+  einer Nominierung zu- oder absagen und Elterninfos als gelesen bestätigen. Was Sie eintragen, sieht das Trainerteam
+  mit dem Hinweis „von Eltern“.
+- Ist Ihr Kind unter 16, geben Sie in der App die Einwilligungen in die Nutzung und in Gesundheitsangaben (Art. 8 und
+  Art. 9 DSGVO) und können sie jederzeit widerrufen. Ab 16 entscheidet Ihr Kind selbst. Die Foto-Erlaubnis erklären
+  Sie für Kinder unter 14 allein, mit 14 bis 17 gemeinsam mit Ihrem Kind. Bei gemeinsamem Sorgerecht erklären Sie
+  Einwilligungen im Einvernehmen mit dem anderen Elternteil.
+- Ihr Kind sieht in der App, wer als Elternteil verknüpft ist. Der Zugang endet 30 Tage nach dem 18. Geburtstag, außer
+  Ihr Kind verlängert ihn. Sie können die Verknüpfung jederzeit selbst lösen; damit enden auch Ihre Einwilligungen in
+  der App. Schaltet das Team den Eltern-Zugang aus, sehen Sie nichts mehr, bis er wieder eingeschaltet ist.
+- Ihre eigenen Daten (Konto, Name, Verknüpfung, Lesebestätigungen, Einwilligungen) können Sie in der App herunterladen
+  und mit Ihrem Konto löschen.
 
 ---
 
@@ -107,7 +155,7 @@ E-Mail: [E-Mail des Datenschutzbeauftragten]
 | **Spieler mit eigenem Konto** | Spielerinnen und Spieler ab [Mindestalter für ein eigenes Konto] bis Erwachsene | treten einem Team mit dem Team-Code bei, sehen Teamkalender und veröffentlichten Wochenplan, tragen eigene Daten ein, sehen nur ihre eigenen Daten |
 | **Spieler ohne Konto** | Spieler, die das Trainerteam selbst anlegt (z. B. jüngere Kinder) | nutzen die App nicht selbst; das Trainerteam erfasst Daten für sie |
 | **Beobachtete Spieler (Scouting)** | Spieler anderer Teams oder Vereine, die ein Trainerteam für seine Kaderplanung beobachtet | nutzen die App nicht; das Trainerteam erfasst sportliche Eindrücke und informiert sie bzw. bei Minderjährigen die Eltern (4.37) |
-| **Erziehungsberechtigte** | Eltern bzw. Sorgeberechtigte von Spielern unter 16 Jahren | erteilen die erforderliche Einwilligung; wir speichern dafür ihre E-Mail-Adresse |
+| **Erziehungsberechtigte** | Eltern bzw. Sorgeberechtigte minderjähriger Spieler | erteilen für Kinder unter 16 die erforderlichen Einwilligungen; mit eigenem Konto im **Eltern-Zugang** (nach Bestätigung durch das Trainerteam): sehen Termine, Abmeldungen und Nominierungen ihres Kindes, melden es ab, sagen zu oder ab, lesen Elterninfos und geben bzw. widerrufen Einwilligungen (4.50); ohne eigenes Konto speichern wir für die Einwilligung ihre E-Mail-Adresse |
 
 Tritt ein Spieler mit dem Team-Code einem Team bei, in dem das Trainerteam ihn bereits ohne Konto angelegt hat
 (gleicher Vor- und Nachname und gleiches Geburtsdatum), wird sein Konto mit diesem vorhandenen Spielerprofil verknüpft.
@@ -134,7 +182,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.15 | KI-Coach | Inhalt deiner Anfrage und ein reduzierter Datenkontext (siehe Abschnitt 11); Anzahl der KI-Anfragen pro Tag | du | freiwillig, gesonderte Einwilligung |
 | 4.16 | Technische Daten | IP-Adresse, Zeitpunkt, aufgerufener Dienst, Statuscodes, technische Kennung des App-Clients in Server-Protokollen | dein Gerät | technisch erforderlich |
 | 4.17 | Kommunikation mit uns | Inhalt deiner Nachricht, E-Mail-Adresse, ggf. Name | du | freiwillig |
-| 4.18 | Spieldaten und Bewertungen | Einsatzminuten, Startelf, Tore, Vorlagen je Spiel, bei Torhütern Gegentore und Paraden; Noten (1–10) mit Rückmeldung des Trainerteams zu Spielen; Trainingseindruck (nur „besonders gut“ oder „besonders schwach“ je Einheit, mit Gründen und Notiz – Durchschnitt wird nicht gespeichert); Links zu Videos | Trainerteam | – |
+| 4.18 | Spieldaten und Bewertungen | Einsatzminuten, Startelf, Tore, Vorlagen und Pre-Assists je Spiel, bei Torhütern Gegentore und Paraden, Karten (Gelb, Gelb-Rot, Rot); Noten (1–10) mit Rückmeldung des Trainerteams zu Spielen; Trainingseindruck (nur „besonders gut“ oder „besonders schwach“ je Einheit, mit Gründen und Notiz – Durchschnitt wird nicht gespeichert); Links zu Videos | Trainerteam | – |
 | 4.19 | Leistungstests | Ergebnisse von Leistungstests (z. B. Sprintzeiten, Sprunghöhe, Ausdauertest, bei Torhütern Seitsprung und Abschlagweite, sowie vom Trainerteam angelegte eigene Tests wie Jonglieren oder Liegestütze) mit Datum; daraus berechnete Einordnung und persönliche Laufvorgaben | Trainerteam | freiwillig |
 | 4.20 | Befunde | Fotos oder PDF-Dateien von Arztbriefen und Befunden, Titel, Datum, Art der Einwilligung; auf Wunsch eine KI-Zusammenfassung | Trainerteam | freiwillig, gesonderte Einwilligung |
 | 4.21 | Vorbereitung und Pausen | Zeiträume, Wochenaufbau, Trainingsprogramm für die freie Zeit; welche Programm-Einheiten du abgehakt hast (Dauer, Belastungsempfinden) | Trainerteam, du | freiwillig |
@@ -157,6 +205,17 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.38 | Rückmeldungen aus der App | Art (Fehler, Unklar, Wunsch, Lob), dein Text, optional ein Bildschirmfoto, die zuletzt geöffnete Seite (ohne IDs), App-Version, Gerätemodell und Betriebssystem, dein Konto (für Rückfragen), das aktive Team und deine Rolle dort; Status (offen, erledigt) | du | freiwillig |
 | 4.39 | Absturzberichte | nur wenn du sie auf deinem Gerät einschaltest: Fehlermeldung und Stelle im Programmcode, App-Version und Build, Kanal der Updates, Gerätemodell, Betriebssystem, Zeitpunkt, die zuletzt geöffneten Seiten (ohne IDs) und eine zufällige Kennung der Installation (zum Zählen absturzfreier Sitzungen); **keine** Namen, E-Mail- oder IP-Adressen, keine Gesundheitsdaten, keine Bildschirmfotos, keine Netzwerk- oder Konsolendaten | dein Gerät | freiwillig |
 | 4.40 | App-Updates | beim Start fragt die App bei Expo nach einer neuen Version: IP-Adresse, Plattform, App-Version, Laufzeitversion und Kanal (Test oder Store) | dein Gerät | – |
+| 4.41 | Entwicklungsprogramm und Stärken-Runde | **Programm:** Motto, X-Faktor (bis zu drei Stärken), Situationen, in denen du den Unterschied machst, stärkster Bereich auf dem Feld, bis zu vier Entwicklungsfelder (Art, Thema, wo du dich verbesserst, wen du um Hilfe fragen kannst, wie es gelingt, verknüpftes Ziel), Sicht des Trainerteams (Stärken), ausgewählte Stärken aus der Stärken-Runde, Freigabe und Zeitpunkt; dazu Saisonzahlen aus 4.18 (nur für die Anzeige). **Selbstanalyse:** bis zu drei Waffen und drei weitere Stärken aus einer festen Liste. **Stärken-Runde:** Zeitraum der Runde; je Mitspieler die Stärken (1–3 aus einer festen Liste, kein Freitext), die du ihm geschenkt hast, mit Zeitpunkt | Trainerteam, du, deine Mitspieler (Stärken-Runde) | Selbstanalyse und Stärken-Runde freiwillig |
+| 4.42 | Umfragen | **Umfrage:** Art (Abstimmung oder Fragebogen), Titel, Einleitung, Fragen mit Antwortmöglichkeiten, mit Namen oder anonym, wer das Ergebnis sieht, Zielgruppe (Team oder Gruppe), Ende, beendet, wer sie gestartet hat (Trainerteam mit Namen, Spieler mit Vorname und Initial), Zeitpunkte, Zahl der Antworten. **Deine Antwort:** je Frage die gewählte(n) Antwort(en), die Stufe 1–5 oder dein Freitext, mit Zeitpunkt | Trainerteam mit Recht „Nachrichten“; bei Umfragen mit Namen und „Ergebnisse für alle“ auch die Angesprochenen; bei anonymen Umfragen niemand einzeln | freiwillig |
+| 4.43 | Notfallkontakte | **Notfallkontakt:** eine oder zwei Personen, die das Trainerteam im Notfall anruft – Name, Beziehung zu dir (z. B. Mutter, Vater, erziehungsberechtigte Person, Partner/in, Geschwister, Großeltern) und Telefonnummer –, dazu wer zuletzt geändert hat und wann. **Hinweise für den Notfall:** Freitext, z. B. Allergien, Asthma, Diabetes, Notfallmedikament und wo es liegt (Gesundheitsdaten) | du; das Trainerteam mit Recht „Kader“ (z. B. für Spieler ohne Konto), Hinweise mit Recht „Gesundheitsdaten“ | Notfallkontakt Pflicht beim Beitreten als Spieler; Hinweise freiwillig, Einwilligung erforderlich |
+| 4.44 | Größen & Ausrüstung | Größe für Oberteil und Hose, Schuhgröße, bei Torhütern Handschuhgröße, Name für die Beflockung, Hinweis (z. B. „fällt klein aus“), wer zuletzt geändert hat und wann; daraus erstellte Bestelllisten (CSV-Datei oder Text mit Rückennummer, Name, Beflockung und Größen) | du; das Trainerteam mit Recht „Kader“ (z. B. für Spieler ohne Konto) | freiwillig |
+| 4.45 | Kader-Nominierung | Spiel, im Kader oder auf Abruf, Treffpunkt (Uhrzeit, Ort) und Hinweis des Trainerteams, ob die Nominierten den Kader sehen, Zeitpunkt der Veröffentlichung; deine Zu- oder Absage mit freiwilligem Grund, Zeitpunkt und ob das Trainerteam die Antwort eingetragen hat | Trainerteam mit Recht „Planung“; du (Antwort) | Antwort freiwillig |
+| 4.46 | Fahrgemeinschaften | Spiel oder Termin, wer fährt (du bzw. deine Eltern – mit einer Bezeichnung wie „Mama von Max“ – oder das Trainerteam), Zahl der Plätze, Abfahrt (Uhrzeit, Ort), Hinweis; wer mitfährt; wer eine Mitfahrgelegenheit sucht; Zeitpunkte | du; das Trainerteam (zuordnen, eigene Fahrten); Fahrer (Suchende mitnehmen, Mitfahrer austragen) | freiwillig |
+| 4.47 | Karten und Sperren | Karten je Spiel (bei den Spieldaten, 4.18); Sperren, die das Trainerteam einträgt (Urteil nach einer Karte, aufgehoben, sonstige Sperre): Grund, Spiel, ab wann, wie viele Spiele oder bis wann, für welche Spiele, Hinweis, wer zuletzt geändert hat und wann; die Regeln des Teams für Sperren | Trainerteam mit Recht „Leistung & Statistik“ | – |
+| 4.48 | Foto-Erlaubnis | je Kanal (Vereinswebsite, Social Media des Vereins, Presse und Druck, Name zum Foto) erlaubt, nicht erlaubt oder offen; wer erklärt hat (du, deine Eltern oder beide), Datum der Erklärung, Hinweis (z. B. „Formular vom 01.09.“), wer zuletzt geändert hat und wann | du (Nein immer, Ja ab 18); das Trainerteam mit Recht „Kader“ (aus dem unterschriebenen Formular) | freiwillig |
+| 4.49 | Unfallmeldungen (Gesundheitsdaten) | Unfalltag und Uhrzeit, Ort, Tätigkeit (Training, Spiel, Hin- oder Rückweg, Sonstiges), Spiel, zugehörige Verletzung, Hergang, Verletzung und Körperregion, Erste Hilfe, Behandlung, Zeugen, wann an den Verein und an die Versicherung gemeldet, Schadennummer, abgeschlossen, Hinweis, wer zuletzt geändert hat und wann | Trainerteam mit Recht „Gesundheitsdaten“ | – |
+| 4.50 | Eltern-Zugang | **Verknüpfung:** Team, Kind, Name des Elternteils (wie angegeben), Beziehung (Mutter, Vater, erziehungsberechtigt), Stand (wartet, bestätigt), wann angefragt und wann von wem bestätigt, ob das volljährige Kind den Zugang verlängert hat. **Einladung:** Code nur als kryptografischer Hash, gültig bis, wie oft noch einlösbar, wer sie erstellt hat; falsche Codes mit Zeitpunkt (Schutz vor dem Ausprobieren). **Was Eltern eintragen:** Abmeldungen (4.6, gekennzeichnet), Zu- oder Absagen (4.45, gekennzeichnet), Einwilligungen für das Kind (4.13), Foto-Erlaubnis (4.48), wann eine Elterninfo gelesen bzw. bestätigt wurde | Eltern; Trainerteam mit Recht „Kader“ (Einladung, Bestätigung); das volljährige Kind (Verlängerung) | freiwillig |
+| 4.51 | Elterninfo | Titel, Text, ob eine Lesebestätigung angefordert ist, Name der Verfasserin bzw. des Verfassers (aus dem Profil), wann geschrieben und geändert | Trainerteam mit Recht „Kader“ | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -212,6 +271,145 @@ interne Notiz zum Gespräch siehst du nie. Bei Zielen des Trainerteams kannst du
 eintragen; eigene Ziele kannst du selbst anlegen, ändern und löschen. Ziele, deren Fortschritt aus Leistungstests,
 Spieldaten oder der Trainingsbeteiligung berechnet wird, nutzen diese Daten nur für die Anzeige des Fortschritts. Zugriff
 hat im Trainerteam nur, wer das Recht „Notizen & Bewertungen“ hat.
+
+**Entwicklungsprogramm und Stärken-Runde (4.41):** Das Programm stellt deine Stärken in den Mittelpunkt und beschreibt
+wenige Felder, an denen du gezielt arbeitest. Du siehst es erst, wenn das Trainerteam es freigibt; ändert das
+Trainerteam ein freigegebenes Programm, siehst du das Datum der letzten Änderung. Deine Selbstanalyse ist freiwillig;
+du kannst sie jederzeit ändern oder löschen lassen. Die Stärken-Runde startet das Trainerteam für einen festen
+Zeitraum (höchstens sechs Wochen). Während dieser Zeit siehst du von deinen Mitspielern nur Vorname, Anfangsbuchstaben
+des Nachnamens, Rückennummer und Position. Du kannst ihnen nur Stärken aus einer festen Liste schenken – keine Kritik,
+kein Freitext – und deine Auswahl bis zum Ende der Runde ändern oder zurücknehmen. Was du geschenkt hast, siehst nur du
+und das Trainerteam mit dem Recht „Notizen & Bewertungen“; dein Mitspieler sieht nie, von wem eine Stärke kommt, und
+auch nicht, wie oft sie genannt wurde – nur die Stärken, die das Trainerteam in sein Programm übernimmt. Einträge der
+Stärken-Runde werden nach 12 Monaten automatisch gelöscht.
+
+**Umfragen (4.42):** Umfragen startet das Trainerteam mit dem Recht „Nachrichten“. Erlaubt es das Trainerteam, können
+auch Spieler Abstimmungen starten – dann immer mit Namen, für das ganze Team und mit Ergebnis für alle; das Trainerteam
+sieht sie und kann sie beenden oder löschen. Vor dem Antworten siehst du, ob die Umfrage mit Namen oder anonym ist und
+wer das Ergebnis sieht. **Mit Namen** sieht das Trainerteam, wer was gewählt hat und wer noch nicht geantwortet hat;
+bei „Ergebnisse für alle“ sehen auch die Angesprochenen nach ihrer Antwort bzw. nach dem Ende, wer was gewählt hat.
+**Anonym:** Technisch speichert die App, von wem eine Antwort stammt – nur damit du einmal antwortest und deine Antwort
+ändern oder zurückziehen kannst. Angezeigt wird aber niemandem, wer was geantwortet hat oder wer mitgemacht hat;
+Ergebnisse gibt es erst ab drei Antworten, Freitexte ohne Namen und nicht in der Reihenfolge des Eingangs. Freitexte
+sieht in jedem Fall nur das Trainerteam. Solange die Umfrage läuft, kannst du deine Antwort ändern oder zurückziehen.
+Sobald jemand geantwortet hat, lassen sich Fragen und Einstellungen nicht mehr ändern – eine anonyme Umfrage bleibt
+anonym. Umfragen werden mit allen Antworten 12 Monate nach ihrem Ende gelöscht (ohne Ende 12 Monate nach dem Start),
+früher, wenn das Trainerteam oder – bei eigenen Abstimmungen – der Spieler sie löscht.
+
+**Notfallkontakte (4.43):** Damit dein Trainerteam bei einem Unfall oder einem medizinischen Notfall im Training oder
+beim Spiel schnell jemanden erreicht, gibst du beim Beitreten mindestens eine Person mit Telefonnummer an (höchstens
+zwei). Spieler, die schon im Team sind, werden gebeten, den Kontakt nachzutragen. Für Spieler ohne eigenes Konto trägt
+ihn das Trainerteam ein. Den Notfallkontakt sehen du und das Trainerteam mit dem Recht „Kader“ oder „Gesundheitsdaten“
+– auch ohne Netz, damit im Notfall angerufen werden kann. Die **Hinweise für den Notfall** sind freiwillig und
+Gesundheitsdaten; sie sehen nur du und das Trainerteam mit dem Recht „Gesundheitsdaten“, und du kannst sie nur mit
+deiner Einwilligung in Gesundheitsdaten eintragen. Mitspieler, Funktionäre ohne diese Rechte und andere Teams sehen
+weder Kontakt noch Hinweise. Du kannst beides jederzeit unter „Ich → Notfallkontakt“ ändern; Hinweise kannst du auch
+ganz löschen. Kontakt und Hinweise werden mit deinem Spielerprofil gelöscht.
+
+**Für Personen, die als Notfallkontakt angegeben sind (Art. 14 DSGVO):** Deine Daten (Name, Beziehung zum Spieler,
+Telefonnummer) hat der Spieler bzw. das Trainerteam eingetragen – nicht du selbst. Sie werden nur verwendet, um dich im
+Notfall anzurufen, und sind nur für den Spieler und das Trainerteam sichtbar. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f
+DSGVO (berechtigtes Interesse von Spieler und Verein, im Notfall Angehörige oder Vertrauenspersonen schnell zu
+erreichen; bei Minderjährigen auch die Aufsichtspflicht). Die Daten werden gelöscht, sobald der Spieler sie ändert oder
+sein Spielerprofil gelöscht wird. Du kannst jederzeit Auskunft verlangen, der Verarbeitung widersprechen oder die
+Löschung verlangen – über den Spieler, das Trainerteam oder bei uns unter [E-Mail]; die übrigen Rechte aus Abschnitt 20
+gelten entsprechend.
+
+> **Prüfhinweis:** Die App bittet beim Eintragen ausdrücklich darum, die Person zu informieren („Sag der Person
+> Bescheid …“). Prüfen, ob das zusammen mit diesem Abschnitt die Informationspflicht nach Art. 14 DSGVO erfüllt
+> (Ausnahme Art. 14 Abs. 5 lit. b DSGVO – unverhältnismäßiger Aufwand, da die App die Person nicht anschreibt) und ob
+> die Pflichtangabe beim Beitreten mit dem Kopplungsverbot vereinbar ist (Empfehlung: zulässig, weil der Kontakt für
+> die sichere Teilnahme am Training erforderlich ist; Hinweise bleiben freiwillig).
+
+**Größen & Ausrüstung (4.44):** Damit dein Trainerteam Trikots, Trainingsanzüge oder Stutzen gesammelt bestellen
+kann, trägst du deine Größen selbst ein (Ich → Größen); für Spieler ohne Konto trägt sie das Trainerteam ein. Die
+Größen sehen nur du und das Trainerteam mit dem Recht „Kader“ – Mitspieler nicht. Aus den Größen erstellt das
+Trainerteam eine Bestellliste (Rückennummer, Name, Name für die Beflockung, Größen, Hinweis) und gibt sie z. B. an
+einen Ausrüster oder Sporthändler weiter; Trainerbank selbst sendet die Liste an niemanden. Größen sind keine
+Gesundheitsdaten – bitte trag im Hinweis keine Angaben zu Verletzungen oder Erkrankungen ein. Du kannst deine Größen
+jederzeit ändern oder löschen; sie werden mit deinem Spielerprofil gelöscht.
+
+**Kader-Nominierung (4.45):** Das Trainerteam mit dem Recht „Planung“ stellt den Kader für ein Spiel zusammen (im Kader
+oder auf Abruf) und veröffentlicht ihn. Erst dann siehst du deine Nominierung mit Treffpunkt und Hinweis. Gibt das
+Trainerteam es frei, sehen die Nominierten, wer noch dabei ist – mit Vorname, Initial des Nachnamens, Rückennummer
+und Position, nie die Antworten oder Gründe der anderen. Wer nicht nominiert ist, sieht den Kader nicht. Erlaubt das
+Trainerteam Absagen durch Spieler (dieselbe Einstellung wie bei Trainings), sagst du bis zum Anpfiff in der App zu oder
+ab; einen Grund für eine Absage musst du nicht angeben – bei Krankheit genügt „krank“, Einzelheiten bitte persönlich.
+Den Grund sieht nur das Trainerteam. Antworten kann auch das Trainerteam eintragen (z. B. wenn du persönlich Bescheid
+gibst); das ist dann so gekennzeichnet. Kader mit allen Antworten werden 12 Monate nach dem Spiel gelöscht.
+
+**Fahrgemeinschaften (4.46):** Damit alle zu Auswärtsspielen und Terminen kommen, bieten Spieler bzw. ihre Eltern Plätze
+an (wer fährt, wie viele Plätze frei sind, Abfahrt mit Uhrzeit und Ort, Hinweis), andere fahren mit oder sagen
+Bescheid, dass sie eine Mitfahrgelegenheit suchen. Das sehen alle in deinem Team (Trainerteam und Spieler mit Konto) –
+Spieler sehen die Namen nur mit Vorname und Initial des Nachnamens. Du trägst nur dich selbst ein oder aus und bietest
+nur deine eigene Fahrt an; wer fährt, kann Spieler mitnehmen, die eine Fahrt suchen, und Mitfahrer wieder austragen;
+das Trainerteam ordnet Spieler zu und kann eigene Fahrten anlegen sowie den Stand im Teamchat teilen. Fällt eine Fahrt
+aus oder wirst du ausgetragen, suchst du für das Spiel automatisch wieder eine Mitfahrgelegenheit – das ist für alle im
+Team sichtbar, du kannst es jederzeit beenden. Bitte trag keine Adressen, Telefonnummern oder Angaben zur Gesundheit ein;
+Absprachen gehören in den Chat. Wer eine Mitfahrgelegenheit sucht, wird am Tag nach dem Spiel bzw. Termin gelöscht, die
+Fahrten mit ihren Mitfahrern 30 Tage danach – vorher, wenn die Fahrt, das Spiel, der Termin oder dein Spielerprofil
+gelöscht wird. Die Fahrgemeinschaft ist eine Absprache unter euch; Trainerbank vermittelt keine Fahrten und ist nicht
+Beförderer.
+
+**Karten und Sperren (4.47):** Das Trainerteam mit dem Recht „Leistung & Statistik“ trägt im Spielbericht ein, ob du eine Gelbe,
+Gelb-Rote oder Rote Karte bekommen hast. Daraus berechnet die App nach den Regeln, die das Trainerteam für euren Verband
+einstellt, ob und für welche Spiele du gesperrt bist; Urteile des Sportgerichts oder sonstige Sperren trägt das
+Trainerteam selbst ein. So sieht es bei der Kader-Nominierung, wer gesperrt ist. Die Sperren sieht das ganze
+Trainerteam, Mitspieler nicht. Du siehst deine eigenen Sperren und eine Gelb-Warnung vor der nächsten Gelbsperre auf
+„Heute“ (aus den Karten berechnete nur, wenn die Spieldaten für Spieler freigegeben sind); deine eigenen eingetragenen
+Sperren gehören zu deinem Datenexport. Eingetragene Sperren
+werden 24 Monate nach ihrem Beginn bzw. Ende gelöscht, Karten mit den Spieldaten.
+
+**Geburtstage:** Aus dem Geburtsdatum im Spielerprofil (4.3) zeigt die App dem Trainerteam, wer heute und in den
+nächsten Tagen Geburtstag hat, und listet alle Geburtstage; „Gratulieren“ öffnet den Teamchat mit einem Vorschlag, den
+das Trainerteam selbst abschickt (das Alter steht nicht darin). Du bekommst an deinem Geburtstag einen Glückwunsch auf
+„Heute“. Mitspieler sehen dein Geburtsdatum nicht. Es werden keine zusätzlichen Daten gespeichert.
+
+**Foto-Erlaubnis (4.48):** Damit der Verein Fotos nur mit Einwilligung veröffentlicht, hält die App fest, ob Fotos von
+dir auf der Vereinswebsite, auf Social Media des Vereins und in Presse und Druck erscheinen dürfen und ob dein Name
+dazu genannt werden darf. Wer zustimmt, hängt vom Alter ab: unter 14 deine Eltern, mit 14 bis 17 deine Eltern und du
+gemeinsam, ab 18 du selbst. Das Trainerteam mit dem Recht „Kader“ trägt die Erklärung aus dem unterschriebenen Formular
+ein (das Formular bleibt beim Verein); volljährig stimmst du in der App selbst zu. „Nein“ kannst du jederzeit selbst
+sagen, auch wenn du minderjährig bist – der Widerruf gilt sofort für neue Veröffentlichungen, bereits veröffentlichte
+Fotos nimmt der Verein auf Wunsch herunter. Die Erklärung sehen das Trainerteam und du, Mitspieler nicht. Die
+Veröffentlichung selbst geschieht außerhalb der App durch den Verein; dafür ist der Verein verantwortlich.
+
+**Unfallmeldungen (4.49):** Hat ein Spieler im Training, im Spiel oder auf dem Weg dorthin einen Sportunfall, kann das
+Trainerteam mit dem Recht „Gesundheitsdaten“ ihn gleich festhalten – Hergang, Verletzung, Erste Hilfe, Behandlung und
+Zeugen – und verfolgen, ob der Verein und die Sportversicherung informiert sind. Die Meldung an die Versicherung macht
+der Verein selbst (z. B. mit dem Text, den die App zusammenstellt); die App sendet nichts an Versicherungen. Die Angaben
+sind Gesundheitsdaten: Sie sehen nur das Trainerteam mit dem Recht „Gesundheitsdaten“ und du selbst (unter „Ich“), und
+sie werden 36 Monate nach dem Unfall automatisch gelöscht.
+
+**Eltern-Zugang (4.50, 4.51):** Eltern minderjähriger Spieler können sich mit eigenem Konto mit ihrem Kind verknüpfen.
+Das Trainerteam mit dem Recht „Kader“ erstellt dafür je Kind einen Code (14 Tage gültig, für höchstens zwei Elternteile,
+bei uns nur als Hash gespeichert, nach zehn falschen Versuchen je Stunde gesperrt) und bestätigt jede Anfrage – erst
+danach sehen Eltern etwas. Eltern erhalten vom Server nur ein Paket für ihr eigenes Kind: Team und Trainingszeiten (ohne
+Beitrittscodes), Training, Spiele, Termine und Pausen von zwei Wochen zurück bis 60 Tage voraus, die Abwesenheiten des
+Kindes ohne Rückkehrstufe und Notiz (Krankheit und Verletzung nur, wenn sie diese selbst eingetragen haben – sonst nur
+„abwesend“), veröffentlichte Nominierungen mit Treffpunkt ohne Kaderliste, die Foto-Erlaubnis, die eigenen
+Einwilligungen und die Elterninfos der letzten 120 Tage. Auf die Tabellen der App haben Eltern keinen direkten Zugriff;
+Belastung, Schlaf, Gesundheitsdetails, Tests, Bewertungen, Notizen, Chats und Daten anderer Kinder erreichen sie nicht.
+Eltern können ihr Kind abmelden (Urlaub, Schule, Sonstiges; „krank“ unter 16 mit ihrer eigenen Einwilligung in
+Gesundheitsangaben, ab 16 nur, wenn das Kind selbst eingewilligt hat; höchstens 7 Tage rückwirkend, bis zu 90 Tage),
+eigene Abmeldungen zurücknehmen, bei Nominierungen zu- oder absagen (das Trainerteam sieht „von Eltern“) und für
+Kinder unter 16 die Einwilligungen in die Nutzung und in Gesundheitsangaben geben oder widerrufen. Das Kind sieht unter
+„Ich“, wer verknüpft ist. Der Zugang gilt nur, solange das Kind minderjährig ist; 30 Tage nach dem 18. Geburtstag wird
+die Verknüpfung gelöscht, außer das volljährige Kind verlängert sie – es kann Eltern auch selbst entfernen. Wird eine
+Verknüpfung gelöst, enden die Einwilligungen dieses Elternteils für das Kind (der Widerruf bleibt mit Zeitpunkt als
+Nachweis). Ist das Modul im Team ausgeschaltet, liefert der Server Eltern nichts und Codes gelten nicht. Die
+Elterninfo sehen alle bestätigten Eltern des Teams; das Trainerteam sieht, wer sie gelesen bzw. bestätigt hat.
+
+> **Prüfhinweis – Eltern-Zugang:**
+> 1. Ob die Bestätigung durch das Trainerteam (das die Familie kennt) zusammen mit dem eigenen Elternkonto als
+>    „angemessene Anstrengung“ zur Prüfung der Einwilligung nach Art. 8 Abs. 2 DSGVO genügt, rechtlich prüfen.
+> 2. Gemeinsames Sorgerecht (§ 1629 BGB): Die App lässt einen Elternteil allein einwilligen und weist auf das
+>    Einvernehmen hin – klären, ob das für Einwilligungen und die Foto-Erlaubnis ausreicht oder beide Elternteile
+>    zustimmen müssen.
+> 3. Rechtsgrundlage für das Paket an die Eltern (Daten des Kindes) prüfen: hier Art. 6 Abs. 1 lit. f DSGVO
+>    (Organisation, elterliche Sorge), ab 18 nur mit Verlängerung durch das Kind (Art. 6 Abs. 1 lit. a DSGVO).
+> 4. Für 16- und 17-Jährige: ob Eltern ohne Wissen des Kindes Termine und Abwesenheiten sehen dürfen bzw. ob das Kind
+>    widersprechen können soll (derzeit: Transparenz unter „Ich“, Widerspruch über das Trainerteam).
 
 **Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
 geschafft haben, sowie die gemeinsame Summe – nicht deine Werte. Nur wenn das Trainerteam die Bestenliste einschaltet,
@@ -292,12 +490,14 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung, Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen) | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen, Größen und Bestelllisten, Kader-Nominierung, Fahrgemeinschaften, Karten und Sperren, Geburtstage, Foto-Erlaubnis | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42, 4.44–4.48 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
 | Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests, Angaben zum Schmerz (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26, 4.27 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
 | Übernahme der Belastung beim Hochziehen oder Wechsel innerhalb des Vereins (Gesundheitsdaten) | 4.36 | wie die Belastungssteuerung: ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO (gleicher Zweck; nur mit Recht „Gesundheitsdaten“ in beiden Teams) |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
 | Push-Erinnerungen und Team-Mitteilungen | 4.14 | Art. 6 Abs. 1 lit. b DSGVO; Zugriff auf das Endgerät nach § 25 Abs. 2 Nr. 2 TDDDG (vom Nutzer ausdrücklich gewünschter Dienst) nach Freigabe in den Systemeinstellungen |
 | Nachweis von Einwilligungen | 4.13 | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 DSGVO |
+| Notfallkontakte: im Notfall jemanden erreichen | 4.43 (Kontakt) | Art. 6 Abs. 1 lit. b DSGVO für Spieler mit eigenem Konto (sichere Teilnahme am Training und an Spielen); für die Kontaktperson und Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an schneller Hilfe; bei Minderjährigen Aufsichtspflicht); im akuten Notfall auch Art. 6 Abs. 1 lit. d DSGVO (lebenswichtige Interessen) |
+| Hinweise für den Notfall (Gesundheitsdaten) | 4.43 (Hinweise) | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO (dieselbe Einwilligung wie für die Belastungssteuerung); im akuten Notfall, wenn du nicht einwilligen kannst, Art. 9 Abs. 2 lit. c DSGVO |
 | Kinderschutz und Schutz vor Missbrauch im Chat (Mitlesen in Jugendteams, Meldungen mit Kopie, Begrenzung auf 30 Nachrichten pro Minute) | 4.34 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Spieler am Schutz von Kindern und Jugendlichen; § 72a SGB VIII, Kinderschutzkonzepte der Verbände) |
 | Kaderplanung und Scouting: Planung der nächsten Saison, Aufrücker aus dem Verein, Beobachtung von Spielern anderer Teams und Vereine | 4.37 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins an einer vorausschauenden Kaderplanung und Talentsichtung; Abwägung siehe unten) |
 | Vertraulichkeit des Matchplans: Wasserzeichen, Bildschirmschutz und Zugriffsprotokoll | 4.35 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Mannschaft, die Spielvorbereitung vertraulich zu halten; das Protokoll enthält nur Zeitpunkt, Plattform und erkannte Screenshots und wird nach 6 Monaten gelöscht) |
@@ -308,6 +508,11 @@ Standort** (keine GPS- oder Ortungsdaten).
 | App-Updates laden | 4.40 | Art. 6 Abs. 1 lit. b DSGVO; § 25 Abs. 2 Nr. 2 TDDDG (für eine fehlerfreie und sichere App unbedingt erforderlich) |
 | Beantwortung von Anfragen | 4.17 | Art. 6 Abs. 1 lit. b DSGVO, sonst Art. 6 Abs. 1 lit. f DSGVO |
 | [Vertragsabwicklung und Rechnungsstellung mit Vereinen] | [Rechnungsdaten] | [Art. 6 Abs. 1 lit. b und lit. c DSGVO i. V. m. HGB/AO] |
+| Unfallmeldung für die Sportversicherung (Gesundheitsdaten) | 4.49 | Art. 9 Abs. 2 lit. f DSGVO (Geltendmachung von Ansprüchen des verletzten Spielers aus der Sportversicherung) i. V. m. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und des Spielers an einer vollständigen, zeitnahen Meldung) – [rechtlich prüfen] |
+| Eltern-Zugang: Eltern minderjähriger Spieler in die Organisation einbinden (Termine, Abmeldungen, Zu- und Absagen, Elterninfo) | 4.50, 4.51; dazu die Daten des Kindes, die Eltern sehen (4.3, 4.4, 4.6 ohne Gesundheitsangaben, 4.45, 4.48) | für Eltern als Nutzer Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag); für die Daten des Kindes Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Eltern an der Organisation des Trainings- und Spielbetriebs Minderjähriger und an der Ausübung der elterlichen Sorge, §§ 1626, 1631 BGB; Abwägung siehe unten); nach dem 18. Geburtstag nur, wenn das Kind den Zugang verlängert (Art. 6 Abs. 1 lit. a DSGVO) – [rechtlich prüfen] |
+| Abmeldung „krank“ durch Eltern (Gesundheitsdaten) | 4.6 (krank), 4.50 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO – unter 16 die des Elternteils, ab 16 die des Kindes selbst |
+| Geprüfte Einwilligung der Eltern für Kinder unter 16 und ihr Nachweis | 4.13, 4.50 | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 und Art. 8 Abs. 2 DSGVO |
+| Schutz vor dem Ausprobieren von Eltern-Codes (falsche Versuche, höchstens 10 je Stunde) | 4.50 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Sicherheit; nach einem Tag gelöscht) |
 | Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen | je nach Fall | Art. 6 Abs. 1 lit. f DSGVO, bei Gesundheitsdaten Art. 9 Abs. 2 lit. f DSGVO |
 
 **Begründung für Teamorganisationsdaten (Art. 6 Abs. 1 lit. b und lit. f DSGVO):**
@@ -321,6 +526,15 @@ von Kindern – an der Vertraulichkeit ihrer Daten gegenüber. Wir tragen dem Re
 eigenen Teams diese Daten sieht, nichts veröffentlicht wird, es keine Werbung und kein Tracking gibt und
 Löschfristen gelten. Gesundheitsdaten verarbeiten wir **nicht** auf dieser Grundlage, sondern nur mit
 Einwilligung. Du kannst der Verarbeitung auf Grundlage berechtigter Interessen widersprechen (Abschnitt 20).
+
+**Begründung für den Eltern-Zugang (Art. 6 Abs. 1 lit. f DSGVO):**
+Eltern minderjähriger Spieler organisieren Training und Spiele mit – sie bringen ihr Kind hin, melden es ab und müssen
+wissen, wann und wo es spielt; zugleich tragen sie die elterliche Sorge. Dafür brauchen sie wenige Daten ihres eigenen
+Kindes. Dem steht das Interesse der Kinder – besonders älterer Jugendlicher – an Vertraulichkeit gegenüber. Wir tragen
+dem Rechnung durch: Zugang nur nach Bestätigung durch das Trainerteam und nur zum eigenen Kind, ein knappes Paket ohne
+Gesundheitsdetails (Krankheit und Verletzung nur als „abwesend“), Bewertungen, Notizen und Chats, keinen direkten
+Zugriff auf Tabellen, Transparenz für das Kind (es sieht unter „Ich“, wer verknüpft ist), Ende des Zugangs mit der
+Volljährigkeit (außer das Kind verlängert), Abschalten durch das Team und kurze Löschfristen.
 
 **Begründung für Kaderplanung und Scouting (Art. 6 Abs. 1 lit. f DSGVO):**
 Mannschaften planen ihren Kader für die nächste Saison und beobachten dafür auch Spieler anderer Teams und Vereine –
@@ -374,6 +588,10 @@ Teilnahme an Training und Spielen darf nicht davon abhängen.
 **Auch Einträge des Trainerteams:** Die Einwilligung umfasst auch Gesundheitsdaten, die das Trainerteam für dich
 einträgt (z. B. Belastung einer Einheit, Abwesenheit wegen Verletzung, Körpergröße).
 
+**Hinweise für den Notfall (4.43):** Allergien, Vorerkrankungen oder ein Notfallmedikament, die du beim Notfallkontakt
+einträgst, sind ebenfalls Gesundheitsdaten. Sie sind freiwillig, sehen nur du und das Trainerteam mit dem Recht
+„Gesundheitsdaten“ und werden bei einem Widerruf der Einwilligung wie die übrigen Gesundheitsdaten gelöscht.
+
 **Kein Medizinprodukt:** Trainerbank ist ein Werkzeug zur Trainingsorganisation. Die App stellt keine Diagnosen und
 gibt keine Therapieempfehlungen. Ampel, Kennzahlen und Tipps beruhen auf allgemeinen sportwissenschaftlichen
 Erkenntnissen und ersetzen keine ärztliche oder physiotherapeutische Beurteilung. Bei Schmerzen, Krankheit oder
@@ -403,9 +621,17 @@ bleibt unberührt.
   angegeben wird. Wir speichern die Einwilligung mit der E-Mail-Adresse des Erziehungsberechtigten.
   [Wir senden an diese Adresse eine Bestätigung mit einem Link, über den die Einwilligung bestätigt oder abgelehnt
   werden kann. Bis zur Bestätigung werden keine Gesundheitsdaten verarbeitet.]
-- **Mit 16 Jahren:** [Wir bitten dich nach deinem 16. Geburtstag, deine Einwilligungen selbst zu bestätigen.]
+- **Geprüfte Einwilligung über den Eltern-Zugang:** Eltern mit eigenem Konto, die das Trainerteam bestätigt hat,
+  geben die Einwilligungen für Kinder unter 16 direkt in der App (4.50). Diese Einwilligung gilt als die der Eltern;
+  widerrufen Eltern sie oder lösen sie die Verknüpfung, endet sie sofort.
+- **Mit 16 Jahren:** Du entscheidest selbst über deine Einwilligungen; Einwilligungen deiner Eltern zählen dann nicht
+  mehr. [Wir bitten dich nach deinem 16. Geburtstag, deine Einwilligungen selbst zu bestätigen.]
 - **Rechte der Eltern:** Erziehungsberechtigte können die Rechte ihres Kindes (Abschnitt 20) für dieses ausüben und
-  die Einwilligung jederzeit widerrufen – per E-Mail an [E-Mail] [oder über den Link in der Bestätigungs-E-Mail].
+  die Einwilligung jederzeit widerrufen – im Eltern-Zugang der App oder per E-Mail an [E-Mail] [oder über den Link in
+  der Bestätigungs-E-Mail].
+- **Eltern-Zugang:** Was Eltern sehen und tun können, steht unter 4.50 und in „Kurz erklärt – für Eltern“. Der Zugang
+  endet 30 Tage nach dem 18. Geburtstag, außer du verlängerst ihn unter „Ich“ → „Eltern“; dort kannst du volljährig
+  Eltern auch entfernen.
 - **Spieler ohne Konto:** Für Spieler, die das Trainerteam anlegt, ist das Team bzw. der Verein dafür zuständig, die
   Spieler und ihre Eltern zu informieren und erforderliche Einwilligungen einzuholen.
 - **Kein Kontakt durch Fremde:** Spieler sehen keine Daten anderer Spieler. Im Chat schreiben nur Mitglieder des
@@ -415,7 +641,8 @@ bleibt unberührt.
   Vertrauensperson bzw. die Kinderschutzbeauftragten des Vereins wenden.
 
 > **Prüfhinweis:** Die Bestätigungs-E-Mail an die Eltern („angemessene Anstrengungen“ nach Art. 8 Abs. 2 DSGVO) ist
-> laut Datenmodell noch nicht umgesetzt; derzeit wird nur die E-Mail-Adresse gespeichert. Ebenso die erneute
+> laut Datenmodell noch nicht umgesetzt; derzeit wird beim Beitritt nur die E-Mail-Adresse gespeichert. Geprüft
+> eingewilligt wird über den Eltern-Zugang (bestätigtes Elternkonto, 4.50) – ob das genügt, siehe Prüfhinweis bei 4.50. Ebenso die erneute
 > Bestätigung mit 16. Sätze in eckigen Klammern nur übernehmen, wenn umgesetzt. Mindestalter für eigene Konten
 > festlegen; es beeinflusst auch die Zielgruppen-Angaben im Google Play Store (Familienrichtlinie, siehe
 > `docs/STORE.md`).
@@ -445,6 +672,24 @@ bleibt unberührt.
 | deine Einwilligungen | ja | ja (als Nachweis) | nein | nein |
 | deine Selbsteinschätzung und eigenen Ziele | ja | mit Recht „Notizen & Bewertungen“ | nein | nein |
 | Einschätzungen und Gesprächsprotokolle des Trainerteams | wenn freigegeben (nie die interne Notiz) | mit Recht „Notizen & Bewertungen“ | nein | nein |
+| dein Entwicklungsprogramm | wenn freigegeben | mit Recht „Notizen & Bewertungen“ | nein | nein |
+| deine Selbstanalyse | ja | mit Recht „Notizen & Bewertungen“ | nein | nein |
+| Stärken, die du in der Stärken-Runde schenkst | ja | mit Recht „Notizen & Bewertungen“ | nein – der Mitspieler sieht nur, was das Trainerteam in sein Programm übernimmt, nie von wem | nein |
+| Stärken, die dir geschenkt werden | nur, was das Trainerteam in dein Programm übernimmt (ohne Namen und Anzahl); im Datenexport die Anzahl je Stärke | mit Recht „Notizen & Bewertungen“ (mit Namen) | nein | nein |
+| deine Antworten in Umfragen mit Namen | ja | mit Recht „Nachrichten“ (wer was gewählt hat, wer fehlt, Freitexte mit Namen) | nur bei „Ergebnisse für alle“: die Angesprochenen nach ihrer Antwort bzw. nach dem Ende (Auswahl mit Namen, Skala zusammengefasst, keine Freitexte) | nein |
+| deine Antworten in anonymen Umfragen | ja | mit Recht „Nachrichten“ nur zusammengefasst ab drei Antworten (Freitexte ohne Namen) – nie, wer was geantwortet oder ob du mitgemacht hast | nur zusammengefasst bei „Ergebnisse für alle“ (ohne Freitexte) | nein |
+| dein Notfallkontakt (Name, Beziehung, Telefonnummer) | ja | mit Recht „Kader“ (ändern) oder „Gesundheitsdaten“ (ansehen) | nein | nein |
+| deine Hinweise für den Notfall | ja | mit Recht „Gesundheitsdaten“ | nein | nein |
+| deine Größen und der Name für die Beflockung | ja | mit Recht „Kader“ (auch als Bestellliste zum Weitergeben, z. B. an einen Ausrüster) | nein | nein |
+| deine Nominierung für ein Spiel | nach dem Veröffentlichen | ja (ändern mit Recht „Planung“) | wenn freigegeben: die anderen Nominierten (Vorname, Initial, Nummer, Position) | nein |
+| deine Zu- oder Absage und ihr Grund | ja | ja | nein | nein |
+| deine Karten und Sperren | Karten, wenn Spieldaten für Spieler freigegeben sind; deine Sperren und die Gelb-Warnung auf „Heute“ (aus den Karten berechnete nur mit freigegebenen Spieldaten); eingetragene Sperren im Datenexport | ja (eintragen mit Recht „Leistung & Statistik“) | nein | nein |
+| deine Foto-Erlaubnis | ja, unter „Ich“ (ab 18 selbst zustimmen, „Nein“ immer) | ja (eintragen mit Recht „Kader“) | nein | nein |
+| deine Unfallmeldungen | ja, unter „Ich“ (nur lesen) | nur mit Recht „Gesundheitsdaten“ | nein | nein |
+| was deine verknüpften Eltern sehen: Termine der nächsten Wochen, deine Abmeldungen und Abwesenheiten (Krankheit und Verletzung nur als „abwesend“, ohne Stufe und Notiz), deine Nominierung mit Treffpunkt und deine Zu- oder Absage, deine Foto-Erlaubnis | ja (unter „Ich“ siehst du, wer verknüpft ist) | ja (Eltern bestätigen mit Recht „Kader“) | nein | deine Eltern, nachdem das Trainerteam sie bestätigt hat – solange du minderjährig bist, danach nur, wenn du verlängerst |
+| Daten deiner Eltern (Name, Beziehung, Lesebestätigungen der Elterninfo, ihre Einwilligungen für dich) | Name und Beziehung | mit Recht „Kader“ | nein | nein |
+| Elterninfo | nein | ja (schreiben mit Recht „Kader“, mit Lese- und Bestätigungsstand) | nein | bestätigte Eltern des Teams |
+| deine Fahrt (wer fährt, Plätze, Abfahrt, Hinweis), dass du mitfährst oder eine Mitfahrgelegenheit suchst | ja | ja (mit vollem Namen) | ja – mit Vorname und Initial | nein |
 | deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
 | deine Chat-Nachrichten | ja | in Chats, in denen das Trainerteam Mitglied ist; in Jugendteams auch Einzelchats Trainer–Spieler (Recht „Nachrichten“) | Mitglieder des jeweiligen Chats | nein |
@@ -667,6 +912,18 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Aufgaben, Dienste und Strafen | bei Löschung durch das Trainerteam, Löschung des Spielerprofils oder des Teams; automatisch 12 Monate nach dem Datum: vergangene Dienste, erledigte oder erlassene Strafen und erledigte Aufgaben (offene Strafen bleiben, bis das Trainerteam entscheidet) |
 | Ablauf des Trainingstags und Skizzen-Fotos | bei Löschung des Blocks durch das Trainerteam oder Löschung des Teams |
 | Spielerentwicklung (Einschätzungen, Ziele, Fortschritt, Gespräche, interne Notizen) | bei Löschung durch das Trainerteam (eigene Selbsteinschätzungen und Ziele auch durch dich), Löschung des Spielerprofils oder des Teams |
+| Entwicklungsprogramm, Selbstanalyse | bei Löschung durch das Trainerteam (deine Selbstanalyse auch durch dich), Löschung des Spielerprofils oder des Teams |
+| Stärken-Runde | automatisch **12 Monate** nach dem Eintrag; sofort beim Zurücknehmen, bei Löschung durch das Trainerteam, des Spielerprofils (des Schenkenden oder des Empfängers) oder des Teams |
+| Umfragen und Antworten | automatisch **12 Monate** nach dem Ende der Umfrage (ohne Ende: nach dem Start); deine Antwort sofort beim Zurückziehen (solange die Umfrage läuft); sonst bei Löschung der Umfrage, deines Spielerprofils oder des Teams |
+| Notfallkontakte und Hinweise für den Notfall | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Hinweise auch beim Widerruf der Einwilligung in Gesundheitsdaten |
+| Größen | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Exportierte Bestelllisten liegen beim Trainerteam bzw. beim Empfänger der Bestellung – dort gelten deren Löschfristen |
+| Kader-Nominierungen mit Zu- und Absagen | automatisch **12 Monate** nach dem Spiel; sonst mit dem Kader, dem Spiel, deinem Spielerprofil oder dem Team |
+| Eingetragene Sperren | automatisch **24 Monate** nach Beginn bzw. Ende; sonst mit deinem Spielerprofil oder dem Team (Karten mit den Spieldaten) |
+| Foto-Erlaubnis | sofort beim Ändern (es gilt nur die aktuelle Erklärung); sonst mit deinem Spielerprofil oder dem Team. Das unterschriebene Formular bewahrt der Verein auf |
+| Unfallmeldungen | automatisch **36 Monate** nach dem Unfall; sofort bei Löschung durch das Trainerteam; sonst mit deinem Spielerprofil oder dem Team |
+| Eltern-Zugang | Einladungscodes mit Ablauf (14 Tage) bzw. sofort bei einem neuen Code; falsche Versuche nach **einem Tag**; unbestätigte Anfragen nach **30 Tagen**; Verknüpfungen sofort beim Lösen (durch Eltern, Trainerteam oder das volljährige Kind) bzw. Ablehnen, **30 Tage nach dem 18. Geburtstag** (außer das Kind hat verlängert), mit dem Konto der Eltern, dem Spielerprofil oder dem Team. Die Einwilligungen der Eltern enden mit der Verknüpfung; der Nachweis wie bei den Einwilligungsnachweisen |
+| Elterninfo und Lesebestätigungen | automatisch **12 Monate** nach dem Schreiben; sofort bei Löschung durch das Trainerteam oder mit dem Team; Lesebestätigungen auch mit dem Konto der Eltern |
+| Fahrgemeinschaften | „sucht eine Mitfahrgelegenheit“ automatisch am **Tag nach** dem Spiel bzw. Termin; Fahrten mit Mitfahrern automatisch **30 Tage** danach; sofort beim Austragen bzw. Löschen der Fahrt; sonst mit dem Spiel, dem Termin, deinem Spielerprofil oder dem Team |
 | Wochenchallenge | mit der Challenge, dem Spielerprofil oder dem Team |
 | Anfragen für Individualtraining | automatisch 12 Monate nach Abschluss (zugesagt, abgesagt, zurückgezogen); offene mit dem Spielerprofil bzw. Team |
 | Chat-Nachrichten und Reaktionen | automatisch **24 Monate** nach dem Senden; sofort bei Löschung deines Kontos; gelöschte Nachrichten verlieren ihren Text sofort; Einzel- und eigene Chats auch, wenn alle Mitglieder sie verlassen |
@@ -734,9 +991,11 @@ Kein System ist vollkommen sicher. Schütze dein Konto mit einem starken Passwor
 
 ## 19. Musst du Daten angeben?
 
-Für ein Konto brauchst du eine E-Mail-Adresse und ein Passwort; für den Beitritt als Spieler Vor- und Nachnamen und
-Geburtsdatum (für die Zuordnung im Team und für altersgerechte Erholungsempfehlungen). Ohne diese Angaben kannst du die
-App nicht nutzen. Alle Gesundheitsdaten, Foto, Gewicht, Push-Mitteilungen und der KI-Coach sind freiwillig.
+Für ein Konto brauchst du eine E-Mail-Adresse und ein Passwort; für den Beitritt als Spieler Vor- und Nachnamen,
+Geburtsdatum (für die Zuordnung im Team und für altersgerechte Erholungsempfehlungen) und einen Notfallkontakt (damit
+dein Trainerteam im Notfall jemanden erreicht). Ohne diese Angaben kannst du die App nicht nutzen. Alle
+Gesundheitsdaten (auch die Hinweise für den Notfall), Foto, Gewicht, Größen, Push-Mitteilungen und der KI-Coach sind
+freiwillig.
 
 ## 20. Deine Rechte
 
@@ -773,6 +1032,10 @@ Für alle anderen Anliegen schreib an [E-Mail]. Damit wir keine Daten an Unbefug
 E-Mail-Adresse deines Kontos; gegebenenfalls fragen wir nach. Wir antworten innerhalb eines Monats.
 
 Daten, die das Trainerteam über dich erfasst hat, kannst du ebenfalls über uns berichtigen oder löschen lassen.
+
+**Eltern im Eltern-Zugang** laden ihre eigenen Daten (Verknüpfungen, Lesebestätigungen, Einwilligungen) im Datenexport
+herunter, widerrufen Einwilligungen und lösen Verknüpfungen direkt in der App und löschen ihr Konto unter „Konto,
+Einwilligungen & Datenschutz“. Die Rechte ihres Kindes üben sie wie oben beschrieben aus.
 
 **Wenn ein Trainerteam dich beobachtet hat (Scouting, 4.37)**, kannst du – bei Minderjährigen deine Eltern – Auskunft,
 Berichtigung und Löschung verlangen und der Verarbeitung widersprechen: beim Trainerteam bzw. Verein, der dich
@@ -836,7 +1099,18 @@ otherwise after 24 months without activity); feedback you send from the app (kin
 opened last without IDs, app version, device model and OS, your account and team – readable by you and the operators
 only; completed feedback without a screenshot is deleted after 12 months); crash reports via Sentry only if you switch
 them on (error and code location, app version, device, pages opened last – no names, e-mail or IP addresses, no health
-data, no screenshots; stored in the EU); update checks with Expo (IP address, platform, app version, channel); push
+data, no screenshots; stored in the EU); update checks with Expo (IP address, platform, app version, channel); polls and surveys
+(named or anonymous – anonymous results only from three answers, never who answered what; free-text answers only for
+the coaching staff; deleted 12 months after the end); emergency contacts (one or two people with name, relationship
+and phone number – required when joining as a player; visible to you and staff with the squad or health-data
+permission, also offline – plus optional emergency notes such as allergies or an inhaler, which are health data and
+visible only to staff with the health-data permission; people named as a contact are informed under Art. 14 GDPR in
+the German section 4); clothing and shoe sizes with a name for printing (optional; visible to you and staff with the
+squad permission, who can export an order list – number, name, print name, sizes – e.g. for a kit supplier; the app
+itself sends it to no one); match squad nominations (squad or standby, meeting point and note; you see your nomination
+once published and, if the staff allows it, the other nominated players with first name and initial; players who aren't
+nominated see nothing; your yes/no with an optional reason that only the staff sees; deleted 12 months after the
+match); push
 tokens; AI usage counters; technical server logs. Load, wellness,
 complaints and body regions, injury, illness, height and weight, rehab/load-build/growth group membership and test
 results are treated as **health data** (Art. 9 GDPR).
@@ -847,7 +1121,9 @@ the AI coach – explicit consent (Art. 9(2)(a), Art. 6(1)(a)); consent records 
 Art. 7(1)); squad planning and scouting – legitimate interests in planning the squad and identifying talent
 (Art. 6(1)(f)); security and abuse prevention – legitimate interests (Art. 6(1)(f)); device storage – § 25(2) no. 2 TDDDG;
 feedback – legitimate interests in a working app (Art. 6(1)(f)); crash reports – consent (Art. 6(1)(a), § 25(1) TDDDG);
-app updates – contract (Art. 6(1)(b)), § 25(2) no. 2 TDDDG.
+app updates – contract (Art. 6(1)(b)), § 25(2) no. 2 TDDDG; emergency contacts – contract for players with an account,
+otherwise legitimate interests in getting help quickly (Art. 6(1)(b)/(f)), in an acute emergency vital interests
+(Art. 6(1)(d)); emergency notes – explicit consent (Art. 9(2)(a)), in an acute emergency vital interests (Art. 9(2)(c)).
 
 **Who sees what:** players see only their own data; the coaching staff of the team (owner, coach, physio) see the data
 of their team's players; team-mates never see each other's data. In the chat, members of a chat see its messages
@@ -863,6 +1139,19 @@ row-level security.
 
 **Minors:** own accounts from [minimum age]; under 16, a parent or guardian must consent (we store their e-mail
 address). Younger players can be managed by the coaching staff without an account.
+
+**Parent access:** parents of minor players can link their own account to their child with a code from the coaching
+staff (valid 14 days, max. two parents, stored only as a hash); they see nothing until the staff confirms them. They
+get a minimal package for their own child only – team and training times, the schedule from two weeks back to 60 days
+ahead, the child's absences (illness and injury only as "absent" unless they entered them), published nominations with
+meeting point (no squad list), photo consent, their own consents and parent updates of the last 120 days – never load,
+health details, tests, ratings, notes, chats or other children's data. They can report absences ("ill" under 16 with
+their own consent to health data, from 16 only with the child's consent), reply to nominations (marked as "by
+parents") and give or withdraw consent for children under 16 (verified parental consent, Art. 8 GDPR). The child sees
+who is linked; access ends 30 days after the 18th birthday unless the child extends it. Unlinking ends that parent's
+consents. Legal bases: contract for parents as users (Art. 6(1)(b)); legitimate interests for the child's data shown
+to parents (Art. 6(1)(f)); explicit consent for "ill" (Art. 9(2)(a)). Retention: codes when they expire, wrong attempts
+after one day, unconfirmed requests after 30 days, parent updates after 12 months.
 
 **Processors and transfers:** Supabase (database, authentication, storage, server functions; hosted in Frankfurt,
 Germany – AWS eu-central-1); Anthropic (Claude API, AI coach only with separate consent; USA); Expo (push

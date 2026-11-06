@@ -1,0 +1,41 @@
+// Texte: Karten und Sperren – de
+import type { Dict } from "./types";
+
+export const de_cards: Dict = {
+  m_karten: "Karten & Sperren",
+  md_karten: "Gelbe, Gelb-Rote und Rote Karten im Spielbericht – daraus Sperren nach den Regeln eures Verbands. Gesperrte Spieler sind bei der Kader-Nominierung markiert, der Spieltag-Check warnt.",
+  kr_title: "Karten & Sperren", kr_menuSub: "Gesperrte Spieler, Gelb-Warnung, Karten der Saison", nvb_karten: "Karten",
+  kr_info: "Karten tragt ihr im Spielbericht ein (oder hier über „Karte eintragen“). Daraus entstehen Sperren nach euren Regeln: Gelbsperre nach einer bestimmten Zahl Gelber Karten in Meisterschaftsspielen einer Saison (gilt fürs nächste Meisterschaftsspiel), Sperre nach Gelb-Rot und nach Rot (für die nächsten Pflichtspiele – Meisterschaft und Pokal; Freundschaftsspiele zählen nie). Die Regeln unterscheiden sich je Verband und Altersklasse – die Voreinstellung folgt WDFV/FVN, bitte prüft sie bei eurem Verband. Urteile des Sportgerichts tragt ihr bei der Sperre ein. Kein Rechtsrat.",
+  kr_y: "Gelb", kr_yr: "Gelb-Rot", kr_r: "Rot", kr_none: "Keine",
+  kr_card: "Karte", kr_cardSaved: "Karte gespeichert", kr_addCard: "Karte eintragen", kr_match: "Spiel", kr_player: "Spieler", kr_pick: "wählen",
+  kr_kind_yellow: "Gelbsperre", kr_kind_yellow_red: "Gelb-Rot", kr_kind_red: "Rot", kr_kind_other: "Sonstige Sperre",
+  kr_from: "{k} gegen {g} ({d})", kr_since: "{k} seit {d}",
+  kr_pending: "bis zum Urteil", kr_until: "bis {d}", kr_left1: "noch 1 Spiel", kr_leftN: "noch {n} Spiele", kr_lifted: "aufgehoben", kr_served: "verbüßt", kr_ended: "abgelaufen",
+  kr_next: "Nächstes Spiel: {w} {g}", kr_noNext: "Noch kein Spiel im Kalender",
+  kr_active: "Gesperrt ({n})", kr_activeNone: "Niemand ist gesperrt.",
+  kr_warn: "Gelb-Warnung", kr_warnLine: "{n} Gelbe – bei der nächsten Gelben in einem Meisterschaftsspiel gesperrt",
+  kr_season: "Karten dieser Saison", kr_seasonNone: "In dieser Saison noch keine Karten.",
+  kr_history: "Erledigte Sperren ({n})",
+  kr_rules: "Regeln", kr_rulesDefault: "Voreinstellung für {c}", kr_rulesCustom: "Eigene Einstellung",
+  kr_ruleYellow: "Gelbsperre nach {n} Gelben (Meisterschaft): {g}", kr_ruleYellowOff: "Keine Gelbsperre",
+  kr_ruleYr: "Nach Gelb-Rot: {g}", kr_ruleYrOff: "Nach Gelb-Rot: keine Sperre", kr_ruleRed: "Nach Rot: {g}", kr_ruleRedPending: "Nach Rot: gesperrt bis zum Urteil",
+  kr_games1: "1 Spiel", kr_gamesN: "{n} Spiele",
+  kr_rulesHint: "Die Regeln unterscheiden sich je Verband und Altersklasse. Voreinstellung: Senioren nach WDFV/FVN (Gelbsperre nach 5 Gelben, Gelb-Rot 1 Spiel, Rot 2 Spiele); Jugend: Gelb-Rot ohne Folgesperre, Rot bis zum Urteil. Bitte bei eurem Verband prüfen.",
+  kr_rulesEdit: "Regeln ändern", kr_rulesReset: "Voreinstellung", kr_rulesSaved: "Regeln gespeichert",
+  kr_rYellowLimit: "Gelbsperre nach … Gelben (Meisterschaft)", kr_off: "aus", kr_rYellowGames: "Gelbsperre: Spiele", kr_rYrGames: "Nach Gelb-Rot", kr_rRedGames: "Nach Rot", kr_noSusp: "keine Sperre",
+  kr_add: "Sperre eintragen", kr_edit: "Ändern", kr_verdict: "Urteil eintragen", kr_lift: "Aufheben", kr_backToRule: "Wie die Regel",
+  kr_sheetNew: "Sperre eintragen", kr_sheetEdit: "Sperre", kr_reason: "Grund",
+  kr_mode: "Dauer", kr_modeGames: "Spiele", kr_modeUntil: "bis Datum", kr_modePending: "bis zum Urteil",
+  kr_games: "Anzahl Spiele", kr_untilL: "Gesperrt bis einschließlich", kr_startL: "Gilt ab",
+  kr_scope: "Gilt für", kr_scopeAll: "alle Pflichtspiele", kr_scopeLeague: "nur Meisterschaft",
+  kr_note: "Hinweis (freiwillig)", kr_notePh: "z. B. Urteil Sportgericht vom 12.11.",
+  kr_saved: "Sperre gespeichert", kr_deleted: "Sperre gelöscht", kr_liftedT: "Sperre aufgehoben", kr_ruleT: "Wieder wie die Regel",
+  kr_errPlayer: "Wähle den Spieler.", kr_errUntil: "Wähle das Datum.",
+  kr_auto: "Nach eurer Regel berechnet", kr_delete: "Löschen", kr_modOff: "Karten & Sperren sind im Baukasten ausgeschaltet.",
+  kr_fromRule: "Nach eurer Regel gesperrt: {r}. Speichern ersetzt die Regel für diese Karte (z. B. mit dem Urteil); „Aufheben“ hebt die Sperre auf.",
+  // Spieler: Hinweis auf „Heute“
+  kr_youSusp: "Du bist gesperrt", kr_youNext: "Betrifft das nächste Spiel: {w} {g}", kr_youWarn: "Du hast {n} Gelbe – bei der nächsten Gelben in einem Meisterschaftsspiel bist du gesperrt.",
+  // Nominierung, Spieltag-Check, Spielbericht
+  nm_suspended: "Gesperrt: {r}", md_suspended: "Gesperrt: {n}", md_suspendedSquad: "Gesperrt, aber nominiert: {n}", md_suspendedPlan: "Gesperrt, aber in der Aufstellung: {n}",
+  sp_cardHint: "Gelb-Rot heißt: zweite Gelbe im selben Spiel – die erste zählt dann nicht für die Gelbsperre.",
+};

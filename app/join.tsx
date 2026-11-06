@@ -1,4 +1,4 @@
-// Spieler treten mit dem Team-Code bei: Code → Profil → Einwilligungen.
+// Spieler treten mit dem Team-Code bei: Code → Profil → Einwilligungen → Notfallkontakt (Pflicht).
 // Aus einem Einladungslink (trainerbank://join?code=…): Code vorausgefüllt und geprüft; ohne Anmeldung wird die
 // Einladung gemerkt und es geht nach Anmeldung bzw. Registrierung weiter (Start zeigt sie an).
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -7,21 +7,24 @@ import { teamLabel, POS } from "../src/core/classes";
 import { ageOn } from "../src/core/dates";
 import { cleanCode } from "../src/data/invite";
 import { useStore } from "../src/data/store";
+import { EmergencyFields, MedField, draftError, toDraft, type EmDraft } from "../src/ui/emergency";
 import { Splash } from "../src/ui/guard";
 import { Banner, Btn, Card, CardTitle, Check, ChoiceChips, Col, DateField, Field, Header, Info, Muted, NumField, Row, Screen, T } from "../src/ui/kit";
+import { useTheme } from "../src/ui/theme";
 
 export default function Join() {
-  const s = useStore(); const tr = s.tr; const { t } = tr; const router = useRouter();
+  const s = useStore(); const tr = s.tr; const { t } = tr; const router = useRouter(); const { c } = useTheme();
   const [step, setStep] = useState(0);
   const [code, setCode] = useState(""); const [teamName, setTeamName] = useState("");
   const [vn, setVn] = useState(""); const [nn, setNn] = useState(""); const [geb, setGeb] = useState<string | null>(null);
   const [pos, setPos] = useState("ZM"); const [nr, setNr] = useState<number | null>(null); const [kg, setKg] = useState<number | null>(null);
   const [cPrivacy, setCPrivacy] = useState(false); const [cHealth, setCHealth] = useState(false); const [cParent, setCParent] = useState(false); const [parentMail, setParentMail] = useState(""); const [cAi, setCAi] = useState(false);
+  const [em, setEm] = useState<EmDraft[]>(() => toDraft([])); const [med, setMed] = useState("");
   const [msg, setMsg] = useState(""); const [busy, setBusy] = useState(false);
   const under16 = geb ? ageOn(geb, new Date()) < 16 : false;
-  const check = async (c: string = code) => {
+  const check = async (cd: string = code) => {
     setBusy(true); setMsg("");
-    try { const r = await s.api.teamByCode(c); if (!r) { setMsg(t("err_invalid_code")); return; } setTeamName(teamLabel(r)); setStep(1); }
+    try { const r = await s.api.teamByCode(cd); if (!r) { setMsg(t("err_invalid_code")); return; } setTeamName(teamLabel(r)); setStep(1); }
     catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
   // Einladungslink bzw. gemerkte Einladung
@@ -34,25 +37,30 @@ export default function Join() {
     if (s.phase === "signedOut") { s.rememberInvite({ kind: "player", code: linkCode }); router.replace("/welcome"); return; }
     setCode(linkCode); check(linkCode);
   }, [linkCode, s.phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  const consentsOk = () => cPrivacy && cHealth && (!under16 || (cParent && /^\S+@\S+\.\S+$/.test(parentMail)));
   const go = async () => {
-    if (!cPrivacy || !cHealth || (under16 && (!cParent || !/^\S+@\S+\.\S+$/.test(parentMail)))) { setMsg(t("cs_need")); return; }
+    if (!consentsOk()) { setMsg(t("cs_need")); setStep(2); return; }
+    const r = draftError(tr.tf, em);
+    if ("error" in r) { setMsg(r.error); return; }
     setBusy(true); setMsg("");
     try {
       await s.giveConsent("privacy"); await s.giveConsent("health_data");
       if (under16) await s.giveConsent("parental", { parentEmail: parentMail.trim() });
       if (cAi) await s.giveConsent("ai");
-      await s.joinTeam(code, { vn: vn.trim(), nn: nn.trim(), geb: geb!, pos, nr, kg });
+      const j = await s.joinTeam(code, { vn: vn.trim(), nn: nn.trim(), geb: geb!, pos, nr, kg }, { contacts: r.contacts, med });
       s.rememberInvite(null);
-      s.toast(t("jn_done")); router.replace("/");
+      s.toast(t(j.saved ? "jn_done" : "jn_doneNoEm")); router.replace("/");
     } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
+  const err = msg ? <Banner color={c.crit} testID="jn-msg">{msg}</Banner> : null;
   if (s.phase === "loading") return <Splash />;
   return (
     <Screen testID={"join-" + step}>
-      <Header eyebrow={teamName || t("po_hi")} title={step === 0 ? t("po_q1") : step === 1 ? t("jn_profile") : t("jn_consent")} onBack={() => step === 0 ? router.back() : setStep(step - 1)} backLabel={t("btn_back")} />
+      <Header eyebrow={teamName || t("po_hi")} title={[t("po_q1"), t("jn_profile"), t("jn_consent"), t("jn_emergency")][step]} onBack={() => { setMsg(""); if (step === 0) router.back(); else setStep(step - 1); }} backLabel={t("btn_back")} />
       {step === 0 ? <Col gap={12} style={{ maxWidth: 480 }}>
         <Muted>{t("po_q1b")}</Muted>
         <Field testID="jn-code" label={t("po_code")} value={code} onChangeText={setCode} autoCapitalize="characters" placeholder="ABCD-EFGH" />
+        {err}
         <Btn testID="jn-check" kind="primary" label={t("jn_check")} onPress={() => check()} disabled={busy || !code.trim()} />
       </Col> : null}
       {step === 1 ? <Col gap={12} style={{ maxWidth: 560 }}>
@@ -69,7 +77,7 @@ export default function Join() {
           <NumField testID="jn-kg" label={t("po_kg")} value={kg} onChange={setKg} min={20} max={150} style={{ width: 200 }} />
         </Row>
         <Muted small>{t("po_kgHint")}</Muted>
-        {msg ? <Muted>{msg}</Muted> : null}
+        {err}
         <Btn testID="jn-next" kind="primary" label={t("ob_next")} onPress={() => { if (!vn.trim() || !nn.trim() || !geb) { setMsg(t("po_need")); return; } setMsg(""); setStep(2); }} />
       </Col> : null}
       {step === 2 ? <Col gap={12} style={{ maxWidth: 600 }}>
@@ -86,12 +94,25 @@ export default function Join() {
           <CardTitle title={t("cs_parent")} info={<Info title={t("cs_parent")} text={t("cs_parent_l")} />} />
           <Check testID="jn-c-parent" value={cParent} onChange={setCParent} label={t("cs_parent_s")} />
           <Field testID="jn-parentmail" label={t("cs_parentMail")} value={parentMail} onChangeText={setParentMail} keyboardType="email-address" autoCapitalize="none" />
+          <Muted small testID="jn-parent-access">{t("el_joinHint")}</Muted>
         </Card> : null}
         <Card>
           <CardTitle title={t("cs_ai")} info={<Info title={t("cs_ai")} text={t("cs_ai_l")} />} />
           <Check testID="jn-c-ai" value={cAi} onChange={setCAi} label={t("cs_ai_s")} />
         </Card>
-        {msg ? <Muted>{msg}</Muted> : null}
+        {err}
+        <Btn testID="jn-next2" kind="primary" label={t("ob_next")} onPress={() => { if (!consentsOk()) { setMsg(t("cs_need")); return; } setMsg(""); setStep(3); }} />
+      </Col> : null}
+      {step === 3 ? <Col gap={12} style={{ maxWidth: 560 }}>
+        <Muted>{t("jn_emergencyD")}</Muted>
+        <Card>
+          <EmergencyFields testID="jn-nf" value={em} onChange={v => { setEm(v); setMsg(""); }} />
+          <Muted small>{t("nf_tell")}</Muted>
+        </Card>
+        <Card>
+          <MedField testID="jn-nf-med" value={med} onChange={setMed} />
+        </Card>
+        {err}
         <Btn testID="jn-go" kind="primary" label={t("jn_go")} onPress={go} disabled={busy} />
       </Col> : null}
     </Screen>

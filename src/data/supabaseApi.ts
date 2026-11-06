@@ -10,15 +10,26 @@ import { cleanPainMap } from "../core/pain";
 import { cleanUnit } from "../core/units";
 import { cleanContent, fmtOf } from "../core/matchplan";
 import { cleanPlanContent } from "../core/scout";
+import { cleanGift, cleanProgram, cleanSelf, peerOpen, programContent } from "../core/program";
+import { cleanPoll } from "../core/polls";
+import { cleanContacts, cleanMed } from "../core/emergency";
+import { cleanSizes, sizesEmpty } from "../core/sizes";
+import { cleanReason, cleanSquad } from "../core/nomination";
+import { cleanRide } from "../core/rides";
+import { cleanCard, cleanSuspension } from "../core/cards";
+import { cleanAccident } from "../core/accidents";
+import { cleanPost } from "../core/parents";
+import { cleanPhotoConsent } from "../core/photos";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate, Ride, RideKind, Suspension, PhotoConsent, Accident, GuardianLink, GuardianRelation, ParentPost, AbsenceType,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 import { emptyTeamData } from "../core/types";
 import {
-  ApiError, CONSENT_VERSION, type AiRequest, type Api, type ChatEvent, type ChatListData, type ConsentKind, type ConsentState, type CreateTeamInput,
+  ApiError, CONSENT_VERSION, isStaffRole, type AiRequest, type Api, type ChatEvent, type ChatListData, type ConsentKind, type ConsentState, type CreateTeamInput,
   type FeedbackInput, type FeedbackItem, type JoinProfile, type Membership, type PublishedDay, type Role, type StaffEntry, type TeamPatch, type UserInfo, type UserPrefs,
 } from "./api";
 import { supabase } from "./supabase";
@@ -27,9 +38,11 @@ import { cleanCrew } from "../core/day";
 
 type Row = Record<string, any>;
 const KNOWN_CODES = ["invalid_years", "managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
-  "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew"];
+  "chat_off", "dm_off", "indiv_off", "invalid_members", "challenge_closed", "invalid_day", "invalid_crew", "peer_closed",
+  "polls_off", "poll_closed", "poll_answered", "invalid_answer", "answers_off", "match_started",
+  "ride_full", "already_in_ride", "seats_taken", "ride_past", "rides_off", "invalid_seats"];
 /** Grenzen aus der Datenbank (raise 'limit' mit Detail) → eigener Fehlercode */
-const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams", "feedback_rate"];
+const LIMIT_CODES = ["open_requests", "chat_rate", "members", "clubs", "teams", "feedback_rate", "open_polls", "polls"];
 
 function fail(error: { message?: string; details?: string; code?: string } | null | undefined): never {
   const msg = error?.message || "unknown";
@@ -131,6 +144,46 @@ const mapGoal = (r: Row): Goal => ({ id: r.id, pid: r.player_id, title: r.title,
 const mapGoalEntry = (r: Row): GoalEntry => ({ id: r.id, goalId: r.goal_id, pid: r.player_id, date: r.date, value: Number(r.value), note: r.note || "", by: r.by_player ? "player" : "coach" });
 const mapTalk = (r: Row, notes = ""): DevTalk => ({ id: r.id, pid: r.player_id, date: r.date, kind: r.kind || "event", player: r.player_view || "", strengths: r.strengths || "", focus: r.focus || "",
   agreements: Array.isArray(r.agreements) ? r.agreements : [], notes, next: r.next_date || null, vis: !!r.visible });
+// Entwicklungsprogramm (Inhalt als JSON; die App bereinigt auf die Grenzen des Katalogs)
+const mapProgram = (r: Row): DevProgram => cleanProgram({ ...(r.content && typeof r.content === "object" && !Array.isArray(r.content) ? r.content : {}), pid: r.player_id, vis: !!r.visible, at: r.published_at || null });
+const mapSelf = (r: Row): DevSelf => cleanSelf({ pid: r.player_id, weapons: r.weapons || [], skills: r.skills || [], at: r.updated_at || null });
+const mapGift = (r: Row): PeerGift => ({ giver: r.giver_id, target: r.target_id, skills: cleanGift(r.skills), at: r.updated_at || "" });
+const mapPoll = (r: Row): Poll => cleanPoll({
+  id: r.id, kind: r.kind, title: r.title, intro: r.intro || "", questions: r.questions || [], anonymous: !!r.anonymous, results: r.results,
+  groupId: r.group_id || null, until: r.until || null, closed: !!r.closed_at, byPlayer: !!r.by_player, authorPid: r.author_player || null,
+  author: r.author_name || "", createdBy: r.created_by || null, created: r.created_at || "", answers: Number(r.answer_count) || 0,
+});
+// Kader-Nominierung
+const mapSquad = (r: Row): MatchSquad => cleanSquad({ matchId: r.match_id, meetTime: r.meet_time, meetPlace: r.meet_place || "", note: r.note || "", showAll: r.show_all !== false, published: r.published_at || null });
+const mapNom = (r: Row): Nomination => ({
+  matchId: r.match_id, pid: r.player_id, standby: !!r.standby, answer: r.answer === "yes" || r.answer === "no" ? r.answer : null,
+  reason: r.answer === "no" ? cleanReason(r.reason) : "", at: r.answered_at || null, byStaff: !!r.answered_by_staff, byGuardian: !!r.answered_by_guardian,
+});
+const mapGuardian = (r: Row): GuardianLink => ({ id: r.id, pid: r.player_id, userId: r.user_id, name: r.name || "", relation: r.relation, status: r.status === "active" ? "active" : "pending",
+  adultOk: !!r.adult_ok, at: r.created_at, confirmedAt: r.confirmed_at || null });
+const mapPost = (r: Row): ParentPost => cleanPost({ id: r.id, title: r.title, body: r.body, needAck: !!r.need_ack, author: r.author || "", at: r.created_at, readAt: r.read_at ?? null, ackedAt: r.acked_at ?? null });
+const mapMate = (r: Row): SquadMate => ({ pid: r.player_id, name: String(r.name || ""), nr: r.nr == null ? null : Number(r.nr), pos: String(r.pos || ""), standby: !!r.standby });
+const mapRide = (r: Row): Ride => cleanRide({ id: r.id, kind: r.match_id ? "match" : "event", refId: r.match_id || r.event_id, driverPid: r.driver_pid, driver: r.driver_label || "", seats: r.seats, time: r.depart_time, place: r.depart_place || "", note: r.note || "" });
+const mapPhoto = (r: Row): PhotoConsent => cleanPhotoConsent({ web: r.web, social: r.social, press: r.press, name: r.name_ok, by: r.given_by, on: r.given_on, note: r.note || "", at: r.updated_at });
+const mapAccident = (r: Row): Accident => cleanAccident({
+  id: r.id, pid: r.player_id, date: r.accident_date, time: r.accident_time, place: r.place || "", activity: r.activity, matchId: r.match_id, absenceId: r.absence_id,
+  how: r.how || "", injury: r.injury || "", area: r.body_area, firstAid: r.first_aid || "", treatment: r.treatment || "", witnesses: r.witnesses || "",
+  clubOn: r.club_on, insurerOn: r.insurer_on, claimNo: r.claim_no || "", closed: !!r.closed, note: r.note || "", at: r.updated_at,
+});
+const mapSusp = (r: Row): Suspension => cleanSuspension({ id: r.id, pid: r.player_id, kind: r.kind, matchId: r.match_id, start: r.start_date, games: r.games, until: r.until_date, scope: r.scope, note: r.note || "" });
+// Größen (Schuhe und Handschuhe kommen als Zahl bzw. Text „42.5“)
+const mapSizes = (r: Row): PlayerSizes => cleanSizes({ top: r.top, bottom: r.bottom, shoes: r.shoes, gloves: r.gloves, print: r.print_name || "", note: r.note || "" });
+const mapPollAnswer = (r: Row): PollAnswer => ({ pollId: r.poll_id, pid: r.player_id, answers: r.answers || {}, at: r.updated_at || "" });
+const nameList = (x: unknown): { pid: string; name: string }[] => Array.isArray(x) ? x.map((y: Row) => ({ pid: String(y.pid), name: String(y.name || "") })) : [];
+const mapPollResult = (r: Row): PollResult => ({
+  pollId: r.pollId, n: Number(r.n) || 0, targets: Number(r.targets) || 0, hidden: !!r.hidden,
+  questions: (Array.isArray(r.questions) ? r.questions : []).map((x: Row) => ({
+    id: String(x.id), answered: Number(x.answered) || 0, counts: (Array.isArray(x.counts) ? x.counts : []).map(Number), avg: x.avg == null ? null : Number(x.avg),
+    ...(Array.isArray(x.voters) ? { voters: x.voters.map((v: unknown) => Array.isArray(v) ? v.map(String) : []) } : {}),
+    ...(Array.isArray(x.texts) ? { texts: x.texts.map((t: Row) => ({ text: String(t.text || ""), ...(t.name ? { name: String(t.name) } : {}) })) } : {}),
+  })),
+  ...(r.respondents ? { respondents: nameList(r.respondents) } : {}), ...(r.missing ? { missing: nameList(r.missing) } : {}),
+});
 const mapChallenge = (r: Row): Challenge => ({ id: r.id, ws: r.week_start, title: r.title, text: r.text || "", kind: r.kind, unit: r.unit || "", target: numOrNull(r.target), teamTarget: numOrNull(r.team_target),
   lower: !!r.lower_better, groupId: r.group_id || null, key: r.key || null });
 const mapChEntry = (r: Row): ChallengeEntry => ({ cid: r.challenge_id, pid: r.player_id, value: numOrNull(r.value), days: Array.isArray(r.days) ? r.days : [], done: !!r.done, at: r.updated_at || "" });
@@ -344,7 +397,7 @@ export class SupabaseApi implements Api {
       D.exercises = exercises.map(mapExercise); D.templates = templates.map(mapTemplate); D.staff = staffP.map(mapStaff);
       D.findings = findings.map(mapFinding);
       D.tests = tests.map(mapTest);
-      for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started, conceded: r.conceded ?? null, saves: r.saves ?? null };
+      for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started, conceded: r.conceded ?? null, saves: r.saves ?? null, pre: r.pre_assists ?? null, card: cleanCard(r.card) };
       D.ratings = ratings.map(mapRating);
       D.videos = videos.map(mapVideo);
     }
@@ -352,7 +405,7 @@ export class SupabaseApi implements Api {
       // Spielerentwicklung, Wochenchallenge, Individualtraining (Spieler: eigene bzw. freigegebene – Zugriffsregeln)
       const mods = D.team.modules, dev = mods.entwicklung !== false, ch = mods.challenge !== false;
       const none = Promise.resolve([] as Row[]);
-      const [ass, goals, gEntries, talks, tNotes, chs, chE, indiv] = await Promise.all([
+      const [ass, goals, gEntries, talks, tNotes, chs, chE, indiv, progs, selfs, gifts] = await Promise.all([
         dev ? q(sb.from("player_assessments").select("*").eq("team_id", tid).order("date")) : none,
         dev ? q(sb.from("player_goals").select("*").eq("team_id", tid).order("created_at")) : none,
         dev ? all((a, b) => sb.from("goal_entries").select("*").eq("team_id", tid).order("date").range(a, b)) : none,
@@ -361,10 +414,16 @@ export class SupabaseApi implements Api {
         ch ? q(sb.from("team_challenges").select("*").eq("team_id", tid).gte("week_start", addDays(today, -400)).order("week_start")) : none,
         ch ? all((a, b) => sb.from("challenge_entries").select("*").eq("team_id", tid).gte("updated_at", addDays(today, -400)).range(a, b)) : none,
         dev ? q(sb.from("indiv_requests").select("*").eq("team_id", tid).or(`status.eq.open,updated_at.gte.${addDays(today, -180)}`).order("created_at")) : none,
+        // Entwicklungsprogramm (Spieler: eigenes freigegebenes Programm, eigene Selbstanalyse, selbst geschenkte Stärken – Zugriffsregeln)
+        dev ? q(sb.from("dev_programs").select("*").eq("team_id", tid)).catch(() => [] as Row[]) : none,
+        dev ? q(sb.from("dev_self").select("*").eq("team_id", tid)).catch(() => [] as Row[]) : none,
+        dev ? all((a, b) => sb.from("dev_peer_skills").select("*").eq("team_id", tid).gte("updated_at", addDays(today, -400)).order("updated_at").range(a, b)).catch(() => [] as Row[]) : none,
       ]);
       const nMap = new Map(tNotes.map(r => [r.talk_id as string, r.text as string]));
       D.assessments = ass.map(mapAssessment); D.goals = goals.map(mapGoal); D.goalEntries = gEntries.map(mapGoalEntry);
       D.talks = talks.map(r => mapTalk(r, nMap.get(r.id) || "")); D.challenges = chs.map(mapChallenge); D.chEntries = chE.map(mapChEntry); D.indiv = indiv.map(mapIndiv);
+      D.programs = progs.map(mapProgram); D.selfSkills = selfs.map(mapSelf); D.peerGifts = gifts.map(mapGift);
+      if (!staff && dev && peerOpen(D.team.settings, today)) { try { D.peerMates = await this.peerMates(tid); } catch { D.peerMates = []; } }
       if (!staff && ch && D.challenges.length) {
         const ws = monday(today);
         for (const w of [ws, addDays(ws, -7)]) if (D.challenges.some(c => c.ws === w)) { try { for (const x of await this.challengeTotals(tid, w)) D.chTotals[x.cid] = x; } catch { /* ohne Teamsumme */ } }
@@ -384,6 +443,108 @@ export class SupabaseApi implements Api {
           for (const c of D.chats) D.chatMore[c.id] = msgs.length >= CHAT_MAX || (L.old[c.id] || "") < from;
         } catch { /* Chat optional: Rest der App lädt trotzdem */ }
       }
+    }
+    {
+      // Umfragen: Trainerteam mit Recht „Nachrichten“ alle, Spieler die an sie gerichteten und eigenen; Antworten nur
+      // die eigenen (Ergebnisse lädt die App bei Bedarf über poll_results)
+      try {
+        const [polls, answers] = await Promise.all([
+          q(sb.from("polls").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(300)),
+          all((a, b) => sb.from("poll_answers").select("poll_id, player_id, answers, updated_at").eq("team_id", tid).range(a, b)),
+        ]);
+        D.polls = polls.map(mapPoll); D.pollAnswers = answers.map(mapPollAnswer);
+      } catch { /* Umfragen optional: Rest der App lädt trotzdem */ }
+    }
+    {
+      // Notfallkontakte (Trainerteam mit „Kader“ oder „Gesundheitsdaten“; Spieler: eigene) und Hinweise für den Notfall
+      // (Gesundheitsdaten) – Teil der Teamdaten, damit sie auch ohne Netz da sind
+      try {
+        const [em, med] = await Promise.all([
+          all((a, b) => sb.from("player_emergency").select("player_id, contacts").eq("team_id", tid).range(a, b)),
+          all((a, b) => sb.from("player_emergency_med").select("player_id, note").eq("team_id", tid).range(a, b)),
+        ]);
+        for (const r of em) { const L = cleanContacts(r.contacts); if (L.length) D.emergency[r.player_id] = L; }
+        for (const r of med) { const n = cleanMed(r.note); if (n) D.emergencyMed[r.player_id] = n; }
+        D.emergencyOk = true;
+      } catch { /* optional – ohne geladene Daten zeigt die App „fehlt“ nicht an */ }
+    }
+    {
+      // Kader-Nominierungen: Trainerteam alle; Spieler veröffentlichte Kader, in denen sie stehen, die eigene Nominierung
+      // und (wenn freigegeben) die Kaderliste mit Vorname und Initial
+      try {
+        const [sqs, noms, mates] = await Promise.all([
+          all((a, b) => sb.from("match_squads").select("*").eq("team_id", tid).range(a, b)),
+          all((a, b) => sb.from("match_nominations").select("match_id, player_id, standby, answer, reason, answered_at, answered_by_staff").eq("team_id", tid).range(a, b)),
+          staff ? Promise.resolve([] as Row[]) : q<Row[]>(sb.rpc("squad_mates", { p_team: tid })),
+        ]);
+        for (const r of sqs) D.squads[r.match_id] = mapSquad(r);
+        D.noms = noms.map(mapNom);
+        for (const r of mates || []) (D.squadMates[r.match_id] ||= []).push(mapMate(r));
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.karten !== false) {
+      // Eingetragene Sperren (Trainerteam; Spieler: eigene) – Sperren aus den Karten leitet die App ab (core/cards)
+      try {
+        const rows = await all((a, b) => sb.from("player_suspensions").select("*").eq("team_id", tid).order("start_date").order("id").range(a, b));
+        D.suspensions = rows.map(mapSusp);
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.eltern !== false) {
+      // Eltern-Zugang: Verknüpfungen (Trainerteam mit Recht „Kader“; Spieler: eigene), Einladungen und Elterninfo (Trainerteam)
+      try {
+        D.guardians = (await all((a, b) => sb.from("player_guardians").select("*").eq("team_id", tid).order("created_at").range(a, b))).map(mapGuardian);
+        if (isStaffRole(m.role)) {
+          const [inv, posts, gc] = await Promise.all([
+            q<Row[]>(sb.from("guardian_invites").select("player_id, uses_left, expires_at").eq("team_id", tid)),
+            q<Row[]>(sb.from("parent_posts").select("*").eq("team_id", tid).order("created_at", { ascending: false }).limit(200)),
+            q<Row[]>(sb.rpc("team_guardian_consents", { p_team: tid })),
+          ]);
+          D.guardianInvites = inv.map(r => ({ pid: r.player_id, expires: r.expires_at, usesLeft: r.uses_left }));
+          D.parentPosts = posts.map(mapPost);
+          if (D.parentPosts.length) {
+            const reads = await all((a, b) => sb.from("parent_post_reads").select("*").in("post_id", D.parentPosts.map(x => x.id)).order("post_id").range(a, b));
+            D.parentReads = reads.map(r => ({ postId: r.post_id, userId: r.user_id, readAt: r.read_at, ackedAt: r.acked_at || null }));
+          }
+          for (const r of gc) { const x = D.guardianConsents[r.player_id] ||= { parental: false, health: false }; if (r.kind === "parental") x.parental = true; else x.health = true; }
+        }
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.fotos !== false) {
+      // Foto-Erlaubnis (Trainerteam: alle; Spieler: eigene)
+      try {
+        const rows = await all((a, b) => sb.from("photo_consents").select("*").eq("team_id", tid).order("player_id").range(a, b));
+        for (const r of rows) D.photos[r.player_id] = mapPhoto(r);
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.unfall !== false) {
+      // Unfallmeldungen (Trainerteam mit Recht „Gesundheitsdaten“; Spieler: eigene)
+      try {
+        const rows = await all((a, b) => sb.from("accident_reports").select("*").eq("team_id", tid).order("accident_date").order("id").range(a, b));
+        D.accidents = rows.map(mapAccident);
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.fahrten !== false) {
+      // Fahrgemeinschaften: alle im Team; Namen der Beteiligten (Vorname und Initial) für Spieler vom Server
+      try {
+        const [rides, seats, needs, names] = await Promise.all([
+          all((a, b) => sb.from("rides").select("id, match_id, event_id, driver_pid, driver_label, seats, depart_time, depart_place, note").eq("team_id", tid).order("created_at").order("id").range(a, b)),
+          all((a, b) => sb.from("ride_seats").select("ride_id, player_id").eq("team_id", tid).order("created_at").order("player_id").range(a, b)),
+          all((a, b) => sb.from("ride_needs").select("match_id, event_id, player_id").eq("team_id", tid).order("created_at").order("id").range(a, b)),
+          staff ? Promise.resolve([] as Row[]) : q<Row[]>(sb.rpc("ride_names", { p_team: tid })),
+        ]);
+        D.rides = rides.map(mapRide);
+        D.rideSeats = seats.map(r => ({ rideId: String(r.ride_id), pid: String(r.player_id) }));
+        D.rideNeeds = needs.map(r => ({ kind: r.match_id ? "match" as const : "event" as const, refId: String(r.match_id || r.event_id), pid: String(r.player_id) }));
+        for (const r of names || []) D.rideNames[r.player_id] = String(r.name || "");
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.ausruestung !== false) {
+      // Größen (Trainerteam mit „Kader“; Spieler: eigene)
+      try {
+        const rows = await all((a, b) => sb.from("player_sizes").select("player_id, top, bottom, shoes, gloves, print_name, note").eq("team_id", tid).range(a, b));
+        for (const r of rows) { const x = mapSizes(r); if (!sizesEmpty(x)) D.sizes[r.player_id] = x; }
+        D.sizesOk = true;
+      } catch { /* optional – ohne geladene Daten zeigt die App „fehlt“ nicht an */ }
     }
     if (D.team.modules.matchplan !== false) {
       // Matchpläne: Trainerteam liest Pläne und Zugriffsprotokoll; Spieler nur die Liste freigegebener Pläne
@@ -639,7 +800,7 @@ export class SupabaseApi implements Api {
   async saveStat(teamId: string, matchId: string, pid: string, st: MatchStat | null) {
     if (!st) { await q(this.sb.from("match_stats").delete().eq("match_id", matchId).eq("player_id", pid)); return; }
     await q(this.sb.from("match_stats").upsert({ team_id: teamId, match_id: matchId, player_id: pid, minutes: st.min, goals: st.goals, assists: st.assists, started: st.start,
-      conceded: st.conceded ?? null, saves: st.saves ?? null }));
+      conceded: st.conceded ?? null, saves: st.saves ?? null, pre_assists: st.pre ?? null, card: cleanCard(st.card) }));
   }
   async saveRating(teamId: string, x: Rating) {
     const row: Row = { team_id: teamId, player_id: x.pid, date: x.date, kind: x.kind, rating: x.rating, text: x.text || null, visible: x.vis,
@@ -832,6 +993,202 @@ export class SupabaseApi implements Api {
     return mapTalk(r, note);
   }
   async deleteTalk(id: string) { await q(this.sb.from("dev_talks").delete().eq("id", id)); }
+
+  // ---------- Entwicklungsprogramm ----------
+  async saveProgram(_teamId: string, p: DevProgram) {
+    // Team und Freigabezeitpunkt setzt die Datenbank (Trigger)
+    const r = await q<Row>(this.sb.from("dev_programs").upsert({ player_id: p.pid, content: programContent(p), visible: p.vis }, { onConflict: "player_id" }).select().single());
+    return mapProgram(r);
+  }
+  async deleteProgram(pid: string) { await q(this.sb.from("dev_programs").delete().eq("player_id", pid)); }
+  async saveSelfSkills(_teamId: string, x: DevSelf) {
+    const v = cleanSelf(x);
+    return mapSelf(await q<Row>(this.sb.from("dev_self").upsert({ player_id: v.pid, weapons: v.weapons, skills: v.skills }, { onConflict: "player_id" }).select().single()));
+  }
+  async savePeerGift(_teamId: string, g: PeerGift) {
+    const skills = cleanGift(g.skills);
+    if (!skills.length) { await q(this.sb.from("dev_peer_skills").delete().eq("giver_id", g.giver).eq("target_id", g.target)); return null; }
+    return mapGift(await q<Row>(this.sb.from("dev_peer_skills").upsert({ giver_id: g.giver, target_id: g.target, skills }, { onConflict: "giver_id,target_id" }).select().single()));
+  }
+  async peerMates(teamId: string): Promise<PeerMate[]> {
+    const rows = await q<Row[]>(this.sb.rpc("peer_targets", { p_team: teamId }));
+    return (rows || []).map(r => ({ id: r.id, name: `${r.first_name || ""} ${r.last_initial ? r.last_initial + "." : ""}`.trim(), nr: r.shirt_number ?? null, pos: r.pos || "" }));
+  }
+
+  // ---------- Umfragen ----------
+  async savePoll(teamId: string, p: Poll) {
+    // Autor, Zähler und Zeitpunkte setzt die Datenbank (Trigger); Fragen nur, solange niemand geantwortet hat
+    const x = cleanPoll(p);
+    const row: Row = { kind: x.kind, title: x.title, intro: x.intro, questions: x.questions, anonymous: x.anonymous, results: x.results, group_id: x.groupId, until: x.until };
+    return mapPoll(x.id.startsWith("tmp-")
+      ? await q<Row>(this.sb.from("polls").insert({ ...row, team_id: teamId }).select().single())
+      : await q<Row>(this.sb.from("polls").update(row).eq("id", x.id).select().single()));
+  }
+  async setPollState(id: string, st: { closed: boolean; until: string | null }) {
+    return mapPoll(await q<Row>(this.sb.from("polls").update({ closed_at: st.closed ? new Date().toISOString() : null, until: st.until }).eq("id", id).select().single()));
+  }
+  async deletePoll(id: string) { await q(this.sb.from("polls").delete().eq("id", id)); }
+  async savePollAnswer(a: PollAnswer) {
+    return mapPollAnswer(await q<Row>(this.sb.from("poll_answers").upsert({ poll_id: a.pollId, player_id: a.pid, answers: a.answers }, { onConflict: "poll_id,player_id" }).select().single()));
+  }
+  async deletePollAnswer(pollId: string, pid: string) { await q(this.sb.from("poll_answers").delete().eq("poll_id", pollId).eq("player_id", pid)); }
+  async pollResults(pollId: string) { return mapPollResult(await q<Row>(this.sb.rpc("poll_results", { p_poll: pollId }))); }
+
+  // ---------- Notfallkontakte ----------
+  async saveEmergency(pid: string, contacts: EmContact[]) {
+    const L = cleanContacts(contacts);
+    if (!L.length) { await q(this.sb.from("player_emergency").delete().eq("player_id", pid)); return []; }
+    const r = await q<Row>(this.sb.from("player_emergency").upsert({ player_id: pid, contacts: L }, { onConflict: "player_id" }).select("contacts").single());
+    return cleanContacts(r.contacts);
+  }
+  async saveEmergencyMed(pid: string, note: string) {
+    const n = cleanMed(note);
+    if (!n) { await q(this.sb.from("player_emergency_med").delete().eq("player_id", pid)); return ""; }
+    const r = await q<Row>(this.sb.from("player_emergency_med").upsert({ player_id: pid, note: n }, { onConflict: "player_id" }).select("note").single());
+    return cleanMed(r.note);
+  }
+
+  // ---------- Kader-Nominierung ----------
+  async saveSquad(sq: MatchSquad) {
+    const x = cleanSquad(sq);
+    const row = { match_id: x.matchId, meet_time: x.meetTime, meet_place: x.meetPlace || null, note: x.note || null, show_all: x.showAll, published_at: x.published ? new Date().toISOString() : null };
+    return mapSquad(await q<Row>(this.sb.from("match_squads").upsert(row, { onConflict: "match_id" }).select().single()));
+  }
+  async deleteSquad(matchId: string) { await q(this.sb.from("match_squads").delete().eq("match_id", matchId)); }
+  async setNominations(matchId: string, list: { pid: string; standby: boolean }[]) {
+    const old = await q<Row[]>(this.sb.from("match_nominations").select("player_id, standby").eq("match_id", matchId));
+    const keep = new Set(list.map(x => x.pid)), gone = old.map(r => String(r.player_id)).filter(id => !keep.has(id));
+    if (gone.length) await q(this.sb.from("match_nominations").delete().eq("match_id", matchId).in("player_id", gone));
+    const change = list.filter(x => { const o = old.find(r => r.player_id === x.pid); return !o || !!o.standby !== x.standby; });
+    if (change.length) await q(this.sb.from("match_nominations").upsert(change.map(x => ({ match_id: matchId, player_id: x.pid, standby: x.standby })), { onConflict: "match_id,player_id" }));
+    return (await q<Row[]>(this.sb.from("match_nominations").select("match_id, player_id, standby, answer, reason, answered_at, answered_by_staff").eq("match_id", matchId))).map(mapNom);
+  }
+  async setNomAnswer(matchId: string, pid: string, answer: NomAnswer | null, reason: string) {
+    const r = answer === "no" ? cleanReason(reason) : "";
+    return mapNom(await q<Row>(this.sb.from("match_nominations").update({ answer, reason: r || null }).eq("match_id", matchId).eq("player_id", pid)
+      .select("match_id, player_id, standby, answer, reason, answered_at, answered_by_staff").single()));
+  }
+  async answerNomination(matchId: string, _pid: string, answer: NomAnswer, reason: string) {
+    return mapNom(await q<Row>(this.sb.rpc("answer_nomination", { p_match: matchId, p_answer: answer, p_reason: answer === "no" ? cleanReason(reason) || null : null })));
+  }
+
+  // ---------- Fahrgemeinschaften (Regeln in der Datenbank: ride_save … ride_need) ----------
+  async saveRide(r: Ride) {
+    const x = cleanRide(r);
+    return mapRide(await q<Row>(this.sb.rpc("ride_save", {
+      p_id: x.id.startsWith("tmp-") ? null : x.id, p_kind: x.kind, p_ref: x.refId, p_driver_pid: x.driverPid, p_driver: x.driver || null,
+      p_seats: x.seats, p_time: x.time, p_place: x.place || null, p_note: x.note || null,
+    })));
+  }
+  async deleteRide(id: string) { return Number(await q<number | null>(this.sb.rpc("ride_delete", { p_id: id }))) || 0; }
+  async joinRide(rideId: string, pid: string) { await q(this.sb.rpc("ride_join", { p_ride: rideId, p_player: pid })); }
+  async leaveRide(rideId: string, pid: string, need: boolean) { await q(this.sb.rpc("ride_leave", { p_ride: rideId, p_player: pid, p_need: need })); }
+  async setRideNeed(kind: RideKind, refId: string, pid: string, on: boolean) { await q(this.sb.rpc("ride_need", { p_kind: kind, p_ref: refId, p_player: pid, p_on: on })); }
+
+  // ---------- Karten & Sperren ----------
+  async saveSuspension(teamId: string, x: Suspension) {
+    const y = cleanSuspension(x);
+    const row: Row = { player_id: y.pid, match_id: y.matchId, kind: y.kind, start_date: y.start, games: y.games, until_date: y.until, scope: y.scope, note: y.note || null };
+    return mapSusp(y.id.startsWith("tmp-")
+      ? await q<Row>(this.sb.from("player_suspensions").insert({ ...row, team_id: teamId }).select().single())
+      : await q<Row>(this.sb.from("player_suspensions").update(row).eq("id", y.id).select().single()));
+  }
+  async deleteSuspension(id: string) { await q(this.sb.from("player_suspensions").delete().eq("id", id)); }
+
+  // ---------- Eltern-Zugang ----------
+  async guardianChildren() {
+    const rows = await q<Row[]>(this.sb.rpc("guardian_children"));
+    return rows.map(r => ({ linkId: r.link_id, pid: r.player_id, vn: r.first_name, nn: r.last_name || "", teamId: r.team_id, team: r.team_name, club: r.club || "",
+      cls: r.age_class || "", status: r.status === "active" ? "active" as const : "pending" as const, relation: r.relation, access: !!r.access, off: r.module_on === false,
+      inactive: r.child_active === false, myName: r.my_name || "" }));
+  }
+  async guardianChildData(pid: string) {
+    const x = await q<Row>(this.sb.rpc("guardian_child_data", { p_player: pid }));
+    const D = emptyTeamData(mapTeam(x.team));
+    D.players = [mapPlayer(x.player)];
+    D.matches = (x.matches || []).map(mapMatch);
+    D.events = (x.events || []).map(mapEvent);
+    for (const r of x.cal || []) D.cal[r.date] = { cancel: r.cancel, extra: r.extra, zeit: r.time || undefined, dauer: r.duration || undefined };
+    D.phases = (x.breaks || []).map((r: Row) => mapPhase({ ...r, kind: "break", visible: true }));
+    // Art leer = Krankheit bzw. Verletzung, die nicht dieser Elternteil eingetragen hat (Gesundheitsdaten): nur „abwesend“
+    D.absences = (x.absences || []).map((r: Row) => mapAbs({ ...r, type: r.type || "sonst", stage: null, note: null }));
+    D.noms = (x.noms || []).map(mapNom);
+    for (const r of x.squads || []) D.squads[r.match_id] = mapSquad(r);
+    if (x.photo) D.photos[pid] = mapPhoto(x.photo);
+    return { D, consents: { parental: !!x.consents?.parental, health: !!x.consents?.health_data }, sickOk: !!x.sick_ok, posts: (x.posts || []).map(mapPost), guardians: x.guardians || 0,
+      mineAbs: (x.absences || []).filter((r: Row) => r.mine).map((r: Row) => r.id as string),
+      awayAbs: (x.absences || []).filter((r: Row) => !r.type).map((r: Row) => r.id as string),
+      parentAbs: (x.absences || []).filter((r: Row) => r.by_parent).map((r: Row) => r.id as string) };
+  }
+  async guardianRedeem(code: string, name: string, relation: GuardianRelation) {
+    const r = await q<Row>(this.sb.rpc("guardian_redeem", { p_code: code, p_name: name, p_relation: relation }));
+    if (!r?.ok) throw new ApiError(r?.error || "invalid_code");
+    return { vn: r.first_name || "", team: r.team || "" };
+  }
+  async guardianAbsence(pid: string, a: { typ: AbsenceType; von: string; bis: string | null }) {
+    const r = await q<Row>(this.sb.rpc("guardian_absence", { p_player: pid, p_type: a.typ, p_from: a.von, p_to: a.bis }));
+    return mapAbs({ ...r, stage: null, note: null });
+  }
+  async guardianAbsenceDelete(id: string) { await q(this.sb.rpc("guardian_absence_delete", { p_absence: id })); }
+  async guardianAnswer(matchId: string, pid: string, answer: NomAnswer, reason: string) {
+    await q(this.sb.rpc("guardian_answer", { p_match: matchId, p_player: pid, p_answer: answer, p_reason: reason || null }));
+  }
+  async guardianConsent(pid: string, kind: "parental" | "health_data", give: boolean) {
+    await q(this.sb.rpc("guardian_consent", { p_player: pid, p_kind: kind, p_give: give, p_version: CONSENT_VERSION }));
+  }
+  async parentPostRead(postId: string, ack: boolean) { await q(this.sb.rpc("parent_post_read", { p_post: postId, p_ack: ack })); }
+  async guardianRemove(linkId: string) { await q(this.sb.rpc("guardian_remove", { p_link: linkId })); }
+  async guardianInvite(pid: string) {
+    const rows = await q<Row[]>(this.sb.rpc("guardian_invite_create", { p_player: pid }));
+    return { code: rows[0].invite_code as string, expires: rows[0].invite_expires as string };
+  }
+  async guardianDecide(linkId: string, ok: boolean) {
+    const r = await q<Row | null>(this.sb.rpc("guardian_decide", { p_link: linkId, p_ok: ok }));
+    return r && r.id ? mapGuardian(r) : null;
+  }
+  async saveParentPost(teamId: string, p: ParentPost) {
+    const x = cleanPost(p), row = { title: x.title, body: x.body, need_ack: x.needAck };
+    return mapPost(isTmp(x.id)
+      ? await q<Row>(this.sb.from("parent_posts").insert({ ...row, team_id: teamId }).select().single())
+      : await q<Row>(this.sb.from("parent_posts").update(row).eq("id", x.id).select().single()));
+  }
+  async deleteParentPost(id: string) { await q(this.sb.from("parent_posts").delete().eq("id", id)); }
+  async guardianAdultOk(linkId: string, ok: boolean) { return mapGuardian(await q<Row>(this.sb.rpc("guardian_adult_ok", { p_link: linkId, p_ok: ok }))); }
+  async guardianUpdate(linkId: string, name: string, relation: GuardianRelation) { await q(this.sb.rpc("guardian_update", { p_link: linkId, p_name: name, p_relation: relation })); }
+  /** dieselbe Funktion wie fürs Trainerteam – der Server erkennt die Eltern und setzt „von den Eltern erklärt“ und das Datum
+   *  (ist der Elternteil zugleich im Trainerteam, gilt dieselbe Erklärung mit heutigem Datum) */
+  async guardianPhoto(pid: string, c: PhotoConsent) { return this.savePhotoConsent(pid, { ...c, by: "parents", on: iso(new Date()) }); }
+
+  // ---------- Foto-Erlaubnis ----------
+  async savePhotoConsent(pid: string, c: PhotoConsent) {
+    const x = cleanPhotoConsent(c);
+    const r = await q<Row>(this.sb.rpc("photo_consent_save", {
+      p_player: pid, p_web: x.web, p_social: x.social, p_press: x.press, p_name: x.name, p_by: x.by, p_on: x.on, p_note: x.note || null,
+    }));
+    return mapPhoto(r);
+  }
+
+  // ---------- Unfallmeldungen ----------
+  async saveAccident(teamId: string, a: Accident) {
+    const y = cleanAccident(a);
+    const row: Row = {
+      player_id: y.pid, accident_date: y.date, accident_time: y.time, place: y.place || null, activity: y.activity, match_id: y.matchId, absence_id: y.absenceId,
+      how: y.how, injury: y.injury, body_area: y.area, first_aid: y.firstAid || null, treatment: y.treatment || null, witnesses: y.witnesses || null,
+      club_on: y.clubOn, insurer_on: y.insurerOn, claim_no: y.claimNo || null, closed: y.closed, note: y.note || null,
+    };
+    return mapAccident(y.id.startsWith("tmp-")
+      ? await q<Row>(this.sb.from("accident_reports").insert({ ...row, team_id: teamId }).select().single())
+      : await q<Row>(this.sb.from("accident_reports").update(row).eq("id", y.id).select().single()));
+  }
+  async deleteAccident(id: string) { await q(this.sb.from("accident_reports").delete().eq("id", id)); }
+
+  // ---------- Größen & Ausrüstung ----------
+  async saveSizes(pid: string, sizes: PlayerSizes) {
+    const x = cleanSizes(sizes);
+    if (sizesEmpty(x)) { await q(this.sb.from("player_sizes").delete().eq("player_id", pid)); return null; }
+    const row = { player_id: pid, top: x.top, bottom: x.bottom, shoes: x.shoes, gloves: x.gloves, print_name: x.print || null, note: x.note || null };
+    return mapSizes(await q<Row>(this.sb.from("player_sizes").upsert(row, { onConflict: "player_id" }).select("top, bottom, shoes, gloves, print_name, note").single()));
+  }
 
   // ---------- Wochenchallenge ----------
   async saveChallenge(teamId: string, c: Challenge) {

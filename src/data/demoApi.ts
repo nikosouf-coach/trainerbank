@@ -7,8 +7,19 @@ import { CLUB_PERMS, cleanClubPerms, teamSummary, type ClubInfo, type ClubRole, 
 import { addDays, iso } from "../core/dates";
 import { addRef, isYounger, makeResolver, planSlots, posMatch, refOf, riserSnap, riserYears, slotDepth } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
+import { cleanGift, cleanProgram, cleanSelf } from "../core/program";
+import { cleanAnswers, cleanPoll, pollOpen, pollResult } from "../core/polls";
+import { cleanContacts, cleanMed } from "../core/emergency";
+import { cleanSizes, sizesEmpty } from "../core/sizes";
+import { answersAllowed, applyAnswer, cleanSquad } from "../core/nomination";
+import { cleanRide } from "../core/rides";
+import { cleanSuspension } from "../core/cards";
+import { cleanAccident } from "../core/accidents";
+import { cleanPhotoConsent, PHOTO_CHANNELS } from "../core/photos";
+import { cleanPost, DEMO_PARENT, isMinor, isUnder16 } from "../core/parents";
+import { emptyTeamData } from "../core/types";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevTalk, Goal, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, Suspension, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile, PhotoConsent, Accident, AbsenceType, ParentPost, GuardianRelation } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -468,6 +479,200 @@ export class DemoApi implements Api {
   async deleteGoalEntry() { this.net(); }
   async saveTalk(_t: string, x: DevTalk) { this.net(); return { ...x, id: newId(x.id) }; }
   async deleteTalk() { this.net(); }
+  async saveProgram(_t: string, p: DevProgram) { this.net(); return cleanProgram({ ...p, at: p.vis ? new Date().toISOString() : p.at }); }
+  async deleteProgram() { this.net(); }
+  async saveSelfSkills(_t: string, x: DevSelf) { this.net(); return cleanSelf({ ...x, at: new Date().toISOString() }); }
+  async savePeerGift(_t: string, g: PeerGift) { this.net(); const skills = cleanGift(g.skills); return skills.length ? { ...g, skills, at: new Date().toISOString() } : null; }
+  /** Demo: Mitspieler rechnet der Store aus dem Kader (Daten bleiben auf dem Gerät) */
+  async peerMates(): Promise<PeerMate[]> { return []; }
+  // Umfragen: Antworten und Ergebnisse bleiben auf dem Gerät (der Store ändert die Daten selbst)
+  async savePoll(_t: string, p: Poll) {
+    this.net();
+    return cleanPoll({ ...p, id: newId(p.id), created: p.created || new Date().toISOString() });
+  }
+  async setPollState(id: string, st: { closed: boolean; until: string | null }) {
+    this.net();
+    const p = this.data?.polls.find(x => x.id === id);
+    if (!p) throw new ApiError("not_found");
+    return { ...p, closed: st.closed, until: st.until };
+  }
+  async deletePoll() { this.net(); }
+  async savePollAnswer(a: PollAnswer) {
+    this.net();
+    const p = this.data?.polls.find(x => x.id === a.pollId);
+    if (!p) throw new ApiError("not_found");
+    if (!pollOpen(p, iso(new Date()))) throw new ApiError("poll_closed");
+    const answers = cleanAnswers(p, a.answers);
+    if (!answers) throw new ApiError("invalid_answer");
+    return { ...a, answers, at: new Date().toISOString() };
+  }
+  async deletePollAnswer() { this.net(); }
+  // Notfallkontakte: bleiben auf dem Gerät (der Store ändert die Daten selbst)
+  async saveEmergency(_pid: string, contacts: EmContact[]) { this.net(); return cleanContacts(contacts); }
+  async saveEmergencyMed(_pid: string, note: string) { this.net(); return cleanMed(note); }
+  async saveSizes(_pid: string, s: PlayerSizes) { this.net(); const x = cleanSizes(s); return sizesEmpty(x) ? null : x; }
+  // Kader-Nominierung: wie der Server (Veröffentlichung mit Zeitpunkt, Antworten bleiben beim Abgleich, Regeln für Spieler)
+  async saveSquad(sq: MatchSquad) {
+    this.net();
+    const old = this.data?.squads[sq.matchId];
+    return cleanSquad({ ...sq, published: sq.published ? (old?.published || new Date().toISOString()) : null });
+  }
+  async deleteSquad() { this.net(); }
+  async setNominations(matchId: string, list: { pid: string; standby: boolean }[]) {
+    this.net();
+    const old = (this.data?.noms || []).filter(n => n.matchId === matchId);
+    return list.map((x): Nomination => { const o = old.find(n => n.pid === x.pid); return o ? { ...o, standby: x.standby } : { matchId, pid: x.pid, standby: x.standby, answer: null, reason: "", at: null, byStaff: false }; });
+  }
+  async setNomAnswer(matchId: string, pid: string, answer: NomAnswer | null, reason: string) {
+    this.net();
+    const n = (this.data?.noms || []).find(x => x.matchId === matchId && x.pid === pid);
+    if (!n) throw new ApiError("not_found");
+    return applyAnswer(n, answer, reason, new Date().toISOString(), true);
+  }
+  async answerNomination(matchId: string, pid: string, answer: NomAnswer, reason: string) {
+    this.net();
+    const D = this.data, n = D?.noms.find(x => x.matchId === matchId && x.pid === pid), m = D?.matches.find(x => x.id === matchId);
+    if (!D || !n || !m || !D.squads[matchId]?.published) throw new ApiError("not_found");
+    if (!(D.team.settings.playerAbs ?? true)) throw new ApiError("answers_off");
+    if (!answersAllowed(D.team, m, new Date())) throw new ApiError("match_started");
+    return applyAnswer(n, answer, reason, new Date().toISOString(), false);
+  }
+  // Fahrgemeinschaften: die Regeln prüft der Store vorab wie der Server (core/rides) – die Demo bestätigt nur
+  async saveRide(r: Ride) { this.net(); const x = cleanRide(r); return { ...x, id: newId(x.id) }; }
+  async deleteRide() { this.net(); return 0; }
+  async joinRide() { this.net(); }
+  async leaveRide() { this.net(); }
+  async setRideNeed() { this.net(); }
+  // Karten & Sperren
+  async saveSuspension(_t: string, s: Suspension) { this.net(); const x = cleanSuspension(s); return { ...x, id: newId(x.id) }; }
+  async deleteSuspension() { this.net(); }
+  // ---------- Eltern-Zugang (Demo: Elternteil „demo-parent“, verknüpft mit einem minderjährigen Spieler) ----------
+  private parentConsent: Record<string, { parental: boolean; health: boolean }> = {};
+  private parentAbs = new Set<string>();
+  async guardianChildren() {
+    this.net();
+    const D = this.mainTeam(), today = iso(new Date());
+    return D.guardians.filter(g => g.userId === DEMO_PARENT).map(g => {
+      const p = D.players.find(x => x.id === g.pid);
+      return { linkId: g.id, pid: g.pid, vn: p?.vn || "", nn: p?.nn || "", teamId: "demo", team: D.team.name, club: D.team.club, cls: D.team.cls,
+        status: g.status, relation: g.relation, access: g.status === "active" && p?.active !== false && (g.adultOk || isMinor(p, today)) && D.team.modules.eltern !== false,
+        off: D.team.modules.eltern === false, inactive: p?.active === false, myName: g.name };
+    });
+  }
+  async guardianChildData(pid: string) {
+    this.net();
+    const S = this.mainTeam(), today = iso(new Date()), from = addDays(today, -14), to = addDays(today, 60);
+    if (!S.guardians.some(g => g.pid === pid && g.userId === DEMO_PARENT && g.status === "active")) throw new ApiError("not_found");
+    const p = S.players.find(x => x.id === pid);
+    if (!p || p.active === false) throw new ApiError("not_found");
+    // wie der Server: vom Team nur die Trainingszeiten, vom Kind nur Name, Geburtsdatum und aktiv
+    const T = S.team.settings;
+    const D = emptyTeamData({ ...S.team, joinCode: "", staffCode: "", logo: null,
+      settings: { days: T.days, dauer: T.dauer, fix: T.fix, spieltag: T.spieltag, anstoss: T.anstoss, ...(T.playerAbs !== undefined ? { playerAbs: T.playerAbs } : {}) } });
+    D.players = [{ ...p, pos: "", nr: null, kg: null, photo: null, groups: [], userId: null }];
+    D.matches = S.matches.filter(m => m.date >= from && m.date <= to).map(m => ({ ...m, result: null }));
+    D.events = S.events.filter(e => e.date >= from && e.date <= to);
+    for (const [d, v] of Object.entries(S.cal)) if (d >= from && d <= to) D.cal[d] = { ...v };
+    D.phases = S.phases.filter(x => x.kind === "break" && x.vis && x.to >= from && x.from <= to).map(x => ({ ...x, weeks: {}, program: [], note: "" }));
+    // wie der Server: Krankheit bzw. Verletzung nur bei eigenen Abmeldungen, sonst nur „abwesend“
+    const hide = (a: Absence) => !this.parentAbs.has(a.id) && (a.typ === "krank" || a.typ === "verletzung");
+    const mine = S.absences.filter(a => a.pid === pid && (a.bis || to) >= from && a.von <= to);
+    D.absences = mine.map(a => ({ ...a, typ: hide(a) ? "sonst" as const : a.typ, stufe: null, notiz: "", area: undefined }));
+    D.noms = S.noms.filter(n => n.pid === pid && S.squads[n.matchId]?.published && D.matches.some(m => m.id === n.matchId && m.date >= addDays(today, -1))).map(n => ({ ...n, reason: "" }));
+    for (const n of D.noms) D.squads[n.matchId] = { ...S.squads[n.matchId], showAll: false };
+    if (S.photos[pid]) D.photos[pid] = { ...S.photos[pid] };
+    const posts = S.parentPosts.map(x => { const r = S.parentReads.find(y => y.postId === x.id && y.userId === DEMO_PARENT); return { ...x, readAt: r?.readAt ?? null, ackedAt: r?.ackedAt ?? null }; });
+    return { D, consents: { ...(this.parentConsent[pid] || { parental: false, health: false }) }, sickOk: this.sickOk(pid), posts, guardians: S.guardians.filter(g => g.pid === pid).length,
+      mineAbs: D.absences.filter(a => this.parentAbs.has(a.id)).map(a => a.id), awayAbs: mine.filter(hide).map(a => a.id),
+      parentAbs: D.absences.filter(a => this.parentAbs.has(a.id)).map(a => a.id) };
+  }
+  async guardianRedeem(): Promise<{ vn: string; team: string }> { this.net(); throw new ApiError("demo"); }
+  /** wie der Server: unter 16 die Einwilligung des Elternteils, ab 16 die des Kindes (Demo: Kind hat eingewilligt) */
+  private sickOk(pid: string): boolean {
+    const p = this.mainTeam().players.find(x => x.id === pid);
+    return isUnder16(p, iso(new Date())) ? !!this.parentConsent[pid]?.health : true;
+  }
+  async guardianAbsence(pid: string, a: { typ: AbsenceType; von: string; bis: string | null }) {
+    this.net();
+    if (a.typ === "krank" && !this.sickOk(pid)) throw new ApiError("consent_required");
+    const x: Absence = { id: newId(""), pid, typ: a.typ, von: a.von, bis: a.bis || a.von, stufe: null, notiz: "", by: "player" };
+    this.mainTeam().absences.push(x); this.parentAbs.add(x.id);
+    return x;
+  }
+  async guardianAbsenceDelete(id: string) { this.net(); const S = this.mainTeam(); S.absences = S.absences.filter(a => a.id !== id); this.parentAbs.delete(id); }
+  async guardianAnswer(matchId: string, pid: string, answer: NomAnswer, reason: string) {
+    this.net();
+    const n = this.mainTeam().noms.find(x => x.matchId === matchId && x.pid === pid);
+    if (!n) throw new ApiError("not_found");
+    Object.assign(n, { answer, reason: answer === "no" ? reason.trim().slice(0, 200) : "", at: new Date().toISOString(), byStaff: false, byGuardian: true });
+  }
+  async guardianConsent(pid: string, kind: "parental" | "health_data", give: boolean) {
+    this.net();
+    const c = this.parentConsent[pid] ||= { parental: false, health: false };
+    if (kind === "parental") c.parental = give; else c.health = give;
+    this.mainTeam().guardianConsents[pid] = { ...c };
+  }
+  async parentPostRead(postId: string, ack: boolean) {
+    this.net();
+    const S = this.mainTeam(), now = new Date().toISOString(), r = S.parentReads.find(x => x.postId === postId && x.userId === DEMO_PARENT);
+    if (r) { if (ack && !r.ackedAt) r.ackedAt = now; } else S.parentReads.push({ postId, userId: DEMO_PARENT, readAt: now, ackedAt: ack ? now : null });
+  }
+  async guardianRemove(linkId: string) { this.net(); const S = this.mainTeam(); S.guardians = S.guardians.filter(g => g.id !== linkId); }
+  async guardianInvite(_pid: string) {
+    this.net();
+    const A = "ABCDEFGHJKMNPQRSTUVWXYZ23456789", c = Array.from({ length: 10 }, () => A[Math.floor(Math.random() * A.length)]).join("");
+    return { code: c.slice(0, 5) + "-" + c.slice(5), expires: new Date(Date.now() + 14 * 864e5).toISOString() };
+  }
+  async guardianDecide(linkId: string, ok: boolean) {
+    this.net();
+    const S = this.mainTeam(), g = S.guardians.find(x => x.id === linkId);
+    if (!g || !ok) { S.guardians = S.guardians.filter(x => x.id !== linkId); return null; }
+    g.status = "active"; g.confirmedAt = g.confirmedAt || new Date().toISOString();
+    return { ...g };
+  }
+  async saveParentPost(_t: string, p: ParentPost) {
+    this.net();
+    const x = cleanPost(p);
+    return { ...x, id: newId(x.id), at: x.at || new Date().toISOString(), author: x.author || this.user.displayName };
+  }
+  async deleteParentPost() { this.net(); }
+  async guardianUpdate(linkId: string, name: string, relation: GuardianRelation) {
+    this.net();
+    const g = this.mainTeam().guardians.find(x => x.id === linkId && x.userId === DEMO_PARENT);
+    if (!g) throw new ApiError("not_found");
+    const n = name.replace(/[\u0000-\u001f]/g, " ").trim();
+    if (n.length < 2 || n.length > 60) throw new ApiError("invalid_name");
+    g.name = n; g.relation = relation;
+  }
+  async guardianAdultOk(linkId: string, ok: boolean) {
+    this.net();
+    const g = this.mainTeam().guardians.find(x => x.id === linkId);
+    if (!g) throw new ApiError("not_found");
+    g.adultOk = ok;
+    return { ...g };
+  }
+  /** wie der Server: neues „Ja“ → Erklärung der Eltern (heute); nur Widerrufe bzw. unverändert → Erklärung bleibt
+   *  (hatte nur das Kind erklärt: dann die beider) */
+  async guardianPhoto(pid: string, c: PhotoConsent) {
+    this.net();
+    const S = this.mainTeam(), old = cleanPhotoConsent(S.photos[pid]), x = cleanPhotoConsent(c);
+    const withdraw = PHOTO_CHANNELS.every(ch => x[ch] === old[ch] || x[ch] === false);
+    const by = !withdraw || !old.by ? "parents" : old.by === "player" ? "both" : old.by;
+    const on = !withdraw || !old.by || old.by === "player" || !old.on ? iso(new Date()) : old.on;
+    const saved: PhotoConsent = { ...x, by, on, note: old.note, at: new Date().toISOString() };
+    S.photos[pid] = saved;
+    return { ...saved };
+  }
+
+  async savePhotoConsent(_pid: string, c: PhotoConsent) { this.net(); return { ...cleanPhotoConsent(c), at: new Date().toISOString() }; }
+  async saveAccident(_t: string, a: Accident) { this.net(); const x = cleanAccident(a); return { ...x, id: newId(x.id), at: new Date().toISOString() }; }
+  async deleteAccident() { this.net(); }
+  /** Demo: Ergebnis wie der Server für das Trainerteam (die Spieler-Ansicht rechnet der Store mit eigener Sicht) */
+  async pollResults(pollId: string) {
+    const D = this.data, p = D?.polls.find(x => x.id === pollId);
+    if (!D || !p) throw new ApiError("not_found");
+    return pollResult(D, p, { staff: true });
+  }
   async saveChallenge(_t: string, c: Challenge) { this.net(); return { ...c, id: newId(c.id) }; }
   async deleteChallenge() { this.net(); }
   async saveChallengeEntry(_e: ChallengeEntry) { this.net(); }

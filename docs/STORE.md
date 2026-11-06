@@ -74,16 +74,17 @@ FÜR TRAINERINNEN UND TRAINER
 • Belastungssteuerung mit Session-RPE: Belastung pro Einheit, Verlauf über die Wochen, akute und chronische Belastung im Vergleich
 • Ampel und Hinweise: Wer braucht mehr Erholung, wer kann mehr?
 • Regeneration nach Alter: Erholungszeiten für neun Altersstufen
-• Mehrere Einheiten am Tag: z. B. Athletik vor dem Mannschaftstraining, Torwarttraining oder eine Reha-Gruppe – jede Woche oder für einzelne Tage
-• Torhüter im Blick: Torwarttraining mit Schwerpunkten, Sprünge als Belastung, Gegentore, Paraden und Torwarttests
-• Trainingseindruck in Sekunden: nur besonders gute oder schwache Leistungen markieren – Durchschnitt ist Standard
-• Anwesenheit in Sekunden erfassen
+• Mehrere Einheiten am Tag, z. B. Athletik vor dem Mannschaftstraining oder eine Reha-Gruppe
+• Torhüter im Blick: Torwarttraining, Sprünge als Belastung, Gegentore, Paraden und Torwarttests
+• Trainingseindruck in Sekunden: nur besonders gute oder schwache Leistungen markieren
+• Kader fürs Spiel mit Zu- und Absagen, Fahrgemeinschaften, Anwesenheit in Sekunden
 • Abwesenheiten mit Grund und stufenweiser Rückkehr ins Training
-• Wachstum im Blick: Körpergröße erfassen und Wachstumsphasen im Jugendbereich berücksichtigen
-• Potenziale und Ziele für jeden Spieler – auf Wunsch für den Spieler sichtbar
-• Kurze Nachrichten an einzelne Spieler, z. B. Pause, Regeneration oder Zusatzaufgabe
-• Team-Chat statt WhatsApp-Gruppe: Teamchat, Trainerteam, Gruppen und Einzelchats – ohne Telefonnummern, mit Kinderschutz für Jugendteams
-• Spielerentwicklung: Kompetenzprofil nach Position, messbare Ziele mit automatischem Fortschritt, Entwicklungsgespräche mit Vorbereitung und Saisonrückblick
+• Notfallkontakte jedes Spielers griffbereit – mit einem Tipp anrufen, auch ohne Netz
+• Größen für Trikots & Co.: Spieler tragen sie selbst ein, die Bestellliste entsteht automatisch
+• Wachstum im Blick: Körpergröße und Wachstumsphasen im Jugendbereich
+• Kurze Nachrichten an einzelne Spieler
+• Team-Chat statt WhatsApp-Gruppe – ohne Telefonnummern, mit Kinderschutz für Jugendteams – und Umfragen, auf Wunsch anonym
+• Spielerentwicklung mit individuellem Entwicklungsprogramm (X-Faktor, Entwicklungsfelder mit Weg und Ziel), Kompetenzprofil, messbaren Zielen und Entwicklungsgesprächen
 • Wochenchallenge für zu Hause und Anfragen für Individualtraining
 • Eigene Trainingsarten und Spielprinzipien
 • Trainerteam mit Rollen für Cheftrainer, Co-Trainer und Physio
@@ -96,10 +97,10 @@ FÜR SPIELERINNEN UND SPIELER
 • Zusatzsport wie Schulsport oder Fitnessstudio ergänzen
 • Abwesenheiten selbst melden
 • Persönliche Tipps zu Erholung und Belastung
-• Mit dem Team chatten, eigene Ziele setzen, sich selbst einschätzen und bei der Wochenchallenge mitmachen
+• „Mein Weg“: Spielerkarte mit X-Faktor, Entwicklungsfelder, Ziele und Stärken-Runde – dazu Team-Chat, Umfragen und Wochenchallenge
 
 KI-COACH (OPTIONAL)
-Stell Fragen zu Training, Belastung und Erholung. Der KI-Coach ist freiwillig, erst nach gesonderter Einwilligung nutzbar und hat ein Tageslimit. Antworten sind als KI-generiert gekennzeichnet.
+Stell Fragen zu Training, Belastung und Erholung. Der KI-Coach ist freiwillig und erst nach gesonderter Einwilligung nutzbar. Antworten sind als KI-generiert gekennzeichnet.
 
 PASSEND FÜR JEDE ALTERSKLASSE
 Infotiefe und Module passen sich der Altersklasse an: Im Kinderfußball steht die Organisation im Vordergrund, im Leistungsbereich die detaillierte Belastungssteuerung.
@@ -112,7 +113,7 @@ DATENSCHUTZ VON ANFANG AN
 • Datenexport und Kontolöschung direkt in der App
 
 SPORTWISSENSCHAFTLICH FUNDIERT
-Die Methoden beruhen auf etablierten sportwissenschaftlichen Ansätzen, etwa Session-RPE nach Foster et al. (2001) und dem Wellness-Fragebogen nach Hooper & Mackinnon (1995). Die Quellen stehen in den Info-Texten der App.
+Die Methoden beruhen auf etablierten sportwissenschaftlichen Ansätzen, etwa Session-RPE nach Foster et al. (2001) und dem Wellness-Fragebogen nach Hooper & Mackinnon (1995). Die Quellen stehen in der App.
 
 Auf dem Smartphone, [dem Tablet] und im Browser – auf Deutsch und Englisch.
 
@@ -139,16 +140,17 @@ FOR COACHES
 • Load management with session RPE: load per session, trends over the weeks, acute vs. chronic load
 • Traffic light and hints: who needs more recovery, who can handle more?
 • Age-based recovery: recovery times for nine age groups
-• Several sessions per day: e.g. athletics before team training, goalkeeper training or a rehab group – weekly or for single days
-• Goalkeepers in focus: goalkeeper sessions with focus areas, jumps as load, goals conceded, saves and goalkeeper tests
-• Training impressions in seconds: only mark particularly good or weak performances – average is the default
-• Take attendance in seconds
+• Several sessions per day, e.g. athletics before team training or a rehab group
+• Goalkeepers in focus: goalkeeper sessions, jumps as load, goals conceded, saves and goalkeeper tests
+• Training impressions in seconds: only mark particularly good or weak performances
+• Match squad with yes/no replies, carpools to away games, attendance in seconds
 • Absences with reason and a step-by-step return to training
-• Growth tracking: record height and take growth phases in youth football into account
-• Potentials and goals for each player – visible to the player if you choose
-• Short messages to individual players, e.g. rest, recovery or extra task
-• Team chat instead of a WhatsApp group: team chat, coaching staff, groups and direct messages – no phone numbers, with safeguarding for youth teams
-• Player development: position-based competency profile, measurable goals with automatic progress, development talks with preparation and a season review
+• Every player's emergency contacts at hand – call with one tap, even offline
+• Kit sizes: players add their own, the order list builds itself
+• Growth tracking: height and growth phases in youth football
+• Short messages to individual players
+• Team chat instead of a WhatsApp group – no phone numbers, with safeguarding for youth teams – plus polls, anonymous if you like
+• Player development with an individual development programme (X-factor, focus areas with a plan and a goal), competency profile, measurable goals and development talks
 • Weekly challenge for at home and requests for individual sessions
 • Custom session types and playing principles
 • Coaching staff roles for head coach, assistant coach and physio
@@ -161,10 +163,10 @@ FOR PLAYERS
 • Add extra sport such as school PE or the gym
 • Report absences yourself
 • Personal tips on recovery and load
-• Chat with your team, set your own goals, assess yourself and join the weekly challenge
+• “My path”: player card with X-factor, focus areas, goals and a strengths round – plus team chat, polls and the weekly challenge
 
 AI COACH (OPTIONAL)
-Ask questions about training, load and recovery. The AI coach is optional, only available after separate consent and has a daily limit. Answers are labelled as AI-generated.
+Ask questions about training, load and recovery. The AI coach is optional and only available after separate consent. Answers are labelled as AI-generated.
 
 FITS EVERY AGE GROUP
 Level of detail and modules adapt to the age group: in kids' football the focus is on organisation, in performance football on detailed load management.
@@ -177,7 +179,7 @@ PRIVACY BUILT IN
 • Data export and account deletion right in the app
 
 BASED ON SPORTS SCIENCE
-The methods are based on established sports-science approaches, such as session RPE (Foster et al., 2001) and the wellness questionnaire by Hooper & Mackinnon (1995). Sources are listed in the app's info texts.
+The methods are based on established sports-science approaches, such as session RPE (Foster et al., 2001) and the wellness questionnaire by Hooper & Mackinnon (1995). Sources are listed in the app.
 
 On your phone, [tablet] and in the browser – in German and English.
 
@@ -191,8 +193,8 @@ Legal notice: [Impressum-URL]
 ```
 <!-- desc-en:end -->
 
-Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE ca. 3.480 Zeichen, EN ca. 3.150 Zeichen – Puffer für
-Preisangaben vorhanden.
+Länge (ohne Codeblock-Markierung, mit Platzhaltern): DE 3.920 Zeichen, EN 3.581 Zeichen. Für die Preisangabe
+bleiben statt des Platzhalters rund 150 Zeichen (DE) bzw. 430 Zeichen (EN) – vor dem Einreichen nachzählen.
 
 ### Formulierungsregeln für alle Store- und Werbetexte
 
@@ -272,7 +274,7 @@ sinngemäß; **Wortlaut und Antwortoptionen in App Store Connect abgleichen**.
 
 | Bereich / Frage | Antwort | Begründung |
 |---|---|---|
-| Elterliche Kontrollen (in der App) | Nein | Die Eltern-Einwilligung ist keine Kontrollfunktion im Sinne des Fragebogens – zu prüfen |
+| Elterliche Kontrollen (in der App) | Nein – zu prüfen | Der Eltern-Zugang zeigt Eltern Termine, Abmeldungen und Nominierungen ihres Kindes und lässt sie Einwilligungen geben; er schränkt die Nutzung durch das Kind nicht ein (keine Sperren, Zeitlimits oder Inhaltsfilter). Ob Apple das als „Parental Controls“ wertet, in App Store Connect prüfen |
 | Altersverifikation (Age Assurance) | Nein | Alter wird nur selbst angegeben (Geburtsdatum) – zu prüfen |
 | Uneingeschränkter Webzugang | Nein | nur eigene Seiten (Datenschutz, Support) |
 | Nutzergenerierte Inhalte | **Ja** (konservativ) | Trainer-Nachrichten, Potenziale, Notizen sind für andere Nutzer im Team sichtbar |
@@ -325,23 +327,24 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 
 | Apple-Kategorie | Datentyp | Erhoben | Verknüpft | Tracking | Zweck | Inhalt bei Trainerbank |
 |---|---|---|---|---|---|---|
-| Kontaktinformationen | Name | ja | ja | nein | App-Funktionalität | Anzeigename, Vor-/Nachname |
-| Kontaktinformationen | E-Mail-Adresse | ja | ja | nein | App-Funktionalität | Konto-E-Mail, E-Mail der Erziehungsberechtigten |
-| Gesundheit & Fitness | Gesundheit | ja | ja | nein | App-Funktionalität | Wohlbefinden, Beschwerden, Krankheit/Verletzung, Rückkehrstufe, Größe, Gewicht |
+| Kontaktinformationen | Name | ja | ja | nein | App-Funktionalität | Anzeigename, Vor-/Nachname, Name der Notfallkontakte, Name der Eltern im Eltern-Zugang |
+| Kontaktinformationen | E-Mail-Adresse | ja | ja | nein | App-Funktionalität | Konto-E-Mail (auch von Eltern im Eltern-Zugang), E-Mail der Erziehungsberechtigten |
+| Kontaktinformationen | Telefonnummer | ja | ja | nein | App-Funktionalität | Telefonnummern der Notfallkontakte (Eltern, Angehörige), die der Spieler oder das Trainerteam einträgt |
+| Gesundheit & Fitness | Gesundheit | ja | ja | nein | App-Funktionalität | Wohlbefinden, Beschwerden, Krankheit/Verletzung, Rückkehrstufe, Größe, Gewicht, Hinweise für den Notfall (z. B. Allergie), Unfallmeldungen (Hergang, Verletzung, Behandlung) |
 | Gesundheit & Fitness | Fitness | ja | ja | nein | App-Funktionalität | Session-RPE, Minuten, Zusatzsport |
 | Benutzerinhalte | Fotos oder Videos | ja | ja | nein | App-Funktionalität | optionales Profilfoto, Fotos von Befunden (Arztbriefe) |
 | Gesundheit & Fitness | Gesundheit (Ergänzung) | ja | ja | nein | App-Funktionalität | Befunde (Bild/PDF) und deren KI-Zusammenfassung, Leistungstests |
 | Benutzerinhalte | E-Mails oder Textnachrichten | ja | ja | nein | App-Funktionalität | Chat-Nachrichten, Reaktionen, Meldungen; Trainer-Nachrichten an Spieler |
-| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen, Selbsteinschätzung, Ziele, Gesprächsprotokolle, Challenge-Einträge, Anfragen für Individualtraining |
+| Benutzerinhalte | Andere Benutzerinhalte | ja | ja | nein | App-Funktionalität | Notizen, Potenziale, Abwesenheitsnotizen, Kalendereinträge, KI-Anfragen, Selbsteinschätzung, Ziele, Gesprächsprotokolle, Entwicklungsprogramm, Selbstanalyse, Stärken-Runde, Antworten in Umfragen, Zu- und Absagen zu Kader-Nominierungen, Fahrgemeinschaften (angebotene Fahrten, Mitfahrer, Suchen), Challenge-Einträge, Anfragen für Individualtraining |
 | Identifikatoren | Benutzer-ID | ja | ja | nein | App-Funktionalität | Konto-ID |
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |
-| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen), Noten, Kontaktliste des Teams |
+| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen, Karten), Sperren, Noten, Kontaktliste des Teams, Kleider- und Schuhgrößen mit Name für die Beflockung, Foto-Erlaubnis |
 | Finanzinformationen | Sonstige Finanzinformationen | ja | ja | nein | App-Funktionalität | Mannschaftskasse: Beiträge, Zahlungen, Geldstrafen, Kassenbuch (keine Konto- oder Kartendaten, keine Zahlungsabwicklung) |
 | Benutzerinhalte | Kundensupport | ja | ja | nein | App-Funktionalität | Rückmeldungen aus der App („Feedback / Fehler melden“): Text, optional Bildschirmfoto |
 | Diagnose | Absturzdaten | ja (nur nach Zustimmung auf dem Gerät) | nein | nein | App-Funktionalität | Absturzberichte über Sentry ohne Konto-Bezug |
 | Diagnose | Sonstige Diagnosedaten | ja | ja | nein | App-Funktionalität | App-Version, Gerätemodell und Betriebssystem in Rückmeldungen; zuletzt geöffnete Seite |
-| Standort, Kontakte, Browserverlauf, Suchverlauf, Käufe, Sensible Daten | – | **nein** | – | – | – | Körperregion und Angaben zum Schmerz sind Gesundheit, kein Standort; Gesundheit gehört nicht unter „Sensible Daten“ |
+| Standort, Kontakte, Browserverlauf, Suchverlauf, Käufe, Sensible Daten | – | **nein** | – | – | – | Körperregion und Angaben zum Schmerz sind Gesundheit, kein Standort; Gesundheit gehört nicht unter „Sensible Daten“; Notfallkontakte werden von Hand eingetragen – kein Zugriff auf das Adressbuch („Kontakte“ meint bei Apple das Adressbuch des Geräts) |
 
 **Zu prüfen:** Falls später In-App-Käufe hinzukommen, Kategorie „Käufe“ ergänzen. Push-Token, KI-Zähler und
 Absturzdaten (Sentry nutzt eine zufällige Kennung der Installation, nicht das Konto): Einordnung anhand der
@@ -370,10 +373,11 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 
 | Google-Kategorie | Datentyp | Erhoben | Geteilt | Nur flüchtig verarbeitet | Pflicht/optional | Zwecke |
 |---|---|---|---|---|---|---|
-| Personenbezogene Daten | Name | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung |
+| Personenbezogene Daten | Name | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung (auch Name der Eltern im Eltern-Zugang) |
 | Personenbezogene Daten | E-Mail-Adresse | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung |
+| Personenbezogene Daten | Telefonnummer | ja | nein | nein | Pflicht (Notfallkontakt beim Beitreten als Spieler) | App-Funktionalität (Notfallkontakte) |
 | Personenbezogene Daten | Nutzer-IDs | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung, Betrugsprävention/Sicherheit |
-| Personenbezogene Daten | Sonstige Informationen | ja | nein | nein | Pflicht (Geburtsdatum), sonst optional | App-Funktionalität |
+| Personenbezogene Daten | Sonstige Informationen | ja | nein | nein | Pflicht (Geburtsdatum), sonst optional | App-Funktionalität (z. B. Position, Kleider- und Schuhgrößen) |
 | Gesundheit und Fitness | Gesundheitsinformationen | ja | nein | nein | optional | App-Funktionalität |
 | Gesundheit und Fitness | Fitnessinformationen | ja | nein | nein | optional | App-Funktionalität |
 | Nachrichten | Sonstige In-App-Nachrichten | ja | nein | nein | optional | App-Funktionalität (Team-Chat, Trainer-Nachrichten) |
@@ -472,6 +476,9 @@ Apple: Felder „Anmeldung erforderlich“ (Benutzername/Passwort) und „Notize
 - Demo-Spieler **volljährig** anlegen (Geburtsdatum vor 2008), damit kein Eltern-Einwilligungsbildschirm den Test
   blockiert; den Eltern-Ablauf in den Notizen beschreiben.
 - Demo-Spieler im Demo-Team mit dem Demo-Trainer verknüpfen; Beispieldaten vorab laden.
+- Für den Eltern-Zugang ein Demo-Elternkonto anlegen, das mit einem minderjährigen Demo-Spieler verknüpft und
+  bestätigt ist (sonst sieht das Review-Team nur „Anfrage gesendet“); in den Notizen beschreiben, dass Eltern nur
+  nach Bestätigung durch das Trainerteam etwas sehen.
 - KI-Tageslimit für Demo-Konten ausreichend hoch setzen.
 - Prüfen, dass „Beispieldaten laden“ nur das eigene Team betrifft.
 

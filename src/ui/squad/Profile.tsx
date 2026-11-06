@@ -13,6 +13,7 @@ import { canDirect, chatSettings } from "../../core/chat";
 import { moveTargets } from "../../core/club";
 import { diff } from "../../core/dates";
 import { assessmentsOf, goalProgress, goalsOf } from "../../core/dev";
+import { programOf, programStatus } from "../../core/program";
 import type { Player } from "../../core/types";
 import { divesIn } from "../../core/units";
 import { useEngine, useStore } from "../../data/store";
@@ -30,6 +31,7 @@ import { PlayerAvatar } from "../playerAvatar";
 import { TermInfo } from "../termInfo";
 import { radius, statusColor, useTheme } from "../theme";
 import { GroupChip } from "./Groups";
+import { EmergencySection } from "../emergency";
 import { MergeSheet, PlayerSheet } from "./PlayerForm";
 import { ExtraCard, GamesCard, PotCard, RecCard } from "./ProfileCards";
 
@@ -74,12 +76,13 @@ function useSections(p: Player | undefined) {
       value: mods.spielanalyse && ss.avg != null ? E.num(ss.avg, 1) : null });
   }
   if (mods.entwicklung) {
-    // Kurzfassung: neue Selbsteinschätzung bzw. noch nie eingeschätzt, laufende Ziele (davon hinter Plan), nächstes Gespräch – Details auf der Entwicklungsseite
+    // Kurzfassung: Entwicklungsprogramm, neue Selbsteinschätzung bzw. noch nie eingeschätzt, laufende Ziele (davon hinter Plan), nächstes Gespräch – Details auf der Entwicklungsseite
     const goals = goalsOf(E.D, p.id).filter(g => g.status === "active"), behind = goals.filter(g => goalProgress(E.D, g, E.TODAY).behind).length;
     const coach = assessmentsOf(E.D, p.id, "coach")[0], self = assessmentsOf(E.D, p.id, "self")[0], selfNew = !!self && (!coach || self.date > coach.date);
     const talk = E.D.talks.filter(x => x.pid === p.id).sort((a, b) => a.date < b.date ? 1 : -1)[0], due = !!talk?.next && talk.next <= E.TODAY;
-    L.push({ k: "dev", icon: "trend", color: c.event, title: t("dv_title"), subLines: 2,
-      sub: [selfNew ? t("dv_ovSelfNew") : !coach ? t("ps_notAssessed") : "", goals.length ? tf("ps_goals", { n: goals.length }) + (behind ? ", " + tf("dv_ovBehind", { n: behind }) : "") : t("ps_noGoals"), talk?.next ? `${t("dv_ovTalk")} ${E.de(talk.next)}` : ""].filter(Boolean).join(" · "),
+    const prog = programStatus(programOf(E.D, p.id));
+    L.push({ k: "dev", icon: "weg", color: c.event, title: t("dv_title"), subLines: 2,
+      sub: [prog === "none" ? t("ep_status_none") : `${t("ep_ovProg")}: ${t("ep_status_" + prog)}`, selfNew ? t("dv_ovSelfNew") : !coach ? t("ps_notAssessed") : "", goals.length ? tf("ps_goals", { n: goals.length }) + (behind ? ", " + tf("dv_ovBehind", { n: behind }) : "") : t("ps_noGoals"), talk?.next ? `${t("dv_ovTalk")} ${E.de(talk.next)}` : ""].filter(Boolean).join(" · "),
       value: due ? t("ps_due") : selfNew ? t("newP") : null, valueColor: due || selfNew ? c.warn : undefined });
   }
   const pot = (E.D.pot[p.id] || []).length;
@@ -191,8 +194,8 @@ export function ProfileOverview({ id }: { id: string }) {
       </Row>
       {wide ? <Row align="flex-start" gap={24}>
         <Col gap={20} style={{ flex: 1, minWidth: 0 }}>{head}{kpis}</Col>
-        <Col gap={20} style={{ flex: 1, minWidth: 0 }}>{list}</Col>
-      </Row> : <>{head}{kpis}{list}</>}
+        <Col gap={20} style={{ flex: 1, minWidth: 0 }}>{list}<EmergencySection p={p} /></Col>
+      </Row> : <>{head}{kpis}{list}<EmergencySection p={p} /></>}
       <PlayerSheet player={edit} onClose={() => { setEdit(undefined); if (!E.P(id)) goBack(); }} />
       <MergeSheet newPlayer={merge} onClose={() => { setMerge(null); if (!E.P(id)) router.replace("/coach/kader"); }} />
       <MoveSheet player={move} onClose={moved => { setMove(null); if (moved) router.replace("/coach/kader"); }} />

@@ -11,6 +11,7 @@ import { useEngine, useStore } from "../../data/store";
 import { Icon, type IconName } from "../icons";
 import { MyTarget } from "../indiv";
 import { Col, Muted, Row } from "../kit";
+import { RidesLink } from "../rides";
 import { CheckDot, dutyName } from "../tasks/widgets";
 import { radius, rpeColor, useTheme, withAlpha } from "../theme";
 
@@ -69,9 +70,12 @@ export function AgendaDay({ pid, date, testID }: { pid: string; date: string; te
   if (x.match) {
     const m = x.match, mp = s.myPlans.find(p => p.matchId === m.id);
     timed.push([m.zeit, row("m", c.accentTx, "ball", t("it_match"), `${t("vs")} ${m.gegner}`, `${m.zeit} · ${m.heim ? t("home") : t("away")} · ${t("comp_" + m.comp)}`,
-      mp && E.mods.matchplan ? <Pressable testID={"pc-mp-" + mp.id} accessibilityRole="button" onPress={() => router.push("/player/matchplan/" + mp.id)} style={{ alignSelf: "flex-start", paddingTop: 4 }}>
-        <Row gap={5}><Icon name="board" size={14} color={c.accentTx} /><Text style={{ fontSize: 13, fontWeight: "700", color: c.accentTx }}>{t("pc_mpOpen")}</Text></Row>
-      </Pressable> : null)]);
+      <>
+        {mp && E.mods.matchplan ? <Pressable testID={"pc-mp-" + mp.id} accessibilityRole="button" onPress={() => router.push("/player/matchplan/" + mp.id)} style={{ alignSelf: "flex-start", paddingTop: 4 }}>
+          <Row gap={5}><Icon name="board" size={14} color={c.accentTx} /><Text style={{ fontSize: 13, fontWeight: "700", color: c.accentTx }}>{t("pc_mpOpen")}</Text></Row>
+        </Pressable> : null}
+        <RidesLink area="player" kind="match" refId={m.id} />
+      </>)]);
   }
   const tr = x.train;
   if (tr && tr.kind !== "frei") timed.push([E.zeitOf(date), row("t", showPlan && !kids ? rpeColor(c, tr.rpe) : c.ok, "whistle", t("it_training"), showPlan ? E.kn(tr.kind) : t("it_training"),
@@ -83,7 +87,7 @@ export function AgendaDay({ pid, date, testID }: { pid: string; date: string; te
   for (const u of E.unitsFor(pid, date)) timed.push([u.zeit, row("u" + u.slot, u.art === "tw" ? c.event : "#16a3a3", "stopwatch", E.unitTitle(u),
     u.art === "tw" && u.themes?.length ? u.themes.map(k => t("tw_th_" + k)).join(" · ") : (u.inhalt.split("\n")[0] || E.unitTitle(u)),
     `${u.zeit} · ${u.dauer} ${t("min")}${showPlan && !kids ? " · " + t("intensity") + ": " + E.intWord(E.unitRpe(u)) : ""}`)]);
-  x.events.forEach(e => timed.push([e.zeit || "99:99", row(e.id, c.event, "calendar", t("it_event"), e.titel, e.zeit || undefined)]));
+  x.events.forEach(e => timed.push([e.zeit || "99:99", row(e.id, c.event, "calendar", t("it_event"), e.titel, e.zeit || undefined, <RidesLink area="player" kind="event" refId={e.id} />)]));
   timed.sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0);
   const dues = due.filter(z => z.date === date);
   return (

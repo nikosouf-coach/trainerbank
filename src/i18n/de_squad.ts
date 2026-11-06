@@ -22,7 +22,7 @@ export const de_squad: Dict = {
   pv_plan: "Wochenplan & Trainingsinhalte", pv_load: "Eigene Belastung, Erholung & Ampel", pv_att: "Eigene Trainingsbeteiligung",
   pv_tips: "Tipps zu Regeneration, Kraft, Ernährung & Schlaf", pv_goals: "Ziele & Potenziale (nur freigegebene)", pv_ai: "KI-Coach für Spieler",
   pv_ratings: "Noten & Feedback", pv_stats: "Spielstatistik (Minuten, Tore, Assists)", pv_tests: "Leistungstests", pv_videos: "Videos", pv_contacts: "Kontaktliste",
-  pabs_t: "Absagen durch Spieler", pabs_d: "Spieler dürfen Trainings in der App absagen und Abwesenheiten eintragen. Aus: Nur das Trainerteam trägt ein.",
+  pabs_t: "Absagen durch Spieler", pabs_d: "Spieler dürfen Trainings in der App absagen, Abwesenheiten eintragen und bei einer Nominierung fürs Spiel zu- oder absagen. Aus: Nur das Trainerteam trägt ein.",
   // Mehr (Übersicht)
   mh_team: "Mannschaft", mh_training: "Training & Prinzipien", mh_access: "Spieler-App & Trainerteam", mh_account: "Konto & Datenschutz",
   mh_trainingSub: "{n} Trainingstage · Athletik & Torwarttraining · Prinzipien · eigene Trainingsarten",

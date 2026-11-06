@@ -21,7 +21,7 @@ export const en_squad: Dict = {
   pv_plan: "Weekly plan & session content", pv_load: "Own load, recovery & traffic light", pv_att: "Own attendance",
   pv_tips: "Tips on recovery, strength, nutrition & sleep", pv_goals: "Goals & potentials (released ones only)", pv_ai: "AI coach for players",
   pv_ratings: "Ratings & feedback", pv_stats: "Match stats (minutes, goals, assists)", pv_tests: "Fitness tests", pv_videos: "Videos", pv_contacts: "Contact list",
-  pabs_t: "Cancellations by players", pabs_d: "Players may cancel sessions in the app and enter absences. Off: only the coaching staff enters them.",
+  pabs_t: "Cancellations by players", pabs_d: "Players may cancel sessions in the app, enter absences and say yes or no when nominated for a match. Off: only the coaching staff enters them.",
   mh_team: "Team", mh_training: "Training & principles", mh_access: "Player app & coaching staff", mh_account: "Account & privacy",
   mh_trainingSub: "{n} training days · athletics & goalkeeping · principles · own session types",
   cd_title: "Invite players", cd_sub: "Players download the app, enter the team code and create their profile.",

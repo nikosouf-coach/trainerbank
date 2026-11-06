@@ -21,7 +21,7 @@ export default function Konto() {
   const [ask, setAsk] = useState<null | "delete" | ConsentKind>(null);
   const [busy, setBusy] = useState(false); const [dash, setDash] = useState(false);
   const [push, setPush] = useState<PushStatus | null>(null);
-  const isPlayer = s.viewAs === "player";
+  const isPlayer = s.viewAs === "player", isParent = s.viewAs === "parent";
   // Eigenes Trainerprofil
   const my = s.myStaff, myPhoto = usePhotoUrl(my?.photo || null);
   const [prof, setProf] = useState<ProfileDraft | null>(null), [newPhoto, setNewPhoto] = useState<string | null>(null);
@@ -104,13 +104,22 @@ export default function Konto() {
         <Btn small kind="ghost" icon="plus" label={t("st_title")} onPress={() => router.push("/start")} style={{ alignSelf: "flex-start" }} />
       </Card> : null}
 
+      {!s.isDemo ? <Card testID="ko-parent">
+        <CardTitle title={t("el_title")} />
+        <Muted small>{s.myChildren.length ? s.tr.tf("el_koKids", { n: s.myChildren.map(k => k.vn).join(", ") }) : t("el_koNone")}</Muted>
+        <Row gap={8} wrap>
+          {s.myChildren.length && !isParent ? <Btn small testID="ko-parent-view" label={t("el_parentView")} onPress={() => router.push("/parent")} /> : null}
+          <Btn small kind="ghost" icon="plus" testID="ko-parent-link" label={t("el_enterCode")} onPress={() => router.push("/parent-link")} />
+        </Row>
+      </Card> : null}
+
       <Card testID="ko-consents">
         <CardTitle title={t("cs_title")} />
         {isPlayer ? <>
           {consentRow("health_data", t("cs_health"), t("cs_health_s"), t("cs_health_l"))}
           {consentRow("ai", t("cs_ai"), t("cs_ai_s"), t("cs_ai_l"))}
           {s.D?.team.modules.befunde ? consentRow("findings", t("cs_findings"), t("cs_findings_s"), t("cs_findings_l")) : null}
-        </> : consentRow("staff_confidentiality", t("sj_title"), t("sj_conf"), t("sj_conf"))}
+        </> : isParent ? null : consentRow("staff_confidentiality", t("sj_title"), t("sj_conf"), t("sj_conf"))}
         <ListItem title={t("cs_privacy")} sub={t("cs_privacy_s")} right={<StatusChip status={s.consents?.privacy ? "ok" : "none"} label={t(s.consents?.privacy ? "cs_active" : "cs_inactive")} />} />
       </Card>
 

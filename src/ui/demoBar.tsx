@@ -16,11 +16,12 @@ export function DemoBar() {
       <Row between wrap gap={8}>
         <Row gap={8}>
           <T v="eyebrow" color={c.ink}>Demo</T>
-          <Seg testID="demo-view" value={s.viewAs === "player" ? "player" : s.demoStaff ? "co" : "coach"} onChange={v => {
-            if (v === "player") { s.setDemoView("player"); router.replace(s.demoPlayer ? "/player/heute" : "/demo-player"); }
+          <Seg testID="demo-view" value={s.viewAs === "parent" ? "parent" : s.viewAs === "player" ? "player" : s.demoStaff ? "co" : "coach"} onChange={v => {
+            if (v === "parent") { s.setDemoView("parent"); router.replace("/parent"); }
+            else if (v === "player") { s.setDemoView("player"); router.replace(s.demoPlayer ? "/player/heute" : "/demo-player"); }
             else if (v === "co") { s.setDemoView("coach", null, co?.id || null); router.replace("/coach/heute"); }
             else { s.setDemoView("coach", null, null); router.replace("/coach/heute"); }
-          }} options={[{ key: "coach", label: t("demo_coach") }, ...(co ? [{ key: "co", label: t("demo_co") }] : []), { key: "player", label: t("demo_player") }]} />
+          }} options={[{ key: "coach", label: t("demo_coach") }, ...(co ? [{ key: "co", label: t("demo_co") }] : []), { key: "player", label: t("demo_player") }, ...(s.D?.team.modules.eltern !== false ? [{ key: "parent", label: t("demo_parent") }] : [])]} />
         </Row>
         <Row gap={8}>
           {/* Offline ausprobieren: Einträge landen in der Warteschlange und werden beim Wiedereinschalten gesendet */}
