@@ -6,7 +6,7 @@ import { buildDemo, demoExtras, demoTeam } from "../demo";
 import { DICTS, translator } from "../i18n";
 import {
   applyRide, assignable, cleanRide, defaultDepart, driverLabel, driverText, driverWho, dropRideRef, freeSeats, needsOf, refOf, rideCheck, rideName,
-  rideRefsAhead, rideStatus, rideSummary, ridesOf, ridesText, seatsOf, squadMeet, withoutRide, type RideActor,
+  rideRefsAhead, rideStatus, rideSummary, rideableEvent, ridesOf, ridesText, seatsOf, squadMeet, withoutRide, type RideActor,
 } from "../rides";
 import type { Ride, TeamData } from "../types";
 
@@ -56,6 +56,7 @@ test("Ziele für die Startseite: Auswärtsspiele in 8 Tagen, Ziele mit Fahrten i
   assert.ok(!rideRefsAhead(D, TODAY, 30).some(r => r.id === home.id), "Heimspiel ohne Fahrten nicht dabei");
   D.rideNeeds.push({ kind: "match", refId: home.id, pid: "p1" });
   assert.ok(rideRefsAhead(D, TODAY, 30).some(r => r.id === home.id), "Heimspiel mit Suchendem dabei");
+  assert.ok(!rideableEvent({ typ: "frei" }) && !rideableEvent({ typ: "foto" }) && !rideableEvent({ typ: "meeting" }) && rideableEvent({ typ: "lager" }) && rideableEvent({ typ: "sonst" }));
   const ev = D.events.find(e => e.typ === "frei");
   if (ev) { D.rideNeeds.push({ kind: "event", refId: ev.id, pid: "p1" }); assert.ok(!rideRefsAhead(D, TODAY, 60).some(r => r.id === ev.id), "trainingsfrei: keine Fahrten"); }
   assert.ok(!rideRefsAhead(D, addDaysIso(m.date, 1), 30).some(r => r.id === m.id), "vorbei: nicht dabei");

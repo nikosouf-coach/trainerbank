@@ -28,7 +28,7 @@ export const de_rides: Dict = {
   fg_removeA: "{n} austragen", fg_needRmA: "{n} sucht nicht mehr",
   // Trainerteam
   fg_add: "Fahrt anlegen", fg_assign: "Spieler zuordnen", fg_assignShort: "Zuordnen", fg_share: "Im Teamchat teilen", fg_shared: "Im Teamchat geteilt",
-  fg_needsT: "Suchen noch eine Mitfahrgelegenheit ({n})", fg_searching: "sucht eine Mitfahrgelegenheit", fg_inOther: "fährt bei {d}", fg_forWhom: "Fahrt von {n}",
+  fg_needsT: "Suchen noch eine Mitfahrgelegenheit ({n})", fg_searching: "sucht eine Mitfahrgelegenheit", fg_inOther: "fährt bei {d}", fg_forWhom: "Spieler: {n}",
   fg_withoutT: "Noch ohne Angabe ({n})",
   fg_withoutD: "Viele fahren mit den eigenen Eltern – nur zum Nachfragen. Abwesende sind nicht dabei.",
   fg_withoutSquad: "Aus dem Kader – viele fahren mit den eigenen Eltern, nur zum Nachfragen. Abwesende sind nicht dabei.",

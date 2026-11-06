@@ -38,10 +38,11 @@ export function refOf(D: Pick<TeamData, "matches" | "events">, kind: RideKind, i
 }
 /** Ziel einer Fahrt per ID (Spiel oder Termin) */
 export const refById = (D: Pick<TeamData, "matches" | "events">, id: string): RideRef | null => refOf(D, "match", id) || refOf(D, "event", id);
-/** Für Termine ohne Anreise (trainingsfrei) gibt es keine Fahrgemeinschaften */
-export const rideableEvent = (e: { typ: string }): boolean => e.typ !== "frei";
+/** Fahrgemeinschaften nur für Termine mit Anreise (nicht trainingsfrei, Teamfoto, Besprechung) */
+export const rideableEvent = (e: { typ: string }): boolean => !["frei", "foto", "meeting"].includes(e.typ);
 
-const byTime = (a: Ride, b: Ride) => (a.time || "99:99").localeCompare(b.time || "99:99") || a.driver.localeCompare(b.driver, "de") || a.id.localeCompare(b.id);
+// nach Abfahrt; bei gleicher Zeit Fahrten von Spielern bzw. Eltern vor denen des Trainerteams
+const byTime = (a: Ride, b: Ride) => (a.time || "99:99").localeCompare(b.time || "99:99") || Number(!a.driverPid) - Number(!b.driverPid) || a.driver.localeCompare(b.driver, "de") || a.id.localeCompare(b.id);
 /** Fahrten zu einem Ziel (nach Abfahrt) */
 export const ridesOf = (D: Pick<TeamData, "rides">, refId: string): Ride[] => D.rides.filter(r => r.refId === refId).sort(byTime);
 /** Mitfahrer einer Fahrt */

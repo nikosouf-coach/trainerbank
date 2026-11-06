@@ -26,7 +26,7 @@ export const en_rides: Dict = {
   fg_deleteQPax: "Really delete this lift? The passengers will then need a lift again.",
   fg_removeA: "Remove {n}", fg_needRmA: "{n} no longer needs a lift",
   fg_add: "Add lift", fg_assign: "Assign players", fg_assignShort: "Assign", fg_share: "Share in team chat", fg_shared: "Shared in the team chat",
-  fg_needsT: "Still need a lift ({n})", fg_searching: "needs a lift", fg_inOther: "going with {d}", fg_forWhom: "Lift by {n}",
+  fg_needsT: "Still need a lift ({n})", fg_searching: "needs a lift", fg_inOther: "going with {d}", fg_forWhom: "Player: {n}",
   fg_withoutT: "Nothing entered yet ({n})",
   fg_withoutD: "Many travel with their own parents – just a prompt to ask. Absent players aren't listed.",
   fg_withoutSquad: "From the squad – many travel with their own parents, just a prompt to ask. Absent players aren't listed.",
