@@ -644,6 +644,16 @@ function useStoreValue() {
         return true;
       } catch (e) { toast(errText(e)); return false; }
     },
+    /** Eltern berichtigen ihren Namen bzw. die Beziehung (sehen das Trainerteam und das Kind) */
+    parentUpdate: async (linkId: string, name: string, relation: GuardianRelation): Promise<boolean> => {
+      const api = ref.current.api;
+      try {
+        await api.guardianUpdate(linkId, name.trim(), relation);
+        await loadParentOf(api);
+        toast(translator(ref.current.lang).t("el_updated"));
+        return true;
+      } catch (e) { toast(errText(e)); return false; }
+    },
     /** Eltern lösen die Verknüpfung selbst */
     parentLeave: async (linkId: string): Promise<boolean> => {
       const api = ref.current.api;

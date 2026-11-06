@@ -19,7 +19,7 @@ import { cleanPhotoConsent, PHOTO_CHANNELS } from "../core/photos";
 import { cleanPost, DEMO_PARENT, isMinor, isUnder16 } from "../core/parents";
 import { emptyTeamData } from "../core/types";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
-import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, Suspension, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile, PhotoConsent, Accident, AbsenceType, ParentPost } from "../core/types";
+import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, Suspension, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile, PhotoConsent, Accident, AbsenceType, ParentPost, GuardianRelation } from "../core/types";
 import { PERM_PRESETS, PERMS, accessRoleFor } from "../core/perms";
 import { ApiError, type Api, type ChatListData, type ConsentState, type FeedbackInput, type FeedbackItem, type Membership, type StaffEntry, type UserInfo, type UserPrefs } from "./api";
 
@@ -555,7 +555,8 @@ export class DemoApi implements Api {
     return D.guardians.filter(g => g.userId === DEMO_PARENT).map(g => {
       const p = D.players.find(x => x.id === g.pid);
       return { linkId: g.id, pid: g.pid, vn: p?.vn || "", nn: p?.nn || "", teamId: "demo", team: D.team.name, club: D.team.club, cls: D.team.cls,
-        status: g.status, relation: g.relation, access: g.status === "active" && (g.adultOk || isMinor(p, today)) && D.team.modules.eltern !== false, off: D.team.modules.eltern === false };
+        status: g.status, relation: g.relation, access: g.status === "active" && p?.active !== false && (g.adultOk || isMinor(p, today)) && D.team.modules.eltern !== false,
+        off: D.team.modules.eltern === false, inactive: p?.active === false, myName: g.name };
     });
   }
   async guardianChildData(pid: string) {
@@ -563,9 +564,12 @@ export class DemoApi implements Api {
     const S = this.mainTeam(), today = iso(new Date()), from = addDays(today, -14), to = addDays(today, 60);
     if (!S.guardians.some(g => g.pid === pid && g.userId === DEMO_PARENT && g.status === "active")) throw new ApiError("not_found");
     const p = S.players.find(x => x.id === pid);
-    if (!p) throw new ApiError("not_found");
-    const D = emptyTeamData({ ...S.team, joinCode: "", staffCode: "" });
-    D.players = [{ ...p, kg: null, photo: null, groups: [] }];
+    if (!p || p.active === false) throw new ApiError("not_found");
+    // wie der Server: vom Team nur die Trainingszeiten, vom Kind nur Name, Geburtsdatum und aktiv
+    const T = S.team.settings;
+    const D = emptyTeamData({ ...S.team, joinCode: "", staffCode: "", logo: null,
+      settings: { days: T.days, dauer: T.dauer, fix: T.fix, spieltag: T.spieltag, anstoss: T.anstoss, ...(T.playerAbs !== undefined ? { playerAbs: T.playerAbs } : {}) } });
+    D.players = [{ ...p, pos: "", nr: null, kg: null, photo: null, groups: [], userId: null }];
     D.matches = S.matches.filter(m => m.date >= from && m.date <= to).map(m => ({ ...m, result: null }));
     D.events = S.events.filter(e => e.date >= from && e.date <= to);
     for (const [d, v] of Object.entries(S.cal)) if (d >= from && d <= to) D.cal[d] = { ...v };
@@ -574,7 +578,7 @@ export class DemoApi implements Api {
     const hide = (a: Absence) => !this.parentAbs.has(a.id) && (a.typ === "krank" || a.typ === "verletzung");
     const mine = S.absences.filter(a => a.pid === pid && (a.bis || to) >= from && a.von <= to);
     D.absences = mine.map(a => ({ ...a, typ: hide(a) ? "sonst" as const : a.typ, stufe: null, notiz: "", area: undefined }));
-    D.noms = S.noms.filter(n => n.pid === pid && S.squads[n.matchId]?.published && D.matches.some(m => m.id === n.matchId && m.date >= addDays(today, -1))).map(n => ({ ...n }));
+    D.noms = S.noms.filter(n => n.pid === pid && S.squads[n.matchId]?.published && D.matches.some(m => m.id === n.matchId && m.date >= addDays(today, -1))).map(n => ({ ...n, reason: "" }));
     for (const n of D.noms) D.squads[n.matchId] = { ...S.squads[n.matchId], showAll: false };
     if (S.photos[pid]) D.photos[pid] = { ...S.photos[pid] };
     const posts = S.parentPosts.map(x => { const r = S.parentReads.find(y => y.postId === x.id && y.userId === DEMO_PARENT); return { ...x, readAt: r?.readAt ?? null, ackedAt: r?.ackedAt ?? null }; });
@@ -632,6 +636,14 @@ export class DemoApi implements Api {
     return { ...x, id: newId(x.id), at: x.at || new Date().toISOString(), author: x.author || this.user.displayName };
   }
   async deleteParentPost() { this.net(); }
+  async guardianUpdate(linkId: string, name: string, relation: GuardianRelation) {
+    this.net();
+    const g = this.mainTeam().guardians.find(x => x.id === linkId && x.userId === DEMO_PARENT);
+    if (!g) throw new ApiError("not_found");
+    const n = name.replace(/[\u0000-\u001f]/g, " ").trim();
+    if (n.length < 2 || n.length > 60) throw new ApiError("invalid_name");
+    g.name = n; g.relation = relation;
+  }
   async guardianAdultOk(linkId: string, ok: boolean) {
     this.net();
     const g = this.mainTeam().guardians.find(x => x.id === linkId);

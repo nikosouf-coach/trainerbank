@@ -27,6 +27,7 @@ import { PlayerSquadCard } from "../../../src/ui/nomination";
 import { PlayerRidesCard } from "../../../src/ui/rides";
 import { PlayerCardsNotice } from "../../../src/ui/cards";
 import { PlayerBirthdayCard } from "../../../src/ui/birthdays";
+import { PlayerGuardiansNotice } from "../../../src/ui/parent";
 import { PlayerEmergencyCard } from "../../../src/ui/emergency";
 import { PlayerPlansCard } from "../../../src/ui/matchplan/cards";
 import { radius, useTheme } from "../../../src/ui/theme";
@@ -88,6 +89,7 @@ export default function PlayerHeute() {
       <PlayerBirthdayCard />
       <PlayerEmergencyCard />
       <PlayerCardsNotice />
+      <PlayerGuardiansNotice />
       <CrashAsk />
       {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
       <CustomizeLinks testID="p-dash-edit" onDash={() => setEdit(true)} />

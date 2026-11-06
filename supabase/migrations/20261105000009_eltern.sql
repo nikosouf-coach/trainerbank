@@ -8,7 +8,11 @@
 --   guardian_code_attempts begrenzt Fehlversuche (10 je Stunde)
 -- - parent_posts / parent_post_reads: Elterninfo vom Trainerteam (Recht „squad“), gelesen und bestätigt
 -- - guardian_child_data: alles, was Eltern sehen, als ein Paket (Datenminimierung: nur nötige Felder, Zeitfenster;
---   Krankheit und Verletzung nur bei eigenen Abmeldungen, sonst nur „abwesend“)
+--   Krankheit und Verletzung nur bei eigenen Abmeldungen, sonst nur „abwesend“; Team nur mit Trainingszeiten, ohne
+--   übrige Einstellungen; Nominierung ohne Absagegrund des Kindes)
+-- - Zugang ruht, solange das Kind nicht aktiv im Team ist (players.inactive_since, Trigger players_guardian_sync);
+--   30 Tage danach wird die Verknüpfung gelöscht; wechselt die Spielerzeile das Team, muss das neue Trainerteam neu
+--   bestätigen
 -- - guardian_absence, guardian_answer, guardian_consent, parent_post_read: Abmelden, Zu-/Absage, Einwilligungen
 -- - Einwilligungen für Kinder unter 16 (Art. 8 DSGVO): bestätigte Eltern willigen selbst ein (consents mit player_id);
 --   missing_health_consent und photo_consent_save berücksichtigen das
@@ -80,6 +84,31 @@ create table if not exists public.parent_post_reads (
 );
 create index if not exists parent_post_reads_user_idx on public.parent_post_reads (user_id);
 
+-- Seit wann ist ein Spieler nicht mehr aktiv? (setzt nur der Server – für Löschfristen und den Eltern-Zugang)
+alter table public.players add column if not exists inactive_since timestamptz;
+update public.players set inactive_since = now() where not active and inactive_since is null;
+comment on column public.players.inactive_since is 'Zeitpunkt der Deaktivierung (null = aktiv); setzt der Trigger players_inactive_since.';
+
+create or replace function public.players_inactive_since()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if tg_op = 'INSERT' then
+    new.inactive_since := case when new.active then null else now() end;
+  elsif new.active is distinct from old.active then
+    new.inactive_since := case when new.active then null else now() end;
+  else
+    new.inactive_since := old.inactive_since;   -- nicht von Hand änderbar
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists players_inactive_since on public.players;
+create trigger players_inactive_since before insert or update on public.players
+  for each row execute function public.players_inactive_since();
+
 -- ---------------------------------------------------------------------
 -- Hilfsfunktionen
 -- ---------------------------------------------------------------------
@@ -116,8 +145,8 @@ stable
 security definer
 set search_path = public
 as $$
-  select exists (select 1 from public.player_guardians g
-                  where g.player_id = p_player and g.user_id = auth.uid() and g.status = 'active'
+  select exists (select 1 from public.player_guardians g join public.players p on p.id = g.player_id
+                  where g.player_id = p_player and g.user_id = auth.uid() and g.status = 'active' and p.active
                     and (g.adult_ok or public.player_minor(g.player_id)) and public.team_parents_on(g.team_id))
 $$;
 
@@ -128,8 +157,8 @@ stable
 security definer
 set search_path = public
 as $$
-  select exists (select 1 from public.player_guardians g
-                  where g.team_id = p_team and g.user_id = auth.uid() and g.status = 'active'
+  select exists (select 1 from public.player_guardians g join public.players p on p.id = g.player_id
+                  where g.team_id = p_team and g.user_id = auth.uid() and g.status = 'active' and p.active
                     and (g.adult_ok or public.player_minor(g.player_id))) and public.team_parents_on(p_team)
 $$;
 
@@ -479,9 +508,35 @@ as $$
 begin
   update public.consents set withdrawn_at = now()
    where user_id = old.user_id and player_id = old.player_id and kind in ('parental', 'health_data') and withdrawn_at is null;
+  -- keine Verknüpfung mehr im Team: Lesebestätigungen der Elterninfo dort werden nicht mehr gebraucht
+  if not exists (select 1 from public.player_guardians g where g.user_id = old.user_id and g.team_id = old.team_id) then
+    delete from public.parent_post_reads r using public.parent_posts x
+     where r.post_id = x.id and x.team_id = old.team_id and r.user_id = old.user_id;
+  end if;
   return old;
 end;
 $$;
+
+-- Wechselt eine Spielerzeile das Team, bestätigt das neue Trainerteam die Eltern neu (Einladungen verfallen)
+create or replace function public.players_guardian_sync()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.team_id is distinct from old.team_id then
+    update public.player_guardians set team_id = new.team_id, status = 'pending', confirmed_at = null, confirmed_by = null
+     where player_id = new.id;
+    delete from public.guardian_invites where player_id = new.id;
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.players_guardian_sync() from public, anon, authenticated;
+drop trigger if exists players_guardian_sync on public.players;
+create trigger players_guardian_sync after update of team_id on public.players
+  for each row execute function public.players_guardian_sync();
 revoke all on function public.player_guardians_ended() from public, anon, authenticated;
 drop trigger if exists player_guardians_ended on public.player_guardians;
 create trigger player_guardians_ended after delete on public.player_guardians
@@ -509,20 +564,46 @@ begin
 end;
 $$;
 
+-- Eltern ändern ihren Namen bzw. die Beziehung selbst (Berichtigung, Art. 16 DSGVO)
+create or replace function public.guardian_update(p_link uuid, p_name text, p_relation text)
+returns public.player_guardians
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_g    public.player_guardians;
+  v_name text := btrim(regexp_replace(coalesce(p_name, ''), '[[:cntrl:]]', ' ', 'g'));
+begin
+  select * into v_g from public.player_guardians where id = p_link;
+  if v_g.id is null or v_g.user_id is distinct from auth.uid() then
+    raise exception 'not_found' using errcode = 'P0002';
+  end if;
+  if char_length(v_name) not between 2 and 60 then
+    raise exception 'invalid_name' using errcode = '22023';
+  end if;
+  if p_relation is null or p_relation not in ('mother', 'father', 'guardian') then
+    raise exception 'invalid' using errcode = '22023';
+  end if;
+  update public.player_guardians set name = v_name, relation = p_relation where id = p_link returning * into v_g;
+  return v_g;
+end;
+$$;
+
 -- ---------------------------------------------------------------------
 -- Was Eltern sehen
 -- ---------------------------------------------------------------------
 create or replace function public.guardian_children()
 returns table (link_id uuid, player_id uuid, first_name text, last_name text, team_id uuid, team_name text, club text,
-               age_class text, status text, relation text, access boolean, module_on boolean)
+               age_class text, status text, relation text, access boolean, module_on boolean, child_active boolean, my_name text)
 language sql
 stable
 security definer
 set search_path = public
 as $$
   select g.id, g.player_id, p.first_name, coalesce(p.last_name, ''), g.team_id, t.name, t.club, t.age_class, g.status, g.relation,
-         g.status = 'active' and (g.adult_ok or public.player_minor(g.player_id)) and public.team_parents_on(g.team_id),
-         public.team_parents_on(g.team_id)
+         g.status = 'active' and p.active and (g.adult_ok or public.player_minor(g.player_id)) and public.team_parents_on(g.team_id),
+         public.team_parents_on(g.team_id), p.active, g.name
     from public.player_guardians g
     join public.players p on p.id = g.player_id
     join public.teams t on t.id = g.team_id
@@ -558,9 +639,16 @@ begin
   v_from := v_today - 14;
   v_to := v_today + 60;
   return jsonb_build_object(
-    'team', (select to_jsonb(t) - 'join_code' - 'staff_code' - 'principles' - 'created_by' - 'owner_id' from public.teams t where t.id = v_team),
+    -- Team: Name, Verein, Altersklasse, Module und nur die Trainingszeiten aus den Einstellungen (keine Kasse, Dienste,
+    -- Strafen, weiteren Einheiten, Chat- oder Testeinstellungen – dort stehen auch Spieler-IDs anderer Kinder)
+    'team', (select jsonb_build_object('id', t.id, 'club', t.club, 'name', t.name, 'age_class', t.age_class, 'depth', t.depth,
+                                       'accent', t.accent, 'timezone', t.timezone, 'modules', t.modules,
+                                       'settings', jsonb_strip_nulls(jsonb_build_object('days', t.settings -> 'days', 'dauer', t.settings -> 'dauer',
+                                         'fix', t.settings -> 'fix', 'spieltag', t.settings -> 'spieltag', 'anstoss', t.settings -> 'anstoss',
+                                         'playerAbs', t.settings -> 'playerAbs')))
+               from public.teams t where t.id = v_team),
     'player', (select jsonb_build_object('id', p.id, 'team_id', p.team_id, 'first_name', p.first_name, 'last_name', p.last_name, 'birthdate', p.birthdate,
-                                         'shirt_number', p.shirt_number, 'position', p.position, 'active', p.active)
+                                         'active', p.active)
                  from public.players p where p.id = p_player),
     'matches', coalesce((select jsonb_agg(jsonb_build_object('id', m.id, 'team_id', m.team_id, 'date', m.date, 'time', m.time, 'opponent', m.opponent,
                                                              'home', m.home, 'competition', m.competition) order by m.date, m.time)
@@ -582,8 +670,9 @@ begin
                                                  order by a.from_date)
                             from public.absences a
                            where a.player_id = p_player and coalesce(a.to_date, v_to) >= v_from and a.from_date <= v_to), '[]'::jsonb),
+    -- ohne den Grund einer Absage (den sieht nur das Trainerteam – auch, wenn das Kind abgesagt hat)
     'noms', coalesce((select jsonb_agg(jsonb_build_object('match_id', n.match_id, 'player_id', n.player_id, 'standby', n.standby, 'answer', n.answer,
-                                                          'reason', n.reason, 'answered_at', n.answered_at, 'answered_by_staff', n.answered_by_staff,
+                                                          'answered_at', n.answered_at, 'answered_by_staff', n.answered_by_staff,
                                                           'answered_by_guardian', n.answered_by_guardian))
                         from public.match_nominations n join public.matches m on m.id = n.match_id
                        where n.player_id = p_player and m.date between v_today - 1 and v_to and public.squad_published(n.match_id)), '[]'::jsonb),
@@ -828,6 +917,11 @@ begin
    where p.id = g.player_id and not g.adult_ok
      and p.birthdate is not null and p.birthdate <= (current_date - interval '18 years' - interval '30 days')::date;
   get diagnostics k = row_count; n := n + k;
+  -- Kind seit 30 Tagen nicht mehr aktiv (z. B. gewechselt): Verknüpfung und Einladungen entfallen
+  delete from public.player_guardians g using public.players p
+   where p.id = g.player_id and not p.active and p.inactive_since < now() - interval '30 days';
+  get diagnostics k = row_count; n := n + k;
+  delete from public.guardian_invites i using public.players p where p.id = i.player_id and not p.active;
   delete from public.parent_posts where created_at < now() - interval '12 months';
   get diagnostics k = row_count; n := n + k;
   return n;
@@ -838,11 +932,12 @@ revoke all on function public.guardian_invite_create(uuid), public.guardian_rede
   public.guardian_remove(uuid), public.guardian_adult_ok(uuid, boolean), public.guardian_children(), public.guardian_child_data(uuid),
   public.guardian_absence(uuid, text, date, date), public.guardian_absence_delete(uuid), public.guardian_answer(uuid, uuid, text, text),
   public.guardian_consent(uuid, text, boolean, text), public.parent_post_read(uuid, boolean), public.team_guardian_consents(uuid),
-  public.purge_guardians() from public, anon;
+  public.guardian_update(uuid, text, text), public.purge_guardians() from public, anon;
 grant execute on function public.guardian_invite_create(uuid), public.guardian_redeem(text, text, text), public.guardian_decide(uuid, boolean),
   public.guardian_remove(uuid), public.guardian_adult_ok(uuid, boolean), public.guardian_children(), public.guardian_child_data(uuid),
   public.guardian_absence(uuid, text, date, date), public.guardian_absence_delete(uuid), public.guardian_answer(uuid, uuid, text, text),
-  public.guardian_consent(uuid, text, boolean, text), public.parent_post_read(uuid, boolean), public.team_guardian_consents(uuid) to authenticated;
+  public.guardian_consent(uuid, text, boolean, text), public.parent_post_read(uuid, boolean), public.team_guardian_consents(uuid),
+  public.guardian_update(uuid, text, text) to authenticated;
 revoke all on function public.purge_guardians() from authenticated;
 grant execute on function public.purge_guardians() to service_role;
 

@@ -17,6 +17,10 @@ export interface GuardianChild {
   status: "pending" | "active"; relation: GuardianRelation; access: boolean;
   /** Modul „Eltern-Zugang“ im Team ausgeschaltet (Verknüpfung bleibt, ohne Zugang) */
   off: boolean;
+  /** Kind nicht mehr aktiv im Team (Zugang ruht, nach 30 Tagen wird die Verknüpfung gelöscht) */
+  inactive: boolean;
+  /** eigene Angaben des Elternteils (Name, wie ihn das Trainerteam und das Kind sehen) */
+  myName: string;
 }
 /** Paket fürs Kind (nur, was Eltern sehen dürfen) */
 export interface ChildData {
@@ -347,6 +351,8 @@ export interface Api {
   deleteParentPost(id: string): Promise<void>;
   /** volljähriges Kind: Zugang der Eltern verlängern bzw. beenden */
   guardianAdultOk(linkId: string, ok: boolean): Promise<GuardianLink>;
+  /** Eltern: eigenen Namen und die Beziehung berichtigen */
+  guardianUpdate(linkId: string, name: string, relation: GuardianRelation): Promise<void>;
   /** Eltern: Foto-Erlaubnis fürs minderjährige Kind (gilt als Erklärung der Eltern; nur Widerrufe lassen sie unverändert) */
   guardianPhoto(pid: string, c: PhotoConsent): Promise<PhotoConsent>;
   /** Foto-Erlaubnis speichern (Trainerteam: Recht „Kader“; Spieler: eigene – Ja ab 18, Nein immer; prüft der Server) */

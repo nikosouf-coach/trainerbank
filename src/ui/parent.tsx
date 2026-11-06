@@ -50,6 +50,8 @@ export function ParentHome() {
         <Card testID="el-pending" tone={c.warn}><T bold>{t("el_pendingT")}</T><Muted>{tf("el_pending", { n: child.vn, t: child.team })}</Muted></Card>
       ) : child.off ? (
         <Card testID="el-off"><T bold>{t("el_offT")}</T><Muted>{tf("el_off", { t: child.team })}</Muted></Card>
+      ) : child.inactive ? (
+        <Card testID="el-inactive"><T bold>{tf("el_inactiveT", { n: child.vn, t: child.team })}</T><Muted>{tf("el_inactive", { n: child.vn })}</Muted></Card>
       ) : !child.access ? (
         <Card testID="el-adult"><T bold>{tf("el_adultT", { n: child.vn })}</T><Muted>{tf("el_adult", { n: child.vn })}</Muted></Card>
       ) : data && E ? (
@@ -235,6 +237,7 @@ function ConsentsCard({ child, data, E }: { child: GuardianChild; data: ChildDat
   const [photo, setPhoto] = useState(false);
   const p = data.D.players[0], u16 = isUnder16(p, E.TODAY), age = photoAge(p, E.TODAY);
   const ph = data.D.photos[child.pid], miss = missingParty(ph, age);
+  const [ask, setAsk] = useState<"parental" | "health_data" | null>(null);
   const consent = (kind: "parental" | "health_data", give: boolean) =>
     s.parentDo(child.pid, api => api.guardianConsent(child.pid, kind, give), give ? "el_cGiven" : "el_cWithdrawn");
   const row = (kind: "parental" | "health_data", on: boolean, title: string, text: string) => (
@@ -242,7 +245,16 @@ function ConsentsCard({ child, data, E }: { child: GuardianChild; data: ChildDat
       <Row gap={8}><Text style={{ flex: 1, fontSize: 14.5, fontWeight: "700", color: c.ink }}>{title}</Text>
         <Text testID={"el-c-st-" + kind} style={{ fontSize: 13, fontWeight: "700", color: on ? c.ok : c.warn }}>{on ? t("el_cOn") : t("el_cOff")}</Text></Row>
       <Muted small>{text}</Muted>
-      <Btn small kind={on ? "ghost" : "primary"} testID={"el-c-" + kind} label={on ? t("el_cWithdraw") : t("el_cGive")} onPress={() => consent(kind, !on)} style={{ alignSelf: "flex-start" }} />
+      {/* Widerruf: erst erklären, was passiert (Gesundheitsangaben werden nach 30 Tagen gelöscht, wenn keine andere Einwilligung bleibt) */}
+      {on && ask === kind ? (
+        <Col gap={8} testID={"el-c-ask-" + kind}>
+          <Muted small>{tf(kind === "health_data" ? "el_cWithdrawHealth" : "el_cWithdrawParental", { n: child.vn })}</Muted>
+          <Row gap={8} wrap>
+            <Btn small kind="danger" testID={"el-c-ok-" + kind} label={t("el_cWithdraw")} onPress={async () => { if (await consent(kind, false)) setAsk(null); }} />
+            <Btn small kind="ghost" label={t("um_cancel")} onPress={() => setAsk(null)} />
+          </Row>
+        </Col>
+      ) : <Btn small kind={on ? "ghost" : "primary"} testID={"el-c-" + kind} label={on ? t("el_cWithdraw") : t("el_cGive")} onPress={() => on ? setAsk(kind) : consent(kind, true)} style={{ alignSelf: "flex-start" }} />}
     </Col>
   );
   return (
@@ -252,7 +264,7 @@ function ConsentsCard({ child, data, E }: { child: GuardianChild; data: ChildDat
         {row("parental", data.consents.parental, t("el_cParental"), tf("el_cParentalText", { n: child.vn }))}
         {row("health_data", data.consents.health, t("el_cHealth"), tf("el_cHealthText", { n: child.vn }))}
       </> : <Muted small testID="el-c16">{tf(data.sickOk ? "el_c16" : "el_c16Sick", { n: child.vn })}</Muted>}
-      <Col gap={6} style={{ paddingTop: 10, borderTopWidth: 1, borderTopColor: c.line }} testID="el-photo">
+      {data.D.team.modules.fotos !== false ? <Col gap={6} style={{ paddingTop: 10, borderTopWidth: 1, borderTopColor: c.line }} testID="el-photo">
         <Row gap={8}><Text style={{ flex: 1, fontSize: 14.5, fontWeight: "700", color: c.ink }}>{t("ph_title")}</Text>
           <Btn small kind="ghost" testID="el-photo-edit" label={t("el_photoEdit")} onPress={() => setPhoto(true)} /></Row>
         {PHOTO_CHANNELS.map(ch => {
@@ -266,7 +278,7 @@ function ConsentsCard({ child, data, E }: { child: GuardianChild; data: ChildDat
           );
         })}
         <Muted small>{age != null && age >= 14 ? tf("el_photo14", { n: child.vn }) : t("el_photoKid")}</Muted>
-      </Col>
+      </Col> : null}
       <Sheet visible={photo} onClose={() => setPhoto(false)} title={t("ph_title")} testID="el-photo-sheet" closeLabel={t("um_cancel")}>
         {photo ? <PhotoForm child={child} data={data} age={age} onDone={() => setPhoto(false)} /> : null}
       </Sheet>
@@ -307,14 +319,24 @@ function PhotoForm({ child, data, age, onDone }: { child: GuardianChild; data: C
 }
 
 function ParentPrivacy({ child }: { child: GuardianChild }) {
-  const s = useStore(); const { t, tf } = s.tr;
-  const [sure, setSure] = useState(false);
+  const s = useStore(); const { t, tf } = s.tr; const { c } = useTheme();
+  const [sure, setSure] = useState(false), [edit, setEdit] = useState(false);
   const pending = child.status === "pending";
   return (
     <Card testID="el-privacy">
       <CardTitle title={t("el_seeT")} />
       <T v="small">{tf("el_see", { n: child.vn })}</T>
       <Muted small>{tf("el_notSee", { n: child.vn })}</Muted>
+      <Row gap={8} testID="el-me" style={{ paddingTop: 8, borderTopWidth: 1, borderTopColor: c.line }}>
+        <Col gap={1} style={{ flex: 1, minWidth: 0 }}>
+          <T v="small" bold>{t("el_meT")}</T>
+          <Muted small>{`${child.myName || "–"} · ${t("el_rel_" + child.relation)}`}</Muted>
+        </Col>
+        <Btn small kind="ghost" testID="el-me-edit" label={t("el_photoEdit")} onPress={() => setEdit(true)} />
+      </Row>
+      <Sheet visible={edit} onClose={() => setEdit(false)} title={t("el_meT")} testID="el-me-sheet" closeLabel={t("um_cancel")}>
+        {edit ? <MeForm child={child} onDone={() => setEdit(false)} /> : null}
+      </Sheet>
       {sure ? (
         <Col gap={8}>
           <Muted small>{tf(pending ? "el_leavePending" : "el_leaveText", { n: child.vn })}</Muted>
@@ -325,6 +347,26 @@ function ParentPrivacy({ child }: { child: GuardianChild }) {
         </Col>
       ) : <Btn kind="ghost" small testID="el-leave" label={t(pending ? "el_leavePendingOk" : "el_leave")} onPress={() => setSure(true)} style={{ alignSelf: "flex-start" }} />}
     </Card>
+  );
+}
+
+/** Eltern berichtigen ihren Namen und die Beziehung (Art. 16 DSGVO) */
+function MeForm({ child, onDone }: { child: GuardianChild; onDone: () => void }) {
+  const s = useStore(); const { t } = s.tr; const { c } = useTheme();
+  const [name, setName] = useState(child.myName), [rel, setRel] = useState<GuardianRelation>(child.relation);
+  const [busy, setBusy] = useState(false), [err, setErr] = useState(false);
+  const save = async () => {
+    if (name.trim().length < 2) { setErr(true); return; }
+    setBusy(true); try { if (await s.parentUpdate(child.linkId, name, rel)) onDone(); } finally { setBusy(false); }
+  };
+  return (
+    <Col gap={12}>
+      <Field testID="el-me-name" label={t("el_yourName")} value={name} onChangeText={v => { setName(v); setErr(false); }} maxLength={GUARDIAN_NAME_MAX} hint={t("el_yourNameHint")} />
+      <Col gap={6}><T v="small" bold>{t("el_relation")}</T>
+        <ChoiceChips testID="el-me-rel" value={rel} onChange={setRel} options={GUARDIAN_RELATIONS.map(k => ({ key: k, label: t("el_rel_" + k) }))} /></Col>
+      {err ? <Banner color={c.crit} testID="el-me-err">{t("el_errName")}</Banner> : null}
+      <Btn kind="primary" testID="el-me-save" label={t("save")} disabled={busy} onPress={save} />
+    </Col>
   );
 }
 
@@ -415,5 +457,30 @@ export function MyGuardiansItem() {
         </Col>
       </Sheet>
     </>
+  );
+}
+
+// =====================================================================
+// Spieler: Hinweis auf „Heute“, wenn ein Elternteil neu verknüpft ist (Transparenz, Art. 13/14 DSGVO)
+// =====================================================================
+export function PlayerGuardiansNotice() {
+  const s = useStore(); const { t, tf } = s.tr; const { c } = useTheme(); const router = useRouter();
+  const D = s.D, pid = s.mePid;
+  if (!D || !pid || D.team.modules.eltern === false) return null;
+  const seen = new Set(s.prefs.seen || []), since = Date.now() - 30 * 864e5;
+  const L = D.guardians.filter(g => g.pid === pid && g.status === "active" && !seen.has("el-" + g.id) && new Date(g.confirmedAt || g.at).getTime() >= since);
+  if (!L.length) return null;
+  const ok = () => s.setPrefs({ seen: [...(s.prefs.seen || []).filter(k => !k.startsWith("el-") || D.guardians.some(g => "el-" + g.id === k)), ...L.map(g => "el-" + g.id)].slice(-60) });
+  return (
+    <Banner testID="p-guardians-new">
+      <Col gap={8}>
+        <T v="small">{tf(L.length === 1 ? "el_newKid1" : "el_newKidN", { g: L.map(g => `${g.name} (${t("el_rel_" + g.relation)})`).join(", ") })}</T>
+        <Muted small>{t("el_newKidWho")}</Muted>
+        <Row gap={8} wrap>
+          <Btn small kind="primary" testID="p-guardians-ok" label={t("el_newKidOk")} onPress={ok} />
+          <Btn small kind="ghost" testID="p-guardians-more" label={t("el_myTitle")} onPress={() => router.push("/player/ich")} />
+        </Row>
+      </Col>
+    </Banner>
   );
 }

@@ -1099,7 +1099,8 @@ export class SupabaseApi implements Api {
   async guardianChildren() {
     const rows = await q<Row[]>(this.sb.rpc("guardian_children"));
     return rows.map(r => ({ linkId: r.link_id, pid: r.player_id, vn: r.first_name, nn: r.last_name || "", teamId: r.team_id, team: r.team_name, club: r.club || "",
-      cls: r.age_class || "", status: r.status === "active" ? "active" as const : "pending" as const, relation: r.relation, access: !!r.access, off: r.module_on === false }));
+      cls: r.age_class || "", status: r.status === "active" ? "active" as const : "pending" as const, relation: r.relation, access: !!r.access, off: r.module_on === false,
+      inactive: r.child_active === false, myName: r.my_name || "" }));
   }
   async guardianChildData(pid: string) {
     const x = await q<Row>(this.sb.rpc("guardian_child_data", { p_player: pid }));
@@ -1153,6 +1154,7 @@ export class SupabaseApi implements Api {
   }
   async deleteParentPost(id: string) { await q(this.sb.from("parent_posts").delete().eq("id", id)); }
   async guardianAdultOk(linkId: string, ok: boolean) { return mapGuardian(await q<Row>(this.sb.rpc("guardian_adult_ok", { p_link: linkId, p_ok: ok }))); }
+  async guardianUpdate(linkId: string, name: string, relation: GuardianRelation) { await q(this.sb.rpc("guardian_update", { p_link: linkId, p_name: name, p_relation: relation })); }
   /** dieselbe Funktion wie fürs Trainerteam – der Server erkennt die Eltern und setzt „von den Eltern erklärt“ und das Datum
    *  (ist der Elternteil zugleich im Trainerteam, gilt dieselbe Erklärung mit heutigem Datum) */
   async guardianPhoto(pid: string, c: PhotoConsent) { return this.savePhotoConsent(pid, { ...c, by: "parents", on: iso(new Date()) }); }

@@ -4732,6 +4732,9 @@ with ins as (insert into public.absences (team_id, player_id, type, from_date, t
 select tst.put('abs61s', id::text) from ins;
 with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date) values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, 'verletzung', current_date + 8, current_date + 9) returning id)
 select tst.put('abs61v', id::text) from ins;
+select tst.put('settings61', settings::text) from public.teams where id = tst.get('team_a')::uuid;
+update public.teams set settings = settings || '{"days": {"2": {"zeit": "18:00", "platz": "halb", "dauer": 90}}, "kasse": {"on": true, "treasurer": "x", "fees": []}, "units": {"2": []}}'::jsonb
+ where id = tst.get('team_a')::uuid;
 with ins as (insert into public.matches (team_id, date, time, opponent, competition) values (tst.get('team_a')::uuid, current_date + 3, '15:00', 'T61 FC', 'liga') returning id)
 select tst.put('m61', id::text) from ins;
 insert into public.match_squads (match_id, team_id, meet_time, meet_place, published_at) values (tst.get('m61')::uuid, tst.get('team_a')::uuid, '13:45', 'Vereinsheim', now());
@@ -4750,12 +4753,20 @@ select tst.throws(format($q$select public.guardian_absence_delete(%L)$q$, tst.ge
 do $$
 declare d jsonb; n public.match_nominations;
 begin
+  d := public.guardian_child_data(tst.get('p4_player')::uuid);
+  perform tst.ok(not exists (select 1 from jsonb_object_keys(coalesce(d -> 'team' -> 'settings', '{}'::jsonb)) k
+                             where k not in ('days', 'dauer', 'fix', 'spieltag', 'anstoss', 'playerAbs'))
+                 and (d -> 'team' -> 'settings') ? 'days' and not (d -> 'team') ? 'principles' and not (d -> 'team') ? 'logo_path',
+                 'T61 Paket: vom Team nur Trainingszeiten – keine Kasse, Einheiten oder andere Einstellungen');
+  perform tst.ok(not (d -> 'player') ? 'position' and not (d -> 'player') ? 'shirt_number' and not (d -> 'player') ? 'weight_kg',
+                 'T61 Paket: vom Kind nur Name, Geburtsdatum und aktiv');
   perform public.guardian_absence_delete(tst.get('abs61')::uuid);
   n := public.guardian_answer(tst.get('m61')::uuid, tst.get('p4_player')::uuid, 'no', 'Klassenfahrt');
   perform tst.eq(n.answer || '/' || n.answered_by_guardian::text || '/' || n.answered_by_staff::text, 'no/true/false', 'T61 Absage der Eltern gekennzeichnet');
   d := public.guardian_child_data(tst.get('p4_player')::uuid);
   perform tst.eq(jsonb_array_length(d -> 'noms')::text || '/' || (d -> 'squads' -> 0 ->> 'meet_place') || '/' || (d -> 'squads' -> 0 ->> 'show_all'), '1/Vereinsheim/false',
                  'T61 Paket: Nominierung des eigenen Kindes mit Treffpunkt, ohne Kaderliste');
+  perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'noms') x where x ? 'reason'), 'T61 Paket: ohne Absagegrund (nur fürs Trainerteam)');
   perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'absences') x where x ? 'stage' or x ? 'note'), 'T61 Paket: Abwesenheiten ohne Stufe und Hinweis');
   perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'absences') x where x ->> 'id' = tst.get('abs61')), 'T61 eigene Abmeldung zurückgenommen');
   perform tst.eq((select string_agg(coalesce(x ->> 'type', 'abwesend'), ',' order by x ->> 'from_date') from jsonb_array_elements(d -> 'absences') x
@@ -4767,6 +4778,7 @@ begin
 end $$;
 select tst.throws(format($q$insert into public.parent_posts (team_id, title, body) values (%L, 'x', 'y')$q$, tst.get('team_a')), 'T61 Eltern schreiben keine Elterninfo', 'row-level security');
 commit;
+update public.teams set settings = tst.get('settings61')::jsonb where id = tst.get('team_a')::uuid;
 -- Modul aus: Eltern sehen nichts mehr und können nichts eintragen, Codes gelten nicht – die Verknüpfung bleibt
 select tst.put('mods61', modules::text) from public.teams where id = tst.get('team_a')::uuid;
 update public.teams set modules = modules || '{"eltern": false}'::jsonb where id = tst.get('team_a')::uuid;
@@ -4971,7 +4983,76 @@ begin
                  'T61 Verknüpfung gelöst: Einwilligung der Eltern endet (Widerruf bleibt als Nachweis)');
 end $$;
 commit;
+do $$ begin
+  perform tst.eq((select count(*) from public.parent_post_reads where user_id = tst.uid('g1'))::text, '0',
+                 'T61 Verknüpfung gelöst: Lesebestätigungen der Elterninfo im Team gelöscht');
+end $$;
+begin;
+commit;
 update public.players set birthdate = date '2012-01-01' where id = tst.get('p4_player')::uuid;
+
+-- Eltern berichtigen ihre Angaben selbst; nur die eigene Verknüpfung
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$
+declare g public.player_guardians;
+begin
+  g := public.guardian_update(tst.get('link_k61')::uuid, '  Paul  Klein-Berg ', 'guardian');
+  perform tst.eq(g.name || '/' || g.relation, 'Paul  Klein-Berg/guardian', 'T61 Eltern ändern Namen und Beziehung selbst');
+  perform tst.eq((select my_name || '/' || child_active::text from public.guardian_children() where link_id = tst.get('link_k61')::uuid), 'Paul  Klein-Berg/true',
+                 'T61 Eltern sehen ihre eigenen Angaben');
+end $$;
+select tst.throws(format($q$select public.guardian_update(%L, 'X', 'father')$q$, tst.get('link_k61')), 'T61 Name zu kurz', 'invalid_name');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+select tst.throws(format($q$select public.guardian_update(%L, 'Fremd', 'father')$q$, tst.get('link_k61')), 'T61 fremde Verknüpfung nicht änderbar', 'not_found');
+commit;
+
+-- Spielerzeile wechselt das Team: das neue Trainerteam bestätigt neu
+update public.players set team_id = tst.get('team_b')::uuid where id = tst.get('k61_player')::uuid;
+do $$ begin
+  perform tst.eq((select status || '/' || (team_id = tst.get('team_b')::uuid)::text from public.player_guardians where id = tst.get('link_k61')::uuid), 'pending/true',
+                 'T61 Teamwechsel: Verknüpfung wartet auf das neue Trainerteam');
+end $$;
+update public.players set team_id = tst.get('team_a')::uuid where id = tst.get('k61_player')::uuid;
+update public.player_guardians set status = 'active' where id = tst.get('link_k61')::uuid;
+
+-- Kind nicht mehr aktiv: Zugang ruht sofort, nach 30 Tagen wird die Verknüpfung gelöscht
+update public.players set active = false where id = tst.get('k61_player')::uuid;
+do $$ begin
+  perform tst.ok((select inactive_since is not null from public.players where id = tst.get('k61_player')::uuid), 'T61 Zeitpunkt der Deaktivierung gesetzt');
+end $$;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('k61_player')), 'T61 Kind nicht mehr aktiv: kein Paket', 'not_found');
+do $$ begin
+  perform tst.eq((select access::text || '/' || child_active::text from public.guardian_children() where link_id = tst.get('link_k61')::uuid), 'false/false',
+                 'T61 Kind nicht mehr aktiv: Verknüpfung ruht');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin
+  update public.players set inactive_since = null where id = tst.get('k61_player')::uuid;
+exception when others then null;
+end $$;
+commit;
+do $$ begin
+  perform tst.ok((select inactive_since is not null from public.players where id = tst.get('k61_player')::uuid), 'T61 Zeitpunkt der Deaktivierung nicht von Hand änderbar');
+end $$;
+alter table public.players disable trigger players_inactive_since;
+update public.players set inactive_since = now() - interval '31 days' where id = tst.get('k61_player')::uuid;
+alter table public.players enable trigger players_inactive_since;
+do $$ begin
+  perform public.purge_guardians();
+  perform tst.eq((select count(*) from public.player_guardians where player_id = tst.get('k61_player')::uuid)::text, '0',
+                 'T61 30 Tage nicht mehr aktiv: Verknüpfung gelöscht');
+end $$;
 
 -- Löschfristen
 insert into public.guardian_invites (team_id, player_id, code_hash, uses_left, expires_at)
