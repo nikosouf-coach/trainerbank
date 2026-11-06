@@ -18,6 +18,7 @@ import { cleanContacts } from "./emergency";
 import { cleanSizes } from "./sizes";
 import { absentOn, cleanSquad, squadMatesOf, squadSort } from "./nomination";
 import { defaultDepart } from "./rides";
+import { cardRules, suspendedIn } from "./cards";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -247,9 +248,9 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoPolls(D, lang, now);
   demoEmergency(D, lang);
   demoSizes(D, lang, now);
+  demoCards(D, lang, now);
   demoSquads(D, lang, now);
   demoRides(D, lang, now);
-  demoCards(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -808,13 +809,15 @@ function demoEmergency(D: TeamData, lang: Lang): void {
 
 /**
  * Kader fürs nächste Spiel: veröffentlicht (für die Nominierten sichtbar), 16 im Kader und 2 auf Abruf aus den
- * verfügbaren Spielern; einige haben zugesagt, einer abgesagt, der Rest ist offen (p17 nominiert, noch offen).
+ * verfügbaren Spielern (nicht abwesend, nicht gesperrt – die Karten der Demo stehen schon fest); einige haben zugesagt,
+ * einer abgesagt, der Rest ist offen (p17 nominiert, noch offen).
  */
 function demoSquads(D: TeamData, lang: Lang, now: Date): void {
   const en = lang === "en", TODAY = iso(now);
   const m = D.matches.filter(x => x.date >= TODAY && !x.result).sort((a, b) => (a.date + a.zeit < b.date + b.zeit ? -1 : 1))[0];
   if (!m) return;
-  const avail = D.players.filter(p => p.active !== false && !absentOn(D, p.id, m.date)).sort(squadSort);
+  const sus = suspendedIn(D, cardRules(D.team), m.id, TODAY);
+  const avail = D.players.filter(p => p.active !== false && !absentOn(D, p.id, m.date) && !sus.has(p.id)).sort(squadSort);
   const gk = avail.filter(p => p.pos === "TW"), field = avail.filter(p => p.pos !== "TW");
   const pick = [...gk.slice(0, 2), ...field.filter(p => p.id === "p17"), ...field.filter(p => p.id !== "p17")].slice(0, 18);
   const [h, mi] = (m.zeit || "15:00").split(":").map(Number), meet = Math.max(0, h * 60 + mi - 75);
@@ -872,13 +875,13 @@ function demoCards(D: TeamData, lang: Lang, now: Date): void {
   const en = lang === "en", TODAY = iso(now);
   const past = D.matches.filter(m => m.date < TODAY && m.comp === "liga" && m.date >= seasonStart(TODAY)).sort((a, b) => (a.date < b.date ? 1 : -1));
   if (past.length < 4) return;
-  const used = new Set<string>();
+  const used = new Set<string>(["p17"]); // p17 ist der Demo-Spieler – ohne Karten (nominiert, Fahrgemeinschaft offen)
   const playedIn = (pid: string, m: { id: string }) => (D.stats[m.id]?.[pid]?.min || 0) > 0 && !D.stats[m.id][pid].card;
   /** Spieler aus der Vorschlagsliste (sonst irgendeiner), der in den Spielen gespielt hat */
   const who = (pref: string[], ms: { id: string }[]) => [...pref, ...D.players.map(p => p.id)].find(pid => !used.has(pid) && ms.every(m => playedIn(pid, m)));
   const set = (pid: string | undefined, ms: { id: string }[], card: "y" | "yr" | "r") => { if (!pid) return; used.add(pid); for (const m of ms) D.stats[m.id][pid].card = card; };
   // vier Gelbe (Gelb-Warnung, sobald eine Gelbsperre eingestellt ist): in den vier Spielen, die er gespielt hat
-  const four = [...D.players.map(p => p.id)].sort((a, b) => (a === "p6" ? -1 : b === "p6" ? 1 : 0)).find(pid => past.filter(m => playedIn(pid, m)).length >= 4);
+  const four = [...D.players.map(p => p.id)].sort((a, b) => (a === "p6" ? -1 : b === "p6" ? 1 : 0)).find(pid => !used.has(pid) && past.filter(m => playedIn(pid, m)).length >= 4);
   if (four) set(four, past.filter(m => playedIn(four, m)).slice(0, 4), "y");
   for (const [pref, i] of [[["p9"], 1], [["p14"], 0], [["p20"], 2]] as const) set(who([...pref], [past[i]]), [past[i]], "y");
   set(who(["p8"], [past[0]]), [past[0]], "yr");

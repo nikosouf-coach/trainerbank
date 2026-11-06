@@ -31,8 +31,10 @@ export const de_cards: Dict = {
   kr_note: "Hinweis (freiwillig)", kr_notePh: "z. B. Urteil Sportgericht vom 12.11.",
   kr_saved: "Sperre gespeichert", kr_deleted: "Sperre gelöscht", kr_liftedT: "Sperre aufgehoben", kr_ruleT: "Wieder wie die Regel",
   kr_errPlayer: "Wähle den Spieler.", kr_errUntil: "Wähle das Datum.",
-  kr_auto: "aus den Karten", kr_manual: "eingetragen", kr_delete: "Löschen", kr_modOff: "Karten & Sperren sind im Baukasten ausgeschaltet.",
-  kr_fromRule: "Nach eurer Regel: {r}. Speichern ersetzt die Regel für diese Karte (z. B. mit dem Urteil); „Aufheben“ hebt die Sperre auf.",
+  kr_auto: "Nach eurer Regel berechnet", kr_delete: "Löschen", kr_modOff: "Karten & Sperren sind im Baukasten ausgeschaltet.",
+  kr_fromRule: "Nach eurer Regel gesperrt: {r}. Speichern ersetzt die Regel für diese Karte (z. B. mit dem Urteil); „Aufheben“ hebt die Sperre auf.",
+  // Spieler: Hinweis auf „Heute“
+  kr_youSusp: "Du bist gesperrt", kr_youNext: "Betrifft das nächste Spiel: {w} {g}", kr_youWarn: "Du hast {n} Gelbe – bei der nächsten Gelben in einem Meisterschaftsspiel bist du gesperrt.",
   // Nominierung, Spieltag-Check, Spielbericht
   nm_suspended: "Gesperrt: {r}", md_suspended: "Gesperrt: {n}", md_suspendedSquad: "Gesperrt, aber nominiert: {n}", md_suspendedSub: "{n} – Kader prüfen",
   sp_cardHint: "Gelb-Rot heißt: zweite Gelbe im selben Spiel – die erste zählt dann nicht für die Gelbsperre.",

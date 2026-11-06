@@ -1,6 +1,7 @@
 // Tests: Kader-Nominierung – Bereinigung, Anpfiff und Antwortregeln, Reihenfolge, Demo, Sicht der Spieler, Ankündigung.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { cardRules, suspendedIn } from "../cards";
 import { buildDemo, demoExtras, demoTeam } from "../demo";
 import { DICTS, translator } from "../i18n";
 import {
@@ -47,18 +48,23 @@ test("Demo: veröffentlichter Kader fürs nächste Spiel, nur verfügbare Spiele
   const D = setup();
   const m = D.matches.filter(x => x.date >= TODAY && !x.result).sort((a, b) => (a.date + a.zeit < b.date + b.zeit ? -1 : 1))[0];
   const sq = D.squads[m.id], noms = nomsOf(D, m.id), k = squadCounts(noms);
+  // 16 im Kader, bis zu 2 auf Abruf – aus den Verfügbaren (nicht abwesend, nicht gesperrt)
+  const sus = suspendedIn(D, cardRules(D.team), m.id, TODAY);
+  const total = Math.min(18, D.players.filter(p => p.active !== false && !absentOn(D, p.id, m.date) && !sus.has(p.id)).length);
   assert.ok(sq && sq.published && sq.showAll && /^\d{2}:\d{2}$/.test(sq.meetTime || ""), "veröffentlicht mit Treffpunkt");
-  assert.equal(k.squad, 16); assert.equal(k.standby, 2); assert.equal(k.no, 1); assert.equal(k.yes + k.no + k.open, 18);
+  assert.ok(total > 16, "mindestens einer auf Abruf");
+  assert.equal(k.squad, 16); assert.equal(k.standby, total - 16); assert.equal(k.no, 1); assert.equal(k.yes + k.no + k.open, total);
   assert.ok(noms.every(n => !absentOn(D, n.pid, m.date)), "keine Abwesenden nominiert");
+  assert.ok(sus.size >= 2 && noms.every(n => !sus.has(n.pid)), "keine Gesperrten nominiert");
   assert.ok(noms.some(n => n.byStaff), "eine Antwort vom Trainerteam");
   assert.equal(noms.find(n => n.answer === "no")!.reason, "Familienfeier");
   const p17 = noms.find(n => n.pid === "p17")!;
   assert.ok(p17 && !p17.answer && !p17.standby, "p17 nominiert, noch offen");
   const mates = squadMatesOf(D, m.id);
-  assert.equal(mates.length, 18); assert.ok(mates.slice(16).every(x => x.standby), "Abruf am Ende");
+  assert.equal(mates.length, total); assert.ok(mates.slice(16).every(x => x.standby), "Abruf am Ende");
   assert.deepEqual(D.squadMates[m.id], mates);
   const mine = mySquads(D, "p17", TODAY);
-  assert.equal(mine.length, 1); assert.equal(mine[0].mates.length, 18);
+  assert.equal(mine.length, 1); assert.equal(mine[0].mates.length, total);
   const out = D.players.find(p => !noms.some(n => n.pid === p.id))!;
   assert.deepEqual(mySquads(D, out.id, TODAY), [], "nicht nominiert: nichts sichtbar");
   D.squads[m.id] = { ...sq, published: null };

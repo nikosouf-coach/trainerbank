@@ -78,10 +78,10 @@ export function CardsPage() {
           <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: "700", color: c.ink }}>{name(x.s.pid)}</Text>
           <Text style={{ fontSize: 13, color: c.ink }}>{suspReason(E, x.s)}</Text>
           <Text testID={"kr-state-" + x.s.id} style={{ fontSize: 13, fontWeight: "700", color: x.active ? c.crit : c.muted }}>
-            {suspStateText(E, x) + (x.s.auto ? ` · ${t("kr_auto")}` : "")}
+            {suspStateText(E, x) + (x.active && x.s.scope === "league" ? ` · ${t("kr_scopeLeague")}` : "")}
           </Text>
           {x.active ? <Muted small>{x.next ? tf("kr_next", { w: `${E.wt(x.next.date)} ${E.de(x.next.date)}`, g: `${t("vs")} ${x.next.gegner}` }) : t("kr_noNext")}</Muted> : null}
-          {x.s.note ? <Muted small>{x.s.note}</Muted> : null}
+          {x.s.note ? <Muted small>{x.s.note}</Muted> : x.s.auto && x.active ? <Muted small>{t("kr_auto")}</Muted> : null}
         </Col>
         {canEdit ? <Btn small kind={x.pending ? "primary" : "ghost"} testID={"kr-edit-" + x.s.id} label={x.pending ? t("kr_verdict") : t("kr_edit")} onPress={() => open(x.s)} /> : null}
       </View>
@@ -153,6 +153,45 @@ export function CardsPage() {
   );
 }
 const seasonFrom = (today: string): string => { const y = +today.slice(0, 4), m = +today.slice(5, 7); return `${m >= 7 ? y : y - 1}-07-01`; };
+
+// ---------------------------------------------------------------------
+// Spieler: Hinweis auf „Heute“ – gesperrt (mit dem nächsten betroffenen Spiel) bzw. Gelb-Warnung; nur eigene Daten
+// (eingetragene Sperren immer, Sperren aus den Karten, wenn die Spieldaten für Spieler freigegeben sind)
+// ---------------------------------------------------------------------
+const SUSP_ICON: Record<Suspension["kind"], CardKind | null> = { yellow: "y", yellow_red: "yr", red: "r", other: null };
+export function PlayerCardsNotice() {
+  const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme();
+  const pid = s.mePid || "";
+  if (!pid || E.mods.karten === false) return null;
+  const rules = cardRules(E.team);
+  const mine = activeSuspensions(E.D, rules, E.TODAY).filter(x => x.s.pid === pid);
+  const warn = yellowWarnings(E.D, rules, E.TODAY).find(w => w.pid === pid);
+  if (!mine.length && !warn) return null;
+  return (
+    <Card testID="p-cards" tone={mine.length ? c.crit : c.warn}>
+      <CardTitle title={mine.length ? t("kr_youSusp") : t("kr_warn")} />
+      {mine.map(x => {
+        const k = SUSP_ICON[x.s.kind];
+        return (
+          <Row key={x.s.id} gap={10} align="flex-start" testID={"p-susp-" + x.s.id}>
+            {k ? <View style={{ paddingTop: 2 }}><CardIcon kind={k} /></View> : null}
+            <Col gap={2} style={{ flex: 1, minWidth: 0 }}>
+              <Text style={{ fontSize: 14, color: c.ink }}>{suspReason(E, x.s)}</Text>
+              <Text style={{ fontSize: 13.5, fontWeight: "700", color: c.crit }}>{suspStateText(E, x) + (x.s.scope === "league" ? ` · ${t("kr_scopeLeague")}` : "")}</Text>
+              <Muted small>{x.next ? tf("kr_youNext", { w: `${E.wt(x.next.date)} ${E.de(x.next.date)}`, g: `${t("vs")} ${x.next.gegner}` }) : t("kr_noNext")}</Muted>
+            </Col>
+          </Row>
+        );
+      })}
+      {warn ? (
+        <Row gap={10} testID="p-warn">
+          <CardIcon kind="y" />
+          <Text style={{ flex: 1, fontSize: 14, color: c.ink }}>{tf("kr_youWarn", { n: warn.count })}</Text>
+        </Row>
+      ) : null}
+    </Card>
+  );
+}
 
 // ---------------------------------------------------------------------
 // Blatt: Sperre eintragen bzw. ändern (Urteil, aufheben, wie die Regel, löschen)
@@ -229,7 +268,7 @@ function SuspForm({ draft, fromAuto, onDone }: { draft: Suspension; fromAuto: bo
         {saved && withMatch && hasRule ? <Btn kind="ghost" testID="kr-rule" label={t("kr_backToRule")} disabled={busy} onPress={() => run(() => s.deleteSuspension(draft.id, "kr_ruleT"))} /> : null}
         {saved && (!withMatch || !hasRule) ? <Btn kind="ghost" testID="kr-del" label={t("kr_delete")} disabled={busy} onPress={() => run(() => s.deleteSuspension(draft.id))} /> : null}
       </Row>
-      {fromAuto ? <Muted small>{tf("kr_fromRule", { r: suspReason(E, draft) })}</Muted> : null}
+      {fromAuto ? <Muted small>{tf("kr_fromRule", { r: (draft.games == null ? t("kr_pending") : gamesText(E, draft.games)) + (draft.scope === "league" ? ` (${t("kr_scopeLeague")})` : "") })}</Muted> : null}
     </Col>
   );
 }

@@ -120,7 +120,7 @@ function PlayerMatchForm({ pid, matchId, date, onDone }: { pid: string; matchId:
   return (
     <Col gap={12}>
       <Row wrap gap={14} align="flex-end">
-        <NumField testID="spf-min" label={t("pe_min")} value={min} onChange={setMin} min={0} max={150} step={1} style={{ width: 110 }} />
+        <NumField testID="spf-min" label={t("sp_minL")} value={min} onChange={setMin} min={0} max={150} step={1} style={{ width: 110 }} />
         <Check testID="spf-start" label={t("sp_start")} value={start} onChange={setStart} />
       </Row>
       <Row wrap gap={24}>

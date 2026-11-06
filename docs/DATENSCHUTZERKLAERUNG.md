@@ -320,7 +320,9 @@ Beförderer.
 Gelb-Rote oder Rote Karte bekommen hast. Daraus berechnet die App nach den Regeln, die das Trainerteam für euren Verband
 einstellt, ob und für welche Spiele du gesperrt bist; Urteile des Sportgerichts oder sonstige Sperren trägt das
 Trainerteam selbst ein. So sieht es bei der Kader-Nominierung, wer gesperrt ist. Die Sperren sieht das ganze
-Trainerteam, Mitspieler nicht; deine eigenen eingetragenen Sperren gehören zu deinem Datenexport. Eingetragene Sperren
+Trainerteam, Mitspieler nicht. Du siehst deine eigenen Sperren und eine Gelb-Warnung vor der nächsten Gelbsperre auf
+„Heute“ (aus den Karten berechnete nur, wenn die Spieldaten für Spieler freigegeben sind); deine eigenen eingetragenen
+Sperren gehören zu deinem Datenexport. Eingetragene Sperren
 werden 24 Monate nach ihrem Beginn bzw. Ende gelöscht, Karten mit den Spieldaten.
 
 **Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
@@ -572,7 +574,7 @@ bleibt unberührt.
 | deine Größen und der Name für die Beflockung | ja | mit Recht „Kader“ (auch als Bestellliste zum Weitergeben, z. B. an einen Ausrüster) | nein | nein |
 | deine Nominierung für ein Spiel | nach dem Veröffentlichen | ja (ändern mit Recht „Planung“) | wenn freigegeben: die anderen Nominierten (Vorname, Initial, Nummer, Position) | nein |
 | deine Zu- oder Absage und ihr Grund | ja | ja | nein | nein |
-| deine Karten und Sperren | Karten, wenn Spieldaten für Spieler freigegeben sind; eingetragene Sperren im Datenexport | ja (eintragen mit Recht „Leistung & Statistik“) | nein | nein |
+| deine Karten und Sperren | Karten, wenn Spieldaten für Spieler freigegeben sind; deine Sperren und die Gelb-Warnung auf „Heute“ (aus den Karten berechnete nur mit freigegebenen Spieldaten); eingetragene Sperren im Datenexport | ja (eintragen mit Recht „Leistung & Statistik“) | nein | nein |
 | deine Fahrt (wer fährt, Plätze, Abfahrt, Hinweis), dass du mitfährst oder eine Mitfahrgelegenheit suchst | ja | ja (mit vollem Namen) | ja – mit Vorname und Initial | nein |
 | deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
