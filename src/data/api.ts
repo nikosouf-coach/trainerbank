@@ -3,7 +3,7 @@ import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "
 import type { ChatFolderPrefs } from "../core/chat";
 import type { StatPeriod } from "../core/stats";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, Suspension,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
@@ -304,6 +304,10 @@ export interface Api {
   leaveRide(rideId: string, pid: string, need: boolean): Promise<void>;
   /** Mitfahrgelegenheit suchen bzw. nicht mehr suchen (Trainerteam oder der Spieler selbst) */
   setRideNeed(kind: RideKind, refId: string, pid: string, on: boolean): Promise<void>;
+  // Karten & Sperren (Karten stehen im Spielbericht – saveStat; Sperren eintragen mit Recht „Leistung & Statistik“)
+  /** Sperre eintragen bzw. ändern (Urteil, aufgehoben = 0 Spiele, sonstige) */
+  saveSuspension(teamId: string, s: Suspension): Promise<Suspension>;
+  deleteSuspension(id: string): Promise<void>;
   // Wochenchallenge
   saveChallenge(teamId: string, c: Challenge): Promise<Challenge>;
   deleteChallenge(id: string): Promise<void>;

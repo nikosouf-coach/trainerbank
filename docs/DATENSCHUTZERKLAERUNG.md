@@ -151,7 +151,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.15 | KI-Coach | Inhalt deiner Anfrage und ein reduzierter Datenkontext (siehe Abschnitt 11); Anzahl der KI-Anfragen pro Tag | du | freiwillig, gesonderte Einwilligung |
 | 4.16 | Technische Daten | IP-Adresse, Zeitpunkt, aufgerufener Dienst, Statuscodes, technische Kennung des App-Clients in Server-Protokollen | dein Gerät | technisch erforderlich |
 | 4.17 | Kommunikation mit uns | Inhalt deiner Nachricht, E-Mail-Adresse, ggf. Name | du | freiwillig |
-| 4.18 | Spieldaten und Bewertungen | Einsatzminuten, Startelf, Tore, Vorlagen und Pre-Assists je Spiel, bei Torhütern Gegentore und Paraden; Noten (1–10) mit Rückmeldung des Trainerteams zu Spielen; Trainingseindruck (nur „besonders gut“ oder „besonders schwach“ je Einheit, mit Gründen und Notiz – Durchschnitt wird nicht gespeichert); Links zu Videos | Trainerteam | – |
+| 4.18 | Spieldaten und Bewertungen | Einsatzminuten, Startelf, Tore, Vorlagen und Pre-Assists je Spiel, bei Torhütern Gegentore und Paraden, Karten (Gelb, Gelb-Rot, Rot); Noten (1–10) mit Rückmeldung des Trainerteams zu Spielen; Trainingseindruck (nur „besonders gut“ oder „besonders schwach“ je Einheit, mit Gründen und Notiz – Durchschnitt wird nicht gespeichert); Links zu Videos | Trainerteam | – |
 | 4.19 | Leistungstests | Ergebnisse von Leistungstests (z. B. Sprintzeiten, Sprunghöhe, Ausdauertest, bei Torhütern Seitsprung und Abschlagweite, sowie vom Trainerteam angelegte eigene Tests wie Jonglieren oder Liegestütze) mit Datum; daraus berechnete Einordnung und persönliche Laufvorgaben | Trainerteam | freiwillig |
 | 4.20 | Befunde | Fotos oder PDF-Dateien von Arztbriefen und Befunden, Titel, Datum, Art der Einwilligung; auf Wunsch eine KI-Zusammenfassung | Trainerteam | freiwillig, gesonderte Einwilligung |
 | 4.21 | Vorbereitung und Pausen | Zeiträume, Wochenaufbau, Trainingsprogramm für die freie Zeit; welche Programm-Einheiten du abgehakt hast (Dauer, Belastungsempfinden) | Trainerteam, du | freiwillig |
@@ -180,6 +180,7 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.44 | Größen & Ausrüstung | Größe für Oberteil und Hose, Schuhgröße, bei Torhütern Handschuhgröße, Name für die Beflockung, Hinweis (z. B. „fällt klein aus“), wer zuletzt geändert hat und wann; daraus erstellte Bestelllisten (CSV-Datei oder Text mit Rückennummer, Name, Beflockung und Größen) | du; das Trainerteam mit Recht „Kader“ (z. B. für Spieler ohne Konto) | freiwillig |
 | 4.45 | Kader-Nominierung | Spiel, im Kader oder auf Abruf, Treffpunkt (Uhrzeit, Ort) und Hinweis des Trainerteams, ob die Nominierten den Kader sehen, Zeitpunkt der Veröffentlichung; deine Zu- oder Absage mit freiwilligem Grund, Zeitpunkt und ob das Trainerteam die Antwort eingetragen hat | Trainerteam mit Recht „Planung“; du (Antwort) | Antwort freiwillig |
 | 4.46 | Fahrgemeinschaften | Spiel oder Termin, wer fährt (du bzw. deine Eltern – mit einer Bezeichnung wie „Mama von Max“ – oder das Trainerteam), Zahl der Plätze, Abfahrt (Uhrzeit, Ort), Hinweis; wer mitfährt; wer eine Mitfahrgelegenheit sucht; Zeitpunkte | du; das Trainerteam (zuordnen, eigene Fahrten); Fahrer (Suchende mitnehmen, Mitfahrer austragen) | freiwillig |
+| 4.47 | Karten und Sperren | Karten je Spiel (bei den Spieldaten, 4.18); Sperren, die das Trainerteam einträgt (Urteil nach einer Karte, aufgehoben, sonstige Sperre): Grund, Spiel, ab wann, wie viele Spiele oder bis wann, für welche Spiele, Hinweis, wer zuletzt geändert hat und wann; die Regeln des Teams für Sperren | Trainerteam mit Recht „Leistung & Statistik“ | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -315,6 +316,13 @@ Fahrten mit ihren Mitfahrern 30 Tage danach – vorher, wenn die Fahrt, das Spie
 gelöscht wird. Die Fahrgemeinschaft ist eine Absprache unter euch; Trainerbank vermittelt keine Fahrten und ist nicht
 Beförderer.
 
+**Karten und Sperren (4.47):** Das Trainerteam mit dem Recht „Leistung & Statistik“ trägt im Spielbericht ein, ob du eine Gelbe,
+Gelb-Rote oder Rote Karte bekommen hast. Daraus berechnet die App nach den Regeln, die das Trainerteam für euren Verband
+einstellt, ob und für welche Spiele du gesperrt bist; Urteile des Sportgerichts oder sonstige Sperren trägt das
+Trainerteam selbst ein. So sieht es bei der Kader-Nominierung, wer gesperrt ist. Die Sperren sieht das ganze
+Trainerteam, Mitspieler nicht; deine eigenen eingetragenen Sperren gehören zu deinem Datenexport. Eingetragene Sperren
+werden 24 Monate nach ihrem Beginn bzw. Ende gelöscht, Karten mit den Spieldaten.
+
 **Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
 geschafft haben, sowie die gemeinsame Summe – nicht deine Werte. Nur wenn das Trainerteam die Bestenliste einschaltet,
 erscheinen bei Bestleistungs-Challenges die drei besten Werte mit Vorname und Initial.
@@ -394,7 +402,7 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Zweck | Daten (Nr.) | Rechtsgrundlage |
 |---|---|---|
 | Konto anlegen, Anmeldung, App bereitstellen | 4.1, 4.2, 4.16 | Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag) |
-| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen, Größen und Bestelllisten, Kader-Nominierung, Fahrgemeinschaften | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42, 4.44–4.46 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
+| Teamorganisation durch das Trainerteam: Kader, Kalender, Wochenplan, Anwesenheit, Abwesenheiten ohne Gesundheitsangaben, Nachrichten, Potenziale, Notizen, Trainingstag, Gruppen ohne Gesundheitsbezug, Aufgaben, Dienste und Strafen, Mannschaftskasse, Rechte im Trainerteam, Offline-Einträge, Spielerentwicklung (mit Entwicklungsprogramm, Selbstanalyse und Stärken-Runde), Wochenchallenge, Individualtraining, Chat, Matchplan, Verein (Funktionäre, Vereinsübersicht, Hochziehen und Wechsel ohne Gesundheitsdaten, Ankündigungen), Umfragen, Größen und Bestelllisten, Kader-Nominierung, Fahrgemeinschaften, Karten und Sperren | 4.2–4.6, 4.11, 4.23–4.25, 4.28–4.36, 4.41, 4.42, 4.44–4.47 | für Nutzer mit eigenem Konto Art. 6 Abs. 1 lit. b DSGVO; für Daten, die das Trainerteam über Spieler erfasst, und für Spieler ohne Konto Art. 6 Abs. 1 lit. f DSGVO (siehe Begründung unten) |
 | Belastungs- und Erholungssteuerung, Trainingsplanung, Rückkehr ins Training und Reha-Plan, persönliche Tipps zu Ernährung und Schlaf, Gruppen mit Gesundheitsbezug, Platzierung in Tests, Angaben zum Schmerz (Gesundheitsdaten) | 4.6 (krank/Verletzung), 4.7–4.10, 4.12, 4.24 (Reha, Aufbau, Wachstumsschub), 4.26, 4.27 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO; bei Spielern unter 16 Einwilligung der Erziehungsberechtigten |
 | Übernahme der Belastung beim Hochziehen oder Wechsel innerhalb des Vereins (Gesundheitsdaten) | 4.36 | wie die Belastungssteuerung: ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO (gleicher Zweck; nur mit Recht „Gesundheitsdaten“ in beiden Teams) |
 | KI-Coach | 4.15 | gesonderte ausdrückliche Einwilligung, Art. 6 Abs. 1 lit. a und Art. 9 Abs. 2 lit. a DSGVO |
@@ -564,6 +572,7 @@ bleibt unberührt.
 | deine Größen und der Name für die Beflockung | ja | mit Recht „Kader“ (auch als Bestellliste zum Weitergeben, z. B. an einen Ausrüster) | nein | nein |
 | deine Nominierung für ein Spiel | nach dem Veröffentlichen | ja (ändern mit Recht „Planung“) | wenn freigegeben: die anderen Nominierten (Vorname, Initial, Nummer, Position) | nein |
 | deine Zu- oder Absage und ihr Grund | ja | ja | nein | nein |
+| deine Karten und Sperren | Karten, wenn Spieldaten für Spieler freigegeben sind; eingetragene Sperren im Datenexport | ja (eintragen mit Recht „Leistung & Statistik“) | nein | nein |
 | deine Fahrt (wer fährt, Plätze, Abfahrt, Hinweis), dass du mitfährst oder eine Mitfahrgelegenheit suchst | ja | ja (mit vollem Namen) | ja – mit Vorname und Initial | nein |
 | deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
@@ -793,6 +802,7 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Notfallkontakte und Hinweise für den Notfall | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Hinweise auch beim Widerruf der Einwilligung in Gesundheitsdaten |
 | Größen | sofort beim Ändern bzw. Löschen; sonst mit deinem Spielerprofil oder dem Team. Exportierte Bestelllisten liegen beim Trainerteam bzw. beim Empfänger der Bestellung – dort gelten deren Löschfristen |
 | Kader-Nominierungen mit Zu- und Absagen | automatisch **12 Monate** nach dem Spiel; sonst mit dem Kader, dem Spiel, deinem Spielerprofil oder dem Team |
+| Eingetragene Sperren | automatisch **24 Monate** nach Beginn bzw. Ende; sonst mit deinem Spielerprofil oder dem Team (Karten mit den Spieldaten) |
 | Fahrgemeinschaften | „sucht eine Mitfahrgelegenheit“ automatisch am **Tag nach** dem Spiel bzw. Termin; Fahrten mit Mitfahrern automatisch **30 Tage** danach; sofort beim Austragen bzw. Löschen der Fahrt; sonst mit dem Spiel, dem Termin, deinem Spielerprofil oder dem Team |
 | Wochenchallenge | mit der Challenge, dem Spielerprofil oder dem Team |
 | Anfragen für Individualtraining | automatisch 12 Monate nach Abschluss (zugesagt, abgesagt, zurückgezogen); offene mit dem Spielerprofil bzw. Team |

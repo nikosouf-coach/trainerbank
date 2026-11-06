@@ -2,15 +2,16 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import type { MatchStat, Video } from "../../../src/core/types";
+import type { CardKind, MatchStat, Video } from "../../../src/core/types";
 import { tmpId, useEngine, useStore } from "../../../src/data/store";
 import { RatingBadge, RatingInput, VideoList, VideoSheet } from "../../../src/ui/games";
 import { Icon } from "../../../src/ui/icons";
-import { Btn, Card, CardTitle, Check, Col, Field, Header, Muted, NumField, Row, Screen, Sheet, T, ToggleRow } from "../../../src/ui/kit";
+import { Btn, Card, CardTitle, Check, ChoiceChips, Col, Field, Header, Muted, NumField, Row, Screen, Sheet, T, ToggleRow } from "../../../src/ui/kit";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { useTheme } from "../../../src/ui/theme";
 import { CoachPlanCard } from "../../../src/ui/matchplan/cards";
 import { CoachSquadCard } from "../../../src/ui/nomination";
+import { CardIcon } from "../../../src/ui/cards";
 import { RidesCard } from "../../../src/ui/rides";
 
 function Stepper({ value, onChange, testID }: { value: number; onChange: (n: number) => void; testID?: string }) {
@@ -68,7 +69,10 @@ export default function Spiel() {
               style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: c.line, opacity: ab && !x ? 0.5 : 1 }}>
               <PlayerAvatar p={p} size={34} />
               <Col gap={1} style={{ flex: 1 }}>
-                <Text numberOfLines={1} style={{ fontWeight: "700", fontSize: 14.5, color: c.ink }}>{E.name(p)}</Text>
+                <Row gap={6}>
+                  <Text numberOfLines={1} style={{ flexShrink: 1, fontWeight: "700", fontSize: 14.5, color: c.ink }}>{E.name(p)}</Text>
+                  {x?.card && E.mods.karten !== false ? <CardIcon kind={x.card} size={13} testID={"sp-card-" + p.id} /> : null}
+                </Row>
                 <Text style={{ fontSize: 12.5, color: c.muted }}>{x ? `${x.min}′${x.start ? " · " + t("sp_start") : ""}${x.goals ? " · " + x.goals + " " + t("sp_goalsS") : ""}${x.assists ? " · " + x.assists + " " + t("sp_assistsS") : ""}${x.conceded != null ? ` · ${t("sp_conceded")} ${x.conceded}` : ""}${x.saves ? ` · ${t("sp_saves")} ${x.saves}` : ""}` : ab ? t("ab_" + ab.typ) : t("sp_bench")}</Text>
               </Col>
               {r?.text ? <Icon name="chat" size={16} color={c.muted} /> : null}
@@ -102,12 +106,13 @@ function PlayerMatchForm({ pid, matchId, date, onDone }: { pid: string; matchId:
   const p = E.P(pid), gk = !!p && E.isGK(p), m = E.D.matches.find(z => z.id === matchId);
   const [conceded, setConceded] = useState<number>(x?.conceded ?? (m?.result && (x?.min ?? rpeMin ?? E.matchMin()) >= E.matchMin() ? m.result.opp : 0));
   const [saves, setSaves] = useState<number>(x?.saves ?? 0);
+  const [card, setCard] = useState<CardKind | "none">(x?.card || "none");
   const [rating, setRating] = useState<number | null>(r?.rating ?? null);
   const [text, setText] = useState(r?.text || "");
   const [vis, setVis] = useState(r ? r.vis : true);
   const save = () => {
-    const stat: MatchStat = { min: Math.max(0, min || 0), goals, assists, start, pre, ...(gk && (min || 0) > 0 ? { conceded, saves } : {}) };
-    s.saveStat(matchId, pid, stat.min || goals || assists || pre ? stat : null);
+    const stat: MatchStat = { min: Math.max(0, min || 0), goals, assists, start, pre, card: card === "none" ? null : card, ...(gk && (min || 0) > 0 ? { conceded, saves } : {}) };
+    s.saveStat(matchId, pid, stat.min || goals || assists || pre || stat.card ? stat : null);
     if (rating != null || text.trim()) s.saveRating({ id: r?.id || tmpId(), pid, date, kind: "spiel", rating, text: text.trim(), vis });
     else if (r) s.deleteRating(r.id);
     s.toast(t("t_saved")); onDone();
@@ -127,12 +132,20 @@ function PlayerMatchForm({ pid, matchId, date, onDone }: { pid: string; matchId:
         <Col gap={4}><T v="small" bold>{t("tw_conceded")}</T><Stepper testID="spf-conceded" value={conceded} onChange={setConceded} /></Col>
         <Col gap={4}><T v="small" bold>{t("tw_saves")}</T><Stepper testID="spf-saves" value={saves} onChange={setSaves} /></Col>
       </Row> : null}
+      {E.mods.karten !== false ? (
+        <Col gap={6}>
+          <T v="small" bold>{t("kr_card")}</T>
+          <ChoiceChips testID="spf-card" value={card} onChange={setCard}
+            options={[{ key: "none", label: t("kr_none") }, { key: "y", label: t("kr_y") }, { key: "yr", label: t("kr_yr") }, { key: "r", label: t("kr_r") }]} />
+          {card === "yr" ? <Muted small>{t("sp_cardHint")}</Muted> : null}
+        </Col>
+      ) : null}
       <Col gap={6}><T v="small" bold>{t("gm_rating")}</T><RatingInput testID="spf-rate" value={rating} onChange={setRating} /></Col>
       <Field testID="spf-text" label={t("gm_feedback")} value={text} onChangeText={setText} placeholder={t("gm_feedbackPh")} multiline />
       <ToggleRow label={t("gm_visible")} desc={t("gm_visibleD")} value={vis} onChange={setVis} />
       <View style={{ flexDirection: "row", gap: 8 }}>
         <Btn testID="spf-save" kind="primary" label={t("save")} onPress={save} />
-        {x ? <Btn kind="ghost" label={t("sp_bench")} onPress={() => { s.saveStat(matchId, pid, null); onDone(); }} /> : null}
+        {x ? <Btn kind="ghost" label={t("sp_bench")} onPress={() => { s.saveStat(matchId, pid, x.card ? { min: 0, goals: 0, assists: 0, start: false, card: x.card } : null); onDone(); }} /> : null}
       </View>
     </Col>
   );

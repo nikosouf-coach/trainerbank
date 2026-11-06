@@ -8,6 +8,7 @@ import { addDays } from "../core/dates";
 import { changedSincePublish, seenStats, shareState, squadOf } from "../core/matchplan";
 import { nomsOf, squadCounts } from "../core/nomination";
 import { needsOf, rideActive, rideSummary } from "../core/rides";
+import { cardRules, suspendedIn } from "../core/cards";
 import { useEngine } from "../data/store";
 import { Card, Col, Row, T } from "./kit";
 import { Icon } from "./icons";
@@ -44,6 +45,13 @@ export function useMatchdayChecks(): { m: ReturnType<typeof useNextMatch>; check
       else if (answersOn && k.no) L.push({ k: "squad", state: "warn", title: tf("md_squadNo", { n: k.no }), sub: names(noms.filter(n => n.answer === "no").map(n => n.pid)), href });
       else if (answersOn && k.open) L.push({ k: "squad", state: "todo", title: tf("md_squadOpen", { o: k.open }), sub: tf("nm_answerLine", { y: k.yes, n: k.no, o: k.open }), href });
       else L.push({ k: "squad", state: "ok", title: t("md_squadOk"), sub: tf("nm_countLine", { s: k.squad, b: k.standby }), href });
+    }
+    // Sperren (Karten & Sperren): Gesperrte im Kader bzw. in der Aufstellung warnen, sonst als Hinweis
+    if (E.mods.karten !== false) {
+      const sus = suspendedIn(E.D, cardRules(E.team), m.id, E.TODAY), ids = [...sus.keys()];
+      const inSquad = ids.filter(pid => nomsOf(E.D, m.id).some(n => n.pid === pid) || (plan ? plan.c.lineup.some(x => x.pid === pid) || plan.c.bench.includes(pid) : false));
+      if (inSquad.length) L.push({ k: "susp", state: "warn", title: tf("md_suspendedSquad", { n: inSquad.length }), sub: names(inSquad), href: "/coach/nominierung/" + m.id });
+      else if (ids.length) L.push({ k: "susp", state: "info", title: tf("md_suspended", { n: ids.length }), sub: names(ids), href: "/coach/karten" });
     }
     // Fahrgemeinschaften (Auswärtsspiel oder schon Fahrten): Suchende, noch keine Fahrten, steht
     if (E.mods.fahrten !== false && (!m.heim || rideActive(E.D, m.id))) {

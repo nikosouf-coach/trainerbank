@@ -8,10 +8,12 @@ import { Pressable, Text, View } from "react-native";
 import { posGroup } from "../../../src/core/classes";
 import { absentOn, answersAllowed, kickoff, nomsOf, openWithAccount, squadAnnouncement, squadCounts, squadSort } from "../../../src/core/nomination";
 import { squadOf } from "../../../src/core/matchplan";
+import { cardRules, suspendedIn } from "../../../src/core/cards";
 import { useEngine, useStore } from "../../../src/data/store";
 import { Icon } from "../../../src/ui/icons";
 import { Banner, Btn, Card, CardTitle, Check, Col, Field, Header, Info, Muted, Row, Screen, T, TimeField, ToggleRow } from "../../../src/ui/kit";
 import { AnswerSheet, answerStyle, matchLine } from "../../../src/ui/nomination";
+import { suspShort } from "../../../src/ui/cards";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
 import { announceChat } from "../../../src/ui/polls";
 import { radius, useTheme, withAlpha } from "../../../src/ui/theme";
@@ -49,10 +51,12 @@ export default function Nominierung() {
   const chat = E.mods.chat !== false ? announceChat(s.chats, { groupId: null }) : null;
   const when = `${E.wt(m.date)} ${E.de(m.date)}`;
   const plan = E.mods.matchplan ? E.D.plans.find(p => p.matchId === m.id) || null : null, planIds = plan ? squadOf(plan.c) : [];
+  // gesperrte Spieler (Karten & Sperren): markiert und nicht bei „Alle verfügbaren“
+  const sus = E.mods.karten !== false ? suspendedIn(E.D, cardRules(E.team), m.id, E.TODAY) : new Map();
 
   const toggle = (pid: string, v: Pick_) => setSel(x => { const y = { ...x }; if (y[pid] === v) delete y[pid]; else y[pid] = v; return y; });
   // alle verfügbaren: aktiv, nicht abwesend, keine neue App-Anmeldung, die noch zusammengeführt werden muss
-  const pickAvail = () => setSel(x => { const y = { ...x }; for (const p of players) if (p.active !== false && !p.neu && !absentOn(E.D, p.id, m.date) && !y[p.id]) y[p.id] = "squad"; return y; });
+  const pickAvail = () => setSel(x => { const y = { ...x }; for (const p of players) if (p.active !== false && !p.neu && !absentOn(E.D, p.id, m.date) && !sus.has(p.id) && !y[p.id]) y[p.id] = "squad"; return y; });
   const pickPlan = () => setSel(x => { const y = { ...x }; for (const pid of planIds) if (E.P(pid) && !y[pid]) y[pid] = "squad"; return y; });
 
   const save = async (publish: boolean | null) => {
@@ -119,6 +123,7 @@ export default function Nominierung() {
                       <Text numberOfLines={1} style={{ fontSize: 14.5, fontWeight: "700", color: c.ink }}>{E.name(p)}</Text>
                       <Text numberOfLines={1} style={{ fontSize: 12.5, color: c.muted }}>{[p.nr != null ? "#" + p.nr : "", p.pos].filter(Boolean).join(" · ")}</Text>
                       {ab ? <Text testID={"nm-abs-" + p.id} style={{ fontSize: 12.5, fontWeight: "600", color: c.crit }}>{`${t("nm_unavailable")}: ${t("ab_" + ab.typ)}${ab.bis ? ` (${t("until")} ${E.de(ab.bis)})` : ""}`}</Text> : null}
+                      {sus.has(p.id) ? <Text testID={"nm-susp-" + p.id} style={{ fontSize: 12.5, fontWeight: "600", color: c.crit }}>{tf("nm_suspended", { r: suspShort(E, sus.get(p.id)!) })}</Text> : null}
                       {st ? (
                         <Pressable testID={"nm-ans-" + p.id} accessibilityRole="button" accessibilityLabel={`${t("nm_setAnswer")}: ${st.label}`} disabled={!canEdit} onPress={() => setAns(p.id)} hitSlop={4}
                           style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, marginTop: 2 }}>

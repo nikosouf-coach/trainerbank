@@ -10,7 +10,7 @@ export type IconName =
   | "chat" | "send" | "eye" | "mute" | "reply" | "flag" | "people" | "scout" | "search" | "filter" | "up" | "down"
   | "board" | "ball" | "video" | "stopwatch" | "trend" | "whistle" | "sun" | "book" | "checklist" | "wallet" | "phone" | "shield" | "club"
   | "grid" | "key" | "sliders" | "help" | "pen" | "undo" | "redo" | "copy" | "layers" | "minus" | "curve" | "frame" | "note"
-  | "clock" | "heart" | "pulse" | "home" | "chart" | "export" | "weg" | "poll" | "shirt" | "car";
+  | "clock" | "heart" | "pulse" | "home" | "chart" | "export" | "weg" | "poll" | "shirt" | "car" | "cards";
 
 const P: Record<IconName, React.ReactNode> = {
   heute: <Path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z" />,
@@ -89,6 +89,7 @@ const P: Record<IconName, React.ReactNode> = {
   poll: <><Path d="M4 6h8" /><Path d="M4 12h14" /><Path d="M4 18h5" /><Path d="M14.5 17.5l2 2 3.5-4" /></>,
   shirt: <Path d="M8.5 3.5L3 6.5l2 4.2 3-1.4V20.5h8V9.3l3 1.4 2-4.2-5.5-3c-.6 1.6-2 2.7-3.5 2.7s-2.9-1.1-3.5-2.7z" />,
   car: <><Path d="M5 17H4a1 1 0 0 1-1-1v-3.3l2.3-4.2A2 2 0 0 1 7.1 7.4h8.8a2 2 0 0 1 1.6.8l2.7 3.7.3.1a1 1 0 0 1 .5.9V16a1 1 0 0 1-1 1h-1" /><Path d="M9 17h6M3.4 12h17.2M11.5 7.6V12" /><Circle cx={7} cy={17} r={2} /><Circle cx={17} cy={17} r={2} /></>,
+  cards: <><Rect x={4} y={3} width={10} height={14} rx={1.6} /><Path d="M14 7h3.4a1.6 1.6 0 0 1 1.6 1.6v10.8a1.6 1.6 0 0 1-1.6 1.6h-6.8A1.6 1.6 0 0 1 9 19.4V17" /></>,
 };
 
 export function Icon({ name, size = 22, color = "#000", strokeWidth = 1.8 }: { name: IconName; size?: number; color?: ColorValue; strokeWidth?: number }) {

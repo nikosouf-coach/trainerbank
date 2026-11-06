@@ -249,6 +249,7 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoSizes(D, lang, now);
   demoSquads(D, lang, now);
   demoRides(D, lang, now);
+  demoCards(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -860,6 +861,34 @@ function demoRides(D: TeamData, lang: Lang, now: Date): void {
   if (d2) ride("dr2", d2, "", 4, "", take(["p6", "p9"], 2));
   ride("dr3", null, "", 3, en ? "Please be on time." : "Bitte pünktlich sein.", take(["p3", "p7"], 2));
   for (const pid of take(["p19", "p21"], 2)) D.rideNeeds.push({ kind: "match", refId: m.id, pid });
+}
+
+/**
+ * Karten der Demo in den vergangenen Meisterschaftsspielen: p6 hat vier Gelbe (Gelb-Warnung, sobald eine Gelbsperre
+ * eingestellt ist), weitere Gelbe verteilt, Gelb-Rot und Rot im letzten Spiel (Rot: Sperre bis zum Urteil); dazu ein
+ * Urteil nach einer Roten Karte vor drei Spielen (3 Spiele – eines ist noch offen).
+ */
+function demoCards(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", TODAY = iso(now);
+  const past = D.matches.filter(m => m.date < TODAY && m.comp === "liga" && m.date >= seasonStart(TODAY)).sort((a, b) => (a.date < b.date ? 1 : -1));
+  if (past.length < 4) return;
+  const used = new Set<string>();
+  const playedIn = (pid: string, m: { id: string }) => (D.stats[m.id]?.[pid]?.min || 0) > 0 && !D.stats[m.id][pid].card;
+  /** Spieler aus der Vorschlagsliste (sonst irgendeiner), der in den Spielen gespielt hat */
+  const who = (pref: string[], ms: { id: string }[]) => [...pref, ...D.players.map(p => p.id)].find(pid => !used.has(pid) && ms.every(m => playedIn(pid, m)));
+  const set = (pid: string | undefined, ms: { id: string }[], card: "y" | "yr" | "r") => { if (!pid) return; used.add(pid); for (const m of ms) D.stats[m.id][pid].card = card; };
+  // vier Gelbe (Gelb-Warnung, sobald eine Gelbsperre eingestellt ist): in den vier Spielen, die er gespielt hat
+  const four = [...D.players.map(p => p.id)].sort((a, b) => (a === "p6" ? -1 : b === "p6" ? 1 : 0)).find(pid => past.filter(m => playedIn(pid, m)).length >= 4);
+  if (four) set(four, past.filter(m => playedIn(four, m)).slice(0, 4), "y");
+  for (const [pref, i] of [[["p9"], 1], [["p14"], 0], [["p20"], 2]] as const) set(who([...pref], [past[i]]), [past[i]], "y");
+  set(who(["p8"], [past[0]]), [past[0]], "yr");
+  set(who(["p13"], [past[0]]), [past[0]], "r");
+  // Rote Karte vor drei Spielen mit Urteil (3 Spiele): zwei verbüßt, eines offen
+  const red = who(["p18"], [past[2]]);
+  if (red) {
+    set(red, [past[2]], "r");
+    D.suspensions.push({ id: "dsu1", pid: red, kind: "red", matchId: past[2].id, start: past[2].date, games: 3, until: null, scope: "all", note: en ? "Sports court ruling: 3 matches" : "Urteil Sportgericht: 3 Spiele" });
+  }
 }
 
 /** Größen: die meisten Spieler haben sie eingetragen (passend zum Alter), drei fehlen, einer ist unvollständig */

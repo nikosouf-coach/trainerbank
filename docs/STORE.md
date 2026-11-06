@@ -339,7 +339,7 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 | Identifikatoren | Benutzer-ID | ja | ja | nein | App-Funktionalität | Konto-ID |
 | Identifikatoren | Geräte-ID | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Push-Token |
 | Nutzungsdaten | Produktinteraktion | ja (konservativ) – zu prüfen | ja | nein | App-Funktionalität | Zähler der KI-Anfragen pro Tag (Tageslimit) |
-| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen), Noten, Kontaktliste des Teams, Kleider- und Schuhgrößen mit Name für die Beflockung |
+| Sonstige Daten | Sonstige Datentypen | ja | ja | nein | App-Funktionalität | Geburtsdatum, Position, Rückennummer, Anwesenheit, Spieldaten (Minuten, Tore, Vorlagen, Karten), Sperren, Noten, Kontaktliste des Teams, Kleider- und Schuhgrößen mit Name für die Beflockung |
 | Finanzinformationen | Sonstige Finanzinformationen | ja | ja | nein | App-Funktionalität | Mannschaftskasse: Beiträge, Zahlungen, Geldstrafen, Kassenbuch (keine Konto- oder Kartendaten, keine Zahlungsabwicklung) |
 | Benutzerinhalte | Kundensupport | ja | ja | nein | App-Funktionalität | Rückmeldungen aus der App („Feedback / Fehler melden“): Text, optional Bildschirmfoto |
 | Diagnose | Absturzdaten | ja (nur nach Zustimmung auf dem Gerät) | nein | nein | App-Funktionalität | Absturzberichte über Sentry ohne Konto-Bezug |

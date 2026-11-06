@@ -69,7 +69,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | Tabelle | Spalten (Auszug) | Zugriff |
 |---|---|---|
 | `extra_activities.label`, `.program_item` | freie Bezeichnung; erledigter Programm-Baustein | wie Zusatzsport |
-| `match_stats` | pk(`match_id`,`player_id`), `minutes`, `goals`, `assists`, `started` | Staff; Spieler eigene, wenn `player_view(team,'stats')` |
+| `match_stats` | pk(`match_id`,`player_id`), `minutes`, `goals`, `assists`, `started`; `card` (y, yr, r – …20261105000007) | Staff; Spieler eigene, wenn `player_view(team,'stats')`; schreiben Staff mit `perf` |
 | `player_ratings` | `id`, `player_id`, `date`, `kind` (spiel/training), `rating` 1–10, `text`, `visible` | Staff; Spieler eigene freigegebene, wenn `player_view(team,'ratings')` |
 | `videos` | `id`, `title`, `url`, `date`, `match_id`, `player_ids` und `group_ids` (beide leer = ganzes Team), `note`, `visible` | Staff; Mitglieder freigegebene (für sie oder ihre Gruppe bestimmte) |
 | `performance_tests` | `id`, `player_id`, `test` (eingebaut oder `c:<id>` eines eigenen Tests des Teams, …0029), `date`, `value` (0 … 99 999,99), `note` | Staff; Spieler eigene, wenn `player_view(team,'tests')` |
@@ -136,6 +136,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `rides` (…20261105000006) | Fahrt zu einem Spiel (`match_id`) oder Termin (`event_id`, genau eins – `rides_one_target`; `ref_id` generiert, Cascade): `driver_pid` (Spieler bzw. Eltern; null = Trainerteam), `driver_label` (1–60, z. B. „Mama von Max“), `seats` 1–8 (Plätze für Mitfahrer), `depart_time` (HH:MM), `depart_place` (1–120), `note` (1–200); je Ziel höchstens eine Fahrt pro Fahrer (`rides_driver_once`) | lesen Team (`is_team_member`); schreiben nur über `ride_save`/`ride_delete` |
 | `ride_seats` (…20261105000006) | pk(`ride_id` → `rides`, `player_id`), `ref_id` (vom Server), je Ziel ein Platz pro Spieler (`ride_seats_once`) | lesen Team; schreiben nur über `ride_join`/`ride_leave` |
 | `ride_needs` (…20261105000006) | Spieler sucht eine Mitfahrgelegenheit: `match_id`/`event_id` (genau eins, Cascade), `ref_id` generiert, je Ziel einmal (`ride_needs_once`) | lesen Team; schreiben nur über `ride_need` (und die Funktionen oben) |
+| `player_suspensions` (…20261105000007) | Eingetragene Sperre: `player_id` (Cascade), `match_id` (Auslöser, `set null`), `kind` (yellow, yellow_red, red, other), `start_date`, `games` (0–30; 0 = aufgehoben; null = bis zum Urteil) oder `until_date` (nicht beides, nicht vor dem Beginn), `scope` (league, all), `note` (1–200, einzeilig); je Auslöser, Spieler und Grund eine (`player_suspensions_once`); `team_id` aus dem Spieler, Auslöser aus demselben Team (`different_teams`), Spieler nicht wechselbar, `updated_by`/`updated_at` vom Server. Sperren aus Karten nach den Regeln (`teams.settings.cards`) berechnet die App (`core/cards`) | Staff lesen, Spieler eigene; schreiben Staff mit `perf` |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -376,7 +377,8 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Entwicklungsprogramm, Selbstanalyse, Stärken-Runde; v9: Antworten und Abstimmungen aus Umfragen – doppelte Einträge
   bleiben beim bestehenden Spieler; v10: Notfallkontakt und Hinweise für den Notfall – der neuere Stand gewinnt; v11:
   Größen – der neuere Stand gewinnt; v12: Kader-Nominierungen – doppelte bleiben bei der neuen Zeile; v13:
-  Fahrgemeinschaften – je Ziel nur eins von Fahrer, Platz, Suche, Doppelungen bleiben bei der neuen Zeile).
+  Fahrgemeinschaften – je Ziel nur eins von Fahrer, Platz, Suche, Doppelungen bleiben bei der neuen Zeile; v14:
+  eingetragene Sperren – je Karte eine, Doppelungen bleiben bei der neuen Zeile).
 - `answer_nomination(match, answer, reason)` – Zu-/Absage des Spielers für die eigene Nominierung: nur veröffentlicht,
   mit `settings.playerAbs` (wie Absagen bei Trainings, Standard an) und vor dem Anpfiff (Datum + Uhrzeit in der Zeitzone
   des Teams); Grund nur bei Absage (bereinigt, ≤ 200). Fehler `answers_off`, `match_started`, `invalid_answer`.
@@ -394,6 +396,8 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   `ride_past`; Modul `fahrten` aus: `rides_off` (austragen, löschen und Suche beenden gehen weiter); je Spieler und
   Ziel nacheinander (`ride_lock`, Advisory-Lock). `ride_names(team)` – Vorname und Initial der Beteiligten.
   `purge_old_rides()` (täglich) – Suchen am Tag nach dem Ziel, Fahrten 30 Tage danach.
+- `purge_old_suspensions()` (täglich) – eingetragene Sperren 24 Monate nach Beginn bzw. Ende. `teams_perm_guard`: die
+  Regeln für Sperren (`settings.cards`) brauchen `perf`.
 - Notfallkontakte: Beim Beitreten speichert die App den Kontakt (Pflicht) direkt nach `join_team` und vor dem Laden
   des Teams; Prüfung der Kontakte `emergency_contacts_ok(c)` (wie `core/emergency → cleanContacts`).
 - `peer_targets(team)` – Spieler: Mitspieler für die Stärken-Runde (Vorname, Initial, Rückennummer, Position), nur
@@ -406,7 +410,7 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Antwort, nach dem Ende oder bei der eigenen Abstimmung. Hilfen: `team_today(team)`, `poll_running(poll)`,
   `poll_target_me(team, group)`, `poll_my_player(team)`, `poll_group_ok(group, team)`.
 - `purge_old_polls()` (täglich) – Umfragen mit allen Antworten 12 Monate nach dem Ende (ohne Ende: nach dem Start).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v14` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort; v14: eigene Fahrgemeinschaften – Fahrten als Fahrer mit Zahl der Mitfahrer, Plätze mit Fahrer und Abfahrt, Suchen, ohne Namen anderer): Profil, Gesundheitsdaten
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v15` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort; v14: eigene Fahrgemeinschaften – Fahrten als Fahrer mit Zahl der Mitfahrer, Plätze mit Fahrer und Abfahrt, Suchen, ohne Namen anderer; v15: eingetragene Sperren – Karten stehen bei den Spieldaten): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -515,6 +519,10 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   (`answersAllowed`: Einstellung „Absagen durch Spieler“ und vor dem Anpfiff), Zahlen (Kader, Abruf, Zu-/Absagen,
   offen), Reihenfolge nach Mannschaftsteilen, Kaderliste mit Vorname und Initial, Kader aus Sicht eines Spielers (nur
   veröffentlicht und nominiert), Offene mit Konto (Erinnerung), Text für die Ankündigung im Chat.
+- `cards.ts` – Karten & Sperren: Regeln (Voreinstellung je Altersklasse nach WDFV/FVN, Grenzen), Karten je Spieler und
+  Saison, abgeleitete Sperren (Gelbsperre bei jeder x-ten Gelben in Meisterschaftsspielen einer Saison, Gelb-Rot,
+  Rot – Spiele oder bis zum Urteil), eingetragene ersetzen abgeleitete, Stand einer Sperre (betroffene Spiele nach dem
+  Auslöser, verbüßt, bis, aufgehoben), gesperrt für ein Spiel, Gelb-Warnung, Karte im Spielbericht setzen.
 - `rides.ts` – Fahrgemeinschaften: Bereinigung (Plätze 1–8, Abfahrt, Texte), Ziele (Spiel oder Termin, trainingsfrei
   ohne Fahrten), Ziele der nächsten Tage für die Startseite (Auswärtsspiele und Ziele mit Fahrten), Stand eines
   Spielers (fährt, fährt mit, sucht), Zahlen (Fahrten, Plätze, frei, Suchende), Regeln wie der Server (`rideCheck`)

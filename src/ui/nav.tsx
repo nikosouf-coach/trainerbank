@@ -5,6 +5,8 @@ import { useRouter } from "expo-router";
 import { chatSettings } from "../core/chat";
 import { openRequests } from "../core/dev";
 import { missingEmergency } from "../core/emergency";
+import { activeSuspensions, cardRules } from "../core/cards";
+import { iso } from "../core/dates";
 import type { Perm } from "../core/perms";
 import type { Modules } from "../core/types";
 import { useStore } from "../data/store";
@@ -46,6 +48,7 @@ export const NAV: NavItem[] = [
   { k: "archiv", href: "/coach/archiv", icon: "book", short: "nvb_archiv", title: "ar_title", sub: "ar_sub", group: "training", tab: true, need: x => !!x.mods.archiv },
   { k: "matchplaene", href: "/coach/matchplaene", icon: "board", short: "nvb_matchplaene", title: "mp_list", sub: "mp_menuSub", group: "spiel", tab: true, need: x => !!x.mods.matchplan },
   { k: "spiele", href: "/coach/spiele", icon: "ball", short: "nvb_spiele", title: "sp_list", sub: "sp_listSub", group: "spiel", tab: true, need: x => !!x.mods.spielanalyse },
+  { k: "karten", href: "/coach/karten", icon: "cards", short: "nvb_karten", title: "kr_title", sub: "kr_menuSub", group: "spiel", tab: true, need: x => x.mods.karten !== false },
   { k: "videos", href: "/coach/videos", icon: "video", short: "nvb_videos", title: "sp_lib", sub: "sp_libSub", group: "spiel", tab: true, need: x => !!x.mods.videos },
   { k: "scouting", href: "/coach/scouting", icon: "scout", short: "nav_scout", title: "m_kaderplanung", sub: "sk_menuSub", group: "spiel", tab: true, need: x => !!x.mods.kaderplanung && x.can("scout") },
   { k: "aufgaben", href: "/coach/aufgaben", icon: "checklist", short: "nvb_aufgaben", title: "tk_title2", sub: "tk_menuSub", group: "orga", tab: true },
@@ -90,7 +93,8 @@ export function useNav() {
   const reset = () => s.setPrefs({ nav: undefined });
   /** Zahl am Menüpunkt (z. B. offene Anfragen) */
   const badge = (k: string): number => k === "individual" && D ? openRequests(D).length : k === "rueckmeldungen" ? s.feedbackOpen
-    : k === "notfall" && D ? missingEmergency(D).length : 0;
+    : k === "notfall" && D ? missingEmergency(D).length
+    : k === "karten" && D && D.team.modules.karten !== false ? new Set(activeSuspensions(D, cardRules(D.team), iso(new Date())).map(x => x.s.pid)).size : 0;
   return { items, bar, hidden, save, reset, badge, custom: !!saved?.bar?.length || !!saved?.hide?.length };
 }
 

@@ -20,13 +20,14 @@ import { cleanContacts, cleanMed } from "../core/emergency";
 import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { applyAnswer, cleanSquad, mySquads as mySquadsOf, squadMatesOf, type MySquad } from "../core/nomination";
 import { applyRide, cleanRide, dropRideRef, rideCheck, rideName, type RideOp } from "../core/rides";
+import { cleanSuspension, withCard } from "../core/cards";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, CardKind, Suspension,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -718,7 +719,11 @@ function useStoreValue() {
     // Kalender & Plan
     saveMatch: (m: Match) => { const isNew = m.id.startsWith("tmp-"); return change(D => { if (isNew) D.matches.push(m); else Object.assign(D.matches.find(x => x.id === m.id)!, m); D.matches.sort((a, b) => a.date < b.date ? -1 : 1); },
       async (api, id) => { const saved = await api.saveMatch(id, m); replaceIn(ref.current.D!.matches, m, saved); }, { plan: true }); },
-    deleteMatch: (id: string) => change(D => { D.matches = D.matches.filter(x => x.id !== id); delete D.squads[id]; D.noms = D.noms.filter(n => n.matchId !== id); dropRideRef(D, id); }, (api, t) => api.deleteMatch(t, id), { plan: true }),
+    deleteMatch: (id: string) => change(D => {
+      // wie in der Datenbank: Kader, Spieldaten (mit Karten) und Fahrgemeinschaften gehen mit, Sperren bleiben ohne Auslöser
+      D.matches = D.matches.filter(x => x.id !== id); delete D.squads[id]; D.noms = D.noms.filter(n => n.matchId !== id); dropRideRef(D, id); delete D.stats[id];
+      D.suspensions = D.suspensions.map(z => z.matchId === id ? { ...z, matchId: null } : z);
+    }, (api, t) => api.deleteMatch(t, id), { plan: true }),
     saveEvent: (e: TeamEvent) => { const isNew = e.id.startsWith("tmp-"); return change(D => { if (isNew) D.events.push(e); else Object.assign(D.events.find(x => x.id === e.id)!, e); },
       async (api, id) => { const saved = await api.saveEvent(id, e); replaceIn(ref.current.D!.events, e, saved); }, { plan: true }); },
     deleteEvent: (id: string) => change(D => { D.events = D.events.filter(x => x.id !== id); dropRideRef(D, id); }, (api, t) => api.deleteEvent(t, id), { plan: true }),
@@ -1084,6 +1089,24 @@ function useStoreValue() {
       toast(tr0.t("nm_reminded"));
     },
 
+    // ---------- Karten & Sperren ----------
+    /** Karte im Spielbericht setzen bzw. entfernen (Minuten, Tore usw. bleiben) */
+    saveCard: (matchId: string, pid: string, card: CardKind | null) => {
+      const st = withCard(ref.current.D?.stats[matchId]?.[pid], card);
+      return changeOk(D => { const m = (D.stats[matchId] ||= {}); if (st) m[pid] = st; else delete m[pid]; },
+        (api, t) => api.saveStat(t, matchId, pid, st), { ok: translator(ref.current.lang).t("kr_cardSaved") });
+    },
+    /** Sperre eintragen bzw. ändern (Urteil, aufgehoben = 0 Spiele, sonstige); ok = Schlüssel des Hinweises */
+    saveSuspension: (x: Suspension, ok = "kr_saved") => {
+      const y = cleanSuspension(x), isNew = y.id.startsWith("tmp-");
+      return changeOk(D => { if (isNew) D.suspensions.push(y); else D.suspensions = D.suspensions.map(z => z.id === y.id ? y : z); },
+        async (api, t) => { const saved = await api.saveSuspension(t, y); const D = ref.current.D; if (D) replaceIn(D.suspensions, y, saved); },
+        { ok: translator(ref.current.lang).t(ok) });
+    },
+    /** Sperre löschen (bei einer Karte gilt danach wieder die Regel) */
+    deleteSuspension: (id: string, ok = "kr_deleted") => changeOk(D => { D.suspensions = D.suspensions.filter(z => z.id !== id); },
+      api => api.deleteSuspension(id), { ok: translator(ref.current.lang).t(ok) }),
+
     // ---------- Fahrgemeinschaften ----------
     /** Fahrt anbieten bzw. ändern (Spieler: eigene; Trainerteam: alle) */
     saveRide: (r: Ride) => {
@@ -1412,7 +1435,7 @@ function useStoreValue() {
     uploadFinding: "medical", updateFinding: "medical", deleteFinding: "medical", analyzeFinding: "medical",
     saveNote: "notes", savePotential: "notes", deletePotential: "notes", saveRating: "notes", deleteRating: "notes",
     saveMessage: "messages", deleteMessage: "messages",
-    saveStat: "perf", saveTest: "perf", deleteTest: "perf",
+    saveStat: "perf", saveTest: "perf", deleteTest: "perf", saveCard: "perf", saveSuspension: "perf", deleteSuspension: "perf",
     saveDutyDefs: "tasks", saveFineRules: "tasks", saveDuty: "tasks", saveFine: "tasks", deleteFine: "tasks", saveTask: "tasks", deleteTask: "tasks",
     saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
     saveAssessment: "notes", deleteAssessment: "notes", saveGoal: "notes", deleteGoal: "notes", saveGoalEntry: "notes", deleteGoalEntry: "notes", saveTalk: "notes", deleteTalk: "notes",

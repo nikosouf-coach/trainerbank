@@ -4315,6 +4315,98 @@ do $$ begin
 end $$;
 
 -- =====================================================================
+-- T58 Karten und Sperren: Karte im Spielbericht, eingetragene Sperren (Recht Leistung), Spieler lesen nur die eigenen,
+--     Regeln in den Team-Einstellungen mit Recht Leistung, Löschfrist, Spiel gelöscht
+-- =====================================================================
+with ins as (insert into public.matches (team_id, date, opponent) values (tst.get('team_b')::uuid, current_date, 'T58 B') returning id)
+select tst.put('m58b', id::text) from ins;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.matches (team_id, date, time, opponent, competition) values (tst.get('team_a')::uuid, current_date - 3, '15:00', 'T58 FC', 'liga') returning id)
+select tst.put('m58', id::text) from ins;
+select tst.affects(format($q$insert into public.match_stats (match_id, player_id, minutes, card) values (%L, %L, 70, 'r')$q$, tst.get('m58'), tst.get('max')), 1, 'T58 Rote Karte im Spielbericht');
+select tst.affects(format($q$insert into public.match_stats (match_id, player_id, card) values (%L, %L, 'y')$q$, tst.get('m58'), tst.get('tom')), 1, 'T58 Gelbe Karte auf der Bank (ohne Minuten)');
+select tst.throws(format($q$update public.match_stats set card = 'x' where match_id = %L$q$, tst.get('m58')), 'T58 nur Gelb, Gelb-Rot, Rot', 'match_stats_card_valid');
+select tst.affects(format($q$insert into public.player_suspensions (player_id, match_id, kind, start_date, games, note) values (%L, %L, 'red', current_date - 3, 3, 'Urteil Sportgericht')$q$, tst.get('max'), tst.get('m58')), 1, 'T58 Urteil nach der Roten Karte');
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and updated_by = tst.uid('coachA') and scope = 'all' from public.player_suspensions where player_id = tst.get('max')::uuid),
+                 'T58 Team und Konto setzt der Server');
+end $$;
+select tst.throws(format($q$insert into public.player_suspensions (player_id, match_id, kind, start_date, games) values (%L, %L, 'red', current_date, 2)$q$, tst.get('max'), tst.get('m58')), 'T58 je Karte nur eine Sperre', 'duplicate key');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 31)$q$, tst.get('tom')), 'T58 höchstens 30 Spiele', 'player_suspensions_games_valid');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games, until_date) values (%L, 'other', current_date, 2, current_date + 7)$q$, tst.get('tom')), 'T58 Spiele oder bis', 'player_suspensions_games_or_until');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, until_date) values (%L, 'other', current_date, current_date - 1)$q$, tst.get('tom')), 'T58 bis nicht vor dem Beginn', 'player_suspensions_until_after');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'blau', current_date, 1)$q$, tst.get('tom')), 'T58 Grund aus der Liste', 'player_suspensions_kind_valid');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, note) values (%L, 'other', current_date, E'a\nb')$q$, tst.get('tom')), 'T58 Hinweis einzeilig', 'player_suspensions_note_valid');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, match_id, kind, start_date, games) values (%L, %L, 'red', current_date, 2)$q$, tst.get('tom'), tst.get('m58b')), 'T58 Auslöser aus dem eigenen Team', 'different_teams');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 2)$q$, tst.get('p46b')), 'T58 nur Spieler des eigenen Teams', 'row-level security');
+select tst.affects(format($q$insert into public.player_suspensions (player_id, kind, start_date, until_date, scope) values (%L, 'other', current_date, current_date + 30, 'league')$q$, tst.get('tom')), 1, 'T58 sonstige Sperre bis zu einem Tag');
+select tst.affects(format($q$insert into public.player_suspensions (player_id, kind, start_date) values (%L, 'red', current_date)$q$, tst.get('erik')), 1, 'T58 Sperre bis zum Urteil (ohne Spiele und Datum)');
+select tst.throws(format($q$update public.player_suspensions set player_id = %L where player_id = %L$q$, tst.get('tom'), tst.get('max')), 'T58 Spieler nicht wechselbar', 'forbidden');
+select tst.affects(format($q$update public.player_suspensions set games = 0 where player_id = %L$q$, tst.get('erik')), 1, 'T58 Sperre aufheben (0 Spiele)');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_suspensions)::text || '/' || (select string_agg(kind || ':' || games::text, ',') from public.player_suspensions), '1/red:3', 'T58 Spieler sieht nur die eigene Sperre');
+end $$;
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 1)$q$, tst.get('max')), 'T58 Spieler tragen keine Sperren ein', 'row-level security');
+select tst.affects($q$update public.player_suspensions set games = 0$q$, 0, 'T58 Spieler ändern ihre Sperre nicht');
+select tst.affects($q$delete from public.player_suspensions$q$, 0, 'T58 Spieler löschen ihre Sperre nicht');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_suspensions)::text, '0', 'T58 Mitspieler sehen keine Sperren');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_suspensions where team_id = tst.get('team_a')::uuid)::text, '3', 'T58 Trainerteam ohne Recht Leistung sieht die Sperren');
+end $$;
+select tst.affects(format($q$update public.player_suspensions set games = 1 where team_id = %L$q$, tst.get('team_a')), 0, 'T58 ohne Recht Leistung keine Änderung');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 1)$q$, tst.get('tom')), 'T58 ohne Recht Leistung nichts eintragen', 'row-level security');
+select tst.throws(format($q$update public.teams set settings = settings || '{"cards": {"yellowLimit": 5}}'::jsonb where id = %L$q$, tst.get('team_a')), 'T58 Regeln nur mit Recht Leistung', 'cards needs perf');
+commit;
+update public.team_staff set perms = array['perf']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.affects(format($q$update public.teams set settings = settings || '{"cards": {"yellowLimit": 5, "yellowGames": 1, "yrGames": 1, "redGames": 2}}'::jsonb where id = %L$q$, tst.get('team_a')), 1, 'T58 Regeln mit Recht Leistung');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+update public.teams set settings = settings - 'cards' where id = tst.get('team_a')::uuid;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_suspensions where team_id = tst.get('team_a')::uuid)::text, '0', 'T58 fremdes Trainerteam sieht keine Sperren');
+end $$;
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 1)$q$, tst.get('tom')), 'T58 fremdes Trainerteam trägt nichts ein', 'row-level security');
+commit;
+
+insert into public.player_suspensions (team_id, player_id, kind, start_date, games) values (tst.get('team_a')::uuid, tst.get('tom')::uuid, 'other', current_date - 800, 2);
+do $$ begin
+  perform tst.eq(public.purge_old_suspensions()::text, '1', 'T58 Löschfrist: Sperre älter als 24 Monate gelöscht');
+  perform tst.eq((select count(*) from public.player_suspensions where team_id = tst.get('team_a')::uuid)::text, '3', 'T58 Löschfrist: aktuelle Sperren bleiben');
+end $$;
+delete from public.matches where id = tst.get('m58')::uuid;
+do $$ begin
+  perform tst.ok((select match_id is null and games = 3 from public.player_suspensions where player_id = tst.get('max')::uuid), 'T58 Spiel gelöscht: Sperre bleibt ohne Auslöser');
+  perform tst.eq((select count(*) from public.match_stats where match_id = tst.get('m58')::uuid)::text, '0', 'T58 Spiel gelöscht: Karten weg');
+end $$;
+delete from public.matches where id = tst.get('m58b')::uuid;
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -4332,7 +4424,8 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v14', 'T21b Exportformat v14');
+  perform tst.eq(x ->> 'format', 'trainerbank-export-v15', 'T21b Exportformat v15');
+  perform tst.eq(jsonb_array_length(x -> 'suspensions')::text || '/' || (x -> 'suspensions' -> 0 ->> 'kind') || '/' || (x -> 'suspensions' -> 0 ->> 'games'), '1/red/3', 'T21b Export: eigene Sperren');
   perform tst.eq(jsonb_array_length(x -> 'rides_offered')::text || '/' || (x -> 'rides_offered' -> 0 ->> 'target') || '/' || (x -> 'rides_offered' -> 0 ->> 'passengers'),
                  '1/T57 Turnier/1', 'T21b Export: eigene Fahrten als Fahrer (ohne Namen der Mitfahrer)');
   perform tst.ok(jsonb_typeof(x -> 'ride_seats') = 'array' and jsonb_typeof(x -> 'ride_needs') = 'array', 'T21b Export enthält Plätze und Suchen');

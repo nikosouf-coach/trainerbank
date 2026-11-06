@@ -50,6 +50,7 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `migrations/20261105…04_groessen.sql` | Größen & Ausrüstung: `player_sizes` (feste Listen und Bereiche, Recht „Kader“); `merge_players` v11, Export v12 |
 | `migrations/20261105…05_nominierung.sql` | Kader-Nominierung: `match_squads`, `match_nominations`, `answer_nomination`, `squad_mates`; `merge_players` v12, Export v13, `purge_old_squads` |
 | `migrations/20261105…06_fahrgemeinschaften.sql` | Fahrgemeinschaften: `rides`, `ride_seats`, `ride_needs` (lesen Team, schreiben nur über `ride_save`/`ride_delete`/`ride_join`/`ride_leave`/`ride_need`), `ride_names`; `merge_players` v13, Export v14, `purge_old_rides` |
+| `migrations/20261105…07_karten.sql` | Karten & Sperren: `match_stats.card`, `player_suspensions` (lesen Trainerteam und Spieler selbst, schreiben Recht „perf“), `teams_perm_guard` (`settings.cards` mit „perf“); `merge_players` v14, Export v15, `purge_old_suspensions` |
 | `functions/chat-push` | Push bei neuen Chat-Nachrichten (vom Trigger per pg_net, Header `x-cron-secret`): Empfänger aus `chat_push_targets`, Titel/Text ohne Nachrichteninhalt (`_shared/chat.ts`), Versand über Expo (`_shared/expo.ts`) |
 | `functions/finding` | Befund-Auswertung: prüft Recht „Befunde“ (`staff_can(team,'medical')`) und Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
@@ -109,8 +110,8 @@ Zusatzsport-Einträge älter als 24 Monate sowie `push_log` und `ai_usage` älte
 (`select public.purge_stale_health_data();` liefert die Anzahl gelöschter Zeilen).
 
 Weitere Löschfristen planen die Migrationen ebenfalls per `pg_cron` ein (täglich, nachts UTC), z. B.
-`purge-old-polls`, `purge-old-squads` und `purge-old-rides` (Suchen nach Fahrgemeinschaften am Tag nach dem Spiel,
-Fahrten 30 Tage danach). Fehlte `pg_cron` beim `db push`, meldet die Migration das per NOTICE – dann den
+`purge-old-polls`, `purge-old-squads`, `purge-old-rides` (Suchen nach Fahrgemeinschaften am Tag nach dem Spiel,
+Fahrten 30 Tage danach) und `purge-old-suspensions` (Sperren nach 24 Monaten). Fehlte `pg_cron` beim `db push`, meldet die Migration das per NOTICE – dann den
 `do $$ … cron.schedule(…) … $$`-Block am Ende der jeweiligen Migration im SQL-Editor ausführen.
 
 Kontrolle:

@@ -80,6 +80,8 @@ export interface TeamSettings {
   peer?: PeerRound | null;
   /** Umfragen: Spieler dürfen selbst Abstimmungen starten (Standard: aus; Recht „Nachrichten“) */
   polls?: PollSettings | null;
+  /** Karten und Sperren: Regeln des Verbands (fehlt = Voreinstellung nach Altersklasse, core/cards) */
+  cards?: CardRules | null;
 }
 /**
  * Chat: wer Einzelchats starten darf (aus / nur mit dem Trainerteam / auch Spieler untereinander), ob das ganze Trainerteam
@@ -144,6 +146,8 @@ export interface Modules {
   ausruestung: boolean;
   /** Fahrgemeinschaften zu Spielen und Terminen */
   fahrten: boolean;
+  /** Karten und Sperren (Gelb, Gelb-Rot, Rot; Sperren für die nächsten Spiele) */
+  karten: boolean;
 }
 export interface Team {
   id: string;
@@ -226,7 +230,24 @@ export interface CoachMsg { id: string; date: string; typ: MsgType; text: string
 /** Spieldaten eines Spielers in einem Spiel (vom Trainerteam erfasst). */
 export interface MatchStat { min: number; goals: number; assists: number; start: boolean;
   /** Torhüter: Gegentore in seiner Spielzeit und Paraden */ conceded?: number | null; saves?: number | null;
-  /** Pre-Assists (Pass vor der Vorlage); fehlt = nicht erfasst */ pre?: number | null }
+  /** Pre-Assists (Pass vor der Vorlage); fehlt = nicht erfasst */ pre?: number | null;
+  /** Karte im Spiel (die schwerste): Gelb, Gelb-Rot, Rot */ card?: CardKind | null }
+/** Karte im Spiel: Gelb, Gelb-Rot, Rot */
+export type CardKind = "y" | "yr" | "r";
+/**
+ * Regeln für Sperren (je Verband und Altersklasse verschieden): Gelbsperre nach `yellowLimit` Gelben in
+ * Meisterschaftsspielen einer Saison (0 = keine) für `yellowGames` Meisterschaftsspiele; nach Gelb-Rot `yrGames`
+ * Spiele (0 = keine Sperre); nach Rot `redGames` Spiele (null = bis zum Urteil, Anzahl dann eintragen)
+ */
+export interface CardRules { yellowLimit: number; yellowGames: number; yrGames: number; redGames: number | null }
+/** Grund einer Sperre */
+export type SuspKind = "yellow" | "yellow_red" | "red" | "other";
+/**
+ * Sperre eines Spielers: Auslöser (Spiel mit der Karte), ab wann, für wie viele Spiele (0 = aufgehoben, null = bis zum
+ * Urteil) oder bis zu einem Tag, für Meisterschaftsspiele oder alle Pflichtspiele, Hinweis. auto = aus den Karten nach
+ * den Regeln abgeleitet (nicht gespeichert); eine gespeicherte Sperre mit gleichem Auslöser und Grund ersetzt sie.
+ */
+export interface Suspension { id: string; pid: string; kind: SuspKind; matchId: string | null; start: string; games: number | null; until: string | null; scope: "league" | "all"; note: string; auto?: boolean }
 /** Note (1–10, eine Nachkommastelle) und Feedback des Trainers zu Spiel oder Training. */
 export interface Rating { id: string; pid: string; date: string; kind: "spiel" | "training"; rating: number | null; text: string; vis: boolean;
   /** Training: nur Abweichungen vom Durchschnitt – besonders gut oder besonders schwach (Standard = Durchschnitt, nicht gespeichert) */
@@ -712,6 +733,8 @@ export interface TeamData {
   squads: Record<string, MatchSquad>; noms: Nomination[]; squadMates: Record<string, SquadMate[]>;
   /** Fahrgemeinschaften: Fahrten, Plätze, wer sucht; Namen (Vorname und Initial) für Spieler – das Trainerteam nimmt den Kader */
   rides: Ride[]; rideSeats: RideSeat[]; rideNeeds: RideNeed[]; rideNames: Record<string, string>;
+  /** Eingetragene Sperren (Trainerteam; Spieler: eigene) – die Sperren aus Karten leitet core/cards ab */
+  suspensions: Suspension[];
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -783,7 +806,7 @@ export function emptyTeamData(team: Team): TeamData {
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
     programs: [], selfSkills: [], peerGifts: [], peerMates: [],
     polls: [], pollAnswers: [], pollResults: {},
-    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {}, rides: [], rideSeats: [], rideNeeds: [], rideNames: {},
+    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {}, rides: [], rideSeats: [], rideNeeds: [], rideNames: {}, suspensions: [],
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],

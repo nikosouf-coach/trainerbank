@@ -16,9 +16,10 @@ import { cleanContacts, cleanMed } from "../core/emergency";
 import { cleanSizes, sizesEmpty } from "../core/sizes";
 import { cleanReason, cleanSquad } from "../core/nomination";
 import { cleanRide } from "../core/rides";
+import { cleanCard, cleanSuspension } from "../core/cards";
 import { addDays, iso, monday } from "../core/dates";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate, Ride, RideKind,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, SquadMate, Ride, RideKind, Suspension,
   Contact, Phase, TeamGroup, GroupKind, DayBlock, Drawing, DutyEntry, FineEntry, TeamTask, EntryStatus, CashEntry, CashWaiver,
   Absence, AttStatus, CalOverride, ClassKey, CoachMsg, Complaint, CustomKind, DayUnit, Depth, Extra, Growth, Kind, Lang, Match, UnitArt,
   MatchStat, Player, PlanOverride, Potential, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TestKey, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
@@ -157,6 +158,7 @@ const mapNom = (r: Row): Nomination => ({
 });
 const mapMate = (r: Row): SquadMate => ({ pid: r.player_id, name: String(r.name || ""), nr: r.nr == null ? null : Number(r.nr), pos: String(r.pos || ""), standby: !!r.standby });
 const mapRide = (r: Row): Ride => cleanRide({ id: r.id, kind: r.match_id ? "match" : "event", refId: r.match_id || r.event_id, driverPid: r.driver_pid, driver: r.driver_label || "", seats: r.seats, time: r.depart_time, place: r.depart_place || "", note: r.note || "" });
+const mapSusp = (r: Row): Suspension => cleanSuspension({ id: r.id, pid: r.player_id, kind: r.kind, matchId: r.match_id, start: r.start_date, games: r.games, until: r.until_date, scope: r.scope, note: r.note || "" });
 // Größen (Schuhe und Handschuhe kommen als Zahl bzw. Text „42.5“)
 const mapSizes = (r: Row): PlayerSizes => cleanSizes({ top: r.top, bottom: r.bottom, shoes: r.shoes, gloves: r.gloves, print: r.print_name || "", note: r.note || "" });
 const mapPollAnswer = (r: Row): PollAnswer => ({ pollId: r.poll_id, pid: r.player_id, answers: r.answers || {}, at: r.updated_at || "" });
@@ -383,7 +385,7 @@ export class SupabaseApi implements Api {
       D.exercises = exercises.map(mapExercise); D.templates = templates.map(mapTemplate); D.staff = staffP.map(mapStaff);
       D.findings = findings.map(mapFinding);
       D.tests = tests.map(mapTest);
-      for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started, conceded: r.conceded ?? null, saves: r.saves ?? null, pre: r.pre_assists ?? null };
+      for (const r of stats) (D.stats[r.match_id] ||= {})[r.player_id] = { min: r.minutes ?? 0, goals: r.goals ?? 0, assists: r.assists ?? 0, start: !!r.started, conceded: r.conceded ?? null, saves: r.saves ?? null, pre: r.pre_assists ?? null, card: cleanCard(r.card) };
       D.ratings = ratings.map(mapRating);
       D.videos = videos.map(mapVideo);
     }
@@ -466,6 +468,13 @@ export class SupabaseApi implements Api {
         for (const r of sqs) D.squads[r.match_id] = mapSquad(r);
         D.noms = noms.map(mapNom);
         for (const r of mates || []) (D.squadMates[r.match_id] ||= []).push(mapMate(r));
+      } catch { /* optional: Rest der App lädt trotzdem */ }
+    }
+    if (D.team.modules.karten !== false) {
+      // Eingetragene Sperren (Trainerteam; Spieler: eigene) – Sperren aus den Karten leitet die App ab (core/cards)
+      try {
+        const rows = await all((a, b) => sb.from("player_suspensions").select("*").eq("team_id", tid).order("start_date").order("id").range(a, b));
+        D.suspensions = rows.map(mapSusp);
       } catch { /* optional: Rest der App lädt trotzdem */ }
     }
     if (D.team.modules.fahrten !== false) {
@@ -745,7 +754,7 @@ export class SupabaseApi implements Api {
   async saveStat(teamId: string, matchId: string, pid: string, st: MatchStat | null) {
     if (!st) { await q(this.sb.from("match_stats").delete().eq("match_id", matchId).eq("player_id", pid)); return; }
     await q(this.sb.from("match_stats").upsert({ team_id: teamId, match_id: matchId, player_id: pid, minutes: st.min, goals: st.goals, assists: st.assists, started: st.start,
-      conceded: st.conceded ?? null, saves: st.saves ?? null, pre_assists: st.pre ?? null }));
+      conceded: st.conceded ?? null, saves: st.saves ?? null, pre_assists: st.pre ?? null, card: cleanCard(st.card) }));
   }
   async saveRating(teamId: string, x: Rating) {
     const row: Row = { team_id: teamId, player_id: x.pid, date: x.date, kind: x.kind, rating: x.rating, text: x.text || null, visible: x.vis,
@@ -1029,6 +1038,16 @@ export class SupabaseApi implements Api {
   async joinRide(rideId: string, pid: string) { await q(this.sb.rpc("ride_join", { p_ride: rideId, p_player: pid })); }
   async leaveRide(rideId: string, pid: string, need: boolean) { await q(this.sb.rpc("ride_leave", { p_ride: rideId, p_player: pid, p_need: need })); }
   async setRideNeed(kind: RideKind, refId: string, pid: string, on: boolean) { await q(this.sb.rpc("ride_need", { p_kind: kind, p_ref: refId, p_player: pid, p_on: on })); }
+
+  // ---------- Karten & Sperren ----------
+  async saveSuspension(teamId: string, x: Suspension) {
+    const y = cleanSuspension(x);
+    const row: Row = { player_id: y.pid, match_id: y.matchId, kind: y.kind, start_date: y.start, games: y.games, until_date: y.until, scope: y.scope, note: y.note || null };
+    return mapSusp(y.id.startsWith("tmp-")
+      ? await q<Row>(this.sb.from("player_suspensions").insert({ ...row, team_id: teamId }).select().single())
+      : await q<Row>(this.sb.from("player_suspensions").update(row).eq("id", y.id).select().single()));
+  }
+  async deleteSuspension(id: string) { await q(this.sb.from("player_suspensions").delete().eq("id", id)); }
 
   // ---------- Größen & Ausrüstung ----------
   async saveSizes(pid: string, sizes: PlayerSizes) {
