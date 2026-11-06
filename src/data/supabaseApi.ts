@@ -1114,7 +1114,7 @@ export class SupabaseApi implements Api {
     D.noms = (x.noms || []).map(mapNom);
     for (const r of x.squads || []) D.squads[r.match_id] = mapSquad(r);
     if (x.photo) D.photos[pid] = mapPhoto(x.photo);
-    return { D, consents: { parental: !!x.consents?.parental, health: !!x.consents?.health_data }, posts: (x.posts || []).map(mapPost), guardians: x.guardians || 0,
+    return { D, consents: { parental: !!x.consents?.parental, health: !!x.consents?.health_data }, sickOk: !!x.sick_ok, posts: (x.posts || []).map(mapPost), guardians: x.guardians || 0,
       mineAbs: (x.absences || []).filter((r: Row) => r.mine).map((r: Row) => r.id as string),
       awayAbs: (x.absences || []).filter((r: Row) => !r.type).map((r: Row) => r.id as string),
       parentAbs: (x.absences || []).filter((r: Row) => r.by_parent).map((r: Row) => r.id as string) };

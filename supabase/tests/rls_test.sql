@@ -4865,6 +4865,36 @@ set local role authenticated;
 set local request.jwt.claim.sub = :'k61';
 do $$ begin perform tst.eq(public.missing_health_consent(tst.get('k61_player')::uuid), 'health_data', 'T61 Widerruf der Eltern wirkt sofort'); end $$;
 commit;
+-- Ab 16 entscheidet das Kind: „krank“ durch Eltern nur mit der eigenen Einwilligung des Kindes
+update public.players set birthdate = (current_date - interval '17 years')::date where id = tst.get('k61_player')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform public.guardian_consent(tst.get('k61_player')::uuid, 'health_data', true, 'v1'); end $$;
+select tst.throws(format($q$select public.guardian_absence(%L, 'krank', public.team_today(%L) + 1, null)$q$, tst.get('k61_player'), tst.get('team_a')),
+                  'T61 ab 16: „krank“ nur mit Einwilligung des Kindes (die der Eltern reicht nicht)', 'consent_required');
+do $$ begin perform tst.eq(public.guardian_child_data(tst.get('k61_player')::uuid) ->> 'sick_ok', 'false', 'T61 Paket ab 16: „krank“ noch nicht möglich'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+insert into public.consents (kind, version) values ('health_data', 'v1');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$
+declare a jsonb;
+begin
+  perform tst.eq(public.guardian_child_data(tst.get('k61_player')::uuid) ->> 'sick_ok', 'true', 'T61 Paket ab 16: mit Einwilligung des Kindes „krank“ möglich');
+  a := public.guardian_absence(tst.get('k61_player')::uuid, 'krank', public.team_today(tst.get('team_a')::uuid) + 1, null);
+  perform tst.eq(a ->> 'type', 'krank', 'T61 ab 16 mit Einwilligung des Kindes: krank abgemeldet');
+  perform public.guardian_absence_delete((a ->> 'id')::uuid);
+  perform public.guardian_consent(tst.get('k61_player')::uuid, 'health_data', false, 'v1');
+end $$;
+commit;
+update public.consents set withdrawn_at = now() where user_id = tst.uid('k61') and kind = 'health_data' and withdrawn_at is null;
+update public.players set birthdate = date '2013-03-03' where id = tst.get('k61_player')::uuid;
 
 -- Foto-Erlaubnis: Erklärung der Eltern, Zustimmung der 14-Jährigen (→ beide), Widerruf lässt „beide“ bestehen
 begin;

@@ -16,7 +16,7 @@ import { cleanRide } from "../core/rides";
 import { cleanSuspension } from "../core/cards";
 import { cleanAccident } from "../core/accidents";
 import { cleanPhotoConsent, PHOTO_CHANNELS } from "../core/photos";
-import { cleanPost, DEMO_PARENT, isMinor } from "../core/parents";
+import { cleanPost, DEMO_PARENT, isMinor, isUnder16 } from "../core/parents";
 import { emptyTeamData } from "../core/types";
 import { DEMO_CLUB, DEMO_CLUB_LINK, DEMO_CLUB_STAFF, demoClubClasses, demoClubStaff, demoClubTeam, demoClubTeamId, demoClubTeamName } from "../core/demoClub";
 import type { MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, Assessment, Challenge, ChallengeEntry, Chat, ChatKind, ChatMsg, DevProgram, DevSelf, DevTalk, Goal, PeerGift, PeerMate, Poll, PollAnswer, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, Suspension, GoalEntry, IndivRequest, CashEntry, Contact, Phase, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask, ClassKey, Modules, Principles, StaffRoleKey, TeamSettings, CoachMsg, CustomKind, Depth, Extra, Lang, Match, Player, Potential, Absence, Rating, RpeEntry, Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, TeamData, TeamEvent, TestResult, Video, Finding, Exercise, SessionTemplate, StaffProfile, PhotoConsent, Accident, AbsenceType, ParentPost } from "../core/types";
@@ -578,14 +578,19 @@ export class DemoApi implements Api {
     for (const n of D.noms) D.squads[n.matchId] = { ...S.squads[n.matchId], showAll: false };
     if (S.photos[pid]) D.photos[pid] = { ...S.photos[pid] };
     const posts = S.parentPosts.map(x => { const r = S.parentReads.find(y => y.postId === x.id && y.userId === DEMO_PARENT); return { ...x, readAt: r?.readAt ?? null, ackedAt: r?.ackedAt ?? null }; });
-    return { D, consents: { ...(this.parentConsent[pid] || { parental: false, health: false }) }, posts, guardians: S.guardians.filter(g => g.pid === pid).length,
+    return { D, consents: { ...(this.parentConsent[pid] || { parental: false, health: false }) }, sickOk: this.sickOk(pid), posts, guardians: S.guardians.filter(g => g.pid === pid).length,
       mineAbs: D.absences.filter(a => this.parentAbs.has(a.id)).map(a => a.id), awayAbs: mine.filter(hide).map(a => a.id),
       parentAbs: D.absences.filter(a => this.parentAbs.has(a.id)).map(a => a.id) };
   }
   async guardianRedeem(): Promise<{ vn: string; team: string }> { this.net(); throw new ApiError("demo"); }
+  /** wie der Server: unter 16 die Einwilligung des Elternteils, ab 16 die des Kindes (Demo: Kind hat eingewilligt) */
+  private sickOk(pid: string): boolean {
+    const p = this.mainTeam().players.find(x => x.id === pid);
+    return isUnder16(p, iso(new Date())) ? !!this.parentConsent[pid]?.health : true;
+  }
   async guardianAbsence(pid: string, a: { typ: AbsenceType; von: string; bis: string | null }) {
     this.net();
-    if (a.typ === "krank" && !this.parentConsent[pid]?.health) throw new ApiError("consent_required");
+    if (a.typ === "krank" && !this.sickOk(pid)) throw new ApiError("consent_required");
     const x: Absence = { id: newId(""), pid, typ: a.typ, von: a.von, bis: a.bis || a.von, stufe: null, notiz: "", by: "player" };
     this.mainTeam().absences.push(x); this.parentAbs.add(x.id);
     return x;

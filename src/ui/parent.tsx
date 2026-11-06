@@ -147,14 +147,15 @@ function NoForm({ onSend }: { onSend: (reason: string) => void }) {
 }
 
 function AbsenceForm({ child, data, E, from, onDone }: { child: GuardianChild; data: ChildData; E: E_; from: string; onDone: () => void }) {
-  const s = useStore(); const { t } = s.tr; const { c } = useTheme();
-  const [typ, setTyp] = useState<AbsenceType>(data.consents.health ? "krank" : "sonst");
+  const s = useStore(); const { t, tf } = s.tr; const { c } = useTheme();
+  const [typ, setTyp] = useState<AbsenceType>(data.sickOk ? "krank" : "sonst");
+  const u16 = isUnder16(data.D.players[0], E.TODAY);
   const [von, setVon] = useState<string | null>(from);
   const [bis, setBis] = useState<string | null>(from);
   const [errs, setErrs] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const save = async () => {
-    const a = { typ, von: von || "", bis: bis || null }, e = parentAbsenceErrors(a, E.TODAY, data.consents.health);
+    const a = { typ, von: von || "", bis: bis || null }, e = parentAbsenceErrors(a, E.TODAY, data.sickOk);
     if (e.length) { setErrs(e); return; }
     setBusy(true); try { if (await s.parentDo(child.pid, api => api.guardianAbsence(child.pid, a), "el_absSaved")) onDone(); } finally { setBusy(false); }
   };
@@ -163,14 +164,14 @@ function AbsenceForm({ child, data, E, from, onDone }: { child: GuardianChild; d
       <Col gap={6}>
         <T v="small" bold>{t("el_absType")}</T>
         <ChoiceChips testID="el-abs-type" value={typ} onChange={v => { setTyp(v); setErrs([]); }} options={PARENT_ABS_TYPES.map(k => ({ key: k, label: t("ab_" + k) }))} />
-        {!data.consents.health ? <Muted small>{t("el_absSickHint")}</Muted> : null}
+        {!data.sickOk ? <Muted small>{tf(u16 ? "el_absSickHint" : "el_absSickHint16", { n: child.vn })}</Muted> : null}
       </Col>
       <Row gap={12} wrap align="flex-start">
         <DateField testID="el-abs-from" label={t("el_absFrom")} value={von} onChange={v => { setVon(v); if (v && bis && bis < v) setBis(v); setErrs([]); }} lang={s.lang} style={{ flexGrow: 1, minWidth: 150 }} />
         <DateField testID="el-abs-to" label={t("el_absTo")} value={bis} onChange={v => { setBis(v); setErrs([]); }} lang={s.lang} style={{ flexGrow: 1, minWidth: 150 }} />
       </Row>
       <Muted small>{t("el_absPrivacy")}</Muted>
-      {errs.length ? <Banner color={c.crit} testID="el-abs-err">{errs.map(e => t("el_absErr_" + e)).join(" ")}</Banner> : null}
+      {errs.length ? <Banner color={c.crit} testID="el-abs-err">{errs.map(e => e === "consent" && !u16 ? tf("el_absErr_consent16", { n: child.vn }) : t("el_absErr_" + e)).join(" ")}</Banner> : null}
       <Btn kind="primary" testID="el-abs-save" label={t("el_absSave")} disabled={busy} onPress={save} />
     </Col>
   );
@@ -245,8 +246,10 @@ function ConsentsCard({ child, data, E }: { child: GuardianChild; data: ChildDat
   return (
     <Card testID="el-consents">
       <CardTitle title={t("el_consents")} info={<Info title={t("el_consents")} text={t("el_cInfo")} />} />
-      {u16 ? row("parental", data.consents.parental, t("el_cParental"), tf("el_cParentalText", { n: child.vn })) : <Muted small>{tf("el_c16", { n: child.vn })}</Muted>}
-      {row("health_data", data.consents.health, t("el_cHealth"), tf(u16 ? "el_cHealthText" : "el_cHealthText16", { n: child.vn }))}
+      {u16 ? <>
+        {row("parental", data.consents.parental, t("el_cParental"), tf("el_cParentalText", { n: child.vn }))}
+        {row("health_data", data.consents.health, t("el_cHealth"), tf("el_cHealthText", { n: child.vn }))}
+      </> : <Muted small testID="el-c16">{tf(data.sickOk ? "el_c16" : "el_c16Sick", { n: child.vn })}</Muted>}
       <Col gap={6} style={{ paddingTop: 10, borderTopWidth: 1, borderTopColor: c.line }} testID="el-photo">
         <Row gap={8}><Text style={{ flex: 1, fontSize: 14.5, fontWeight: "700", color: c.ink }}>{t("ph_title")}</Text>
           <Btn small kind="ghost" testID="el-photo-edit" label={t("el_photoEdit")} onPress={() => setPhoto(true)} /></Row>

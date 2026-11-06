@@ -158,6 +158,25 @@ as $$
                   where c.player_id = p_player and c.kind = p_kind and c.withdrawn_at is null)
 $$;
 
+-- „krank“ durch Eltern: unter 16 mit der Einwilligung dieses Elternteils in Gesundheitsangaben; ab 16 entscheidet das
+-- Kind selbst – dann nur mit seiner eigenen Einwilligung (ohne eigenes Konto: nicht möglich, Eltern wählen „Sonstiges“)
+create or replace function public.guardian_sick_ok(p_player uuid, p_user uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case
+    when (select p.birthdate is not null and p.birthdate > (public.team_today(p.team_id) - interval '16 years')::date
+            from public.players p where p.id = p_player)
+      then public.guardian_consent_given(p_player, 'health_data', p_user)
+    else exists (select 1 from public.players p join public.consents c on c.user_id = p.user_id
+                  where p.id = p_player and c.kind = 'health_data' and c.withdrawn_at is null)
+  end
+$$;
+revoke all on function public.guardian_sick_ok(uuid, uuid) from public, anon, authenticated;
+
 -- Gibt es eine (bestätigte) Verknüpfung dieses Kontos mit dem Kind? (für Zugriffsregeln ohne Rechte auf die Tabelle)
 create or replace function public.guardian_link_exists(p_player uuid, p_user uuid)
 returns boolean
@@ -576,6 +595,7 @@ begin
     'photo', (select to_jsonb(c) - 'updated_by' from public.photo_consents c where c.player_id = p_player),
     'consents', jsonb_build_object('parental', public.guardian_consent_given(p_player, 'parental', v_uid),
                                    'health_data', public.guardian_consent_given(p_player, 'health_data', v_uid)),
+    'sick_ok', public.guardian_sick_ok(p_player, v_uid),
     'posts', coalesce((select jsonb_agg(jsonb_build_object('id', x.id, 'title', x.title, 'body', x.body, 'need_ack', x.need_ack, 'author', x.author,
                                                            'created_at', x.created_at, 'read_at', r.read_at, 'acked_at', r.acked_at) order by x.created_at desc)
                          from public.parent_posts x
@@ -616,7 +636,7 @@ begin
   if p_type is null or p_type not in ('krank', 'urlaub', 'schule', 'sonst') then
     raise exception 'invalid_type' using errcode = '22023';
   end if;
-  if p_type = 'krank' and not public.guardian_consent_given(p_player, 'health_data', auth.uid()) then
+  if p_type = 'krank' and not public.guardian_sick_ok(p_player, auth.uid()) then
     raise exception 'consent_required' using errcode = 'P0001', detail = 'health_data';
   end if;
   if p_from is null or p_from < v_today - 7 or p_from > v_today + 365

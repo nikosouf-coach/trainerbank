@@ -114,7 +114,7 @@ test("Demo: Eltern-Verknüpfungen, Anfrage, Einladung, Elterninfo; Termine und A
 test("Texte: Schlüssel in beiden Sprachen", () => {
   const keys = ["m_eltern", "md_eltern", "nvb_eltern", "el_menuSub", "demo_parent", "inv_parent", "el_title", "el_info", "el_none", "el_pending", "el_adult", "el_agenda", "el_match", "el_meet",
     "el_absTitle", "el_absSickHint", "el_absPrivacy", "el_absList", "el_absAway", "el_absByYou", "el_absByParent", "el_absByKid", "el_absByTeam", "el_posts", "el_ack", "el_acked", "el_consents", "el_cInfo",
-    "el_cParental", "el_cParentalText", "el_c16", "el_cHealth", "el_cHealthText", "el_cHealthText16", "el_photo14", "el_photoKid", "el_photoForm", "el_photoJoint", "el_seeT", "el_see", "el_notSee",
+    "el_cParental", "el_cParentalText", "el_c16", "el_c16Sick", "el_cHealth", "el_cHealthText", "el_absSickHint16", "el_absErr_consent16", "el_photo14", "el_photoKid", "el_photoForm", "el_photoJoint", "el_seeT", "el_see", "el_notSee",
     "el_leaveText", "el_linkTitle", "el_linkIntro", "el_linkOk", "el_linkAfter", "el_redeemed", "el_startTitle", "el_startDesc", "el_myTitle", "el_myMinor", "el_myAdult", "el_adultKeep",
     "el_coachTitle", "el_coachInfo", "el_reqWho", "el_reqHint", "el_kidsCount", "el_codeOnce", "el_codeDirect", "el_shareText", "el_seeCoach", "el_notSeeCoach", "el_statRead", "el_statAck",
     "el_missRead", "el_missAck", "el_postPrivacy", "el_parentView", "ph_meParents", "ph_meConfirm", "ph_confirmed",

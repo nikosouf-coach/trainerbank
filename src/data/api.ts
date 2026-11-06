@@ -21,6 +21,8 @@ export interface GuardianChild {
 /** Paket fürs Kind (nur, was Eltern sehen dürfen) */
 export interface ChildData {
   D: TeamData; consents: { parental: boolean; health: boolean }; posts: ParentPost[]; guardians: number;
+  /** „krank“ angeben möglich: unter 16 mit eigener Einwilligung dieses Elternteils, ab 16 mit der des Kindes */
+  sickOk: boolean;
   /** Abmeldungen, die dieser Elternteil selbst eingetragen hat (darf er zurücknehmen) */
   mineAbs: string[];
   /** Abwesenheiten ohne Art (Krankheit bzw. Verletzung, vom Trainerteam oder vom Kind eingetragen): nur „abwesend“ */
