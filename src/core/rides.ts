@@ -9,8 +9,8 @@ import { oneLine } from "./text";
 import type { Player, Ride, RideKind, TeamData } from "./types";
 
 export const RIDE_LIMITS = { seats: 8, driver: 60, place: 120, note: 200 } as const;
-/** So viele Tage im Voraus zeigen Startseite und Spieltag-Check Fahrgemeinschaften */
-export const RIDE_DAYS = 8;
+/** So viele Tage im Voraus zeigt die Startseite Auswärtsspiele – und Ziele, für die schon jemand fährt oder sucht */
+export const RIDE_DAYS = 8, RIDE_DAYS_ACTIVE = 14;
 
 type RD = Pick<TeamData, "matches" | "events" | "rides" | "rideSeats" | "rideNeeds">;
 type Tr = { t: (k: string) => string; tf: (k: string, o: Record<string, string | number>) => string };
@@ -78,13 +78,16 @@ export function rideSummary(D: Pick<TeamData, "rides" | "rideSeats" | "rideNeeds
 export const rideActive = (D: Pick<TeamData, "rides" | "rideNeeds">, refId: string): boolean => D.rides.some(r => r.refId === refId) || D.rideNeeds.some(n => n.refId === refId);
 
 /**
- * Bevorstehende Ziele für Fahrgemeinschaften (heute bis in `days` Tagen): Auswärtsspiele ohne Ergebnis sowie Spiele und
- * Termine, für die es schon Fahrten oder Suchende gibt; nach Datum und Uhrzeit.
+ * Bevorstehende Ziele für Fahrgemeinschaften: Auswärtsspiele ohne Ergebnis in den nächsten `days` Tagen, dazu Spiele
+ * und Termine, für die es schon Fahrten oder Suchende gibt, in den nächsten `activeDays` Tagen; nach Datum und Uhrzeit.
  */
-export function rideRefsAhead(D: RD, today: string, days = RIDE_DAYS): RideRef[] {
-  const until = addDays(today, days), L: RideRef[] = [];
-  for (const m of D.matches) if (m.date >= today && m.date <= until && !m.result && (!m.heim || rideActive(D, m.id))) L.push(refOf(D, "match", m.id)!);
-  for (const e of D.events) if (e.date >= today && e.date <= until && rideableEvent(e) && rideActive(D, e.id)) L.push(refOf(D, "event", e.id)!);
+export function rideRefsAhead(D: RD, today: string, days = RIDE_DAYS, activeDays = Math.max(days, RIDE_DAYS_ACTIVE)): RideRef[] {
+  const until = addDays(today, days), untilActive = addDays(today, activeDays), L: RideRef[] = [];
+  for (const m of D.matches) {
+    if (m.date < today || m.date > untilActive || m.result) continue;
+    if (rideActive(D, m.id) || (!m.heim && m.date <= until)) L.push(refOf(D, "match", m.id)!);
+  }
+  for (const e of D.events) if (e.date >= today && e.date <= untilActive && rideableEvent(e) && rideActive(D, e.id)) L.push(refOf(D, "event", e.id)!);
   return L.sort((a, b) => (a.date + (a.time || "99:99")).localeCompare(b.date + (b.time || "99:99")));
 }
 

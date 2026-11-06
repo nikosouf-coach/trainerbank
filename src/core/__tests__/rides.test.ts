@@ -41,8 +41,14 @@ test("Demo: drei Fahrten zum nächsten Auswärtsspiel, zwei suchen, p17 noch ohn
   assert.equal(needsOf(D, m.id).length, 2);
 });
 
-test("Ziele für die Startseite: Auswärtsspiele und Ziele mit Fahrten in den nächsten Tagen", () => {
+test("Ziele für die Startseite: Auswärtsspiele in 8 Tagen, Ziele mit Fahrten in 14 Tagen", () => {
   const D = setup(), m = away(D);
+  assert.ok(rideRefsAhead(D, TODAY).some(r => r.id === m.id), "Demo: Auswärtsspiel mit Fahrten erscheint (bis 14 Tage)");
+  const bare = { ...D, rides: [], rideSeats: [], rideNeeds: [] };
+  assert.equal(rideRefsAhead(bare, addDaysIso(m.date, -8)).some(r => r.id === m.id), true, "ohne Fahrten: 8 Tage vorher");
+  assert.equal(rideRefsAhead(bare, addDaysIso(m.date, -9)).some(r => r.id === m.id), false, "ohne Fahrten: nicht 9 Tage vorher");
+  assert.equal(rideRefsAhead(D, addDaysIso(m.date, -14)).some(r => r.id === m.id), true, "mit Fahrten: 14 Tage vorher");
+  assert.equal(rideRefsAhead(D, addDaysIso(m.date, -15)).some(r => r.id === m.id), false, "mit Fahrten: nicht 15 Tage vorher");
   const L = rideRefsAhead(D, TODAY, 14);
   assert.ok(L.some(r => r.id === m.id && r.away));
   assert.ok(L.every(r => r.kind === "event" || r.away || D.rides.some(x => x.refId === r.id) || D.rideNeeds.some(x => x.refId === r.id)), "Heimspiele nur mit Fahrten");
