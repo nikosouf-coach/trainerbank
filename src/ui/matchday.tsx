@@ -49,8 +49,10 @@ export function useMatchdayChecks(): { m: ReturnType<typeof useNextMatch>; check
     // Sperren (Karten & Sperren): Gesperrte im Kader bzw. in der Aufstellung warnen, sonst als Hinweis
     if (E.mods.karten !== false) {
       const sus = suspendedIn(E.D, cardRules(E.team), m.id, E.TODAY), ids = [...sus.keys()];
-      const inSquad = ids.filter(pid => nomsOf(E.D, m.id).some(n => n.pid === pid) || (plan ? plan.c.lineup.some(x => x.pid === pid) || plan.c.bench.includes(pid) : false));
-      if (inSquad.length) L.push({ k: "susp", state: "warn", title: tf("md_suspendedSquad", { n: inSquad.length }), sub: names(inSquad), href: "/coach/nominierung/" + m.id });
+      const nominated = ids.filter(pid => nomsOf(E.D, m.id).some(n => n.pid === pid));
+      const inPlan = plan ? ids.filter(pid => !nominated.includes(pid) && (plan.c.lineup.some(x => x.pid === pid) || plan.c.bench.includes(pid))) : [];
+      if (nominated.length) L.push({ k: "susp", state: "warn", title: tf("md_suspendedSquad", { n: nominated.length }), sub: names(nominated), href: "/coach/nominierung/" + m.id });
+      else if (inPlan.length && plan) L.push({ k: "susp", state: "warn", title: tf("md_suspendedPlan", { n: inPlan.length }), sub: names(inPlan), href: "/coach/matchplan/" + plan.id });
       else if (ids.length) L.push({ k: "susp", state: "info", title: tf("md_suspended", { n: ids.length }), sub: names(ids), href: "/coach/karten" });
     }
     // Fahrgemeinschaften (Auswärtsspiel oder schon Fahrten): Suchende, noch keine Fahrten, steht

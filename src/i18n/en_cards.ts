@@ -34,6 +34,6 @@ export const en_cards: Dict = {
   kr_auto: "Calculated from your rules", kr_delete: "Delete", kr_modOff: "Cards & suspensions are switched off in the modules.",
   kr_fromRule: "Suspended under your rule: {r}. Saving replaces the rule for this card (e.g. with the ruling); “Lift” lifts the suspension.",
   kr_youSusp: "You are suspended", kr_youNext: "Applies to the next match: {w} {g}", kr_youWarn: "You have {n} yellows – after the next yellow in a league match you are suspended.",
-  nm_suspended: "Suspended: {r}", md_suspended: "Suspended: {n}", md_suspendedSquad: "Suspended but nominated: {n}", md_suspendedSub: "{n} – check the squad",
+  nm_suspended: "Suspended: {r}", md_suspended: "Suspended: {n}", md_suspendedSquad: "Suspended but nominated: {n}", md_suspendedPlan: "Suspended but in the line-up: {n}",
   sp_cardHint: "Second yellow means two yellows in the same match – the first one then doesn't count towards the yellow-card ban.",
 };

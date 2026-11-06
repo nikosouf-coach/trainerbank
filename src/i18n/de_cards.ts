@@ -36,6 +36,6 @@ export const de_cards: Dict = {
   // Spieler: Hinweis auf „Heute“
   kr_youSusp: "Du bist gesperrt", kr_youNext: "Betrifft das nächste Spiel: {w} {g}", kr_youWarn: "Du hast {n} Gelbe – bei der nächsten Gelben in einem Meisterschaftsspiel bist du gesperrt.",
   // Nominierung, Spieltag-Check, Spielbericht
-  nm_suspended: "Gesperrt: {r}", md_suspended: "Gesperrt: {n}", md_suspendedSquad: "Gesperrt, aber nominiert: {n}", md_suspendedSub: "{n} – Kader prüfen",
+  nm_suspended: "Gesperrt: {r}", md_suspended: "Gesperrt: {n}", md_suspendedSquad: "Gesperrt, aber nominiert: {n}", md_suspendedPlan: "Gesperrt, aber in der Aufstellung: {n}",
   sp_cardHint: "Gelb-Rot heißt: zweite Gelbe im selben Spiel – die erste zählt dann nicht für die Gelbsperre.",
 };

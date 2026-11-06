@@ -6,7 +6,7 @@ import { createEngine } from "./engine";
 import { duePeriods, periodStart, seasonStart } from "./kasse";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
-import type { Chat, ChatMsg, Goal, FeeDef, FineEntry, Wellness, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles, DayUnit, UnitArt } from "./types";
+import type { Chat, ChatMsg, Goal, Suspension, FeeDef, FineEntry, Wellness, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles, DayUnit, UnitArt } from "./types";
 import { cleanUnit, freeDateSlot, isGoalkeeper, shiftTime } from "./units";
 import { emptyTeamData } from "./types";
 import { challengeDefsFor, fromDef } from "./challenge";
@@ -18,7 +18,7 @@ import { cleanContacts } from "./emergency";
 import { cleanSizes } from "./sizes";
 import { absentOn, cleanSquad, squadMatesOf, squadSort } from "./nomination";
 import { defaultDepart } from "./rides";
-import { cardRules, suspendedIn } from "./cards";
+import { cardRules, suspState, suspendedIn } from "./cards";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -890,7 +890,10 @@ function demoCards(D: TeamData, lang: Lang, now: Date): void {
   const red = who(["p18"], [past[2]]);
   if (red) {
     set(red, [past[2]], "r");
-    D.suspensions.push({ id: "dsu1", pid: red, kind: "red", matchId: past[2].id, start: past[2].date, games: 3, until: null, scope: "all", note: en ? "Sports court ruling: 3 matches" : "Urteil Sportgericht: 3 Spiele" });
+    const dsu: Suspension = { id: "dsu1", pid: red, kind: "red", matchId: past[2].id, start: past[2].date, games: 3, until: null, scope: "all", note: en ? "Sports court ruling: 3 matches" : "Urteil Sportgericht: 3 Spiele" };
+    D.suspensions.push(dsu);
+    // in den schon verbüßten Spielen hat er nicht gespielt
+    for (const m of suspState(D, dsu, TODAY).covered) if (m.date < TODAY && D.stats[m.id]?.[red]) delete D.stats[m.id][red];
   }
 }
 

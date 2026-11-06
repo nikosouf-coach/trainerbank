@@ -126,6 +126,12 @@ test("Demo (U19): Rot bis zum Urteil, Urteil mit einem offenen Spiel, Gelb-Warnu
   const warn = yellowWarnings(D, { ...rules, yellowLimit: 5 }, TODAY);
   assert.equal(warn.length, 1, "mit Gelbsperre: einer mit vier Gelben"); assert.equal(warn[0].count, 4);
   assert.ok(suspendedIn(D, { ...rules, yrGames: 1 }, next.id, TODAY).has(yrPid), "mit Sperre nach Gelb-Rot");
+  // stimmig: in verbüßten Spielen nicht gespielt, Gesperrte weder nominiert noch in der Aufstellung
+  const served = sus.get(verdict.pid)!.covered.filter(m => m.date < TODAY);
+  assert.equal(served.length, 2); assert.ok(served.every(m => !D.stats[m.id]?.[verdict.pid]), "in den verbüßten Spielen ohne Einsatz");
+  assert.ok(D.noms.filter(n => n.matchId === next.id).every(n => !sus.has(n.pid)), "nicht nominiert");
+  const plan = D.plans.find(p => p.matchId === next.id);
+  assert.ok(!plan || [...plan.c.lineup.map(x => x.pid), ...plan.c.bench].every(pid => !pid || !sus.has(pid)), "nicht in der Aufstellung");
 });
 
 test("Texte: Schlüssel in beiden Sprachen", () => {
