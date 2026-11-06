@@ -52,6 +52,7 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `migrations/20261105…06_fahrgemeinschaften.sql` | Fahrgemeinschaften: `rides`, `ride_seats`, `ride_needs` (lesen Team, schreiben nur über `ride_save`/`ride_delete`/`ride_join`/`ride_leave`/`ride_need`), `ride_names`; `merge_players` v13, Export v14, `purge_old_rides` |
 | `migrations/20261105…07_karten.sql` | Karten & Sperren: `match_stats.card`, `player_suspensions` (lesen Trainerteam und Spieler selbst, schreiben Recht „perf“), `teams_perm_guard` (`settings.cards` mit „perf“); `merge_players` v14, Export v15, `purge_old_suspensions` |
 | `migrations/20261105…08_foto_unfall.sql` | Foto-Erlaubnis (`photo_consents`, lesen Trainerteam und Spieler selbst, schreiben nur `photo_consent_save`: Trainerteam Recht „squad“, Spieler Nein immer und Ja ab 18) und Unfallmeldungen (`accident_reports`, Recht „health“, Spieler lesen die eigenen); `merge_players` v15, Export v16, `purge_old_accidents` |
+| `migrations/20261105…09_eltern.sql` | Eltern-Zugang: `player_guardians` (Verknüpfung mit Bestätigung durch das Trainerteam), `guardian_invites` (Code nur als Hash, 14 Tage, höchstens zwei Elternteile), `guardian_code_attempts` (10 Fehlversuche je Stunde), `parent_posts`/`parent_post_reads` (Elterninfo); Eltern lesen nur das Paket `guardian_child_data` und schreiben über eigene RPCs (Abmelden, Zu-/Absage, Einwilligungen, Lesebestätigung); Modul-Schalter serverseitig (`team_parents_on`); geprüfte Einwilligung unter 16 in `missing_health_consent`; Foto-Erlaubnis der Eltern; `merge_players` v16, Export v17, `purge_guardians` |
 | `functions/chat-push` | Push bei neuen Chat-Nachrichten (vom Trigger per pg_net, Header `x-cron-secret`): Empfänger aus `chat_push_targets`, Titel/Text ohne Nachrichteninhalt (`_shared/chat.ts`), Versand über Expo (`_shared/expo.ts`) |
 | `functions/finding` | Befund-Auswertung: prüft Recht „Befunde“ (`staff_can(team,'medical')`) und Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
@@ -112,7 +113,9 @@ Zusatzsport-Einträge älter als 24 Monate sowie `push_log` und `ai_usage` älte
 
 Weitere Löschfristen planen die Migrationen ebenfalls per `pg_cron` ein (täglich, nachts UTC), z. B.
 `purge-old-polls`, `purge-old-squads`, `purge-old-rides` (Suchen nach Fahrgemeinschaften am Tag nach dem Spiel,
-Fahrten 30 Tage danach), `purge-old-suspensions` (Sperren nach 24 Monaten) und `purge-old-accidents` (Unfallmeldungen nach 36 Monaten). Fehlte `pg_cron` beim `db push`, meldet die Migration das per NOTICE – dann den
+Fahrten 30 Tage danach), `purge-old-suspensions` (Sperren nach 24 Monaten), `purge-old-accidents` (Unfallmeldungen nach 36 Monaten) und
+`purge-guardians` (Eltern-Zugang: abgelaufene Codes, Fehlversuche nach einem Tag, unbestätigte Anfragen nach 30 Tagen,
+Verknüpfungen 30 Tage nach dem 18. Geburtstag ohne Verlängerung, Elterninfo nach 12 Monaten). Fehlte `pg_cron` beim `db push`, meldet die Migration das per NOTICE – dann den
 `do $$ … cron.schedule(…) … $$`-Block am Ende der jeweiligen Migration im SQL-Editor ausführen.
 
 Kontrolle:

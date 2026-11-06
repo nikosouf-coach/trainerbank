@@ -274,7 +274,7 @@ sinngemäß; **Wortlaut und Antwortoptionen in App Store Connect abgleichen**.
 
 | Bereich / Frage | Antwort | Begründung |
 |---|---|---|
-| Elterliche Kontrollen (in der App) | Nein | Die Eltern-Einwilligung ist keine Kontrollfunktion im Sinne des Fragebogens – zu prüfen |
+| Elterliche Kontrollen (in der App) | Nein – zu prüfen | Der Eltern-Zugang zeigt Eltern Termine, Abmeldungen und Nominierungen ihres Kindes und lässt sie Einwilligungen geben; er schränkt die Nutzung durch das Kind nicht ein (keine Sperren, Zeitlimits oder Inhaltsfilter). Ob Apple das als „Parental Controls“ wertet, in App Store Connect prüfen |
 | Altersverifikation (Age Assurance) | Nein | Alter wird nur selbst angegeben (Geburtsdatum) – zu prüfen |
 | Uneingeschränkter Webzugang | Nein | nur eigene Seiten (Datenschutz, Support) |
 | Nutzergenerierte Inhalte | **Ja** (konservativ) | Trainer-Nachrichten, Potenziale, Notizen sind für andere Nutzer im Team sichtbar |
@@ -327,8 +327,8 @@ Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpf
 
 | Apple-Kategorie | Datentyp | Erhoben | Verknüpft | Tracking | Zweck | Inhalt bei Trainerbank |
 |---|---|---|---|---|---|---|
-| Kontaktinformationen | Name | ja | ja | nein | App-Funktionalität | Anzeigename, Vor-/Nachname, Name der Notfallkontakte |
-| Kontaktinformationen | E-Mail-Adresse | ja | ja | nein | App-Funktionalität | Konto-E-Mail, E-Mail der Erziehungsberechtigten |
+| Kontaktinformationen | Name | ja | ja | nein | App-Funktionalität | Anzeigename, Vor-/Nachname, Name der Notfallkontakte, Name der Eltern im Eltern-Zugang |
+| Kontaktinformationen | E-Mail-Adresse | ja | ja | nein | App-Funktionalität | Konto-E-Mail (auch von Eltern im Eltern-Zugang), E-Mail der Erziehungsberechtigten |
 | Kontaktinformationen | Telefonnummer | ja | ja | nein | App-Funktionalität | Telefonnummern der Notfallkontakte (Eltern, Angehörige), die der Spieler oder das Trainerteam einträgt |
 | Gesundheit & Fitness | Gesundheit | ja | ja | nein | App-Funktionalität | Wohlbefinden, Beschwerden, Krankheit/Verletzung, Rückkehrstufe, Größe, Gewicht, Hinweise für den Notfall (z. B. Allergie), Unfallmeldungen (Hergang, Verletzung, Behandlung) |
 | Gesundheit & Fitness | Fitness | ja | ja | nein | App-Funktionalität | Session-RPE, Minuten, Zusatzsport |
@@ -373,7 +373,7 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 
 | Google-Kategorie | Datentyp | Erhoben | Geteilt | Nur flüchtig verarbeitet | Pflicht/optional | Zwecke |
 |---|---|---|---|---|---|---|
-| Personenbezogene Daten | Name | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung |
+| Personenbezogene Daten | Name | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung (auch Name der Eltern im Eltern-Zugang) |
 | Personenbezogene Daten | E-Mail-Adresse | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung |
 | Personenbezogene Daten | Telefonnummer | ja | nein | nein | Pflicht (Notfallkontakt beim Beitreten als Spieler) | App-Funktionalität (Notfallkontakte) |
 | Personenbezogene Daten | Nutzer-IDs | ja | nein | nein | Pflicht | App-Funktionalität, Kontoverwaltung, Betrugsprävention/Sicherheit |
@@ -476,6 +476,9 @@ Apple: Felder „Anmeldung erforderlich“ (Benutzername/Passwort) und „Notize
 - Demo-Spieler **volljährig** anlegen (Geburtsdatum vor 2008), damit kein Eltern-Einwilligungsbildschirm den Test
   blockiert; den Eltern-Ablauf in den Notizen beschreiben.
 - Demo-Spieler im Demo-Team mit dem Demo-Trainer verknüpfen; Beispieldaten vorab laden.
+- Für den Eltern-Zugang ein Demo-Elternkonto anlegen, das mit einem minderjährigen Demo-Spieler verknüpft und
+  bestätigt ist (sonst sieht das Review-Team nur „Anfrage gesendet“); in den Notizen beschreiben, dass Eltern nur
+  nach Bestätigung durch das Trainerteam etwas sehen.
 - KI-Tageslimit für Demo-Konten ausreichend hoch setzen.
 - Prüfen, dass „Beispieldaten laden“ nur das eigene Team betrifft.
 

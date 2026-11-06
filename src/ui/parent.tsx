@@ -219,8 +219,10 @@ function PostsCard({ child, data }: { child: GuardianChild; data: ChildData }) {
           </Row>
           <Muted small>{[p.author, day(p.at)].filter(Boolean).join(" · ")}</Muted>
           {open === p.id ? <T v="small" selectable testID={"el-post-body-" + p.id}>{p.body}</T> : null}
+          {/* bestätigen erst nach dem Lesen (aufgeklappt bzw. schon gelesen) */}
           {p.needAck ? (p.ackedAt ? <Text testID={"el-acked-" + p.id} style={{ fontSize: 12.5, color: c.ok, fontWeight: "700" }}>{t("el_acked")}</Text>
-            : <Btn small kind="primary" testID={"el-ack-" + p.id} label={t("el_ack")} onPress={() => s.parentDo(child.pid, api => api.parentPostRead(p.id, true), "el_ackedT")} style={{ alignSelf: "flex-start" }} />) : null}
+            : open === p.id || p.readAt ? <Btn small kind="primary" testID={"el-ack-" + p.id} label={t("el_ack")} onPress={() => s.parentDo(child.pid, api => api.parentPostRead(p.id, true), "el_ackedT")} style={{ alignSelf: "flex-start" }} />
+            : <Muted small>{t("el_ackHint")}</Muted>) : null}
         </View>
       ))}
       <Muted small>{tf("el_postsHint", { t: child.team })}</Muted>
@@ -298,7 +300,7 @@ function PhotoForm({ child, data, age, onDone }: { child: GuardianChild; data: C
         ))}
       </View>
       <Muted small>{t("el_photoJoint")}</Muted>
-      <Muted small>{t("ph_meRevoke")}</Muted>
+      <Muted small>{t("el_photoRevoke")}</Muted>
       <Btn kind="primary" testID="el-photo-save" label={t("el_photoSave")} disabled={busy || !dirty || !complete} onPress={save} />
     </Col>
   );

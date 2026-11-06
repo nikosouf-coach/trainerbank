@@ -30,6 +30,11 @@ weder React noch Supabase. Sie arbeitet auf einem `TeamData`-Objekt (siehe `src/
 - **Spieler** (`players.user_id` = eigenes Konto): sieht Teamkalender und veröffentlichten Wochenplan, nur die
   **eigenen** Gesundheitsdaten, eigene Abwesenheiten, für ihn freigegebene Potenziale und Nachrichten des Trainers.
   Spieler sehen keine Daten von Mitspielern.
+- **Eltern** (`player_guardians`, Status `active`): Konto, das das Trainerteam mit einem minderjährigen Spieler
+  verknüpft hat (Code je Kind, Bestätigung mit Recht `squad`). Kein Zugriff auf Tabellen des Teams – nur das Paket
+  `guardian_child_data` fürs eigene Kind und eigene RPCs; die Elterninfo per RLS. Zugang, solange das Kind minderjährig
+  ist (oder das volljährige Kind verlängert, `adult_ok`) und das Modul `eltern` an ist (`team_parents_on`). Ohne eigene
+  Teammitgliedschaft startet die App in der Eltern-Ansicht (`phase = "parent"`).
 - Spieler können auch ohne eigenes Konto existieren (vom Trainer angelegt). Beim Beitritt per Team-Code wird ein
   vorhandener Spieler mit gleichem Vor-/Nachnamen und Geburtsdatum verknüpft, sonst neu angelegt.
 
@@ -139,6 +144,11 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `player_suspensions` (…20261105000007) | Eingetragene Sperre: `player_id` (Cascade), `match_id` (Auslöser, `set null`), `kind` (yellow, yellow_red, red, other), `start_date`, `games` (0–30; 0 = aufgehoben; null = bis zum Urteil) oder `until_date` (nicht beides, nicht vor dem Beginn), `scope` (league, all), `note` (1–200, einzeilig); je Auslöser, Spieler und Grund eine (`player_suspensions_once`); `team_id` aus dem Spieler, Auslöser aus demselben Team (`different_teams`), Spieler nicht wechselbar, `updated_by`/`updated_at` vom Server. Sperren aus Karten nach den Regeln (`teams.settings.cards`) berechnet die App (`core/cards`) | Staff lesen, Spieler eigene; schreiben Staff mit `perf` |
 | `photo_consents` (…20261105000008) | Foto-Erlaubnis je Spieler (pk `player_id`, Cascade): `web`, `social`, `press`, `name_ok` (ja/nein/null = offen), `given_by` (player, parents, both), `given_on`, `note` (1–200, einzeilig), `updated_at/by` | lesen Staff und der Spieler selbst; schreiben nur `photo_consent_save` (Staff mit `squad`: Erklärung aus dem Formular; Spieler: Nein immer, Ja nur volljährig – Geburtsdatum, ohne Geburtsdatum nur in `sen`/`ue32` –, dann `given_by = player`, `given_on` heute) |
 | `accident_reports` (…20261105000008) | Unfallmeldung (Gesundheitsdaten): `player_id` (Cascade), `accident_date`, `accident_time` (HH:MM), `place`, `activity` (training, match, travel, other), `match_id` (nur bei match/travel, `set null`), `absence_id` (Verletzung desselben Spielers, `set null`), `how` (1–1000), `injury` (1–300), `body_area` (Code aus core/body), `first_aid`, `treatment`, `witnesses` (je 1–300), `club_on`, `insurer_on` (nicht vor dem Unfall, nicht in der Zukunft), `claim_no`, `closed`, `note`; Trigger `accident_reports_prepare` (Team aus dem Spieler, Spiel aus dem Team, Konto) | lesen Staff mit `health` und der Spieler selbst; schreiben nur Staff mit `health` |
+| `player_guardians` (…20261105000009) | Eltern-Verknüpfung: `team_id`, `player_id` (Cascade), `user_id` (Cascade), `name` (2–60), `relation` (mother, father, guardian), `status` (pending, active), `adult_ok` (volljähriges Kind hat verlängert), `created_at`, `confirmed_at/by`; je Kind und Konto einmal, höchstens zwei je Kind (`guardian_redeem`); Trigger `player_guardians_ended` setzt beim Löschen die Einwilligungen dieses Elternteils fürs Kind auf widerrufen | lesen das eigene Konto, Staff mit `squad` und das Kind selbst; schreiben nur über RPCs |
+| `guardian_invites` (…20261105000009) | Einladung je Kind: `code_hash` (SHA-256 des Codes, Code selbst nie gespeichert), `uses_left` (0–2), `expires_at` (14 Tage), `created_by` | lesen Staff mit `squad` (Spaltenrecht ohne `code_hash`); schreiben nur `guardian_invite_create` |
+| `guardian_code_attempts` (…20261105000009) | falsche Codes je Konto mit Zeitpunkt (höchstens 10 je Stunde, nach einem Tag gelöscht) | kein Zugriff für Clients |
+| `parent_posts` (…20261105000009) | Elterninfo: `title` (1–120), `body` (1–4000), `need_ack`, `author` (setzt der Server aus dem Profil), `created_by`, `created_at/updated_at` | lesen Staff mit `squad` und bestätigte Eltern des Teams (`is_guardian_in_team`); schreiben Staff mit `squad` |
+| `parent_post_reads` (…20261105000009) | Lesestand: `post_id` (Cascade), `user_id`, `read_at`, `acked_at` | lesen das eigene Konto und Staff mit `squad`; schreiben nur `parent_post_read` |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -249,6 +259,11 @@ speichert jedes Konto in `profiles.prefs.nav` (`bar`, `hide`); Spieler blenden B
 zusätzlich auf dem Gerät gespeichert, damit sie schon vor der Anmeldung gilt). Bereichsseiten zeigen „Zurück zu Mehr“ nur, wenn sie
 nicht in der Leiste liegen (`useNavBack`). Bildschirme im Hintergrund werden eingefroren (`enableFreeze`,
 `freezeOnBlur`), damit Speichern im Hintergrund die sichtbare Seite nicht verlangsamt.
+
+Eltern-Ansicht: `app/parent/` (Guard-Bereich `parent`, `src/ui/parent.tsx`) und `/parent-link` (Code einlösen, auch
+als Link `…/parent-link?code=…` – ohne Anmeldung wird der Code gemerkt, `PendingInvite.kind = "parent"`). Wer selbst
+im Team ist und Kinder verknüpft hat, öffnet sie über „Mehr → Eltern-Ansicht“, „Ich“ bzw. das Konto
+(`setParentMode`); Trainerteam: „Mehr → Eltern-Zugang“ (`app/coach/(tabs)/eltern.tsx`, Zahl = offene Anfragen).
 
 ### Erscheinungsbild
 
@@ -380,7 +395,9 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   bleiben beim bestehenden Spieler; v10: Notfallkontakt und Hinweise für den Notfall – der neuere Stand gewinnt; v11:
   Größen – der neuere Stand gewinnt; v12: Kader-Nominierungen – doppelte bleiben bei der neuen Zeile; v13:
   Fahrgemeinschaften – je Ziel nur eins von Fahrer, Platz, Suche, Doppelungen bleiben bei der neuen Zeile; v14:
-  eingetragene Sperren – je Karte eine, Doppelungen bleiben bei der neuen Zeile).
+  eingetragene Sperren – je Karte eine, Doppelungen bleiben bei der neuen Zeile; v15: Foto-Erlaubnis – die zuletzt
+  geänderte gilt, Unfallmeldungen; v16: Eltern-Verknüpfungen – doppelte Verknüpfung desselben Elternteils entfällt,
+  Einladungen der neuen Zeile verfallen).
 - `answer_nomination(match, answer, reason)` – Zu-/Absage des Spielers für die eigene Nominierung: nur veröffentlicht,
   mit `settings.playerAbs` (wie Absagen bei Trainings, Standard an) und vor dem Anpfiff (Datum + Uhrzeit in der Zeitzone
   des Teams); Grund nur bei Absage (bereinigt, ≤ 200). Fehler `answers_off`, `match_started`, `invalid_answer`.
@@ -402,6 +419,26 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Regeln für Sperren (`settings.cards`) brauchen `perf`.
 - `photo_consent_save(player, web, social, press, name, by, on, note)` – Foto-Erlaubnis speichern (siehe Tabelle; je
   Spieler serialisiert). `purge_old_accidents()` (täglich) – Unfallmeldungen 36 Monate nach dem Unfall.
+  Eltern: Erklärung gilt als die der Eltern (`given_by = parents`, heute); nur Widerrufe bzw. unverändert lassen die
+  Erklärung bestehen – hatte nur das Kind erklärt, wird sie zu „beide“. Spieler 14–17 stimmen einer Erklärung der
+  Eltern mit `p_by = 'both'` zu.
+- Eltern-Zugang (…20261105000009): `guardian_invite_create(player)` (Staff `squad`; Geburtsdatum, minderjährig,
+  höchstens zwei; ersetzt die alte Einladung; Code `XXXXX-XXXXX` nur in der Antwort), `guardian_redeem(code, name,
+  relation)` (`{ok, link_id, first_name, team}` bzw. `{ok: false, error: invalid_code | own_player | guardians_full |
+  module_off}`; Fehlversuche bleiben gezählt), `guardian_decide(link, ok)`, `guardian_remove(link)` (Staff, der
+  Elternteil oder das volljährige Kind), `guardian_adult_ok(link, ok)`, `guardian_children()` (eigene Verknüpfungen mit
+  `access`, `module_on`), `guardian_child_data(player)` (das Paket: Team ohne Codes, Spiele, Termine,
+  Trainingsänderungen und Pausen von −14 bis +60 Tagen, Abwesenheiten ohne Stufe und Notiz – Art bei Krankheit und
+  Verletzung nur bei eigenen Abmeldungen –, veröffentlichte Nominierungen mit Treffpunkt ohne Kaderliste,
+  Foto-Erlaubnis, eigene Einwilligungen, `sick_ok`, Elterninfo der letzten 120 Tage mit eigenem Lesestand),
+  `guardian_absence(player, type, from, to)` (krank, urlaub, schule, sonst; ab 7 Tage zurück, höchstens 90 Tage;
+  „krank“ nur mit `guardian_sick_ok`: unter 16 Einwilligung des Elternteils, ab 16 die des Kindes),
+  `guardian_absence_delete(id)` (eigene, nicht rückwirkend), `guardian_answer(match, player, answer, reason)`
+  (gekennzeichnet `answered_by_guardian`), `guardian_consent(player, kind, give, version)` (parental, health_data),
+  `parent_post_read(post, ack)`, `team_guardian_consents(team)` (Staff: Einwilligungen der Eltern je Kind),
+  `purge_guardians()` (täglich, Cron `purge-guardians`: abgelaufene Einladungen, Fehlversuche nach einem Tag,
+  unbestätigte Anfragen nach 30 Tagen, Verknüpfungen 30 Tage nach dem 18. Geburtstag ohne `adult_ok`, Elterninfo nach
+  12 Monaten). `missing_health_consent` akzeptiert für Kinder unter 16 die Einwilligungen bestätigter Eltern.
 - Notfallkontakte: Beim Beitreten speichert die App den Kontakt (Pflicht) direkt nach `join_team` und vor dem Laden
   des Teams; Prüfung der Kontakte `emergency_contacts_ok(c)` (wie `core/emergency → cleanContacts`).
 - `peer_targets(team)` – Spieler: Mitspieler für die Stärken-Runde (Vorname, Initial, Rückennummer, Position), nur
@@ -414,7 +451,7 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Antwort, nach dem Ende oder bei der eigenen Abstimmung. Hilfen: `team_today(team)`, `poll_running(poll)`,
   `poll_target_me(team, group)`, `poll_my_player(team)`, `poll_group_ok(group, team)`.
 - `purge_old_polls()` (täglich) – Umfragen mit allen Antworten 12 Monate nach dem Ende (ohne Ende: nach dem Start).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v16` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort; v14: eigene Fahrgemeinschaften – Fahrten als Fahrer mit Zahl der Mitfahrer, Plätze mit Fahrer und Abfahrt, Suchen, ohne Namen anderer; v15: eingetragene Sperren – Karten stehen bei den Spieldaten; v16: Foto-Erlaubnis und Unfallmeldungen): Profil, Gesundheitsdaten
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v17` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort; v14: eigene Fahrgemeinschaften – Fahrten als Fahrer mit Zahl der Mitfahrer, Plätze mit Fahrer und Abfahrt, Suchen, ohne Namen anderer; v15: eingetragene Sperren – Karten stehen bei den Spieldaten; v16: Foto-Erlaubnis und Unfallmeldungen; v17: als Elternteil eigene Verknüpfungen, Lesestand der Elterninfo, als Spieler die verknüpften Eltern): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -533,6 +570,11 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Kanal (ja, nein, offen, Zustimmung fehlt), eigene Änderung des Spielers (Nein immer, Ja ab 18), Übersicht, neu einholen.
 - `accidents.ts` – Unfallmeldung: Bereinigen, Pflichtangaben, Stand (offen, an den Verein, an die Versicherung,
   abgeschlossen), Erinnerung nach drei Tagen, Vorlage aus einer Verletzung, Text zum Teilen.
+- `parents.ts` – Eltern-Zugang: Code säubern und prüfen (zehn Zeichen ohne verwechselbare), minderjährig bzw. unter
+  16, Stand je Kind fürs Trainerteam (Verknüpfungen, gültige Einladung, höchstens zwei), offene Anfragen,
+  Elterninfo-Statistik (gelesen, bestätigt, wer fehlt – nur bestätigte Eltern minderjähriger bzw. verlängerter
+  Kinder), Abmelden durch Eltern (Arten, Zeitraum, „krank“), Termine des Kindes (Training, Spiele, Termine mit
+  Abwesenheit und Nominierung), offene Aufgaben der Eltern, Demo-Elterninfo.
 - `rides.ts` – Fahrgemeinschaften: Bereinigung (Plätze 1–8, Abfahrt, Texte), Ziele (Spiel oder Termin, trainingsfrei
   ohne Fahrten), Ziele der nächsten Tage für die Startseite (Auswärtsspiele und Ziele mit Fahrten), Stand eines
   Spielers (fährt, fährt mit, sucht), Zahlen (Fahrten, Plätze, frei, Suchende), Regeln wie der Server (`rideCheck`)

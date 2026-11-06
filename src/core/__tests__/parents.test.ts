@@ -118,8 +118,14 @@ test("Texte: Schlüssel in beiden Sprachen", () => {
     "el_leaveText", "el_linkTitle", "el_linkIntro", "el_linkOk", "el_linkAfter", "el_redeemed", "el_startTitle", "el_startDesc", "el_myTitle", "el_myMinor", "el_myAdult", "el_adultKeep",
     "el_coachTitle", "el_coachInfo", "el_reqWho", "el_reqHint", "el_kidsCount", "el_codeOnce", "el_codeDirect", "el_shareText", "el_seeCoach", "el_notSeeCoach", "el_statRead", "el_statAck",
     "el_missRead", "el_missAck", "el_postPrivacy", "el_parentView", "ph_meParents", "ph_meConfirm", "ph_confirmed",
+    "el_joinHint", "el_photoRevoke", "el_ackHint", "el_photoWaitKid", "el_photoWaitYou", "el_offT", "el_off", "el_refresh", "err_module_off",
     "err_guardians_full", "err_own_player", "err_too_many_attempts", "err_birthdate_required", "err_not_minor", "err_not_linked", "err_invalid_dates", "err_invalid_type", "err_invalid",
     ...GUARDIAN_RELATIONS.map(k => "el_rel_" + k), ...["type", "from", "to", "consent"].map(k => "el_absErr_" + k), ...PARENT_ABS_TYPES.map(k => "ab_" + k)];
   for (const lang of ["de", "en"] as const) for (const k of keys) assert.ok(DICTS[lang][k], `${lang}: ${k}`);
   for (const lang of ["de", "en"] as const) assert.match(String(DICTS[lang].el_shareText), /\{c\}[\s\S]*\{l\}[\s\S]*\{d\}/, `${lang}: Code, Link und Ablauf im Text`);
+  // Anrede: Texte an Eltern mit „Sie“ (wie Datenschutzerklärung und Einwilligungstexte), an Spieler mit „du“
+  for (const k of ["el_info", "el_none", "el_pending", "el_off", "el_noHint", "el_absSickHint", "el_cInfo", "el_cParentalText", "el_c16", "el_photo14", "el_photoKid", "el_photoForm",
+    "el_see", "el_notSee", "el_leaveText", "el_linkIntro", "el_yourNameHint", "el_errName", "el_errRel", "el_errOk", "el_photoRevoke"])
+    assert.doesNotMatch(String(DICTS.de[k]), /\b(du|dein|deine|deinen|deinem|deiner|deines|dir|dich)\b/i, `de: ${k} siezt Eltern`);
+  for (const k of ["el_myMinor", "el_myAdult", "ph_meParents", "el_joinHint"]) assert.match(String(DICTS.de[k]), /\b(du|dein|deine|deinen|deinem|deiner)\b/i, `de: ${k} duzt Spieler`);
 });

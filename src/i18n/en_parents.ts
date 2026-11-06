@@ -58,7 +58,7 @@ export const en_parents: Dict = {
 
   // Parent updates
   el_posts: "Parent updates", el_unread: "unread", el_postOpen: "Read", el_postClose: "Collapse",
-  el_ack: "Confirm I've read it", el_acked: "✓ Read confirmed", el_ackedT: "Confirmed",
+  el_ack: "Confirm I've read it", el_ackHint: "Please read and confirm", el_acked: "✓ Read confirmed", el_ackedT: "Confirmed",
   el_postsHint: "Updates from the coaching staff of {t} from the last 120 days.",
 
   // Consent
@@ -81,6 +81,7 @@ export const en_parents: Dict = {
   el_photoKid: "Under 14, you decide as a parent. A “no” from your child still always applies.",
   el_photoForm: "May the club publish photos of {n}? Your declaration applies from today to future publications.",
   el_photoJoint: "With joint custody, you declare this in agreement with the other parent.",
+  el_photoRevoke: "You can withdraw at any time – this applies immediately to new publications. The club takes down photos already published on request.",
 
   // What parents see
   el_seeT: "What you see – and what you don't",
@@ -109,6 +110,7 @@ export const en_parents: Dict = {
 
   // Start and account
   el_startTitle: "I'm a parent",
+  el_joinHint: "Tip: with parent access, your parents can also consent in the app themselves and see your schedule – they get the code from your coaching staff.",
   el_startDesc: "With the code from the coaching staff: see the schedule, report absences, answer nominations, read parent updates.",
   el_koKids: "Linked: {n}", el_koNone: "Are you the parent of a player? Link your child with the code from the coaching staff.",
 

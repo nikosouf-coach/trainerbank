@@ -94,6 +94,7 @@ export default function Join() {
           <CardTitle title={t("cs_parent")} info={<Info title={t("cs_parent")} text={t("cs_parent_l")} />} />
           <Check testID="jn-c-parent" value={cParent} onChange={setCParent} label={t("cs_parent_s")} />
           <Field testID="jn-parentmail" label={t("cs_parentMail")} value={parentMail} onChangeText={setParentMail} keyboardType="email-address" autoCapitalize="none" />
+          <Muted small testID="jn-parent-access">{t("el_joinHint")}</Muted>
         </Card> : null}
         <Card>
           <CardTitle title={t("cs_ai")} info={<Info title={t("cs_ai")} text={t("cs_ai_l")} />} />

@@ -42,6 +42,7 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 | Geburtstage | Startseite: wer heute und in den nächsten 7 Tagen Geburtstag hat, „Gratulieren“ öffnet den Teamchat mit einem Vorschlag; Liste nach Monaten, fehlende Geburtsdaten; Glückwunsch für den Spieler auf „Heute“ |
 | Foto-Erlaubnis | je Spieler und Kanal (Website, Social Media, Presse & Druck, Name): erlaubt, nicht erlaubt, offen – mit Alterslogik (unter 14 Eltern, 14–17 Eltern und Spieler, ab 18 Spieler); Trainerteam trägt aus dem Formular ein, Volljährige stimmen selbst zu, „Nein“ geht immer; Liste „Nicht veröffentlichen“ je Kanal |
 | Unfallmeldung | Sportunfall festhalten (Hergang, Verletzung, Erste Hilfe, Behandlung, Zeugen; auch aus einer Verletzung), Stand der Meldung an Verein und Versicherung mit Erinnerung, Text zum Teilen; nur mit Recht „Gesundheitsdaten“, Spieler sehen ihre eigenen |
+| Eltern-Zugang | Eltern minderjähriger Spieler verknüpfen sich mit einem Code je Kind (nur nach Bestätigung durch das Trainerteam): Termine der nächsten zwei Wochen, Abmelden, Zu-/Absage bei Nominierung, Elterninfo mit Lesebestätigung, Einwilligungen für Kinder unter 16, Foto-Erlaubnis – datensparsam als Paket nur fürs eigene Kind (keine Belastung, Gesundheitsdetails, Bewertungen, Chats); Ende mit der Volljährigkeit, außer das Kind verlängert |
 | Kommunikation | Kontaktliste (Koordinator, Vorstand, Physio, Ärzte), Push-Erinnerungen, Nachrichten | Kontakte, Erinnerungen |
 | Aufgaben & Dienste | Todos für Trainer und Spieler, Dienste reihum (fair; Wechsel jedes Mal, wöchentlich, alle 2 Wochen oder monatlich), milder Strafenkatalog mit Automatik (nur mit Zustimmung, nie rückwirkend) | eigene Aufgaben, Dienste, Strafen |
 | Mannschaftskasse | Beiträge (einmalig, monatlich, je Saison), Geldstrafen (Senioren), Kassenbuch, offene Beträge je Spieler, Befreiungen, Kassenwart | „Meine Kasse“, optional Kassenstand; Kassenwart bucht Zahlungen |
@@ -56,7 +57,7 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 | Pfad | Inhalt |
 |---|---|
 | `app/` | Bildschirme (Expo Router): `coach/…`, `player/…`, Anmeldung, Konto |
-| `src/core/` | Fachlogik ohne React und Datenbank (Wochenplan, Erholung, Leistung, Pausen, Gruppen, Reha, Dienste, Gamification, Entwicklung, Entwicklungsprogramm, Umfragen, Notfallkontakte, Größen, Kader-Nominierung, Fahrgemeinschaften, Karten & Sperren, Geburtstage, Foto-Erlaubnis, Unfallmeldung, Challenge, Chat-Regeln, Matchplan, Verein, Kaderplanung & Scouting, Statistik) mit Tests |
+| `src/core/` | Fachlogik ohne React und Datenbank (Wochenplan, Erholung, Leistung, Pausen, Gruppen, Reha, Dienste, Gamification, Entwicklung, Entwicklungsprogramm, Umfragen, Notfallkontakte, Größen, Kader-Nominierung, Fahrgemeinschaften, Karten & Sperren, Geburtstage, Foto-Erlaubnis, Unfallmeldung, Eltern-Zugang, Challenge, Chat-Regeln, Matchplan, Verein, Kaderplanung & Scouting, Statistik) mit Tests |
 | `src/data/` | Datenzugriff: Supabase oder Demo-Modus im Speicher |
 | `src/ui/` | Bausteine der Oberfläche (`kit.tsx`: Section, Group, NavRow, Metric, Detailseiten-Bausteine …); Erscheinungsbild in `theme.tsx` (Farben, Typografie, Hell/Dunkel), Marke in `brand.tsx`, Leitfaden in [docs/DESIGN.md](docs/DESIGN.md) |
 | `src/i18n/` | Texte Deutsch/Englisch |
