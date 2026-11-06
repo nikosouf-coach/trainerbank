@@ -70,10 +70,41 @@
   Vereins sehen dich als möglichen Aufrücker nur mit Name, Position, Jahrgang und Team. Spieler anderer Teams oder
   Vereine, die ein Trainerteam beobachtet (Scouting), werden darüber informiert; Gesundheitsdaten werden dabei nie
   erfasst.
+- **Eltern-Zugang:** Bist du minderjährig, kann dein Trainerteam deinen Eltern einen Code geben. Erst wenn das
+  Trainerteam sie bestätigt hat, sehen sie deine Termine der nächsten Wochen, deine Abmeldungen und Abwesenheiten
+  (Krankheit und Verletzung nur als „abwesend“), deine Nominierung mit Treffpunkt und deine Foto-Erlaubnis; sie können
+  dich abmelden und zu- oder absagen. Deine Belastung, Gesundheitsdetails, Bewertungen, Notizen und Chats sehen sie
+  nicht. Unter „Ich“ siehst du, wer verknüpft ist. Ab 16 entscheidest du selbst über deine Einwilligungen; 30 Tage nach
+  deinem 18. Geburtstag endet der Zugang, außer du verlängerst ihn.
 - Die Daten liegen auf Servern in der EU (Frankfurt). Es gibt **keine Werbung, kein Tracking und keinen Verkauf** von Daten.
 - Der KI-Coach ist freiwillig. Wenn du ihn nutzt, geht deine Frage an einen KI-Anbieter in den USA.
 - Du kannst deine Daten jederzeit in der App herunterladen und dein Konto mit allen Gesundheitsdaten löschen.
 - Fragen? Schreib uns an [E-Mail].
+
+## Kurz erklärt – für Eltern (Eltern-Zugang)
+
+- Mit einem Code vom Trainerteam verknüpfen Sie Ihr Konto mit Ihrem Kind. Sie sehen erst etwas, nachdem das
+  Trainerteam Ihre Anfrage bestätigt hat; es sieht dabei den Namen, den Sie angeben, und ob Sie Mutter, Vater oder
+  erziehungsberechtigt sind. Je Kind sind höchstens zwei Elternteile möglich. Der Code gilt 14 Tage und wird bei uns
+  nur verschlüsselt (als Hash) gespeichert.
+- Sie sehen nur, was Sie für die Organisation brauchen: Team und Trainingszeiten, Training, Spiele und Termine der
+  nächsten Wochen, die Nominierung Ihres Kindes mit Treffpunkt (ohne Kaderliste), seine Abmeldungen und Abwesenheiten,
+  die Foto-Erlaubnis, Elterninfos des Trainerteams und Ihre Einwilligungen. Krankheit oder Verletzung, die das
+  Trainerteam oder Ihr Kind einträgt, sehen Sie nur als „abwesend“.
+- Nicht sichtbar sind Belastung, Schlaf, Gesundheitsdetails, Leistungstests, Bewertungen, Notizen des Trainerteams,
+  Chats und Daten anderer Kinder.
+- Sie können Ihr Kind abmelden (Urlaub, Schule, Sonstiges; „krank“ nur mit Einwilligung in Gesundheitsangaben), bei
+  einer Nominierung zu- oder absagen und Elterninfos als gelesen bestätigen. Was Sie eintragen, sieht das Trainerteam
+  mit dem Hinweis „von Eltern“.
+- Ist Ihr Kind unter 16, geben Sie in der App die Einwilligungen in die Nutzung und in Gesundheitsangaben (Art. 8 und
+  Art. 9 DSGVO) und können sie jederzeit widerrufen. Ab 16 entscheidet Ihr Kind selbst. Die Foto-Erlaubnis erklären
+  Sie für Kinder unter 14 allein, mit 14 bis 17 gemeinsam mit Ihrem Kind. Bei gemeinsamem Sorgerecht erklären Sie
+  Einwilligungen im Einvernehmen mit dem anderen Elternteil.
+- Ihr Kind sieht in der App, wer als Elternteil verknüpft ist. Der Zugang endet 30 Tage nach dem 18. Geburtstag, außer
+  Ihr Kind verlängert ihn. Sie können die Verknüpfung jederzeit selbst lösen; damit enden auch Ihre Einwilligungen in
+  der App. Schaltet das Team den Eltern-Zugang aus, sehen Sie nichts mehr, bis er wieder eingeschaltet ist.
+- Ihre eigenen Daten (Konto, Name, Verknüpfung, Lesebestätigungen, Einwilligungen) können Sie in der App herunterladen
+  und mit Ihrem Konto löschen.
 
 ---
 
@@ -124,7 +155,7 @@ E-Mail: [E-Mail des Datenschutzbeauftragten]
 | **Spieler mit eigenem Konto** | Spielerinnen und Spieler ab [Mindestalter für ein eigenes Konto] bis Erwachsene | treten einem Team mit dem Team-Code bei, sehen Teamkalender und veröffentlichten Wochenplan, tragen eigene Daten ein, sehen nur ihre eigenen Daten |
 | **Spieler ohne Konto** | Spieler, die das Trainerteam selbst anlegt (z. B. jüngere Kinder) | nutzen die App nicht selbst; das Trainerteam erfasst Daten für sie |
 | **Beobachtete Spieler (Scouting)** | Spieler anderer Teams oder Vereine, die ein Trainerteam für seine Kaderplanung beobachtet | nutzen die App nicht; das Trainerteam erfasst sportliche Eindrücke und informiert sie bzw. bei Minderjährigen die Eltern (4.37) |
-| **Erziehungsberechtigte** | Eltern bzw. Sorgeberechtigte von Spielern unter 16 Jahren | erteilen die erforderliche Einwilligung; wir speichern dafür ihre E-Mail-Adresse |
+| **Erziehungsberechtigte** | Eltern bzw. Sorgeberechtigte minderjähriger Spieler | erteilen für Kinder unter 16 die erforderlichen Einwilligungen; mit eigenem Konto im **Eltern-Zugang** (nach Bestätigung durch das Trainerteam): sehen Termine, Abmeldungen und Nominierungen ihres Kindes, melden es ab, sagen zu oder ab, lesen Elterninfos und geben bzw. widerrufen Einwilligungen (4.50); ohne eigenes Konto speichern wir für die Einwilligung ihre E-Mail-Adresse |
 
 Tritt ein Spieler mit dem Team-Code einem Team bei, in dem das Trainerteam ihn bereits ohne Konto angelegt hat
 (gleicher Vor- und Nachname und gleiches Geburtsdatum), wird sein Konto mit diesem vorhandenen Spielerprofil verknüpft.
@@ -183,6 +214,8 @@ Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst 
 | 4.47 | Karten und Sperren | Karten je Spiel (bei den Spieldaten, 4.18); Sperren, die das Trainerteam einträgt (Urteil nach einer Karte, aufgehoben, sonstige Sperre): Grund, Spiel, ab wann, wie viele Spiele oder bis wann, für welche Spiele, Hinweis, wer zuletzt geändert hat und wann; die Regeln des Teams für Sperren | Trainerteam mit Recht „Leistung & Statistik“ | – |
 | 4.48 | Foto-Erlaubnis | je Kanal (Vereinswebsite, Social Media des Vereins, Presse und Druck, Name zum Foto) erlaubt, nicht erlaubt oder offen; wer erklärt hat (du, deine Eltern oder beide), Datum der Erklärung, Hinweis (z. B. „Formular vom 01.09.“), wer zuletzt geändert hat und wann | du (Nein immer, Ja ab 18); das Trainerteam mit Recht „Kader“ (aus dem unterschriebenen Formular) | freiwillig |
 | 4.49 | Unfallmeldungen (Gesundheitsdaten) | Unfalltag und Uhrzeit, Ort, Tätigkeit (Training, Spiel, Hin- oder Rückweg, Sonstiges), Spiel, zugehörige Verletzung, Hergang, Verletzung und Körperregion, Erste Hilfe, Behandlung, Zeugen, wann an den Verein und an die Versicherung gemeldet, Schadennummer, abgeschlossen, Hinweis, wer zuletzt geändert hat und wann | Trainerteam mit Recht „Gesundheitsdaten“ | – |
+| 4.50 | Eltern-Zugang | **Verknüpfung:** Team, Kind, Name des Elternteils (wie angegeben), Beziehung (Mutter, Vater, erziehungsberechtigt), Stand (wartet, bestätigt), wann angefragt und wann von wem bestätigt, ob das volljährige Kind den Zugang verlängert hat. **Einladung:** Code nur als kryptografischer Hash, gültig bis, wie oft noch einlösbar, wer sie erstellt hat; falsche Codes mit Zeitpunkt (Schutz vor dem Ausprobieren). **Was Eltern eintragen:** Abmeldungen (4.6, gekennzeichnet), Zu- oder Absagen (4.45, gekennzeichnet), Einwilligungen für das Kind (4.13), Foto-Erlaubnis (4.48), wann eine Elterninfo gelesen bzw. bestätigt wurde | Eltern; Trainerteam mit Recht „Kader“ (Einladung, Bestätigung); das volljährige Kind (Verlängerung) | freiwillig |
+| 4.51 | Elterninfo | Titel, Text, ob eine Lesebestätigung angefordert ist, Name der Verfasserin bzw. des Verfassers (aus dem Profil), wann geschrieben und geändert | Trainerteam mit Recht „Kader“ | – |
 
 **Gesundheitsdaten** im Sinne von Art. 9 DSGVO sind bei Trainerbank: Trainingsbelastung (4.7), Wohlbefinden (4.8),
 Zusatzsport (4.9), Körpergröße und Gewicht (4.10), Abwesenheiten wegen Krankheit oder Verletzung einschließlich
@@ -348,6 +381,36 @@ der Verein selbst (z. B. mit dem Text, den die App zusammenstellt); die App send
 sind Gesundheitsdaten: Sie sehen nur das Trainerteam mit dem Recht „Gesundheitsdaten“ und du selbst (unter „Ich“), und
 sie werden 36 Monate nach dem Unfall automatisch gelöscht.
 
+**Eltern-Zugang (4.50, 4.51):** Eltern minderjähriger Spieler können sich mit eigenem Konto mit ihrem Kind verknüpfen.
+Das Trainerteam mit dem Recht „Kader“ erstellt dafür je Kind einen Code (14 Tage gültig, für höchstens zwei Elternteile,
+bei uns nur als Hash gespeichert, nach zehn falschen Versuchen je Stunde gesperrt) und bestätigt jede Anfrage – erst
+danach sehen Eltern etwas. Eltern erhalten vom Server nur ein Paket für ihr eigenes Kind: Team und Trainingszeiten (ohne
+Beitrittscodes), Training, Spiele, Termine und Pausen von zwei Wochen zurück bis 60 Tage voraus, die Abwesenheiten des
+Kindes ohne Rückkehrstufe und Notiz (Krankheit und Verletzung nur, wenn sie diese selbst eingetragen haben – sonst nur
+„abwesend“), veröffentlichte Nominierungen mit Treffpunkt ohne Kaderliste, die Foto-Erlaubnis, die eigenen
+Einwilligungen und die Elterninfos der letzten 120 Tage. Auf die Tabellen der App haben Eltern keinen direkten Zugriff;
+Belastung, Schlaf, Gesundheitsdetails, Tests, Bewertungen, Notizen, Chats und Daten anderer Kinder erreichen sie nicht.
+Eltern können ihr Kind abmelden (Urlaub, Schule, Sonstiges; „krank“ unter 16 mit ihrer eigenen Einwilligung in
+Gesundheitsangaben, ab 16 nur, wenn das Kind selbst eingewilligt hat; höchstens 7 Tage rückwirkend, bis zu 90 Tage),
+eigene Abmeldungen zurücknehmen, bei Nominierungen zu- oder absagen (das Trainerteam sieht „von Eltern“) und für
+Kinder unter 16 die Einwilligungen in die Nutzung und in Gesundheitsangaben geben oder widerrufen. Das Kind sieht unter
+„Ich“, wer verknüpft ist. Der Zugang gilt nur, solange das Kind minderjährig ist; 30 Tage nach dem 18. Geburtstag wird
+die Verknüpfung gelöscht, außer das volljährige Kind verlängert sie – es kann Eltern auch selbst entfernen. Wird eine
+Verknüpfung gelöst, enden die Einwilligungen dieses Elternteils für das Kind (der Widerruf bleibt mit Zeitpunkt als
+Nachweis). Ist das Modul im Team ausgeschaltet, liefert der Server Eltern nichts und Codes gelten nicht. Die
+Elterninfo sehen alle bestätigten Eltern des Teams; das Trainerteam sieht, wer sie gelesen bzw. bestätigt hat.
+
+> **Prüfhinweis – Eltern-Zugang:**
+> 1. Ob die Bestätigung durch das Trainerteam (das die Familie kennt) zusammen mit dem eigenen Elternkonto als
+>    „angemessene Anstrengung“ zur Prüfung der Einwilligung nach Art. 8 Abs. 2 DSGVO genügt, rechtlich prüfen.
+> 2. Gemeinsames Sorgerecht (§ 1629 BGB): Die App lässt einen Elternteil allein einwilligen und weist auf das
+>    Einvernehmen hin – klären, ob das für Einwilligungen und die Foto-Erlaubnis ausreicht oder beide Elternteile
+>    zustimmen müssen.
+> 3. Rechtsgrundlage für das Paket an die Eltern (Daten des Kindes) prüfen: hier Art. 6 Abs. 1 lit. f DSGVO
+>    (Organisation, elterliche Sorge), ab 18 nur mit Verlängerung durch das Kind (Art. 6 Abs. 1 lit. a DSGVO).
+> 4. Für 16- und 17-Jährige: ob Eltern ohne Wissen des Kindes Termine und Abwesenheiten sehen dürfen bzw. ob das Kind
+>    widersprechen können soll (derzeit: Transparenz unter „Ich“, Widerspruch über das Trainerteam).
+
 **Wochenchallenge (4.32):** Mitmachen ist freiwillig. Mitspieler sehen nur, wie viele mitmachen und wie viele es
 geschafft haben, sowie die gemeinsame Summe – nicht deine Werte. Nur wenn das Trainerteam die Bestenliste einschaltet,
 erscheinen bei Bestleistungs-Challenges die drei besten Werte mit Vorname und Initial.
@@ -446,6 +509,10 @@ Standort** (keine GPS- oder Ortungsdaten).
 | Beantwortung von Anfragen | 4.17 | Art. 6 Abs. 1 lit. b DSGVO, sonst Art. 6 Abs. 1 lit. f DSGVO |
 | [Vertragsabwicklung und Rechnungsstellung mit Vereinen] | [Rechnungsdaten] | [Art. 6 Abs. 1 lit. b und lit. c DSGVO i. V. m. HGB/AO] |
 | Unfallmeldung für die Sportversicherung (Gesundheitsdaten) | 4.49 | Art. 9 Abs. 2 lit. f DSGVO (Geltendmachung von Ansprüchen des verletzten Spielers aus der Sportversicherung) i. V. m. Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und des Spielers an einer vollständigen, zeitnahen Meldung) – [rechtlich prüfen] |
+| Eltern-Zugang: Eltern minderjähriger Spieler in die Organisation einbinden (Termine, Abmeldungen, Zu- und Absagen, Elterninfo) | 4.50, 4.51; dazu die Daten des Kindes, die Eltern sehen (4.3, 4.4, 4.6 ohne Gesundheitsangaben, 4.45, 4.48) | für Eltern als Nutzer Art. 6 Abs. 1 lit. b DSGVO (Nutzungsvertrag); für die Daten des Kindes Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse des Vereins und der Eltern an der Organisation des Trainings- und Spielbetriebs Minderjähriger und an der Ausübung der elterlichen Sorge, §§ 1626, 1631 BGB; Abwägung siehe unten); nach dem 18. Geburtstag nur, wenn das Kind den Zugang verlängert (Art. 6 Abs. 1 lit. a DSGVO) – [rechtlich prüfen] |
+| Abmeldung „krank“ durch Eltern (Gesundheitsdaten) | 4.6 (krank), 4.50 | ausdrückliche Einwilligung, Art. 9 Abs. 2 lit. a i. V. m. Art. 6 Abs. 1 lit. a DSGVO – unter 16 die des Elternteils, ab 16 die des Kindes selbst |
+| Geprüfte Einwilligung der Eltern für Kinder unter 16 und ihr Nachweis | 4.13, 4.50 | Art. 6 Abs. 1 lit. c i. V. m. Art. 7 Abs. 1 und Art. 8 Abs. 2 DSGVO |
+| Schutz vor dem Ausprobieren von Eltern-Codes (falsche Versuche, höchstens 10 je Stunde) | 4.50 | Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an der Sicherheit; nach einem Tag gelöscht) |
 | Geltendmachung, Ausübung oder Verteidigung von Rechtsansprüchen | je nach Fall | Art. 6 Abs. 1 lit. f DSGVO, bei Gesundheitsdaten Art. 9 Abs. 2 lit. f DSGVO |
 
 **Begründung für Teamorganisationsdaten (Art. 6 Abs. 1 lit. b und lit. f DSGVO):**
@@ -459,6 +526,15 @@ von Kindern – an der Vertraulichkeit ihrer Daten gegenüber. Wir tragen dem Re
 eigenen Teams diese Daten sieht, nichts veröffentlicht wird, es keine Werbung und kein Tracking gibt und
 Löschfristen gelten. Gesundheitsdaten verarbeiten wir **nicht** auf dieser Grundlage, sondern nur mit
 Einwilligung. Du kannst der Verarbeitung auf Grundlage berechtigter Interessen widersprechen (Abschnitt 20).
+
+**Begründung für den Eltern-Zugang (Art. 6 Abs. 1 lit. f DSGVO):**
+Eltern minderjähriger Spieler organisieren Training und Spiele mit – sie bringen ihr Kind hin, melden es ab und müssen
+wissen, wann und wo es spielt; zugleich tragen sie die elterliche Sorge. Dafür brauchen sie wenige Daten ihres eigenen
+Kindes. Dem steht das Interesse der Kinder – besonders älterer Jugendlicher – an Vertraulichkeit gegenüber. Wir tragen
+dem Rechnung durch: Zugang nur nach Bestätigung durch das Trainerteam und nur zum eigenen Kind, ein knappes Paket ohne
+Gesundheitsdetails (Krankheit und Verletzung nur als „abwesend“), Bewertungen, Notizen und Chats, keinen direkten
+Zugriff auf Tabellen, Transparenz für das Kind (es sieht unter „Ich“, wer verknüpft ist), Ende des Zugangs mit der
+Volljährigkeit (außer das Kind verlängert), Abschalten durch das Team und kurze Löschfristen.
 
 **Begründung für Kaderplanung und Scouting (Art. 6 Abs. 1 lit. f DSGVO):**
 Mannschaften planen ihren Kader für die nächste Saison und beobachten dafür auch Spieler anderer Teams und Vereine –
@@ -545,9 +621,17 @@ bleibt unberührt.
   angegeben wird. Wir speichern die Einwilligung mit der E-Mail-Adresse des Erziehungsberechtigten.
   [Wir senden an diese Adresse eine Bestätigung mit einem Link, über den die Einwilligung bestätigt oder abgelehnt
   werden kann. Bis zur Bestätigung werden keine Gesundheitsdaten verarbeitet.]
-- **Mit 16 Jahren:** [Wir bitten dich nach deinem 16. Geburtstag, deine Einwilligungen selbst zu bestätigen.]
+- **Geprüfte Einwilligung über den Eltern-Zugang:** Eltern mit eigenem Konto, die das Trainerteam bestätigt hat,
+  geben die Einwilligungen für Kinder unter 16 direkt in der App (4.50). Diese Einwilligung gilt als die der Eltern;
+  widerrufen Eltern sie oder lösen sie die Verknüpfung, endet sie sofort.
+- **Mit 16 Jahren:** Du entscheidest selbst über deine Einwilligungen; Einwilligungen deiner Eltern zählen dann nicht
+  mehr. [Wir bitten dich nach deinem 16. Geburtstag, deine Einwilligungen selbst zu bestätigen.]
 - **Rechte der Eltern:** Erziehungsberechtigte können die Rechte ihres Kindes (Abschnitt 20) für dieses ausüben und
-  die Einwilligung jederzeit widerrufen – per E-Mail an [E-Mail] [oder über den Link in der Bestätigungs-E-Mail].
+  die Einwilligung jederzeit widerrufen – im Eltern-Zugang der App oder per E-Mail an [E-Mail] [oder über den Link in
+  der Bestätigungs-E-Mail].
+- **Eltern-Zugang:** Was Eltern sehen und tun können, steht unter 4.50 und in „Kurz erklärt – für Eltern“. Der Zugang
+  endet 30 Tage nach dem 18. Geburtstag, außer du verlängerst ihn unter „Ich“ → „Eltern“; dort kannst du volljährig
+  Eltern auch entfernen.
 - **Spieler ohne Konto:** Für Spieler, die das Trainerteam anlegt, ist das Team bzw. der Verein dafür zuständig, die
   Spieler und ihre Eltern zu informieren und erforderliche Einwilligungen einzuholen.
 - **Kein Kontakt durch Fremde:** Spieler sehen keine Daten anderer Spieler. Im Chat schreiben nur Mitglieder des
@@ -557,7 +641,8 @@ bleibt unberührt.
   Vertrauensperson bzw. die Kinderschutzbeauftragten des Vereins wenden.
 
 > **Prüfhinweis:** Die Bestätigungs-E-Mail an die Eltern („angemessene Anstrengungen“ nach Art. 8 Abs. 2 DSGVO) ist
-> laut Datenmodell noch nicht umgesetzt; derzeit wird nur die E-Mail-Adresse gespeichert. Ebenso die erneute
+> laut Datenmodell noch nicht umgesetzt; derzeit wird beim Beitritt nur die E-Mail-Adresse gespeichert. Geprüft
+> eingewilligt wird über den Eltern-Zugang (bestätigtes Elternkonto, 4.50) – ob das genügt, siehe Prüfhinweis bei 4.50. Ebenso die erneute
 > Bestätigung mit 16. Sätze in eckigen Klammern nur übernehmen, wenn umgesetzt. Mindestalter für eigene Konten
 > festlegen; es beeinflusst auch die Zielgruppen-Angaben im Google Play Store (Familienrichtlinie, siehe
 > `docs/STORE.md`).
@@ -601,6 +686,9 @@ bleibt unberührt.
 | deine Karten und Sperren | Karten, wenn Spieldaten für Spieler freigegeben sind; deine Sperren und die Gelb-Warnung auf „Heute“ (aus den Karten berechnete nur mit freigegebenen Spieldaten); eingetragene Sperren im Datenexport | ja (eintragen mit Recht „Leistung & Statistik“) | nein | nein |
 | deine Foto-Erlaubnis | ja, unter „Ich“ (ab 18 selbst zustimmen, „Nein“ immer) | ja (eintragen mit Recht „Kader“) | nein | nein |
 | deine Unfallmeldungen | ja, unter „Ich“ (nur lesen) | nur mit Recht „Gesundheitsdaten“ | nein | nein |
+| was deine verknüpften Eltern sehen: Termine der nächsten Wochen, deine Abmeldungen und Abwesenheiten (Krankheit und Verletzung nur als „abwesend“, ohne Stufe und Notiz), deine Nominierung mit Treffpunkt und deine Zu- oder Absage, deine Foto-Erlaubnis | ja (unter „Ich“ siehst du, wer verknüpft ist) | ja (Eltern bestätigen mit Recht „Kader“) | nein | deine Eltern, nachdem das Trainerteam sie bestätigt hat – solange du minderjährig bist, danach nur, wenn du verlängerst |
+| Daten deiner Eltern (Name, Beziehung, Lesebestätigungen der Elterninfo, ihre Einwilligungen für dich) | Name und Beziehung | mit Recht „Kader“ | nein | nein |
+| Elterninfo | nein | ja (schreiben mit Recht „Kader“, mit Lese- und Bestätigungsstand) | nein | bestätigte Eltern des Teams |
 | deine Fahrt (wer fährt, Plätze, Abfahrt, Hinweis), dass du mitfährst oder eine Mitfahrgelegenheit suchst | ja | ja (mit vollem Namen) | ja – mit Vorname und Initial | nein |
 | deine Challenge-Einträge | ja | ja | nur Teamsumme bzw. – wenn eingeschaltet – Top 3 bei Bestleistungen | nein |
 | deine Anfragen für Individualtraining | ja | mit Recht „Planung“ | nein | nein |
@@ -833,6 +921,8 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Eingetragene Sperren | automatisch **24 Monate** nach Beginn bzw. Ende; sonst mit deinem Spielerprofil oder dem Team (Karten mit den Spieldaten) |
 | Foto-Erlaubnis | sofort beim Ändern (es gilt nur die aktuelle Erklärung); sonst mit deinem Spielerprofil oder dem Team. Das unterschriebene Formular bewahrt der Verein auf |
 | Unfallmeldungen | automatisch **36 Monate** nach dem Unfall; sofort bei Löschung durch das Trainerteam; sonst mit deinem Spielerprofil oder dem Team |
+| Eltern-Zugang | Einladungscodes mit Ablauf (14 Tage) bzw. sofort bei einem neuen Code; falsche Versuche nach **einem Tag**; unbestätigte Anfragen nach **30 Tagen**; Verknüpfungen sofort beim Lösen (durch Eltern, Trainerteam oder das volljährige Kind) bzw. Ablehnen, **30 Tage nach dem 18. Geburtstag** (außer das Kind hat verlängert), mit dem Konto der Eltern, dem Spielerprofil oder dem Team. Die Einwilligungen der Eltern enden mit der Verknüpfung; der Nachweis wie bei den Einwilligungsnachweisen |
+| Elterninfo und Lesebestätigungen | automatisch **12 Monate** nach dem Schreiben; sofort bei Löschung durch das Trainerteam oder mit dem Team; Lesebestätigungen auch mit dem Konto der Eltern |
 | Fahrgemeinschaften | „sucht eine Mitfahrgelegenheit“ automatisch am **Tag nach** dem Spiel bzw. Termin; Fahrten mit Mitfahrern automatisch **30 Tage** danach; sofort beim Austragen bzw. Löschen der Fahrt; sonst mit dem Spiel, dem Termin, deinem Spielerprofil oder dem Team |
 | Wochenchallenge | mit der Challenge, dem Spielerprofil oder dem Team |
 | Anfragen für Individualtraining | automatisch 12 Monate nach Abschluss (zugesagt, abgesagt, zurückgezogen); offene mit dem Spielerprofil bzw. Team |
@@ -943,6 +1033,10 @@ E-Mail-Adresse deines Kontos; gegebenenfalls fragen wir nach. Wir antworten inne
 
 Daten, die das Trainerteam über dich erfasst hat, kannst du ebenfalls über uns berichtigen oder löschen lassen.
 
+**Eltern im Eltern-Zugang** laden ihre eigenen Daten (Verknüpfungen, Lesebestätigungen, Einwilligungen) im Datenexport
+herunter, widerrufen Einwilligungen und lösen Verknüpfungen direkt in der App und löschen ihr Konto unter „Konto,
+Einwilligungen & Datenschutz“. Die Rechte ihres Kindes üben sie wie oben beschrieben aus.
+
 **Wenn ein Trainerteam dich beobachtet hat (Scouting, 4.37)**, kannst du – bei Minderjährigen deine Eltern – Auskunft,
 Berichtigung und Löschung verlangen und der Verarbeitung widersprechen: beim Trainerteam bzw. Verein, der dich
 informiert hat, oder bei uns unter [E-Mail]. Das Trainerteam kann die Auskunft direkt in der App erstellen und den
@@ -1045,6 +1139,19 @@ row-level security.
 
 **Minors:** own accounts from [minimum age]; under 16, a parent or guardian must consent (we store their e-mail
 address). Younger players can be managed by the coaching staff without an account.
+
+**Parent access:** parents of minor players can link their own account to their child with a code from the coaching
+staff (valid 14 days, max. two parents, stored only as a hash); they see nothing until the staff confirms them. They
+get a minimal package for their own child only – team and training times, the schedule from two weeks back to 60 days
+ahead, the child's absences (illness and injury only as "absent" unless they entered them), published nominations with
+meeting point (no squad list), photo consent, their own consents and parent updates of the last 120 days – never load,
+health details, tests, ratings, notes, chats or other children's data. They can report absences ("ill" under 16 with
+their own consent to health data, from 16 only with the child's consent), reply to nominations (marked as "by
+parents") and give or withdraw consent for children under 16 (verified parental consent, Art. 8 GDPR). The child sees
+who is linked; access ends 30 days after the 18th birthday unless the child extends it. Unlinking ends that parent's
+consents. Legal bases: contract for parents as users (Art. 6(1)(b)); legitimate interests for the child's data shown
+to parents (Art. 6(1)(f)); explicit consent for "ill" (Art. 9(2)(a)). Retention: codes when they expire, wrong attempts
+after one day, unconfirmed requests after 30 days, parent updates after 12 months.
 
 **Processors and transfers:** Supabase (database, authentication, storage, server functions; hosted in Frankfurt,
 Germany – AWS eu-central-1); Anthropic (Claude API, AI coach only with separate consent; USA); Expo (push

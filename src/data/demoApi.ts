@@ -639,12 +639,15 @@ export class DemoApi implements Api {
     g.adultOk = ok;
     return { ...g };
   }
-  /** wie der Server: nur Widerrufe bzw. unverändert → Erklärung bleibt; sonst gilt sie als Erklärung der Eltern (heute) */
+  /** wie der Server: neues „Ja“ → Erklärung der Eltern (heute); nur Widerrufe bzw. unverändert → Erklärung bleibt
+   *  (hatte nur das Kind erklärt: dann die beider) */
   async guardianPhoto(pid: string, c: PhotoConsent) {
     this.net();
     const S = this.mainTeam(), old = cleanPhotoConsent(S.photos[pid]), x = cleanPhotoConsent(c);
     const withdraw = PHOTO_CHANNELS.every(ch => x[ch] === old[ch] || x[ch] === false);
-    const saved: PhotoConsent = { ...x, by: withdraw && old.by ? old.by : "parents", on: withdraw && old.on ? old.on : iso(new Date()), note: old.note, at: new Date().toISOString() };
+    const by = !withdraw || !old.by ? "parents" : old.by === "player" ? "both" : old.by;
+    const on = !withdraw || !old.by || old.by === "player" || !old.on ? iso(new Date()) : old.on;
+    const saved: PhotoConsent = { ...x, by, on, note: old.note, at: new Date().toISOString() };
     S.photos[pid] = saved;
     return { ...saved };
   }

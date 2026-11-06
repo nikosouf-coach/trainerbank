@@ -911,11 +911,14 @@ begin
     return v_row;
   end if;
 
+  -- Eltern: ein neues „Ja“ ist eine neue Erklärung der Eltern (mit 14 bis 17 stimmt das Kind danach selbst zu);
+  -- nur Widerrufe bzw. unverändert lassen die Erklärung bestehen – hatte nur das Kind erklärt, gilt sie dann als die beider
   if public.is_guardian_of(p_player) and public.player_minor(p_player) then
     insert into public.photo_consents (player_id, team_id, web, social, press, name_ok, given_by, given_on, note, updated_at, updated_by)
     values (p_player, v_team, p_web, p_social, p_press, p_name,
-            case when v_withdraw and v_old.given_by is not null then v_old.given_by else 'parents' end,
-            case when v_withdraw and v_old.given_on is not null then v_old.given_on else v_today end, v_old.note, now(), auth.uid())
+            case when not v_withdraw or v_old.given_by is null then 'parents' when v_old.given_by = 'player' then 'both' else v_old.given_by end,
+            case when not v_withdraw or v_old.given_by is null or v_old.given_by = 'player' or v_old.given_on is null then v_today else v_old.given_on end,
+            v_old.note, now(), auth.uid())
     on conflict (player_id) do update
       set web = excluded.web, social = excluded.social, press = excluded.press, name_ok = excluded.name_ok, given_by = excluded.given_by,
           given_on = excluded.given_on, updated_at = now(), updated_by = auth.uid()

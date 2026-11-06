@@ -76,7 +76,7 @@ export const de_parents: Dict = {
   el_cHealthText: "Dann dürfen Gesundheitsangaben zu {n} gespeichert werden – z. B. „krank“ bei einer Abmeldung, Verletzungen und die Belastung im Training. Sehen kann sie nur das Trainerteam mit dem Recht dafür. Ab 16 willigt {n} selbst ein.",
   el_cOn: "erteilt", el_cOff: "nicht erteilt", el_cGive: "Einwilligen", el_cWithdraw: "Widerrufen",
   el_cGiven: "Einwilligung erteilt", el_cWithdrawn: "Einwilligung widerrufen",
-  el_photoEdit: "Ändern", el_photoMissing: "Zustimmung fehlt", el_photoSave: "Erklärung speichern",
+  el_photoEdit: "Ändern", el_photoWaitKid: "{n} muss zustimmen", el_photoWaitYou: "deine Zustimmung fehlt", el_photoSave: "Erklärung speichern",
   el_photo14: "Ab 14 stimmt ihr gemeinsam zu: Nach deiner Erklärung bestätigt {n} sie in der App unter „Ich“ → „Foto-Erlaubnis“. Ein „Nein“ von {n} gilt immer.",
   el_photoKid: "Unter 14 entscheidest du als Elternteil. Ein „Nein“ deines Kindes gilt trotzdem immer.",
   el_photoForm: "Darf der Verein Fotos von {n} veröffentlichen? Deine Erklärung gilt ab heute für künftige Veröffentlichungen.",

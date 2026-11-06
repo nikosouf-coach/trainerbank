@@ -76,7 +76,7 @@ export const en_parents: Dict = {
   el_cHealthText: "Then health data about {n} may be stored – e.g. “ill” for an absence, injuries and training load. Only coaching staff with that permission can see it. From 16, {n} consents themselves.",
   el_cOn: "given", el_cOff: "not given", el_cGive: "Consent", el_cWithdraw: "Withdraw",
   el_cGiven: "Consent given", el_cWithdrawn: "Consent withdrawn",
-  el_photoEdit: "Change", el_photoMissing: "consent missing", el_photoSave: "Save declaration",
+  el_photoEdit: "Change", el_photoWaitKid: "{n} must consent", el_photoWaitYou: "your consent is missing", el_photoSave: "Save declaration",
   el_photo14: "From 14 you consent together: after your declaration, {n} confirms it in the app under “Me” → “Photo consent”. A “no” from {n} always applies.",
   el_photoKid: "Under 14, you decide as a parent. A “no” from your child still always applies.",
   el_photoForm: "May the club publish photos of {n}? Your declaration applies from today to future publications.",

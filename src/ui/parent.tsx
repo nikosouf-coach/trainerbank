@@ -8,7 +8,7 @@ import { AppState, Text, View } from "react-native";
 import { createEngine } from "../core/engine";
 import { answersAllowed } from "../core/nomination";
 import { childAgenda, cleanInviteCode, GUARDIAN_NAME_MAX, GUARDIAN_RELATIONS, inviteCodeOk, isMinor, isUnder16, parentAbsenceErrors, parentTodo, PARENT_ABS_TYPES, type ChildItem } from "../core/parents";
-import { cleanPhotoConsent, photoAge, photoState, PHOTO_CHANNELS } from "../core/photos";
+import { cleanPhotoConsent, missingParty, photoAge, photoState, PHOTO_CHANNELS } from "../core/photos";
 import type { AbsenceType, GuardianRelation, PhotoChannel } from "../core/types";
 import type { ChildData, GuardianChild } from "../data/api";
 import { useStore } from "../data/store";
@@ -232,7 +232,7 @@ function ConsentsCard({ child, data, E }: { child: GuardianChild; data: ChildDat
   const s = useStore(); const { t, tf } = s.tr; const { c } = useTheme();
   const [photo, setPhoto] = useState(false);
   const p = data.D.players[0], u16 = isUnder16(p, E.TODAY), age = photoAge(p, E.TODAY);
-  const ph = data.D.photos[child.pid];
+  const ph = data.D.photos[child.pid], miss = missingParty(ph, age);
   const consent = (kind: "parental" | "health_data", give: boolean) =>
     s.parentDo(child.pid, api => api.guardianConsent(child.pid, kind, give), give ? "el_cGiven" : "el_cWithdrawn");
   const row = (kind: "parental" | "health_data", on: boolean, title: string, text: string) => (
@@ -259,7 +259,7 @@ function ConsentsCard({ child, data, E }: { child: GuardianChild; data: ChildDat
             <Row key={ch} gap={8}>
               <Text style={{ flex: 1, fontSize: 13.5, color: c.ink }}>{t("ph_q_" + ch)}</Text>
               <Text testID={"el-ph-st-" + ch} style={{ fontSize: 12.5, fontWeight: "700", color: st === "yes" ? c.ok : st === "no" ? c.crit : st === "missing" ? c.warn : c.muted }}>
-                {t(st === "missing" ? "el_photoMissing" : "ph_st_" + st)}</Text>
+                {st !== "missing" ? t("ph_st_" + st) : miss === "player" ? tf("el_photoWaitKid", { n: child.vn }) : miss === "parents" ? t("el_photoWaitYou") : t("ph_miss_decl")}</Text>
             </Row>
           );
         })}
@@ -278,7 +278,9 @@ function PhotoForm({ child, data, age, onDone }: { child: GuardianChild; data: C
   const base = cleanPhotoConsent(data.D.photos[child.pid]);
   const [v, setV] = useState<Record<PhotoChannel, boolean | null>>({ web: base.web, social: base.social, press: base.press, name: base.name });
   const [busy, setBusy] = useState(false);
-  const dirty = PHOTO_CHANNELS.some(ch => v[ch] !== base[ch]), complete = PHOTO_CHANNELS.every(ch => v[ch] !== null);
+  // speichern, wenn sich etwas ändert – oder wenn ein „Ja“ noch ohne Erklärung der Eltern ist (z. B. nur vom Kind erklärt)
+  const dirty = PHOTO_CHANNELS.some(ch => v[ch] !== base[ch]) || (PHOTO_CHANNELS.some(ch => v[ch] === true) && base.by !== "parents" && base.by !== "both");
+  const complete = PHOTO_CHANNELS.every(ch => v[ch] !== null);
   const save = async () => {
     setBusy(true);
     try { if (await s.parentDo(child.pid, api => api.guardianPhoto(child.pid, { ...base, ...v }), "ph_saved")) onDone(); } finally { setBusy(false); }

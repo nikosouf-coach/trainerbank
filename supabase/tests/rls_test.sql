@@ -4918,6 +4918,23 @@ do $$ begin
   perform tst.eq((public.photo_consent_save(tst.get('p4_player')::uuid, true, false, true, true, null, null, null)).given_by, 'both', 'T61 Widerruf der Eltern lässt die gemeinsame Erklärung bestehen');
 end $$;
 commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin perform public.photo_consent_save(tst.get('p4_player')::uuid, true, null, null, null, 'player', current_date, 'Formular nur vom Spieler'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$
+declare r public.photo_consents;
+begin
+  r := public.photo_consent_save(tst.get('p4_player')::uuid, true, null, null, null, null, null, null);
+  perform tst.eq(r.given_by || '/' || r.note, 'both/Formular nur vom Spieler', 'T61 Eltern bestätigen die Erklärung des Kindes (→ beide, Hinweis bleibt)');
+  r := public.photo_consent_save(tst.get('p4_player')::uuid, true, true, null, null, null, null, null);
+  perform tst.eq(r.given_by, 'parents', 'T61 neues „Ja“ der Eltern: neue Erklärung der Eltern');
+end $$;
+commit;
 
 -- Volljährigkeit: Zugang endet, das volljährige Kind kann ihn verlängern oder Eltern entfernen
 update public.players set birthdate = date '2007-01-01' where id = tst.get('p4_player')::uuid;
