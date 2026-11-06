@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import { Text, View } from "react-native";
 import { groupOf } from "../core/classes";
-import { canSelfConsent, cleanPhotoConsent, needsRenewal, photoAge, photoCounts, photoRows, photoState, PHOTO_BY, PHOTO_CHANNELS, PHOTO_NOTE_MAX, selfChange, type PhotoRow } from "../core/photos";
+import { canSelfConsent, cleanPhotoConsent, missingParty, needsRenewal, photoAge, photoCounts, photoRows, photoState, PHOTO_BY, PHOTO_CHANNELS, PHOTO_NOTE_MAX, selfChange, type PhotoRow } from "../core/photos";
 import type { PhotoBy, PhotoChannel, PhotoConsent } from "../core/types";
 import { useEngine, useStore } from "../data/store";
 import { Banner, Btn, Card, CardTitle, ChoiceChips, Col, DateField, Field, Header, Info, ListItem, Muted, Row, Screen, Seg, Sheet, T } from "./kit";
@@ -47,7 +47,7 @@ export function PhotosPage() {
   const not = rows.filter(r => r.states[ch] !== "yes"), yes = rows.filter(r => r.states[ch] === "yes");
   const renew = rows.filter(needsRenewal);
   const name = (pid: string) => { const p = E.P(pid); return p ? E.name(p) : "–"; };
-  const reason = (r: PhotoRow): string => r.states[ch] === "missing" ? tf("ph_missingWho", { w: whoMust(t, r.age) }) : t("ph_st_" + r.states[ch]);
+  const reason = (r: PhotoRow): string => r.states[ch] === "missing" ? t("ph_miss_" + missingParty(r.c, r.age)) : t("ph_st_" + r.states[ch]);
   return (
     <Screen testID="coach-fotos">
       <Header title={t("ph_title")} sub={t("ph_sub")} onBack={nb.onBack} backLabel={nb.backLabel} info={<Info title={t("ph_title")} text={t("ph_info")} />} />
@@ -60,8 +60,8 @@ export function PhotosPage() {
         {!not.length ? <Muted>{t("ph_allOk")}</Muted> : not.map(r => (
           <Row key={r.pid} gap={10} testID={"ph-not-" + r.pid}>
             <Text style={{ width: 14, textAlign: "center", fontWeight: "800", color: stateColor(c, r.states[ch]) }}>{SYM[r.states[ch]]}</Text>
-            <Text numberOfLines={1} style={{ flex: 1, fontSize: 14.5, color: c.ink, fontWeight: "600" }}>{name(r.pid)}</Text>
-            <Text style={{ fontSize: 12.5, color: stateColor(c, r.states[ch]) }}>{reason(r)}</Text>
+            <Text numberOfLines={1} style={{ flex: 1, minWidth: 0, fontSize: 14.5, color: c.ink, fontWeight: "600" }}>{name(r.pid)}</Text>
+            <Text numberOfLines={1} style={{ flexShrink: 0, maxWidth: "55%", textAlign: "right", fontSize: 12.5, color: stateColor(c, r.states[ch]) }}>{reason(r)}</Text>
           </Row>
         ))}
         {yes.length ? <Muted small testID="ph-yes">{tf(ch === "name" ? "ph_yesName" : "ph_yes", { n: yes.length }) + ": " + yes.map(r => { const p = E.P(r.pid); return p ? `${p.vn} ${p.nn.slice(0, 1)}.` : ""; }).join(", ")}</Muted> : null}

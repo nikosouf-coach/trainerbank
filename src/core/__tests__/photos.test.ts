@@ -5,7 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { buildDemo, demoExtras, demoTeam } from "../demo";
 import { DICTS } from "../i18n";
-import { canSelfConsent, cleanPhotoConsent, needsRenewal, photoAge, photoCounts, photoRows, photoState, PHOTO_CHANNELS, selfChange, validBy } from "../photos";
+import { canSelfConsent, cleanPhotoConsent, missingParty, needsRenewal, photoAge, photoCounts, photoRows, photoState, PHOTO_CHANNELS, selfChange, validBy } from "../photos";
 import type { PhotoConsent, Player, TeamData } from "../types";
 
 const C = (x: Partial<PhotoConsent>): PhotoConsent => cleanPhotoConsent({ web: true, social: true, press: true, name: true, by: "both", on: "2026-09-01", note: "", ...x });
@@ -52,6 +52,8 @@ test("Übersicht, Zählung, neu einholen bei Volljährigkeit, Bereinigen", () =>
   assert.deepEqual(rows.map(r => [r.pid, r.age, r.states.web]), [["a", 14, "missing"], ["b", 16, "missing"], ["c", 18, "missing"], ["d", null, "open"]]);
   assert.deepEqual(photoCounts(rows, "social"), { yes: 0, no: 1, open: 1, missing: 2 });
   assert.deepEqual(rows.filter(needsRenewal).map(r => r.pid), ["c"]);
+  assert.deepEqual(rows.map(r => missingParty(r.c, r.age)), ["player", "player", "player", "decl"]);
+  assert.equal(missingParty(C({ by: "player" }), 15), "parents"); assert.equal(missingParty(C({ by: "player" }), 10), "parents");
   assert.equal(photoAge(D.players[0], "2026-04-30"), 13);
   const x = cleanPhotoConsent({ web: "ja" as never, by: "x" as never, on: "06.11.2026", note: "  a\n b " + "c".repeat(300) });
   assert.deepEqual([x.web, x.by, x.on, x.note.length, x.note.slice(0, 4)], [null, null, null, 200, "a b "]);
@@ -69,7 +71,7 @@ test("Demo: Ablehnung, ohne Namen, offen, Zustimmung fehlt, neu einholen", () =>
 });
 
 test("Texte: Schlüssel in beiden Sprachen", () => {
-  const keys = ["m_fotos", "md_fotos", "ph_title", "ph_menuSub", "nvb_fotos", "ph_sub", "ph_info", "ph_counts", "ph_not", "ph_notName", "ph_allOk", "ph_yes", "ph_yesName", "ph_missingWho", "ph_renew",
+  const keys = ["m_fotos", "md_fotos", "ph_title", "ph_menuSub", "nvb_fotos", "ph_sub", "ph_info", "ph_counts", "ph_not", "ph_notName", "ph_allOk", "ph_yes", "ph_yesName", "ph_miss_player", "ph_miss_parents", "ph_miss_decl", "ph_renew",
     "ph_all", "ph_noDecl", "ph_age", "ph_legend", "ph_whoUnknown", "ph_who18", "ph_who14", "ph_whoKid", "ph_sheet", "ph_yesL", "ph_noL", "ph_openL", "ph_byL", "ph_onL", "ph_noteL", "ph_notePh",
     "ph_weak", "ph_formHint", "ph_saved", "ph_meAll", "ph_meNone", "ph_meSome", "ph_meOpen", "ph_meSelf", "ph_meTeen", "ph_meKid", "ph_meBy", "ph_meNo", "ph_meRevoke", "ph_modOff",
     ...PHOTO_CHANNELS.flatMap(ch => ["ph_ch_" + ch, "ph_short_" + ch, "ph_q_" + ch]), ...["yes", "no", "open", "missing"].map(k => "ph_st_" + k), ...["player", "parents", "both"].map(k => "ph_by_" + k)];

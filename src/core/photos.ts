@@ -34,6 +34,15 @@ export function photoState(c: PhotoConsent | undefined, ch: PhotoChannel, age: n
   return c && c.by && validBy(age).includes(c.by) ? "yes" : "missing";
 }
 
+/** Wessen Zustimmung fehlt bei „Zustimmung fehlt“: des Spielers, der Eltern oder überhaupt eine Erklärung? */
+export function missingParty(c: PhotoConsent | undefined, age: number | null): "player" | "parents" | "decl" {
+  const by = c?.by;
+  if (!by) return "decl";
+  if (age != null && age >= 18) return "player";
+  if (age != null && age >= 14) return by === "parents" ? "player" : "parents";
+  return "parents";
+}
+
 /** Darf der Spieler selbst zustimmen? Ab 18 bzw. ohne Geburtsdatum im Erwachsenenbereich – „Nein“ geht immer */
 export const canSelfConsent = (age: number | null, adultTeam: boolean): boolean => age != null ? age >= 18 : adultTeam;
 

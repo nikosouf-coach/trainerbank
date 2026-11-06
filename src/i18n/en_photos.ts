@@ -18,7 +18,7 @@ export const en_photos: Dict = {
   ph_st_yes: "allowed", ph_st_no: "not allowed", ph_st_open: "open", ph_st_missing: "consent missing",
   ph_counts: "{y} allowed · {n} not allowed · {o} open",
   ph_not: "Don't publish ({n})", ph_notName: "Without name ({n})", ph_allOk: "Everyone has consented.",
-  ph_yes: "Allowed ({n})", ph_yesName: "Name allowed ({n})", ph_missingWho: "missing: {w}",
+  ph_yes: "Allowed ({n})", ph_yesName: "Name allowed ({n})", ph_miss_player: "player must consent", ph_miss_parents: "parents must consent", ph_miss_decl: "no declaration",
   ph_renew: "Now adults – so far only the parents consented. Please ask again: {n}",
   ph_all: "All players ({n})", ph_noDecl: "No declaration", ph_age: "{n} yrs",
   ph_legend: "W website · S social media · P press & print · N name – ✓ allowed, ✕ not allowed, – open, ! consent missing",

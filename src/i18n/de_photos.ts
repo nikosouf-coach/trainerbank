@@ -18,7 +18,7 @@ export const de_photos: Dict = {
   ph_st_yes: "erlaubt", ph_st_no: "nicht erlaubt", ph_st_open: "offen", ph_st_missing: "Zustimmung fehlt",
   ph_counts: "{y} erlaubt · {n} nicht erlaubt · {o} offen",
   ph_not: "Nicht veröffentlichen ({n})", ph_notName: "Ohne Namen ({n})", ph_allOk: "Alle haben zugestimmt.",
-  ph_yes: "Erlaubt ({n})", ph_yesName: "Name erlaubt ({n})", ph_missingWho: "fehlt: {w}",
+  ph_yes: "Erlaubt ({n})", ph_yesName: "Name erlaubt ({n})", ph_miss_player: "Spieler muss zustimmen", ph_miss_parents: "Eltern müssen zustimmen", ph_miss_decl: "Erklärung fehlt",
   ph_renew: "Volljährig – bisher haben nur die Eltern zugestimmt. Bitte neu einholen: {n}",
   ph_all: "Alle Spieler ({n})", ph_noDecl: "Keine Erklärung", ph_age: "{n} J.",
   ph_legend: "W Website · S Social Media · P Presse & Druck · N Name – ✓ erlaubt, ✕ nicht erlaubt, – offen, ! Zustimmung fehlt",
