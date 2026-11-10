@@ -44,7 +44,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 
 | Tabelle | Spalten | Hinweise |
 |---|---|---|
-| `profiles` | `id` (pk, → auth.users, cascade), `display_name`, `lang` ('de'/'en'), `created_at` | per Trigger bei Registrierung |
+| `profiles` | `id` (pk, → auth.users, cascade), `display_name`, `lang` ('de'/'en'), `created_at`, `last_seen_at` (Tag der letzten Nutzung, nur über `touch_seen()`; …20261105000010) | per Trigger bei Registrierung |
 | `teams` | `id`, `club`, `name`, `accent`, `age_class`, `depth` ('org'/'basis'/'pro'), `settings` jsonb, `principles` jsonb, `modules` jsonb, `timezone` (default 'Europe/Berlin'), `join_code` (unique), `staff_code` (unique), `created_by` (→ auth.users, set null), `created_at` | Codes: 4–4 Zeichen, ohne verwechselbare Zeichen |
 | `team_staff` | `team_id`, `user_id`, `role`, pk(team_id,user_id) | cascade |
 | `players` | `id`, `team_id`, `user_id` (null, → auth.users, **cascade**), `first_name`, `last_name`, `birthdate`, `position`, `shirt_number`, `weight_kg`, `photo_path`, `is_new` bool, `active` bool, `created_at`; unique(team_id,user_id) | Konto löschen ⇒ Spielerzeile + Gesundheitsdaten weg |
@@ -439,6 +439,17 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   `purge_guardians()` (täglich, Cron `purge-guardians`: abgelaufene Einladungen, Fehlversuche nach einem Tag,
   unbestätigte Anfragen nach 30 Tagen, Verknüpfungen 30 Tage nach dem 18. Geburtstag ohne `adult_ok`, Elterninfo nach
   12 Monaten). `missing_health_consent` akzeptiert für Kinder unter 16 die Einwilligungen bestätigter Eltern.
+- Löschung nach Widerruf und Löschfristen (…20261105000010): `health_basis(player)` (gültige Einwilligung in
+  Gesundheitsdaten: eigene, unter 16 auch die bestätigter Eltern, plus Einwilligung der Eltern), `team_health_consent_players(team)`
+  (Staff: eingewilligte Spieler – die App nutzt sie für Automatiken), `erase_health_data(player)` (Belastung,
+  Morgen-Check, Zusatzsport, Wachstum, Notfall-Hinweise, Gewicht, Reha-/Aufbau-/Wachstumsgruppen, Pause- und
+  Regenerationsempfehlungen; Abwesenheiten wegen Krankheit/Verletzung werden zu „sonst“ ohne Stufe, Region und
+  Notiz), `purge_privacy()` (täglich, Cron `purge-privacy`), `privacy_findings_due()`, `privacy_players_due()`,
+  `privacy_teams_due()`, `privacy_accounts_due()` (nur `service_role`, ausgeführt von der Edge Function
+  `privacy-purge`, Cron `privacy-purge`), `profiles.last_seen_at` (nur über `touch_seen()`, Trigger
+  `profiles_seen_guard`), `staff_erase_health_data(player)` (Staff mit `health`), `player_data_export(player)`
+  (Owner: Auskunft als JSON; Tabellen in `player_export_tables()`, Ausnahmen in `player_export_special()` – RLS-Test
+  T63 prüft, dass jede Tabelle mit `player_id` erfasst ist).
 - Notfallkontakte: Beim Beitreten speichert die App den Kontakt (Pflicht) direkt nach `join_team` und vor dem Laden
   des Teams; Prüfung der Kontakte `emergency_contacts_ok(c)` (wie `core/emergency → cleanContacts`).
 - `peer_targets(team)` – Spieler: Mitspieler für die Stärken-Runde (Vorname, Initial, Rückennummer, Position), nur

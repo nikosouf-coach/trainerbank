@@ -427,6 +427,12 @@ export interface Api {
   aiConsentPlayers(teamId: string): Promise<string[]>;
   registerPushToken(token: string, platform: "ios" | "android" | "web"): Promise<void>;
   exportMyData(): Promise<unknown>;
+  /** Zuletzt genutzt melden (höchstens einmal am Tag, Grundlage der Löschfristen für Konten und Teams) */
+  touchSeen(): Promise<void>;
+  /** Trainerteam: Gesundheitsdaten eines Spielers löschen (Recht „Gesundheitsdaten“; Befunde löscht die App vorher einzeln) */
+  staffEraseHealth(pid: string): Promise<number>;
+  /** Trainerteam (Owner): Auskunft über alle Daten eines Spielers als JSON (Art. 15/20 DSGVO) */
+  playerDataExport(pid: string): Promise<unknown>;
   deleteAccount(): Promise<void>;
 
   // KI

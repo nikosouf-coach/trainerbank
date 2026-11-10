@@ -58,6 +58,7 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
 | `functions/delete-account` | Konto löschen (Fotos, Befund-Dateien, Skizzen verwaister Teams, verwaiste Teams – im Verein übernimmt ein Vereinsadmin –, Nachfolge des Vereinsadmins, Auth-Nutzer ⇒ Cascade) |
 | `functions/push-reminders` | RPE-Erinnerung nach Einheiten, Morgen-Check, Pausenprogramm – Zeiten je Team in `settings.reminders`, Pausen werden beachtet (Expo Push) |
+| `functions/privacy-purge` | Löschfristen mit Dateien im Speicher (täglich per pg_cron/pg_net, Header `x-cron-secret`): Befunde nach Widerruf bzw. bei inaktiven Spielern, Spielerprofile 24 Monate nach Deaktivierung, Teams und Konten ohne Nutzung seit 24 Monaten (Auswahl in `privacy_*_due()`, Migration `…10_loeschung.sql`) |
 | `functions/_shared` | CORS/JSON, Supabase-Clients, Systemprompts, Zeitlogik (ohne Abhängigkeiten) |
 | `tests/run.sh` | Lokale Tests: Wegwerf-Postgres + Supabase-Platzhalter + alle Migrationen + `rls_test.sql` + Unit-Tests |
 
@@ -79,6 +80,7 @@ supabase functions deploy finding
 supabase functions deploy delete-account
 supabase functions deploy push-reminders
 supabase functions deploy chat-push
+supabase functions deploy privacy-purge
 
 # Secrets (SUPABASE_URL und die Schlüssel – neu SUPABASE_PUBLISHABLE_KEYS/SUPABASE_SECRET_KEYS, alt
 # SUPABASE_ANON_KEY/SUPABASE_SERVICE_ROLE_KEY – setzt Supabase selbst; die Funktionen nehmen zuerst die neuen)
@@ -118,10 +120,24 @@ Fahrten 30 Tage danach), `purge-old-suspensions` (Sperren nach 24 Monaten), `pur
 Verknüpfungen 30 Tage nach dem 18. Geburtstag ohne Verlängerung, Elterninfo nach 12 Monaten). Fehlte `pg_cron` beim `db push`, meldet die Migration das per NOTICE – dann den
 `do $$ … cron.schedule(…) … $$`-Block am Ende der jeweiligen Migration im SQL-Editor ausführen.
 
+Löschung nach Widerruf und weitere Löschfristen (Migration `…10_loeschung.sql`):
+
+- `purge-privacy` täglich 04:35 UTC (`select public.purge_privacy();`): Gesundheitsdaten 30 Tage nach einem Widerruf
+  ohne neue Einwilligung, Gesundheitsdaten inaktiver Spieler nach 6 Monaten, Push-Token nach 6 Monaten ohne
+  Aktualisierung, Nachrichten 12 Monate nach Ablauf, Anwesenheit und Abwesenheiten nach 24 Monaten.
+- `privacy-purge` täglich 04:40 UTC – ruft die gleichnamige Edge Function über `pg_net` auf (dieselben Vault-Secrets
+  `project_url` und `cron_secret` wie `push-reminders`): Befunde (Datei und Eintrag) 30 Tage nach Widerruf der
+  App-Einwilligung bzw. bei Spielern, die seit 6 Monaten inaktiv sind; Spielerprofile 24 Monate nach Deaktivierung;
+  Teams, in denen seit 24 Monaten niemand die App genutzt hat; Konten ohne Rolle, die seit 24 Monaten nicht genutzt
+  wurden. Grundlage ist `profiles.last_seen_at` (die App meldet sich höchstens einmal am Tag über `touch_seen()`);
+  alle Fristen beginnen frühestens mit dem Einspielen der Migration.
+- Prüfen ohne zu löschen: `select * from public.privacy_findings_due();`, `privacy_players_due()`,
+  `privacy_teams_due()`, `privacy_accounts_due()` (nur `service_role` bzw. im SQL-Editor).
+
 Kontrolle:
 
 ```sql
-select jobname, schedule, active from cron.job;   -- push-reminders, purge-stale-health-data, purge-old-… (Löschfristen)
+select jobname, schedule, active from cron.job;   -- push-reminders, purge-stale-health-data, purge-privacy, privacy-purge, purge-old-… (Löschfristen)
 select status, return_message, start_time from cron.job_run_details order by start_time desc limit 5;
 select status_code, content from net._http_response order by created desc limit 5;
 ```

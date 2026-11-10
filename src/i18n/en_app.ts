@@ -26,7 +26,7 @@ export const en_app: Dict = {
   cs_ai: "AI coach (optional)", cs_ai_s: "I want to use the AI coach. My questions and a short training context without surnames are sent to the AI provider.",
   cs_ai_l: "The AI coach answers questions about training, recovery and nutrition. Your question and a short context (first name, age, training week, recovery status) are sent to an AI provider, possibly in a country outside the EU. You can withdraw your consent at any time.",
   cs_more: "read more", cs_need: "Please confirm the required consents.", cs_title: "Consents", cs_withdraw: "Withdraw", cs_give: "Give consent", cs_active: "given", cs_inactive: "not given",
-  cs_withdrawQ: "Withdraw consent?", cs_withdrawHealth: "You will then no longer be able to enter load and wellness data.",
+  cs_withdrawQ: "Withdraw consent?", cs_withdrawHealth: "You will then no longer be able to enter load and wellness data. Your health data will be deleted after 30 days unless you consent again – export it first with \"Export my data\" if you need it.",
   ko_title: "Account & privacy", ko_lang: "Language", ko_export: "Export my data", ko_exportDone: "Export created", ko_delete: "Delete account", ko_deleteQ: "Really delete account?",
   ko_deleteText: "Your account and all your data (profile, load, wellness, absences) will be deleted permanently. Teams where you are the only coach will be deleted too. This cannot be undone.",
   ko_deleted: "Account deleted", ko_legal: "Legal", ko_privacy: "Privacy policy", ko_imprint: "Imprint", ko_version: "Version", ko_push: "Reminders", ko_pushOn: "Turn on reminders", ko_pushOk: "Reminders are on.", ko_pushNo: "Reminders are turned off in your phone's settings.", ko_pushWeb: "Reminders are available in the mobile app.",

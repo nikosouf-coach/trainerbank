@@ -201,8 +201,9 @@ lesen sie über RLS (`is_guardian_in_team`).
 
 ### 2.7 Speicherdauer
 
-Vorschlag siehe `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 16 (u. a. Gesundheitsdaten: sofort bei Kontolöschung oder
-Widerruf, sonst 24 Monate nach letzter Aktivität). **Automatische Löschroutinen sind noch nicht umgesetzt.**
+Siehe `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 16, und `docs/TOM.md`, Abschnitt 4. Die automatischen Löschroutinen
+sind umgesetzt (M-11, M-39): u. a. Gesundheitsdaten sofort bei Kontolöschung, 30 Tage nach Widerruf, 6 Monate nach
+Deaktivierung, Belastungsdaten 24 Monate nach dem Eintrag.
 
 ---
 
@@ -259,13 +260,13 @@ prüfen:** ob Gesundheitsmodule für Kinderteams (z. B. U7–U11) standardmäßi
 
 ### 3.4 Speicherbegrenzung, Richtigkeit, Transparenz, Betroffenenrechte
 
-- Speicherbegrenzung: Löschkonzept vorgeschlagen; Umsetzung offen (siehe M-11).
+- Speicherbegrenzung: Löschkonzept umgesetzt und getestet (M-11, M-39).
 - Richtigkeit: Eingabebereiche per Datenbank-Constraint begrenzt (RPE 0–10, Minuten 1–300, Wellness 1–7, Schlaf
   0–16 h); Spieler können eigene Daten einsehen; Korrektur durch Spieler bzw. Trainerteam.
 - Transparenz: Datenschutzerklärung mit Kurzfassung für Kinder, Einwilligungstexte mit Kurz- und Langfassung,
   Kennzeichnung von KI-Antworten, Info-Texte mit wissenschaftlichen Quellen.
-- Betroffenenrechte: Export (JSON) und Kontolöschung in der App; Widerruf in der App [umzusetzen]; Auskunft und
-  Widerspruch per E-Mail.
+- Betroffenenrechte: Export (JSON), Kontolöschung und Widerruf in der App; für Spieler ohne Konto Auskunft und
+  Löschen der Gesundheitsdaten durch das Trainerteam (M-40); Ablauf für Anfragen in `docs/DATENPANNEN.md`, Teil B.
 
 ### 3.5 Drittlandübermittlungen
 
@@ -411,21 +412,21 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 
 | ID | Maßnahme | adressiert | Prio | verantwortlich | Status |
 |---|---|---|---|---|---|
-| M-1 | **Staff-Beitritt nur mit Bestätigung durch den Owner** (Status „ausstehend“ bis zur Freigabe), Benachrichtigung des Owners, Staff-Liste mit Entfernen-Funktion; Staff-Codes mit Ablaufdatum oder Einmalnutzung | R2 | P1 | [ ] | offen |
-| M-2 | **Profil-Verknüpfung beim Beitritt durch Staff bestätigen lassen**; bis dahin sieht der Spieler keine zuvor erfassten Daten | R3 | P1 | [ ] | offen |
-| M-3 | Automatisierte RLS-Tests in der CI (je Tabelle: Spieler A sieht nicht Spieler B, Spieler sieht keine `coach_notes`, Nicht-Mitglied sieht nichts); Prüfung „RLS aktiv auf allen Tabellen“ bei jeder Migration | R1 | P1 | [ ] | offen |
-| M-4 | Einwilligung serverseitig erzwingen (Policy oder Trigger prüft gültige `health_data`- bzw. `parental`-Einwilligung vor Insert in Gesundheitstabellen); Widerrufsbildschirm; `withdrawn_at`; neue Arten `ai_coach`, `staff_confidentiality` | R8 | P1 | [ ] | offen |
+| M-1 | **Staff-Beitritt nur mit Bestätigung durch den Owner** (Status „ausstehend“ bis zur Freigabe), Benachrichtigung des Owners, Staff-Liste mit Entfernen-Funktion; Staff-Codes mit Ablaufdatum oder Einmalnutzung | R2 | P1 | [ ] | teilweise umgesetzt: Beitritt des Trainerteams erst nach Bestätigung durch den Owner (`approve_staff`/`reject_staff`, Status „ausstehend“), Entfernen, Codes erneuern (`regenerate_codes`); Ablaufdatum der Codes offen |
+| M-2 | **Profil-Verknüpfung beim Beitritt durch Staff bestätigen lassen**; bis dahin sieht der Spieler keine zuvor erfassten Daten | R3 | P1 | [ ] | umgesetzt: keine automatische Verknüpfung; neues Profil mit Markierung „neu“, Zusammenführen nur durch das Trainerteam (`merge_players`) |
+| M-3 | Automatisierte RLS-Tests in der CI (je Tabelle: Spieler A sieht nicht Spieler B, Spieler sieht keine `coach_notes`, Nicht-Mitglied sieht nichts); Prüfung „RLS aktiv auf allen Tabellen“ bei jeder Migration | R1 | P1 | [ ] | umgesetzt: `supabase/tests/rls_test.sql` (1.409 Prüfungen) bei jeder Änderung in der CI |
+| M-4 | Einwilligung serverseitig erzwingen (Policy oder Trigger prüft gültige `health_data`- bzw. `parental`-Einwilligung vor Insert in Gesundheitstabellen); Widerrufsbildschirm; `withdrawn_at`; neue Arten `ai_coach`, `staff_confidentiality` | R8 | P1 | [ ] | umgesetzt: Trigger prüft Einwilligung vor Einträgen in Gesundheitstabellen; `withdrawn_at`; Arten `ai`, `staff_confidentiality`, `findings`; Widerruf im Konto |
 | M-5 | Double-Opt-in für Eltern-Einwilligung (Bestätigungslink); Eltern-Adresse ≠ Konto-Adresse; erneute Bestätigung mit 16 | R8 | P1 | [ ] | offen |
 | M-6 | Spieler ohne Konto: Trainer bestätigt vorliegende Offline-Einwilligung vor der ersten Eingabe von Gesundheitsdaten; ohne Bestätigung nur Abwesenheit „entschuldigt“ | R8 | P1 | [ ] | offen |
-| M-7 | KI-Funktion filtert Kontext auf Spieler mit gültiger KI-Einwilligung; Vornamen durch Platzhalter ersetzen; Nutzlast dokumentieren | R6, R8 | P1 | [ ] | offen |
+| M-7 | KI-Funktion filtert Kontext auf Spieler mit gültiger KI-Einwilligung; Vornamen durch Platzhalter ersetzen; Nutzlast dokumentieren | R6, R8 | P1 | [ ] | umgesetzt (10.11.2026): Kontext nur mit Vornamen eingewilligter Spieler, andere nur als Anzahl; ohne Vereins- und Teamnamen; Potenzial-Vorschläge nur mit Einwilligung und ohne Trainernotizen; Platzhalter statt Vornamen offen |
 | M-8 | KI-Leitplanken im Systemprompt: keine Diagnosen, bei Schmerzen/Verletzung an Arzt verweisen, keine Gewichtsabnahme- oder Diätempfehlungen für Minderjährige, altersgerechte Sprache; Kennzeichnung als KI; Melde-Knopf für problematische Antworten; Testkatalog mit kritischen Fragen | R7 | P1 | [ ] | offen |
 | M-9 | Verträge: AVV mit Supabase, DPA mit Anthropic und Expo; Transfermechanismus je Anbieter verifizieren; Aufbewahrung beim KI-Anbieter klären, Zero Data Retention anfragen; Region `inference_geo` bewusst wählen | R6 | P1 | [ ] | offen |
-| M-10 | Storage: privater Bucket, Zugriff nur über RLS auf `storage.objects` und kurzlebige signierte URLs; EXIF-/GPS-Metadaten vor Upload entfernen (Neukodierung) | R11 | P1 | [ ] | offen |
-| M-11 | Löschroutinen (zeitgesteuerte Funktion): Gesundheitsdaten 24 Monate nach letzter Aktivität; inaktive Spieler nach [6] Monaten; Nachrichten [12] Monate nach Ablauf; Push-Token; KI-Zähler nach 30 Tagen | R9 | P1 | [ ] | offen |
-| M-12 | Push-Texte generisch („Wie war das Training? Trag deine Belastung ein.“), keine Namen anderer Spieler, keine Gesundheitswerte | R10 | P1 | [ ] | zu prüfen |
-| M-13 | Datenschutzbeauftragten benennen; Verzeichnis von Verarbeitungstätigkeiten (Art. 30); Prozess für Datenpannen (Meldung binnen 72 h, Art. 33/34); Prozess für Betroffenenanfragen | alle | P1 | [ ] | offen |
+| M-10 | Storage: privater Bucket, Zugriff nur über RLS auf `storage.objects` und kurzlebige signierte URLs; EXIF-/GPS-Metadaten vor Upload entfernen (Neukodierung) | R11 | P1 | [ ] | umgesetzt: private Buckets, signierte Links (10–60 Minuten), Bilder werden neu kodiert (PDF unverändert) |
+| M-11 | Löschroutinen (zeitgesteuerte Funktion): Gesundheitsdaten 24 Monate nach letzter Aktivität; inaktive Spieler nach [6] Monaten; Nachrichten [12] Monate nach Ablauf; Push-Token; KI-Zähler nach 30 Tagen | R9 | P1 | [ ] | umgesetzt (10.11.2026, M-39): Löschfristen siehe `docs/TOM.md` Abschnitt 4 |
+| M-12 | Push-Texte generisch („Wie war das Training? Trag deine Belastung ein.“), keine Namen anderer Spieler, keine Gesundheitswerte | R10 | P1 | [ ] | umgesetzt: Erinnerungstexte ohne Namen und Werte, Chat-Push ohne Nachrichtentext |
+| M-13 | Datenschutzbeauftragten benennen; Verzeichnis von Verarbeitungstätigkeiten (Art. 30); Prozess für Datenpannen (Meldung binnen 72 h, Art. 33/34); Prozess für Betroffenenanfragen | alle | P1 | [ ] | teilweise umgesetzt: `docs/VVT.md`, `docs/DATENPANNEN.md` (Datenpannen und Betroffenenanfragen), `docs/TOM.md`; Datenschutzbeauftragter offen |
 | M-14 | Rollenmodell festlegen (Herausgeber allein / Verein mit AVV / gemeinsame Verantwortung) und Verträge mit Vereinen | R17 | P1 | [ ] | offen |
-| M-15 | MFA (TOTP) für Staff-Konten anbieten, für Owner empfehlen; Mindestpasswortlänge; Prüfung gegen geleakte Passwörter [Tarif prüfen] | R4 | P2 | [ ] | offen |
+| M-15 | MFA (TOTP) für Staff-Konten anbieten, für Owner empfehlen; Mindestpasswortlänge; Prüfung gegen geleakte Passwörter [Tarif prüfen] | R4 | P2 | [ ] | teilweise umgesetzt: Mindestlänge 8 in App und `config.toml`; im Dashboard setzen, Schutz vor geleakten Passwörtern und Zwei-Faktor offen |
 | M-16 | Ratenbegrenzung für `join_team`, `join_staff`, `team_by_join_code` und Anmeldung | R13, R2 | P2 | [ ] | offen |
 | M-17 | Protokollierung von Staff-Zugriffen auf Gesundheitsdaten (Audit-Log), einsehbar für Owner | R5, R2 | P2 | [ ] | offen |
 | M-18 | Feinere Rollen: Beschwerdedetails optional nur für Physio; Trainerteam-Leitfaden zur fairen Nutzung; für Spieler sichtbar „Das sieht dein Trainerteam“ | R5 | P2 | [ ] | teilweise umgesetzt (Rechte je Mitglied, Paket 11.2); Leitfaden und Spieleranzeige offen |
@@ -449,6 +450,10 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | M-36 | Rechtliche Prüfung Unfallmeldungen: Rechtsgrundlage (Art. 9 Abs. 2 lit. f DSGVO oder Einwilligung), Information der Spieler bzw. Eltern, Löschfrist 36 Monate; Leitfaden für Trainerteams (nur Nötiges eintragen, keine Schuldzuweisungen, Meldeweg des Vereins) | R50 | P2 | [ ] | offen |
 | M-37 | Leitfaden Eltern-Zugang für Trainerteams: Code nur direkt an die Eltern des Kindes geben (persönlich, nicht in Gruppen); Anfragen nur bestätigen, wenn die Person sicher sorgeberechtigt ist, im Zweifel nachfragen; bei Sorgerechtskonflikten oder Kontaktverboten keine Verknüpfung bzw. sofort lösen und die Kinderschutz-Ansprechperson des Vereins einbeziehen; Elterninfo ohne Angaben zu einzelnen Kindern, ohne Gesundheitsangaben | R51, R52 | P1 | [ ] | offen |
 | M-38 | Rechtliche Prüfung Eltern-Zugang: Bestätigung durch das Trainerteam als „angemessene Anstrengung“ nach Art. 8 Abs. 2 DSGVO; gemeinsames Sorgerecht (§ 1629 BGB) bei Einwilligungen und Foto-Erlaubnis; Rechtsgrundlage für das Paket an die Eltern (Art. 6 Abs. 1 lit. f) und Widerspruchsmöglichkeit für 16- und 17-Jährige; Information in der Datenschutzerklärung (Abschnitt „Kurz erklärt – für Eltern“, 4.50) | R51, R52 | P1 | [ ] | offen |
+| M-39 | **Löschkonzept automatisch:** Gesundheitsdaten 30 Tage nach Widerruf (auch durch Eltern bzw. Lösen der Verknüpfung), Befunde 30 Tage nach Widerruf der App-Einwilligung, Gesundheitsdaten und Befunde inaktiver Spieler nach 6 Monaten, inaktive Spielerprofile nach 24 Monaten, Teams ohne Nutzung und Konten ohne Rolle 24 Monate nach der letzten Nutzung (`profiles.last_seen_at`), Anwesenheit und Abwesenheiten nach 24 Monaten, Nachrichten 12 Monate nach Ablauf, Push-Token nach 6 Monaten (`purge_privacy`, `privacy-purge`) | R8, R9 | P1 | [ ] | umgesetzt (Migration `20261105000010`, Tests T62/T63) |
+| M-40 | **Werkzeuge fürs Trainerteam:** Auskunft über alle Daten eines Spielers als Datei, auch ohne Konto und mit internen Notizen, ohne Konto-IDs anderer Personen, anonyme Umfrage-Antworten und Geber der Stärken-Runde (`player_data_export`, nur Owner; Test prüft, dass jede Tabelle mit Spielerbezug enthalten oder ausdrücklich ausgenommen ist); Gesundheitsdaten löschen nach Widerruf auf Papier (`staff_erase_health_data`, Recht „Gesundheitsdaten“) | R8, R9 | P1 | [ ] | umgesetzt |
+| M-41 | **Absturzberichte:** E-Mail-Adressen, IDs, Telefonnummern und Codes in Fehlermeldungen vor dem Senden ersetzen (`scrubText`) | R6 | P2 | [ ] | umgesetzt |
+| M-42 | **Datenminimierung beim Hochladen von Befunden:** Hinweis, Name, Anschrift, Geburtsdatum und Versicherungsnummer vorher abzudecken (gehen sonst bei der KI-Auswertung an den Anbieter) | R19, R20 | P2 | [ ] | umgesetzt (Hinweis); Schwärzen in der App offen |
 
 ---
 
@@ -527,10 +532,13 @@ abzuraten bzw. die Aufsichtsbehörde nach Art. 36 DSGVO zu konsultieren.
    Retention, Wahl von `inference_geo`. Quellen: platform.claude.com/docs/en/manage-claude/api-and-data-retention und
    …/data-residency (Stand 10/2026 – vor Abschluss erneut prüfen).
 7. Expo: DPA, Transfermechanismus; Supabase: Drittlandzugriffe, Unterauftragsverarbeiter, Backup- und Log-Dauer.
-8. Aufbewahrung von Einwilligungsnachweisen nach Kontolöschung (Cascade vs. Nachweispflicht).
-9. Verhalten bei Löschung des letzten Staff-Kontos eines Teams; Verbleib der Daten ehemaliger Spieler.
+8. ~~Aufbewahrung von Einwilligungsnachweisen nach Kontolöschung~~ – gelöst: Nachweis bleibt ohne Konto-ID mit
+   E-Mail-Hash; Dauer ([3] Jahre) bestätigen.
+9. ~~Verhalten bei Löschung des letzten Staff-Kontos~~ – gelöst: Team wird gelöscht bzw. im Verein vom Vereinsadmin
+   übernommen; ehemalige Spieler: Profile 24 Monate nach Deaktivierung gelöscht (M-39).
 10. Abgrenzung Medizinprodukt (Abschnitt 9) und KI-Verordnung (Art. 50 Transparenz, Art. 4 KI-Kompetenz).
-11. Tatsächliche Nutzlast der KI-Anfragen und Push-Texte im Code verifizieren.
+11. ~~Nutzlast der KI-Anfragen und Push-Texte verifizieren~~ – geprüft am 10.11.2026 (M-7, M-12); Datenschutzerklärung
+    Abschnitt 11 angepasst.
 12. E-Mail-Versanddienst und Webhoster festlegen und in DSFA aufnehmen.
 13. Scouting: Verantwortlichkeit für die Daten externer Spieler (Verein oder Herausgeber) und wer die Information nach
     Art. 14 gibt; Abwägung bei Minderjährigen (Art. 6 Abs. 1 lit. f letzter Halbsatz).
@@ -539,6 +547,11 @@ abzuraten bzw. die Aufsichtsbehörde nach Art. 36 DSGVO zu konsultieren.
     (Art. 7 Abs. 4); Rechtsgrundlage im akuten Notfall (Art. 6 Abs. 1 lit. d, Art. 9 Abs. 2 lit. c).
 15. Eltern-Zugang (M-38): Genügt die Bestätigung durch das Trainerteam für Art. 8 Abs. 2? Einwilligung eines
     Elternteils bei gemeinsamem Sorgerecht? Soll das Kind (16–17) dem Paket an die Eltern widersprechen können?
+16. Löschfristen (M-39): 30 Tage nach Widerruf statt „unverzüglich“ (Zeit für versehentliche Widerrufe und Export),
+    Löschung von Teams ohne Nutzung ohne vorherige Benachrichtigung (kein E-Mail-Versand eingerichtet) – rechtlich
+    bestätigen lassen; bei Einrichtung eines E-Mail-Dienstes Hinweis vor der Löschung ergänzen.
+17. Match-Analyse mit Videos (Konzept vom 10.11.2026): vor dem Bau DSFA erweitern (Videos Minderjähriger, Leistungs-
+    bewertung, Gegner im Bild, GPU-Dienstleister).
 
 ---
 
@@ -608,3 +621,4 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 | 1.7 | [TT.MM.JJJJ] | Ergänzt: Karten und Sperren (Zweck 5g, R48, M-34). Umgesetzte Maßnahmen: `match_stats.card`, Tabelle `player_suspensions` (lesen Trainerteam und Spieler selbst, schreiben Recht „perf“), Regeln in `settings.cards` mit Recht „perf“, Löschfrist 24 Monate, Export v15, `merge_players` v14 (RLS-Test T58) | [ ] |
 | 1.8 | [TT.MM.JJJJ] | Ergänzt: Geburtstage, Foto-Erlaubnis und Unfallmeldungen (Zweck 5h, R49, R50, M-35, M-36). Umgesetzte Maßnahmen: `photo_consents` mit `photo_consent_save` (Trainerteam Recht „squad“, Spieler Nein immer, Ja ab 18), `accident_reports` (Recht „health“, Spieler lesen die eigenen, Löschfrist 36 Monate), Export v16, `merge_players` v15 (RLS-Tests T59, T60) | [ ] |
 | 1.9 | [TT.MM.JJJJ] | Ergänzt: Eltern-Zugang (Zweck 5i, Betroffene Erziehungsberechtigte mit Konto, R51, R52, M-37, M-38, offener Punkt 15). Umgesetzte Maßnahmen: `player_guardians` mit Bestätigung durch das Trainerteam, `guardian_invites` (Code nur als Hash, 14 Tage, höchstens zwei), Fehlversuche begrenzt, Paket `guardian_child_data` statt Tabellenzugriff (Krankheit/Verletzung nur bei eigenen Abmeldungen), gekennzeichnete Einträge der Eltern, `guardian_sick_ok` (unter 16 Eltern, ab 16 Kind), Modul-Schalter serverseitig, Ende mit Volljährigkeit, Einwilligungen enden mit der Verknüpfung, Löschfristen (`purge_guardians`), RLS-Test T61 | [ ] |
+| 1.10 | 10.11.2026 | Gesamtprüfung Datenschutz: Löschkonzept umgesetzt (M-11, M-39: Gesundheitsdaten und Befunde 30 Tage nach Widerruf, inaktive Spieler 6/24 Monate, Teams und Konten ohne Nutzung 24 Monate, Anwesenheit/Abwesenheiten 24 Monate, Nachrichten, Push-Token), Werkzeuge fürs Trainerteam (M-40: Auskunft je Spieler, Gesundheitsdaten löschen), KI-Kontext minimiert (M-7), Absturzberichte gefiltert (M-41), Hinweis beim Hochladen von Befunden (M-42); Status von M-1 bis M-4, M-10, M-12, M-13, M-15 nach Prüfung des Codes aktualisiert; neue Unterlagen `docs/VVT.md`, `docs/TOM.md`, `docs/DATENPANNEN.md`; offene Punkte 8, 9, 11 erledigt, 16 und 17 neu | [ ] |

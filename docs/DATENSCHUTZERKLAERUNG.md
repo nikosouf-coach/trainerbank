@@ -157,15 +157,16 @@ E-Mail: [E-Mail des Datenschutzbeauftragten]
 | **Beobachtete Spieler (Scouting)** | Spieler anderer Teams oder Vereine, die ein Trainerteam für seine Kaderplanung beobachtet | nutzen die App nicht; das Trainerteam erfasst sportliche Eindrücke und informiert sie bzw. bei Minderjährigen die Eltern (4.37) |
 | **Erziehungsberechtigte** | Eltern bzw. Sorgeberechtigte minderjähriger Spieler | erteilen für Kinder unter 16 die erforderlichen Einwilligungen; mit eigenem Konto im **Eltern-Zugang** (nach Bestätigung durch das Trainerteam): sehen Termine, Abmeldungen und Nominierungen ihres Kindes, melden es ab, sagen zu oder ab, lesen Elterninfos und geben bzw. widerrufen Einwilligungen (4.50); ohne eigenes Konto speichern wir für die Einwilligung ihre E-Mail-Adresse |
 
-Tritt ein Spieler mit dem Team-Code einem Team bei, in dem das Trainerteam ihn bereits ohne Konto angelegt hat
-(gleicher Vor- und Nachname und gleiches Geburtsdatum), wird sein Konto mit diesem vorhandenen Spielerprofil verknüpft.
-Er sieht dann auch die Daten, die das Trainerteam dort bereits für ihn erfasst hat.
+Tritt ein Spieler mit dem Team-Code einem Team bei, in dem das Trainerteam ihn bereits ohne Konto angelegt hat, legt
+die App ein neues Profil an und markiert es als neu. Erst wenn das Trainerteam bestätigt, dass es dieselbe Person ist,
+und die beiden Profile zusammenführt, sieht er auch die Daten, die das Trainerteam dort bereits für ihn erfasst hat.
+Eine automatische Verknüpfung gibt es nicht.
 
 ## 4. Welche Daten wir verarbeiten
 
 | Nr. | Kategorie | Daten | Herkunft | Pflicht oder freiwillig |
 |---|---|---|---|---|
-| 4.1 | Kontodaten | E-Mail-Adresse, Passwort (nur als kryptografischer Hash gespeichert, wir kennen dein Passwort nicht), Anzeigename, App-Sprache, persönliche Anzeige-Einstellungen (Startseite, untere Leiste, Hell/Dunkel, gesehene Hinweise, Chat-Ordner mit Namen und zugeordneten Chats), Zeitpunkte von Registrierung und Anmeldung | du | Pflicht für ein Konto |
+| 4.1 | Kontodaten | E-Mail-Adresse, Passwort (nur als kryptografischer Hash gespeichert, wir kennen dein Passwort nicht), Anzeigename, App-Sprache, persönliche Anzeige-Einstellungen (Startseite, untere Leiste, Hell/Dunkel, gesehene Hinweise, Chat-Ordner mit Namen und zugeordneten Chats), Zeitpunkte von Registrierung und Anmeldung, Tag der letzten Nutzung der App (höchstens einmal am Tag gespeichert, für die Löschfristen in Abschnitt 16) | du | Pflicht für ein Konto |
 | 4.2 | Teamzugehörigkeit | Team, Rolle (Owner, Coach, Physio, Spieler), Zeitpunkt des Beitritts; Team-Code bzw. Staff-Code nur zur Prüfung beim Beitritt | du, Trainerteam | Pflicht für die Teamnutzung |
 | 4.3 | Spieler-Stammdaten | Vor- und Nachname, Geburtsdatum, Position, Rückennummer; optional Körpergewicht und Profilfoto | du oder das Trainerteam | Name und Geburtsdatum Pflicht; Gewicht und Foto freiwillig |
 | 4.4 | Team- und Kalenderdaten | Verein, Teamname, Altersklasse, Teameinstellungen und Spielprinzipien; Spiele (Datum, Uhrzeit, Gegner, Heim/Auswärts, Wettbewerb), Termine, Trainingszeiten, Absagen und Zusatztrainings, Wochenpläne, eigene Trainingsarten, durchgeführte Einheiten | Trainerteam | – |
@@ -765,10 +766,11 @@ gesonderten Einwilligung verfügbar. [Er steht Spielern und dem Trainerteam zur 
 
 **So funktioniert es:**
 1. Du stellst eine Frage in der App.
-2. Unser Server (Supabase-Funktion in Frankfurt) ergänzt die Frage um einen reduzierten Datenkontext und leitet sie an
-   die Claude API von Anthropic weiter. Der Kontext enthält: Vorname, Alter in Jahren und relevante Trainingsdaten
-   (z. B. Belastung, Trainingsminuten, [Wohlbefindenswerte], Spieltagsbezug).
-3. **Nicht übermittelt werden:** Nachname, Geburtsdatum, E-Mail-Adresse, Profilfoto, [Vereins- und Teamname],
+2. Die App ergänzt die Frage um einen reduzierten Datenkontext, unser Server (Supabase-Funktion in Frankfurt) leitet
+   beides an die Claude API von Anthropic weiter. Der Kontext enthält: Vorname, Alter in Jahren, Position,
+   Altersklasse und passende Trainingsdaten (Wochenplan, Belastung, Erholung, Schlaf, Beschwerden des Tages mit
+   Körperregion, Empfehlungen des Trainerteams; Gewicht nur, wenn eingetragen).
+3. **Nicht übermittelt werden:** Nachname, Geburtsdatum, E-Mail-Adresse, Profilfoto, Vereins- und Teamname,
    Trainernotizen.
 4. Die Antwort wird dir in der App angezeigt und als KI-generiert gekennzeichnet.
 
@@ -781,7 +783,8 @@ dieser wie andere Potenziale gespeichert und als KI-Vorschlag gekennzeichnet.
 
 **Trainerteam und KI:** Nutzt das Trainerteam den KI-Coach für Fragen zu einzelnen Spielern oder zum Team, werden Daten
 eines Spielers nur einbezogen, wenn dieser Spieler (bzw. seine Erziehungsberechtigten) in den KI-Coach eingewilligt
-hat.
+hat. Spieler ohne Einwilligung erscheinen im Kontext nur als Anzahl, ohne Namen und Werte. Vorschläge der KI für die
+Potenziale eines Spielers gibt es nur mit seiner Einwilligung; sie enthalten keine Trainernotizen.
 
 **Grenzen:** KI-Antworten können unvollständig oder falsch sein. Sie sind keine medizinische Beratung. Besprich
 Änderungen am Training mit deinem Trainerteam und bei Beschwerden mit einer Ärztin oder einem Arzt.
@@ -791,18 +794,19 @@ hat.
 der KI-Coach für dich gesperrt.
 
 > **Prüfhinweis:**
-> 1. Tatsächlichen Inhalt der Anfrage an die API in `supabase/functions/ai` verifizieren und die Liste oben
->    anpassen. Vorname plus Alter plus Trainingsdaten sind weiterhin personenbezogene Daten (keine Anonymisierung).
->    Empfehlung: Vornamen serverseitig durch Platzhalter („Spieler A“) ersetzen und erst in der Antwort zurücktauschen.
+> 1. Inhalt der Anfrage am 10.11.2026 im Code geprüft (`src/core/engine.ts`: `aiContext`, `playerAiContext`,
+>    `potPrompt`) und die Liste oben angepasst. Vorname plus Alter plus Trainingsdaten bleiben personenbezogene Daten
+>    (keine Anonymisierung). Mögliche weitere Minimierung: Vornamen durch Platzhalter („Spieler A“) ersetzen und erst in
+>    der Antwort zurücktauschen.
 > 2. Laut Anbieterdokumentation (platform.claude.com, Stand 10/2026, vor Veröffentlichung erneut prüfen): Anthropic
 >    handelt bei der Claude API als Auftragsverarbeiter; Inhalte werden ohne ausdrückliche Erlaubnis nicht zum
 >    Modelltraining verwendet; Aufbewahrung ist modellabhängig; Zero Data Retention ist auf Anfrage möglich; als
 >    Verarbeitungsort sind nur „us“ oder „global“ wählbar, eine EU-Option gibt es derzeit nicht. Vertragspartner,
 >    DPA, Aufbewahrung und Region verbindlich klären; bei „global“ ist der Verarbeitungsort nicht auf die USA
 >    beschränkt – dann den Text in Abschnitt 10 anpassen.
-> 3. Die Filterung auf Spieler mit KI-Einwilligung (Absatz „Trainerteam und KI“) ist laut Datenmodell noch nicht
->    umgesetzt (`consents.kind` kennt bisher kein `ai_coach`). Bis dahin den KI-Coach für das Trainerteam nur ohne
->    Spielerdaten betreiben oder den Absatz anpassen.
+> 3. Die Filterung auf Spieler mit KI-Einwilligung (Absatz „Trainerteam und KI“) ist umgesetzt (`consents.kind = 'ai'`,
+>    Liste der eingewilligten Spieler in der App; Spieler ohne Einwilligung nur als Anzahl; Potenzial-Vorschläge nur
+>    mit Einwilligung).
 > 4. KI-Verordnung (EU) 2024/1689: Transparenzpflicht nach Art. 50 (Hinweis, dass mit einer KI interagiert wird) und
 >    KI-Kompetenz nach Art. 4 – Anwendbarkeit und Geltungsbeginn prüfen.
 
@@ -838,7 +842,8 @@ Sentry senden – **nur, wenn du das auf deinem Gerät einschaltest** (Hinweis a
 „Absturzberichte senden“). Gesendet werden nur die Angaben aus 4.39: was schiefging und wo im Programm, App-Version,
 Gerätemodell, Betriebssystem und die zuletzt geöffneten Seiten der App (ohne IDs). **Keine** Namen, E-Mail- oder
 IP-Adressen, keine Gesundheitsdaten, keine Bildschirmfotos, keine Inhalte aus dem Netzwerkverkehr oder der Konsole.
-Die Berichte werden in der EU gespeichert. Du kannst die Einwilligung jederzeit im Konto widerrufen; danach sendet
+E-Mail-Adressen, IDs, Telefonnummern und Codes, die in einer Fehlermeldung vorkommen können, ersetzt die App vor dem
+Senden durch Platzhalter. Die Berichte werden in der EU gespeichert. Du kannst die Einwilligung jederzeit im Konto widerrufen; danach sendet
 die App keine Berichte mehr. Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO, § 25 Abs. 1 TDDDG.
 
 ### 12b. Rückmeldungen aus der App
@@ -900,13 +905,16 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 
 | Daten | Löschung |
 |---|---|
-| Konto (E-Mail, Profil, Spielerprofil) | bei Löschung des Kontos sofort. Inaktive Konten: Hinweis per E-Mail nach [24] Monaten ohne Anmeldung, Löschung nach weiteren [3] Monaten. |
-| Gesundheitsdaten (4.6 krank/Verletzung, 4.7–4.10, 4.12) | sofort bei Löschung des Kontos; bei Widerruf der Einwilligung [sofort / innerhalb von 30 Tagen]; im Übrigen automatisch **24 Monate nach deiner letzten Aktivität** (letzte Anmeldung oder letzter Eintrag) |
-| Gesundheitsdaten von Spielern, die nicht mehr aktiv im Team sind | [6] Monate nach Deaktivierung durch das Trainerteam |
-| Spieler ohne Konto | bei Löschung durch das Trainerteam oder Löschung des Teams; spätestens [24] Monate nach dem letzten Eintrag |
-| Teamdaten (Kalender, Wochenpläne, Einheiten, Einstellungen) | bei Löschung des Teams; inaktive Teams [24] Monate nach der letzten Aktivität nach vorheriger Benachrichtigung |
-| Anwesenheit und Abwesenheiten ohne Gesundheitsbezug | mit dem Spielerprofil bzw. Team; spätestens [24] Monate nach dem Eintrag |
-| Nachrichten des Trainers | [12] Monate nach Ablauf ihrer Gültigkeit |
+| Konto (E-Mail, Profil) | bei Löschung des Kontos sofort. Konten **ohne Rolle** (kein Spielerprofil, kein Trainerteam, keine Vereinsfunktion, keine Eltern-Verknüpfung) automatisch **24 Monate nach der letzten Nutzung** der App. Konten mit Rolle bleiben, solange die Rolle besteht. |
+| Belastung, Morgen-Check, Zusatzsport, Angaben zum Schmerz | automatisch **24 Monate nach dem Eintrag**; sofort bei Löschung des Kontos oder durch das Trainerteam |
+| Gesundheitsdaten bei Widerruf (4.6 krank/Verletzung, 4.7–4.10, Hinweise für den Notfall, Gruppen mit Gesundheitsbezug, Empfehlungen wie Pause oder Regeneration) | **30 Tage nach dem Widerruf**, wenn bis dahin keine neue Einwilligung vorliegt (bei Spielern unter 16 auch nach Widerruf bzw. Ende der Einwilligung der Eltern). Abwesenheiten bleiben für die Anwesenheit als „Sonstiges“ ohne Stufe, Körperregion und Notiz. Bei schriftlicher Einwilligung löscht das Trainerteam die Daten nach dem Widerruf in der App (Spielerprofil → Datenschutz). |
+| Gesundheitsdaten von Spielern, die nicht mehr aktiv im Team sind | **6 Monate** nach Deaktivierung durch das Trainerteam (mit den Befunden) |
+| Spielerprofile, die das Trainerteam deaktiviert hat (mit oder ohne Konto) | **24 Monate** nach Deaktivierung, mit Profilfoto und Befund-Dateien; das Konto selbst bleibt (siehe Konto) |
+| Teamdaten (Kalender, Wochenpläne, Einheiten, Einstellungen) | bei Löschung des Teams; Teams, in denen **24 Monate** niemand die App genutzt hat (Trainerteam, Spieler, Eltern, Funktionäre des Vereins), automatisch mit allen Daten und Dateien. Eine vorherige Benachrichtigung ist dann nicht möglich, weil niemand die App nutzt. |
+| Anwesenheit und Abwesenheiten | mit dem Spielerprofil bzw. Team; automatisch **24 Monate** nach dem Termin bzw. nach dem Ende der Abwesenheit |
+| Befunde (Datei und Eintrag) | bei Löschung durch das Trainerteam, mit dem Spielerprofil; **30 Tage nach Widerruf** der Einwilligung in der App (nicht bei schriftlicher Einwilligung); **6 Monate** nach Deaktivierung des Spielers |
+| Körpergröße und Gewicht | solange du im Team aktiv bist; sonst wie Gesundheitsdaten (Widerruf, Deaktivierung) |
+| Nachrichten des Trainers | **12 Monate** nach Ablauf ihrer Gültigkeit (ohne Ablauf: nach dem Schreiben) |
 | Trainernotizen, Potenziale | bei Löschung durch das Trainerteam, Löschung des Spielerprofils oder des Teams |
 | Gruppenmitgliedschaften | sofort beim Entfernen aus der Gruppe, beim Löschen der Gruppe, des Spielerprofils oder des Teams |
 | Aufgaben, Dienste und Strafen | bei Löschung durch das Trainerteam, Löschung des Spielerprofils oder des Teams; automatisch 12 Monate nach dem Datum: vergangene Dienste, erledigte oder erlassene Strafen und erledigte Aufgaben (offene Strafen bleiben, bis das Trainerteam entscheidet) |
@@ -941,8 +949,8 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 | Rückmeldungen aus der App | bis die Betreiber sie löschen; erledigte ohne Bildschirmfoto automatisch nach 12 Monaten; sofort mit deinem Konto (samt Bildschirmfotos) |
 | Absturzberichte | beim Anbieter nach [Speicherdauer laut Sentry-Tarif]; auf dem Gerät nur deine Einstellung |
 | Einwilligungsnachweise | für die Dauer der Verarbeitung und danach [3] Jahre (Verjährungsfrist, Nachweispflicht nach Art. 7 Abs. 1 DSGVO), danach Löschung |
-| Push-Token | bei Abmeldung, wenn der Token ungültig wird, spätestens nach [6] Monaten ohne Aktualisierung |
-| Zähler für KI-Anfragen | nach [30] Tagen |
+| Push-Token | bei Abmeldung, wenn der Token ungültig wird, spätestens nach **6 Monaten** ohne Aktualisierung |
+| Zähler für KI-Anfragen | nach **30 Tagen** |
 | Inhalte von KI-Anfragen | bei uns keine dauerhafte Speicherung; beim Anbieter [laut Vertrag] |
 | Server-Protokolle | nach [Anzahl] Tagen |
 | Datensicherungen (Backups) | gelöschte Daten können bis zu [Anzahl] Tage in Sicherungen verbleiben und werden dann überschrieben |
@@ -951,17 +959,18 @@ Wir speichern Daten nur so lange, wie es für den jeweiligen Zweck erforderlich 
 
 **Wenn du dein Konto löschst,** werden dein Konto, dein Spielerprofil und alle zugehörigen Gesundheitsdaten gelöscht.
 Teamdaten, die nicht dir zugeordnet sind (z. B. Kalender), bleiben für das Team erhalten. **Löscht ein Trainer sein
-Konto,** bleibt das Team mit seinen Daten für das übrige Trainerteam erhalten; [ist er der letzte Trainer, wird das
-Team … – zu regeln].
+Konto,** bleibt das Team mit seinen Daten für das übrige Trainerteam erhalten (ein verbleibendes Mitglied wird Owner).
+Ist er das letzte Mitglied des Trainerteams, wird das Team mit allen Daten und Dateien gelöscht – gehört es zu einem
+Verein, übernimmt stattdessen ein Vereinsadmin das Team.
 
 > **Prüfhinweis:**
-> 1. Die automatischen Löschfristen (24 Monate Inaktivität, inaktive Spieler, Nachrichten, Push-Token, KI-Zähler) sind
->    laut Architektur noch nicht implementiert – Löschroutine (z. B. zeitgesteuerte Funktion) umsetzen oder Fristen
->    anpassen.
-> 2. Konflikt: `consents` wird bei Kontolöschung voraussichtlich mitgelöscht; zugleich besteht eine Nachweispflicht.
->    Klären, ob ein minimaler Nachweis (z. B. pseudonymisiert, ohne Gesundheitsdaten) aufbewahrt wird.
-> 3. Verhalten bei Löschung des letzten Trainers bzw. Owners regeln (Team löschen oder Übertragung).
-> 4. Backup-Aufbewahrung (tarifabhängig, Point-in-Time-Recovery) bei Supabase nachsehen.
+> 1. Die automatischen Löschfristen oben sind umgesetzt (Migration `20261105000010_loeschung.sql`, Serverfunktion
+>    `privacy-purge`, Tests T62/T63; Übersicht in `docs/TOM.md`, Abschnitt 4). Alle Fristen beginnen frühestens mit
+>    dem Einspielen der Migration. Fristen mit Anwalt bzw. Datenschutzbeauftragtem abstimmen, insbesondere 30 Tage nach
+>    Widerruf (statt „unverzüglich“) und die Löschung von Teams ohne vorherige Benachrichtigung.
+> 2. Einwilligungsnachweise bleiben nach Kontolöschung ohne Konto-ID mit E-Mail-Hash erhalten (Nachweispflicht); die
+>    Dauer von [3] Jahren bestätigen.
+> 3. Backup-Aufbewahrung (tarifabhängig, Point-in-Time-Recovery) bei Supabase nachsehen und hier eintragen.
 
 ## 17. Keine Werbung, kein Tracking, kein Verkauf
 
@@ -1032,6 +1041,12 @@ Für alle anderen Anliegen schreib an [E-Mail]. Damit wir keine Daten an Unbefug
 E-Mail-Adresse deines Kontos; gegebenenfalls fragen wir nach. Wir antworten innerhalb eines Monats.
 
 Daten, die das Trainerteam über dich erfasst hat, kannst du ebenfalls über uns berichtigen oder löschen lassen.
+
+**Spieler ohne eigenes Konto** (bei Kindern unter 16 ihre Eltern) wenden sich an das Trainerteam oder an uns. Der Owner
+des Teams erstellt die Auskunft über alle gespeicherten Daten direkt in der App (Spielerprofil → Datenschutz →
+„Auskunft erstellen“, auch mit internen Notizen; Angaben über andere Personen werden vor der Herausgabe geschwärzt) und
+löscht nach einem Widerruf die Gesundheitsdaten („Gesundheitsdaten löschen“). Der Export im eigenen Konto enthält
+keine internen Notizen des Trainerteams; eine vollständige Auskunft bekommst du auf Anfrage.
 
 **Eltern im Eltern-Zugang** laden ihre eigenen Daten (Verknüpfungen, Lesebestätigungen, Einwilligungen) im Datenexport
 herunter, widerrufen Einwilligungen und lösen Verknüpfungen direkt in der App und löschen ihr Konto unter „Konto,
@@ -1167,13 +1182,18 @@ can be wrong and are not medical advice.
 
 **No advertising, no tracking, no sale of data, no third-party analytics.**
 
-**Retention:** health data is deleted immediately on account deletion, on withdrawal of consent [immediately /
-within 30 days], and otherwise 24 months after your last activity; for further periods see the German table in
-section 16.
+**Retention:** health data is deleted immediately on account deletion, 30 days after you withdraw consent (unless you
+consent again), 6 months after the coaching staff deactivates you, and otherwise load, morning-check and extra
+sessions 24 months after the entry. Deactivated player profiles are deleted after 24 months, accounts without any role
+24 months after the app was last used, and teams in which nobody has used the app for 24 months together with all
+their data. Attendance and absences are deleted after 24 months, coach messages 12 months after they expire, push
+tokens after 6 months without update. Further periods: German table in section 16.
 
 **Your rights:** access, rectification, erasure, restriction, portability, objection (Art. 21), withdrawal of consent,
 complaint to a supervisory authority. If a coaching staff has scouted you, you (or your parents) can request access,
-correction or deletion and object at any time – via the club that informed you or at [E-Mail]. In the app: export your data (JSON) at [path]; delete your account at
+correction or deletion and object at any time – via the club that informed you or at [E-Mail]. Players without an account
+(or their parents) ask the coaching staff: the team owner creates a full access report in the app and deletes health
+data after a withdrawal. In the app: export your data (JSON) at [path]; delete your account at
 "Ich → Konto löschen" (players) or "Mehr → Konto löschen" (coaching staff), or via [Konto-Löschen-URL]. Contact:
 [E-Mail].
 

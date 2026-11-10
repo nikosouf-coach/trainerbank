@@ -918,12 +918,11 @@ export class SupabaseApi implements Api {
   }
   async setTaskDone(id: string, done: boolean, at?: string | null) { await q(this.sb.from("team_tasks").update({ done_at: done ? (at || new Date().toISOString()) : null }).eq("id", id)); }
   async healthConsentPlayers(teamId: string) {
-    const rows = await q(this.sb.from("consents").select("user_id, kind").in("kind", ["health_data", "parental"]).is("withdrawn_at", null));
-    const players = await q(this.sb.from("players").select("id, user_id, birthdate").eq("team_id", teamId).not("user_id", "is", null));
-    const has = (uid: string, kind: string): boolean => rows.some(r => r.user_id === uid && r.kind === kind);
-    const u16 = (b: string | null): boolean => !!b && b > addDays(iso(new Date()), -16 * 365.25 | 0);
-    return players.filter(p => has(p.user_id, "health_data") && (!u16(p.birthdate) || has(p.user_id, "parental"))).map(p => p.id as string);
+    // Server rechnet wie beim Speichern (eigene Einwilligung, unter 16 auch die bestätigter Eltern)
+    const rows = await q<unknown>(this.sb.rpc("team_health_consent_players", { p_team: teamId }));
+    return (Array.isArray(rows) ? rows : []).map(r => typeof r === "string" ? r : String((r as Row)?.team_health_consent_players || "")).filter(Boolean);
   }
+
 
   // ---------- Gruppen ----------
   async saveGroup(teamId: string, g: TeamGroup) {
@@ -1380,6 +1379,9 @@ export class SupabaseApi implements Api {
   }
   async registerPushToken(token: string, platform: "ios" | "android" | "web") { await q(this.sb.rpc("register_push_token", { p_token: token, p_platform: platform })); }
   async exportMyData() { return q<unknown>(this.sb.rpc("my_data_export")); }
+  async touchSeen() { await q(this.sb.rpc("touch_seen")); }
+  async staffEraseHealth(pid: string) { return Number(await q<unknown>(this.sb.rpc("staff_erase_health_data", { p_player: pid }))) || 0; }
+  async playerDataExport(pid: string) { return q<unknown>(this.sb.rpc("player_data_export", { p_player: pid })); }
   async deleteAccount() {
     const { error } = await this.sb.functions.invoke("delete-account", { method: "POST" });
     if (error) throw new ApiError("server", error.message);

@@ -16,3 +16,14 @@ export function paragraph(s: unknown, max: number): string {
   return cut(String(s ?? "").replace(/\r\n?/g, "\n").replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, " ").replace(/[ ]{2,}/g, " ")
     .replace(/ *\n */g, "\n").replace(/\n{3,}/g, "\n\n").trim(), max);
 }
+
+/** Persönliche Angaben aus Fehlermeldungen entfernen, bevor sie in einen Absturzbericht gehen:
+ *  E-Mail-Adressen, IDs (UUID), Telefonnummern und lange Ziffernfolgen (z. B. Codes). */
+export function scrubText(s: unknown): string {
+  return String(s ?? "")
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[E-Mail]")
+    .replace(/\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi, "[ID]")
+    .replace(/(?:\+|\b00)\d[\d ()/-]{6,}\d/g, "[Telefon]")
+    .replace(/\b\d[\d ()/-]{7,}\d\b/g, "[Zahl]")
+    .replace(/\b[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}\b/g, "[Code]");
+}

@@ -425,6 +425,15 @@ export class DemoApi implements Api {
   async aiConsentPlayers() { return [] as string[]; }
   async registerPushToken() { /* im Demo-Modus keine Push-Nachrichten */ }
   async exportMyData() { return { hinweis: "Demo-Modus: Es sind keine persönlichen Daten gespeichert." }; }
+  async touchSeen() { /* im Demo-Modus nichts zu merken */ }
+  /** Demo: Die Änderung ist schon im Speicher (gleiches Objekt wie im Store) */
+  async staffEraseHealth() { this.net(); return 1; }
+  async playerDataExport(pid: string) {
+    this.net();
+    const p = this.data?.players.find(x => x.id === pid);
+    return { format: "trainerbank-auskunft", version: 1, hinweis: "Demo-Modus: Beispiel einer Auskunft – in der echten App stehen hier alle gespeicherten Daten des Spielers.",
+      spieler: p ? { vorname: p.vn, nachname: p.nn, position: p.pos } : null };
+  }
   async deleteAccount() { /* nichts gespeichert */ }
   async ai(): Promise<string> { throw new ApiError("demo_ai"); }
 

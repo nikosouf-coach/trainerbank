@@ -5301,6 +5301,254 @@ $$;
 commit;
 
 -- =====================================================================
+-- T62 Löschung nach Widerruf und weitere Löschfristen: purge_privacy(), privacy_findings_due(), health_basis
+-- =====================================================================
+-- p2: Einwilligungen vor 35 Tagen widerrufen (zuletzt passiert: Widerruf), keine neue → Gesundheitsdaten werden gelöscht
+update public.consents set given_at = now() - interval '40 days', withdrawn_at = now() - interval '35 days'
+ where user_id = :'p2' and kind in ('health_data', 'parental', 'findings');
+insert into public.consents (user_id, kind, version, given_at, withdrawn_at)
+values (:'p2', 'health_data', 'v1', now() - interval '40 days', now() - interval '35 days'),
+       (:'p2', 'findings', 'v1', now() - interval '40 days', now() - interval '35 days');
+update public.players set weight_kg = 70.5 where id = tst.get('p2_player')::uuid;
+insert into public.rpe_entries (player_id, date, rpe, minutes) values (tst.get('p2_player')::uuid, current_date - 2, 6, 60);
+insert into public.wellness_entries (player_id, date, fatigue) values (tst.get('p2_player')::uuid, current_date - 2, 3);
+insert into public.extra_activities (player_id, date, type, minutes) values (tst.get('p2_player')::uuid, current_date - 2, 'lauf', 30);
+insert into public.growth_measurements (player_id, date, height_cm) values (tst.get('p2_player')::uuid, current_date - 10, 172.5);
+insert into public.player_emergency_med (player_id, team_id, note) values (tst.get('p2_player')::uuid, public.player_team(tst.get('p2_player')::uuid), 'Asthma-Spray in der Tasche')
+on conflict (player_id) do update set note = excluded.note;
+with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date, stage, note)
+             values (public.player_team(tst.get('p2_player')::uuid), tst.get('p2_player')::uuid, 'verletzung', current_date - 5, current_date + 5, 2, 'Knie') returning id)
+select tst.put('abs62v', id::text) from ins;
+with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date, note)
+             values (public.player_team(tst.get('p2_player')::uuid), tst.get('p2_player')::uuid, 'urlaub', current_date + 20, current_date + 25, 'Mallorca') returning id)
+select tst.put('abs62u', id::text) from ins;
+with ins as (insert into public.team_groups (team_id, name, kind) values (public.player_team(tst.get('p2_player')::uuid), 'T62 Reha', 'reha') returning id)
+select tst.put('grp62', id::text) from ins;
+insert into public.group_members (group_id, player_id, team_id)
+values (tst.get('grp62')::uuid, tst.get('p2_player')::uuid, public.player_team(tst.get('p2_player')::uuid));
+insert into public.findings (team_id, player_id, date, title, path, mime, consent_source)
+select public.player_team(tst.get('p2_player')::uuid), tst.get('p2_player')::uuid, current_date - 30, v.t,
+       public.player_team(tst.get('p2_player')::uuid)::text || '/' || tst.get('p2_player') || '/' || v.f, 'application/pdf', v.c
+  from (values ('T62 App', 't62a.pdf', 'app'), ('T62 Papier', 't62p.pdf', 'schriftlich')) v(t, f, c);
+-- Anwesenheit und Abwesenheiten (älter als 24 Monate)
+insert into public.attendance (player_id, date, team_id, status)
+values (tst.get('p2_player')::uuid, current_date - 800, public.player_team(tst.get('p2_player')::uuid), 'da'),
+       (tst.get('p2_player')::uuid, current_date - 30, public.player_team(tst.get('p2_player')::uuid), 'da')
+on conflict do nothing;
+insert into public.absences (team_id, player_id, type, from_date, to_date, note)
+values (public.player_team(tst.get('p2_player')::uuid), tst.get('p2_player')::uuid, 'urlaub', current_date - 800, current_date - 790, 'T62 uralt');
+-- Push-Token und Nachrichten
+insert into public.push_tokens (token, user_id, platform, updated_at)
+values ('T62-alt', :'p2', 'ios', now() - interval '7 months'), ('T62-neu', :'p2', 'ios', now());
+insert into public.coach_messages (player_id, type, text, valid_until)
+values (tst.get('p2_player')::uuid, 'info', 'T62 alt', current_date - 400), (tst.get('p2_player')::uuid, 'info', 'T62 neu', current_date + 5),
+       (tst.get('p2_player')::uuid, 'pause', 'T62 Pause', current_date + 2);
+do $$
+declare r jsonb; pid uuid := tst.get('p2_player')::uuid;
+begin
+  perform tst.ok(not public.health_basis(pid), 'T62 nach Widerruf keine Einwilligung mehr');
+  perform tst.eq((select string_agg(title, ',' order by title) from public.findings f join public.privacy_findings_due() d on d.id = f.id
+                   where f.player_id = pid and f.title like 'T62%'), 'T62 App', 'T62 Befund aus der App-Einwilligung zum Löschen fällig, schriftlicher nicht');
+  r := public.purge_privacy();
+  perform tst.ok((r ->> 'players_withdrawn')::int >= 1, 'T62 Widerruf vor 35 Tagen: Gesundheitsdaten gelöscht');
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = pid)::text || '/' || (select count(*) from public.wellness_entries where player_id = pid)::text
+                 || '/' || (select count(*) from public.extra_activities where player_id = pid)::text || '/' || (select count(*) from public.growth_measurements where player_id = pid)::text
+                 || '/' || (select count(*) from public.player_emergency_med where player_id = pid)::text || '/' || (select count(*) from public.group_members where player_id = pid and group_id = tst.get('grp62')::uuid)::text
+                 || '/' || coalesce((select weight_kg::text from public.players where id = pid), 'leer'),
+                 '0/0/0/0/0/0/leer', 'T62 Belastung, Morgen-Check, Zusatzsport, Größe, Notfall-Hinweise, Reha-Gruppe und Gewicht gelöscht');
+  perform tst.eq((select type || ':' || coalesce(stage::text, '-') || ':' || coalesce(note, '-') from public.absences where id = tst.get('abs62v')::uuid)
+                 || ',' || (select type || ':' || coalesce(note, '-') from public.absences where id = tst.get('abs62u')::uuid),
+                 'sonst:-:-,urlaub:Mallorca', 'T62 Verletzung bleibt als „Sonstiges“ ohne Stufe und Hinweis, Urlaub unverändert');
+  perform tst.eq((select string_agg(token, ',') from public.push_tokens where token like 'T62-%'), 'T62-neu', 'T62 Push-Token nach 6 Monaten ohne Aktualisierung gelöscht');
+  perform tst.eq((select string_agg(text, ',') from public.coach_messages where text like 'T62%'), 'T62 neu', 'T62 Nachricht 12 Monate nach Ablauf gelöscht, Pause-Empfehlung mit den Gesundheitsdaten gelöscht');
+  perform tst.eq((select count(*) from public.attendance where player_id = pid and date = current_date - 800)::text || '/'
+                 || (select count(*) from public.attendance where player_id = pid and date = current_date - 30)::text || '/'
+                 || (select count(*) from public.absences where note = 'T62 uralt')::text, '0/1/0',
+                 'T62 Anwesenheit und Abwesenheiten 24 Monate nach dem Eintrag gelöscht, neuere bleiben');
+end $$;
+-- Widerruf erst vor 5 Tagen: noch nichts gelöscht; erneute Einwilligung: bleibt
+insert into public.rpe_entries (player_id, date, rpe, minutes) values (tst.get('p2_player')::uuid, current_date - 1, 5, 45);
+insert into public.consents (user_id, kind, version, given_at, withdrawn_at) values (:'p2', 'health_data', 'v1', now() - interval '10 days', now() - interval '5 days');
+do $$ begin
+  perform public.purge_privacy();
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('p2_player')::uuid)::text, '1', 'T62 Widerruf vor 5 Tagen: Frist von 30 Tagen läuft noch');
+end $$;
+update public.consents set withdrawn_at = now() - interval '31 days', given_at = now() - interval '40 days' where user_id = :'p2' and withdrawn_at > now() - interval '30 days';
+insert into public.consents (user_id, kind, version) values (:'p2', 'health_data', 'v1'), (:'p2', 'parental', 'v1');
+do $$ begin
+  perform public.purge_privacy();
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('p2_player')::uuid)::text, '1', 'T62 erneut eingewilligt: Daten bleiben');
+  perform tst.ok(public.health_basis(tst.get('p2_player')::uuid), 'T62 erneute Einwilligung zählt');
+end $$;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_health_consent_players(public.player_team(tst.get('p2_player')::uuid)))::text, '0', 'T62 Spieler sehen keine Einwilligungen anderer');
+end $$;
+select tst.throws('select public.purge_privacy()', 'T62 Löschlauf nur für den Server', 'permission denied');
+select tst.throws('select * from public.privacy_findings_due()', 'T62 fällige Befunde nur für den Server', 'permission denied');
+commit;
+-- Spieler seit 7 Monaten nicht mehr aktiv: Gesundheitsdaten und Befunde fällig
+update public.players set active = false where id = tst.get('p4_player')::uuid;
+alter table public.players disable trigger players_inactive_since;
+update public.players set inactive_since = now() - interval '7 months' where id = tst.get('p4_player')::uuid;
+alter table public.players enable trigger players_inactive_since;
+insert into public.rpe_entries (player_id, date, rpe, minutes) values (tst.get('p4_player')::uuid, current_date - 200, 7, 90);
+insert into public.findings (team_id, player_id, date, title, path, mime, consent_source)
+values (public.player_team(tst.get('p4_player')::uuid), tst.get('p4_player')::uuid, current_date - 200, 'T62 alt',
+        public.player_team(tst.get('p4_player')::uuid)::text || '/' || tst.get('p4_player') || '/t62x.pdf', 'application/pdf', 'schriftlich');
+do $$
+declare r jsonb;
+begin
+  perform tst.ok(exists (select 1 from public.privacy_findings_due() d join public.findings f on f.id = d.id where f.title = 'T62 alt'),
+                 'T62 Befund eines seit 6 Monaten inaktiven Spielers fällig');
+  r := public.purge_privacy();
+  perform tst.ok((r ->> 'players_inactive')::int >= 1 and not exists (select 1 from public.rpe_entries where player_id = tst.get('p4_player')::uuid),
+                 'T62 seit 6 Monaten nicht mehr aktiv: Gesundheitsdaten gelöscht');
+end $$;
+delete from public.findings where title like 'T62%';
+delete from public.team_groups where id = tst.get('grp62')::uuid;
+delete from public.push_tokens where token like 'T62-%';
+delete from public.coach_messages where text like 'T62%';
+
+-- =====================================================================
+-- T63 Zuletzt genutzt, Löschfristen für Spielerprofile, Teams und Konten, Werkzeuge fürs Trainerteam
+-- =====================================================================
+\set u63a 'f6300000-0000-4000-8000-00000000063a'
+\set u63b 'f6300000-0000-4000-8000-00000000063b'
+\set u63c 'f6300000-0000-4000-8000-00000000063c'
+insert into tst.users (name, id) values ('u63a', :'u63a'), ('u63b', :'u63b'), ('u63c', :'u63c');
+insert into auth.users (id, email, raw_user_meta_data) values
+  (:'u63a', 'u63a@test.local', '{"display_name": "Alt"}'), (:'u63b', 'u63b@test.local', '{"display_name": "Neu"}'),
+  (:'u63c', 'u63c@test.local', '{"display_name": "Trainer alt"}');
+do $$ begin
+  perform tst.ok((select last_seen_at from public.profiles where id = tst.uid('u63a')) > now() - interval '1 minute',
+                 'T63 neues Konto: zuletzt genutzt = jetzt');
+end $$;
+-- Selbst setzen wirkt nicht; touch_seen() frischt höchstens einmal am Tag auf
+update public.profiles set last_seen_at = now() - interval '2 days' where id = :'p2';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+update public.profiles set last_seen_at = now() + interval '10 years' where id = :'p2';
+do $$ begin
+  perform tst.ok((select last_seen_at from public.profiles where id = tst.uid('p2')) < now() - interval '1 day',
+                 'T63 zuletzt genutzt lässt sich in der App nicht selbst setzen');
+end $$;
+select public.touch_seen();
+do $$ begin
+  perform tst.ok((select last_seen_at from public.profiles where id = tst.uid('p2')) > now() - interval '1 minute',
+                 'T63 touch_seen() frischt auf');
+end $$;
+select tst.throws('select * from public.privacy_players_due()', 'T63 Fristen-Liste Spielerprofile nur für den Server', 'permission denied');
+select tst.throws('select * from public.privacy_teams_due()', 'T63 Fristen-Liste Teams nur für den Server', 'permission denied');
+select tst.throws('select * from public.privacy_accounts_due()', 'T63 Fristen-Liste Konten nur für den Server', 'permission denied');
+commit;
+
+-- Konten ohne Rolle
+update public.profiles set last_seen_at = now() - interval '25 months' where id in (:'u63a', :'u63c', :'p2');
+do $$ begin
+  perform tst.ok(exists (select 1 from public.privacy_accounts_due() d where d.id = tst.uid('u63a')),
+                 'T63 Konto ohne Rolle, 25 Monate nicht genutzt: fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_accounts_due() d where d.id = tst.uid('u63b')),
+                 'T63 Konto ohne Rolle, gerade erst angelegt: nicht fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_accounts_due() d where d.id = tst.uid('p2')),
+                 'T63 Konto mit Spielerprofil: nicht fällig, auch wenn lange nicht genutzt');
+end $$;
+
+-- Team, das seit 24 Monaten niemand genutzt hat
+with ins as (insert into public.teams (club, name, age_class, join_code, staff_code)
+             values ('T63 FC', 'Alt', 'u17', 'TSTA-T63X', 'TSTB-T63Y') returning id)
+select tst.put('team63', id::text) from ins;
+update public.teams set created_at = now() - interval '3 years' where id = tst.get('team63')::uuid;
+insert into public.team_staff (team_id, user_id, role) values (tst.get('team63')::uuid, :'u63c', 'owner');
+do $$ begin
+  perform tst.ok(exists (select 1 from public.privacy_teams_due() d where d.id = tst.get('team63')::uuid),
+                 'T63 Team ohne Nutzung seit 24 Monaten: fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_teams_due() d where d.id = tst.get('team_a')::uuid),
+                 'T63 genutztes Team: nicht fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_accounts_due() d where d.id = tst.uid('u63c')),
+                 'T63 Konto mit Trainerrolle: nicht fällig');
+end $$;
+update public.profiles set last_seen_at = now() where id = :'u63c';
+do $$ begin
+  perform tst.ok(not exists (select 1 from public.privacy_teams_due() d where d.id = tst.get('team63')::uuid),
+                 'T63 Trainer wieder in der App: Team nicht mehr fällig');
+end $$;
+delete from public.teams where id = tst.get('team63')::uuid;
+
+-- Spielerprofil seit 24 Monaten nicht mehr aktiv (p4 ist seit T62 inaktiv)
+alter table public.players disable trigger players_inactive_since;
+update public.players set inactive_since = now() - interval '25 months' where id = tst.get('p4_player')::uuid;
+alter table public.players enable trigger players_inactive_since;
+do $$ begin
+  perform tst.eq((select string_agg(d.team_id::text, ',') from public.privacy_players_due() d where d.id = tst.get('p4_player')::uuid),
+                 tst.get('team_a'), 'T63 Spielerprofil 25 Monate nicht aktiv: fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_players_due() d where d.id = tst.get('p2_player')::uuid),
+                 'T63 aktives Spielerprofil: nicht fällig');
+end $$;
+
+-- Trainerteam: Gesundheitsdaten löschen (Recht „Gesundheitsdaten“) und Auskunft (nur Owner)
+select tst.put('c63role', (select role from public.team_staff where team_id = tst.get('team_a')::uuid and user_id = :'coachC'));
+insert into public.rpe_entries (player_id, date, rpe, minutes) values (tst.get('p2_player')::uuid, current_date - 3, 4, 50);
+update public.team_staff set role = 'coach', perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.throws(format('select public.staff_erase_health_data(%L)', tst.get('p2_player')),
+                  'T63 Gesundheitsdaten löschen nur mit Recht Gesundheitsdaten', 'not_allowed');
+select tst.throws(format('select public.player_data_export(%L)', tst.get('p2_player')),
+                  'T63 Auskunft nur für den Owner', 'not_allowed');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.ok(public.staff_erase_health_data(tst.get('p2_player')::uuid) >= 1,
+                 'T63 Trainerteam löscht Gesundheitsdaten eines Spielers (z. B. Widerruf auf Papier)');
+end $$;
+commit;
+do $$ begin
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('p2_player')::uuid)::text, '0',
+                 'T63 Belastungsdaten danach gelöscht');
+end $$;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.throws(format('select public.staff_erase_health_data(%L)', tst.get('p2_player')),
+                  'T63 Spieler können kein Löschen fürs Trainerteam auslösen', 'not_allowed');
+select tst.throws(format('select public.player_data_export(%L)', tst.get('p2_player')),
+                  'T63 Spieler bekommen keine Auskunft fürs Trainerteam', 'not_allowed');
+commit;
+update public.team_staff set role = 'owner' where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.put('export63', public.player_data_export(tst.get('p2_player')::uuid)::text);
+commit;
+do $$
+declare x jsonb := tst.get('export63')::jsonb;
+begin
+  perform tst.eq(x ->> 'format', 'trainerbank-auskunft', 'T63 Auskunft: Format');
+  perform tst.ok((x -> 'daten') ? 'abwesenheiten' and (x -> 'daten') ? 'trainernotizen' and (x -> 'daten') ? 'einwilligungen'
+                 and (x -> 'daten') ? 'umfragen' and (x -> 'daten') ? 'morgen_check', 'T63 Auskunft: alle Bereiche, auch interne Notizen');
+  perform tst.ok(not (x -> 'spieler') ? 'user_id' and (x -> 'spieler') ? 'konto', 'T63 Auskunft: ohne Konto-ID, mit Hinweis auf das Konto');
+  perform tst.ok(position(tst.uid('p2')::text in x::text) = 0 and position('@test.local' in x::text) = 0,
+                 'T63 Auskunft enthält keine Konto-IDs und E-Mail-Adressen');
+  perform tst.ok(not exists (select 1 from jsonb_array_elements(x -> 'daten' -> 'einwilligungen') e where e ->> 'von' not in ('spieler', 'eltern')),
+                 'T63 Auskunft: Einwilligungen mit Herkunft (Spieler oder Eltern)');
+  perform tst.eq((select coalesce(string_agg(c.table_name::text, ',' order by c.table_name), '')
+                    from information_schema.columns c
+                    join information_schema.tables t on t.table_schema = c.table_schema and t.table_name = c.table_name and t.table_type = 'BASE TABLE'
+                   where c.table_schema = 'public' and c.column_name = 'player_id'
+                     and c.table_name not in (select e.tbl from public.player_export_tables() e union select sp.tbl from public.player_export_special() sp)),
+                 '', 'T63 Auskunft deckt jede Tabelle mit player_id ab oder nimmt sie ausdrücklich aus');
+end $$;
+update public.team_staff set role = tst.get('c63role'), perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+-- =====================================================================
 -- Zusammenfassung
 -- =====================================================================
 \o

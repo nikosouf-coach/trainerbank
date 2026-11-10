@@ -112,6 +112,7 @@ function AddFindingForm({ p, onDone }: { p: Player; onDone: () => void }) {
       </Row>
       <Row gap={6}><T v="small" bold>{t("bf_consentQ")}</T><Info title={t("bf_consentQ")} text={t("bf_consentInfo")} /></Row>
       <ChoiceChips testID="bf-consent" value={consent} onChange={setConsent} options={[...(p.userId ? [{ key: "app" as const, label: t("bf_consentApp") }] : []), { key: "schriftlich" as const, label: t("bf_consentWritten") }]} />
+      <Muted small testID="bf-redact">{t("bf_redact")}</Muted>
       <Row wrap gap={8}>
         <Btn testID="bf-camera" icon="camera" label={t("bf_camera")} disabled={!consent || busy} onPress={camera} />
         <Btn testID="bf-photo" label={t("bf_photo")} disabled={!consent || busy} onPress={photo} />

@@ -3,7 +3,7 @@
 
 import { CONTENT } from "./content";
 import {
-  BANDS, KINDS, KIND_RPE, MATCHMIN, MDS, PLAYER_VIEW, bandOf, capOf, classDef, classLabel, groupOf, isGrowthAge, sleepTarget, DEPTH, teamLabel,
+  BANDS, KINDS, KIND_RPE, MATCHMIN, MDS, PLAYER_VIEW, bandOf, capOf, classDef, classLabel, groupOf, isGrowthAge, sleepTarget, DEPTH,
 } from "./classes";
 import { addDays, ageOn, at, clamp, diff, iso, monday, parse, sum } from "./dates";
 import { translator } from "./i18n";
@@ -702,14 +702,16 @@ export function createEngine(D: TeamData, opts: EngineOptions) {
     return s > TW_DIVES_MD1;
   };
 
-  // ---------- KI-Kontext (ohne Nachnamen, nur Vornamen der Spieler, die zugestimmt haben) ----------
+  // ---------- KI-Kontext: ohne Vereins- und Teamnamen; Spielerdaten nur von Spielern mit KI-Einwilligung (mit Vornamen),
+  // von allen anderen nur ihre Anzahl (Datenschutzerklärung Abschnitt 11, Einwilligung d) ----------
   function aiContext(aiOk: (pid: string) => boolean): string {
     const wp = weekPlan(monday(TODAY)), c = classDef(team.cls);
     const uTxt = (us: DayUnit[]): string => us.length ? " + " + us.map(u => `${unitTitle(u)} ${u.zeit} (${u.dauer} Min., RPE ${unitRpe(u)}${u.groupId || u.art === "tw" ? ", " + (u.groupId ? D.groups.find(g => g.id === u.groupId)?.name || "Gruppe" : "Torhüter") : ""})`).join(" + ") : "";
     const plan = wp.items.map(x => `${wt(x.date)} ${de(x.date)}: ${x.match ? "Spiel " + t("vs") + " " + x.match.gegner : x.train ? (x.train.md || "-") + ", " + kn(x.train.kind) + ", RPE " + x.train.rpe + ", " + x.train.dauer + " Min., " + t("p_" + x.train.platz) : x.units.length ? "kein Mannschaftstraining" : "frei"}${uTxt(x.units)}`).join("\n");
-    const flagged = D.players.map(p => profile(p.id)).filter(x => x.reasons.length).slice(0, 10)
-      .map((x, i) => `${aiOk(x.p.id) ? x.p.vn : "Spieler " + (i + 1)} (${age(x.p)} J., ${x.p.pos}): ${x.reasons.map(r => r[1]).join(", ")}`).join("\n");
-    return `Mannschaft: ${teamLabel(team)}, Altersklasse ${classLabel(c, opts.lang)}, ${D.players.length} Spieler.
+    const noticed = D.players.map(p => profile(p.id)).filter(x => x.reasons.length), named = noticed.filter(x => aiOk(x.p.id));
+    const flagged = named.slice(0, 10).map(x => `${x.p.vn} (${age(x.p)} J., ${x.p.pos}): ${x.reasons.map(r => r[1]).join(", ")}`).join("\n")
+      + (noticed.length > named.length ? `${named.length ? "\n" : ""}Weitere auffällige Spieler ohne KI-Einwilligung (keine Angaben): ${noticed.length - named.length}` : "");
+    return `Mannschaft: Altersklasse ${classLabel(c, opts.lang)}, ${D.players.length} Spieler.
 Infotiefe des Trainers: ${t("dp_" + team.depth)}.
 Trainingstage: ${Object.entries(S.days).map(([d, v]) => tl("wd")[+d] + " " + v.zeit + ", " + (v.dauer || S.dauer) + " Min. (" + t("p_" + v.platz) + ")").join("; ")}.
 ${Object.entries(S.units || {}).some(([, L]) => L.length) ? "Weitere Einheiten je Woche: " + Object.entries(S.units || {}).flatMap(([d, L]) => L.map(u => tl("wd")[+d] + " " + u.zeit + " " + unitTitle(u) + " " + u.dauer + " Min.")).join("; ") + ".\n" : ""}Torhüter im Kader: ${D.players.filter(isGK).length}.
@@ -736,12 +738,11 @@ Gliedere in Blöcke mit Minutenangabe (Summe = ${p.dauer} Min.): Aufwärmen, Hau
     const pr = profile(p.id), m = pr.m;
     const mins = D.sessions.filter(s => s.typ === "Spiel").slice(-5).map(s => (D.rpe[p.id]?.[s.date]?.min || 0) + " Min.").join(", ");
     const ex = (D.extra[p.id] || []).filter(x => diff(x.date, TODAY) <= 14).map(x => t("px_" + x.art) + " " + x.min + " Min. RPE " + x.rpe).join("; ");
-    return `Analysiere die Daten dieses Spielers und nenne 3–5 konkrete Entwicklungspotenziale oder Ziele, die sich aus den Daten ableiten lassen (Belastbarkeit, Athletik, Regeneration, Mentales). Technik und Taktik nur, wenn die Notizen des Trainers etwas hergeben.
+    return `Analysiere die Daten dieses Spielers und nenne 3–5 konkrete Entwicklungspotenziale oder Ziele, die sich aus den Daten ableiten lassen (Belastbarkeit, Athletik, Regeneration, Mentales). Technik und Taktik nur, wenn die Daten etwas hergeben.
 Spieler: ${age(p)} Jahre, Position ${p.pos}, Altersklasse ${classLabel(classDef(team.cls), opts.lang)}.
 Beteiligung 28 Tage: ${pr.att != null ? Math.round(pr.att * 100) + " %" : "–"}. Status: ${t("st_" + pr.st)}. ACWR: ${m && m.acwr != null ? num(m.acwr, 2) : "–"}. Ø Woche: ${m ? Math.round(m.chronic) + " AU" : "–"}.
 Schlaf Ø 7 Tage: ${pr.sl != null ? num(pr.sl, 1) + " h" : "–"} (Ziel ${pr.tg[0]}–${pr.tg[1]} h). Wachstum: ${pr.gr ? num(pr.gr.rate, 1) + " cm/Jahr" : "–"}.
 Spielminuten letzte Spiele: ${mins || "–"}. Zusatzsport 14 Tage: ${ex || "keiner"}.
-Notizen des Trainers: ${D.notes[p.id] || "keine"}.
 Hinweise der App: ${dataHints(p).map(h => h.text).join(" | ") || "keine"}.`;
   }
   function playerAiContext(p: Player): string {

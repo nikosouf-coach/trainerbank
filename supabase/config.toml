@@ -25,6 +25,9 @@ site_url = "https://trainerbank.example"
 additional_redirect_urls = ["trainerbank://", "http://localhost:8081"]
 jwt_expiry = 3600
 enable_signup = true
+# Mindestlänge wie bei der Registrierung in der App. Im gehosteten Projekt zusätzlich im Dashboard setzen
+# (Authentication → Providers → Email: Mindestlänge 8, Schutz vor geleakten Passwörtern an) – siehe docs/TOM.md.
+minimum_password_length = 8
 
 [auth.email]
 enable_signup = true
@@ -37,6 +40,7 @@ enable_confirmations = true
 # (Supabase empfiehlt dann, sie abzuschalten und im Code zu prüfen).
 # push-reminders: wird von pg_cron ohne JWT aufgerufen und prüft stattdessen den Header x-cron-secret.
 # chat-push: wird bei neuen Chat-Nachrichten vom Datenbank-Trigger aufgerufen (ebenfalls x-cron-secret).
+# privacy-purge: tägliche Löschfristen mit Dateien im Speicher, von pg_cron/pg_net aufgerufen (ebenfalls x-cron-secret).
 [functions.ai]
 verify_jwt = false
 
@@ -51,4 +55,8 @@ verify_jwt = false
 
 # chat-push: wird vom Datenbank-Trigger (pg_net) ohne JWT aufgerufen und prüft den Header x-cron-secret.
 [functions.chat-push]
+verify_jwt = false
+
+# privacy-purge: von pg_cron (pg_net) ohne JWT aufgerufen, prüft den Header x-cron-secret.
+[functions.privacy-purge]
 verify_jwt = false

@@ -152,8 +152,9 @@ Knöpfe: **„Einwilligen und weiter“** · **„Ohne Gesundheitsdaten fortfahr
 > **Wo?** Auf Servern unseres Dienstleisters Supabase in Frankfurt (EU). An den KI-Coach werden Gesundheitsdaten nur
 > übermittelt, wenn du dafür gesondert einwilligst.
 >
-> **Wie lange?** Bis du die Einwilligung widerrufst oder dein Konto löschst, spätestens 24 Monate nach deiner letzten
-> Aktivität in der App.
+> **Wie lange?** Bis du die Einwilligung widerrufst (gelöscht wird 30 Tage danach, wenn du nicht erneut einwilligst)
+> oder dein Konto löschst. Belastung, Wohlbefinden und Zusatzsport spätestens 24 Monate nach dem Eintrag; wenn dich
+> dein Trainerteam als nicht mehr aktiv markiert, 6 Monate danach.
 >
 > **Freiwillig.** Ohne Einwilligung kannst du die App weiter nutzen (Kalender, Wochenplan, Nachrichten, Abwesenheiten
 > ohne Gesundheitsangaben). Die Eingabe von Belastung, Wohlbefinden, Zusatzsport und Körperdaten ist dann gesperrt.
@@ -164,8 +165,8 @@ Knöpfe: **„Einwilligen und weiter“** · **„Ohne Gesundheitsdaten fortfahr
 > Krankheit oder Verletzung wende dich an eine Ärztin oder einen Arzt.
 >
 > **Widerruf.** Du kannst die Einwilligung jederzeit unter [Pfad zum Widerruf] widerrufen. Danach werden keine neuen
-> Gesundheitsdaten erfasst und deine gespeicherten Gesundheitsdaten gelöscht. Was bis zum Widerruf verarbeitet wurde,
-> bleibt rechtmäßig.
+> Gesundheitsdaten erfasst, und deine gespeicherten Gesundheitsdaten werden nach 30 Tagen gelöscht, wenn du bis dahin
+> nicht erneut einwilligst. Was bis zum Widerruf verarbeitet wurde, bleibt rechtmäßig.
 >
 > Verantwortlich: [Herausgeber], [E-Mail]. Mehr in der [Datenschutzerklärung].
 
@@ -732,15 +733,18 @@ widerrufbar; dort steht stattdessen der Hinweis auf „Konto löschen“.
 > Hier siehst du, wozu du eingewilligt hast. Du kannst jede Einwilligung jederzeit widerrufen. Was bis zum Widerruf
 > verarbeitet wurde, bleibt rechtmäßig.
 
-**Dialog – Gesundheitsdaten:**
-> **Einwilligung für Gesundheitsdaten widerrufen?**
-> Du kannst dann keine Belastung, kein Wohlbefinden, keinen Zusatzsport und keine Körperdaten mehr eintragen, und dein
-> Trainerteam erhält keine neuen Gesundheitsdaten von dir. Deine gespeicherten Gesundheitsdaten werden [sofort]
-> gelöscht – das lässt sich nicht rückgängig machen. Tipp: Exportiere deine Daten vorher, wenn du sie behalten
-> möchtest.
+**Dialog – Gesundheitsdaten** (umgesetzt in `app/konto.tsx`, Text `cs_withdrawHealth`):
+> **Einwilligung widerrufen?**
+> Danach kannst du keine Belastungs- und Wellnessdaten mehr eintragen. Deine Gesundheitsdaten werden nach 30 Tagen
+> gelöscht, wenn du nicht erneut einwilligst – sichere sie vorher bei Bedarf mit „Meine Daten exportieren“.
 >
-> Knöpfe: **„Abbrechen“** · **„Widerrufen und löschen“**
-> Bestätigung: *Einwilligung widerrufen. Deine Gesundheitsdaten wurden gelöscht.*
+> Knöpfe: **„Nein“** · **„Widerrufen“**
+> Technik: Die tägliche Funktion `purge_privacy()` löscht die Gesundheitsdaten, wenn der letzte Vorgang zu den
+> Einwilligungen ein Widerruf ist, er mehr als 30 Tage zurückliegt und keine gültige Einwilligung mehr besteht.
+
+**Dialog – Befunde** (Text `cs_withdrawFindings`):
+> Befunde, die mit deiner Einwilligung in der App gespeichert sind, werden nach 30 Tagen gelöscht (Datei und Eintrag),
+> wenn du nicht erneut einwilligst. Befunde mit schriftlicher Einwilligung bleiben.
 
 **Dialog – KI-Coach:**
 > **Einwilligung für den KI-Coach widerrufen?**
@@ -750,10 +754,10 @@ widerrufbar; dort steht stattdessen der Hinweis auf „Konto löschen“.
 > Knöpfe: **„Abbrechen“** · **„Widerrufen“**
 > Bestätigung: *Einwilligung widerrufen. Der KI-Coach ist jetzt gesperrt.*
 
-**Dialog – Einwilligung der Eltern (vom Kind ausgelöst):**
+**Dialog – Einwilligung der Eltern (vom Kind ausgelöst, Text `cs_withdrawParental`):**
 > **Einwilligung deiner Eltern widerrufen?**
-> Dann sind die Gesundheitsfunktionen und der KI-Coach gesperrt und deine gespeicherten Gesundheitsdaten werden
-> gelöscht. Kalender, Wochenplan und Nachrichten kannst du [weiter nutzen / nicht mehr nutzen – je nach Umsetzung].
+> Dann sind die Gesundheitsfunktionen und der KI-Coach gesperrt, und deine gespeicherten Gesundheitsdaten werden nach
+> 30 Tagen gelöscht, wenn bis dahin keine neue Einwilligung vorliegt. Kalender, Wochenplan und Nachrichten kannst du [weiter nutzen / nicht mehr nutzen – je nach Umsetzung].
 > [Falls umgesetzt: Deine Eltern erhalten eine Info-E-Mail.]
 >
 > Knöpfe: **„Abbrechen“** · **„Widerrufen“**
@@ -764,7 +768,8 @@ widerrufbar; dort steht stattdessen der Hinweis auf „Konto löschen“.
 
 **Widerruf durch Eltern per E-Mail – Antwortvorlage:**
 > Guten Tag, wir haben Ihren Widerruf der Einwilligung für [Vorname des Kindes] am [Datum] umgesetzt. Die
-> Gesundheitsdaten Ihres Kindes wurden gelöscht; Gesundheitsfunktionen und KI-Coach sind gesperrt. [Konto und
+> Gesundheitsdaten Ihres Kindes wurden gelöscht (Trainerteam: Spielerprofil → Datenschutz → „Gesundheitsdaten
+> löschen“); Gesundheitsfunktionen und KI-Coach sind gesperrt. [Konto und
 > Teamzugehörigkeit bleiben bestehen / wurden ebenfalls gelöscht.] Mit freundlichen Grüßen, [Herausgeber]
 
 **Erneute Abfrage bei neuer Textversion:**
@@ -780,12 +785,10 @@ widerrufbar; dort steht stattdessen der Hinweis auf „Konto löschen“.
 
 **Dialog – health data:**
 > **Withdraw consent for health data?**
-> You will no longer be able to record load, wellness, extra sport or body data, and your coaching staff will receive
-> no new health data from you. Your stored health data will be deleted [immediately] – this cannot be undone. Tip:
-> export your data first if you want to keep it.
+> You will then no longer be able to enter load and wellness data. Your health data will be deleted after 30 days
+> unless you consent again – export it first with "Export my data" if you need it.
 >
-> Buttons: **"Cancel"** · **"Withdraw and delete"**
-> Confirmation: *Consent withdrawn. Your health data has been deleted.*
+> Buttons: **"No"** · **"Withdraw"**
 
 **Dialog – AI coach:**
 > **Withdraw consent for the AI coach?**
@@ -797,7 +800,8 @@ widerrufbar; dort steht stattdessen der Hinweis auf „Konto löschen“.
 
 **Dialog – parental consent (triggered by the child):**
 > **Withdraw your parents' consent?**
-> Health features and the AI coach will be disabled and your stored health data will be deleted. You can [still use /
+> Health features and the AI coach will be disabled, and your stored health data will be deleted after 30 days unless
+> new consent is given by then. You can [still use /
 > no longer use – depending on implementation] the calendar, weekly plan and messages. [If implemented: your parents
 > will receive an information e-mail.]
 >

@@ -22,6 +22,7 @@ import { applyAnswer, cleanSquad, mySquads as mySquadsOf, squadMatesOf, type MyS
 import { applyRide, cleanRide, dropRideRef, rideCheck, rideName, type RideOp } from "../core/rides";
 import { cleanSuspension, withCard } from "../core/cards";
 import { cleanAccident } from "../core/accidents";
+import { eraseHealthLocal } from "../core/privacy";
 import { cleanInviteCode, cleanPost } from "../core/parents";
 import { groupOf } from "../core/classes";
 import { canSelfConsent, cleanPhotoConsent, photoAge, selfChange } from "../core/photos";
@@ -137,6 +138,14 @@ function useStoreValue() {
   const asStaff = (st: State = ref.current): boolean => !!st.active && (st.api instanceof DemoApi ? st.demoView === "coach" : isStaffRole(st.active.role));
   /** Warteschlange als sofort aktuelle Quelle (State nur für die Anzeige – wird erst beim nächsten Rendern aktuell) */
   const obRef = useRef<OutboxItem[]>([]);
+  // Zuletzt genutzt (Löschfristen für Konten und Teams): höchstens einmal am Tag melden
+  const seenRef = useRef("");
+  function touchSeen(api: Api) {
+    const day = iso(new Date());
+    if (api.kind !== "supabase" || seenRef.current === day) return;
+    seenRef.current = day;
+    api.touchSeen().catch(() => { seenRef.current = ""; });
+  }
   const set = useCallback((p: Partial<State>) => setS(prev => ({ ...prev, ...p })), []);
   const tr = useMemo(() => translator(s.lang), [s.lang]);
 
@@ -167,6 +176,7 @@ function useStoreValue() {
 
   // ---------- Laden ----------
   const loadActive = useCallback(async (api: Api, m: Membership | null, extra: Partial<State> = {}) => {
+    touchSeen(api);
     // Vereine (Übersicht, Anfragen) – ohne Netz bleibt der letzte Stand
     const clubsP = api.myClubs().catch(() => ref.current.clubs);
     if (!m) {
@@ -794,6 +804,15 @@ function useStoreValue() {
     withdrawConsent: async (kind: ConsentKind) => { await ref.current.api.withdrawConsent(kind); set({ consents: await ref.current.api.consents() }); },
     deleteAccount: async () => { const uid = ref.current.user?.id; await ref.current.api.deleteAccount(); clearDevice(uid); obRef.current = []; set({ phase: "signedOut", user: null, D: null, active: null, memberships: [], outbox: [], cachedAt: null }); },
     exportMyData: () => ref.current.api.exportMyData(),
+    // Datenschutz im Trainerteam: Auskunft über einen Spieler (nur Owner, prüft der Server) und Gesundheitsdaten löschen
+    playerExport: (pid: string) => ref.current.api.playerDataExport(pid),
+    eraseHealth: async (pid: string): Promise<boolean> => {
+      const { D, active } = ref.current; if (!D || !active) return false;
+      const files = effectivePerms(active.role, active.perms).has("medical") ? D.findings.filter(f => f.pid === pid) : [];
+      return changeOk(D0 => { eraseHealthLocal(D0, pid); if (files.length) D0.findings = D0.findings.filter(f => f.pid !== pid); },
+        async api => { for (const f of files) await api.deleteFinding(f); await api.staffEraseHealth(pid); },
+        { ok: translator(ref.current.lang).t("dsp_erased") });
+    },
 
     // Team
     updateTeam: (patch: TeamPatch) => change(D => { Object.assign(D.team, patch); }, (api, id) => api.updateTeam(id, patch), { plan: true }),
@@ -1586,6 +1605,7 @@ function useStoreValue() {
     saveAbsence: ["squad", "health"], deleteAbsence: ["squad", "health"],
     saveRpe: "health", saveWellness: "health", saveExtra: "health", deleteExtra: "health", saveGrowth: "health",
     uploadFinding: "medical", updateFinding: "medical", deleteFinding: "medical", analyzeFinding: "medical",
+    eraseHealth: "health",
     saveNote: "notes", savePotential: "notes", deletePotential: "notes", saveRating: "notes", deleteRating: "notes",
     saveMessage: "messages", deleteMessage: "messages",
     saveStat: "perf", saveTest: "perf", deleteTest: "perf", saveCard: "perf", saveSuspension: "perf", deleteSuspension: "perf",

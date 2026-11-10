@@ -85,7 +85,10 @@ export function PotCard({ p }: { p: Player }) {
         {hints.map((h, i) => <Row key={i} gap={8} wrap><Chip label={t("pc_" + h.cat)} color={potColor(c, h.cat)} /><Muted small style={{ flex: 1, minWidth: 160 }}>{h.text}</Muted><Btn small testID={"pot-take-" + i} label={t("pot_take")} onPress={() => take(h, "daten")} /></Row>)}
       </Col> : null}
       {E.mods.ki ? <Col gap={6}>
-        <Row gap={8}><Btn small icon="spark" testID="pot-ai" label={t("pot_ki")} disabled={ai.busy} onPress={async () => { const r = await ai.run("potentials", E.potPrompt(p), E.aiContext(pid => s.aiPlayers.includes(pid))); if (r) setAiItems(parsePotentials(r)); }} />{ai.busy ? <ActivityIndicator color={c.accent} /> : null}</Row>
+        {/* Daten eines Spielers gehen nur mit seiner KI-Einwilligung an die KI (Einwilligung d) */}
+        {s.aiPlayers.includes(p.id)
+          ? <Row gap={8}><Btn small icon="spark" testID="pot-ai" label={t("pot_ki")} disabled={ai.busy} onPress={async () => { const r = await ai.run("potentials", E.potPrompt(p), E.aiContext(pid => s.aiPlayers.includes(pid))); if (r) setAiItems(parsePotentials(r)); }} />{ai.busy ? <ActivityIndicator color={c.accent} /> : null}</Row>
+          : <Muted small testID="pot-ai-noconsent">{t("pot_kiNoConsent")}</Muted>}
         {ai.err ? <Muted small>{ai.err}</Muted> : null}
         {aiItems.map((h, i) => <Row key={i} gap={8} wrap><Chip label={t("pc_" + h.cat)} color={potColor(c, h.cat)} /><Muted small style={{ flex: 1, minWidth: 160 }}>{h.text} </Muted><Tag label={t("pot_src_ki")} /><Btn small label={t("pot_take")} onPress={() => { take(h, "ki"); setAiItems(aiItems.filter((_, j) => j !== i)); }} /></Row>)}
       </Col> : null}

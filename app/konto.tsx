@@ -16,6 +16,9 @@ import { CrashCard, VersionRow } from "../src/ui/pilot";
 import { useTheme } from "../src/ui/theme";
 import { tmpId } from "../src/data/store";
 
+/** Was ein Widerruf bewirkt (Hinweis im Bestätigungsblatt) */
+const WITHDRAW_TEXT: Partial<Record<ConsentKind, string>> = { health_data: "cs_withdrawHealth", parental: "cs_withdrawParental", findings: "cs_withdrawFindings", ai: "cs_withdrawAi" };
+
 export default function Konto() {
   const s = useStore(); const { t } = s.tr; const router = useRouter(); const { c } = useTheme();
   const [ask, setAsk] = useState<null | "delete" | ConsentKind>(null);
@@ -161,7 +164,7 @@ export default function Konto() {
         </Row>
       </Sheet>
       <Sheet visible={!!ask && ask !== "delete"} onClose={() => setAsk(null)} title={t("cs_withdrawQ")} testID="ko-withdraw-sheet">
-        {ask === "health_data" ? <T>{t("cs_withdrawHealth")}</T> : null}
+        {ask && WITHDRAW_TEXT[ask as ConsentKind] ? <T testID="ko-withdraw-text">{t(WITHDRAW_TEXT[ask as ConsentKind]!)}</T> : null}
         <Row gap={10}>
           <Btn label={t("no")} onPress={() => setAsk(null)} />
           <Btn testID="ko-withdraw-confirm" kind="danger" label={t("cs_withdraw")} disabled={busy}

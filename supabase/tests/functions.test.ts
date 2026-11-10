@@ -18,6 +18,7 @@ import {
 } from '../functions/_shared/schedule.ts';
 import { AI_MODES, buildSystemPrompt, buildUserMessage } from '../functions/_shared/prompts.ts';
 import { chatPushData, chatPushText } from '../functions/_shared/chat.ts';
+import { chunks, cleanDue, cleanIds, cleanPlayers, playerPhotoPaths, removableIds } from '../functions/_shared/privacy.ts';
 
 test('localNow: Ortszeit in Europe/Berlin (Sommer- und Winterzeit)', () => {
   // 2026-10-07 16:45 UTC = 18:45 MESZ (Mittwoch)
@@ -180,4 +181,44 @@ test('chatPushText: ohne Nachrichtentext, Titel je Chat-Art und Sprache', () => 
   assert.deepEqual(chatPushText({ kind: 'direct', title: 'Max M.', sender: 'Max M.', lang: 'fr' }), { title: 'Max M.', body: 'Neue Nachricht' });
   assert.deepEqual(chatPushText({ kind: 'custom', title: '  ', sender: '', lang: 'de' }), { title: 'Chat', body: 'Neue Nachricht von –' });
   assert.deepEqual(chatPushData({ chat_id: 'c1', team_id: 't1', area: 'player' }), { type: 'chat', chat: 'c1', team: 't1', area: 'player' });
+});
+
+test('privacy: chunks teilt in Pakete, auch bei falscher Größe', () => {
+  assert.deepEqual(chunks([1, 2, 3, 4, 5], 2), [[1, 2], [3, 4], [5]]);
+  assert.deepEqual(chunks([], 100), []);
+  assert.deepEqual(chunks([1, 2], 0), [[1], [2]]);
+});
+
+test('privacy: cleanDue nimmt nur gültige, eindeutige Befunde', () => {
+  const rows = [
+    { id: 'a', path: 't/p/a.pdf' }, { id: 'a', path: 't/p/a.pdf' }, { id: 'b', path: '../x' }, { id: 'c', path: '/abs' },
+    { id: '', path: 't/p/x.pdf' }, { id: 'd' }, null, { id: 'e', path: 't/p/e.jpg' },
+  ];
+  assert.deepEqual(cleanDue(rows), [{ id: 'a', path: 't/p/a.pdf' }, { id: 'e', path: 't/p/e.jpg' }]);
+  assert.deepEqual(cleanDue(null), []);
+});
+
+test('privacy: removableIds löscht nur Einträge, deren Datei weg ist', () => {
+  const due = [{ id: 'a', path: 'x/1' }, { id: 'b', path: 'x/2' }, { id: 'c', path: 'x/3' }];
+  assert.deepEqual(removableIds(due, ['x/1'], ['x/3']), ['a', 'c']);
+  assert.deepEqual(removableIds(due, []), []);
+});
+
+test('privacy: cleanIds und cleanPlayers prüfen IDs und Fotopfade', () => {
+  const t = '11111111-1111-4111-8111-111111111111', p = '22222222-2222-4222-8222-222222222222';
+  assert.deepEqual(cleanIds([{ id: t }, t, { id: 'kein' }, { id: t.toUpperCase() }, 5]), [t]);
+  assert.deepEqual(cleanIds(undefined), []);
+  const out = cleanPlayers([
+    { id: p, team_id: t, photo_path: `${t}/${p}-2.jpg` },
+    { id: p, team_id: t, photo_path: null },
+    { id: 'x', team_id: t },
+    { id: '33333333-3333-4333-8333-333333333333', team_id: t, photo_path: `anderes-team/${p}.jpg` },
+    { id: '44444444-4444-4444-8444-444444444444', team_id: t, photo_path: `${t}/../x.jpg` },
+  ]);
+  assert.equal(out.length, 3);
+  assert.deepEqual(out.at(0), { id: p, teamId: t, photoPath: `${t}/${p}-2.jpg` });
+  assert.equal(out.at(1)?.photoPath, null);
+  assert.equal(out.at(2)?.photoPath, null);
+  assert.deepEqual(playerPhotoPaths(out.at(0)!), [`${t}/${p}.jpg`, `${t}/${p}-2.jpg`]);
+  assert.deepEqual(playerPhotoPaths({ id: p, teamId: t, photoPath: `${t}/${p}.jpg` }), [`${t}/${p}.jpg`]);
 });
