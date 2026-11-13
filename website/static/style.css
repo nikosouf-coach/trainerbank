@@ -61,7 +61,7 @@ footer.bottom a:hover { color: var(--ink); }
 .hero .status { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
 .pill { display: inline-block; background: var(--green-soft); color: var(--green-tx); font-weight: 650; font-size: 0.9375rem; padding: 5px 12px; border-radius: 999px; }
 .hero::before { /* Mittelkreis wie auf dem Platz: eine einzige Kreidelinie */
-  content: ""; position: absolute; z-index: -1; width: 30rem; height: 30rem; right: -9rem; top: -6rem;
+  content: ""; position: absolute; z-index: -1; width: 30rem; height: 30rem; right: -9rem; top: -1.5rem;
   border: 2px solid var(--line); border-radius: 50%; pointer-events: none;
 }
 .week { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px 22px 18px; }
@@ -162,7 +162,7 @@ noscript p { margin-top: 12px; }
 
 @media (max-width: 860px) {
   .hero { grid-template-columns: minmax(0, 1fr); gap: 34px; padding-top: 20px; }
-  .hero::before { width: 22rem; height: 22rem; right: -10rem; top: -4rem; }
+  .hero::before { width: 22rem; height: 22rem; right: -11rem; top: 1rem; }
   .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 600px) {
