@@ -9,6 +9,7 @@ import { useEngine, useStore } from "../../../src/data/store";
 import { TeamHotspots } from "../../../src/ui/bodyMap";
 import { Icon } from "../../../src/ui/icons";
 import { TeamMarksCard } from "../../../src/ui/marks";
+import { missingEmergency } from "../../../src/core/emergency";
 import { Banner, Bar, Btn, Card, CardTitle, Chip, Col, Group, Header, Info, ListItem, Muted, NavRow, Row, Screen, SearchField, Section, Seg, T } from "../../../src/ui/kit";
 import { TermInfo } from "../../../src/ui/termInfo";
 import { usePlanSheets } from "../../../src/ui/plan/sheets";
@@ -93,6 +94,17 @@ export default function Kader() {
           <Muted small>{t("kd_newAppD")}</Muted>
         </Col>
       </Banner> : null}
+      {(s.can("squad") || s.can("health")) && missingEmergency(E.D).length ? (
+        <Pressable testID="kader-emergency" accessibilityRole="button" onPress={() => router.push("/coach/notfall")}>
+          <Banner color={c.crit}>
+            <Row gap={10}>
+              <Icon name="phone" size={18} color={c.crit} strokeWidth={2.2} />
+              <T v="small" bold style={{ flex: 1 }}>{(n => tf(n === 1 ? "nf_missing1" : "nf_missingN", { n }))(missingEmergency(E.D).length)}</T>
+              <Icon name="chevron" size={16} color={c.muted} />
+            </Row>
+          </Banner>
+        </Pressable>
+      ) : null}
       <SearchField testID="kader-search" value={q} onChange={setQ} placeholder={t("search")} clearLabel={t("cancel")} />
       {/* Filter: Positionen und Gruppen, dahinter Belastung (mit Anzahl) – eine waagerecht scrollbare Zeile */}
       <Col gap={8} testID="kader-filters">

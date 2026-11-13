@@ -76,6 +76,7 @@ const BASE: StatDef[] = [
   D_("minPct", "games", "high", "avg", 0, { unit: "%" }),
   D_("goals", "games", "high", "sum", 0),
   D_("assists", "games", "high", "sum", 0),
+  D_("pre", "games", "high", "sum", 0),
   D_("scorer", "games", "high", "sum", 0),
   D_("clean", "games", "high", "sum", 0, { gk: true }),
   D_("conc", "games", "low", "sum", 0, { gk: true }),
@@ -99,7 +100,7 @@ export function statsFor(E: Engine, health: boolean): StatDef[] {
     acwr: !!m.belastung && E.lvl(2), load: !!m.belastung, rpe: !!m.belastung, rpeRate: !!m.belastung && !!m.beteiligung, extra: !!m.belastung,
     well: !!m.belastung, sleep: !!m.belastung, wellRate: !!m.belastung,
     rateG: !!m.spielanalyse, marks: true,
-    games: !!m.spielanalyse, starts: !!m.spielanalyse, min: !!m.spielanalyse, minPct: !!m.spielanalyse, goals: !!m.spielanalyse, assists: !!m.spielanalyse, scorer: !!m.spielanalyse, clean: !!m.spielanalyse, conc: !!m.spielanalyse, saves: !!m.spielanalyse,
+    games: !!m.spielanalyse, starts: !!m.spielanalyse, min: !!m.spielanalyse, minPct: !!m.spielanalyse, goals: !!m.spielanalyse, assists: !!m.spielanalyse, pre: !!m.spielanalyse, scorer: !!m.spielanalyse, clean: !!m.spielanalyse, conc: !!m.spielanalyse, saves: !!m.spielanalyse,
     devC: !!m.entwicklung, devS: !!m.entwicklung,
     absDays: health, inj: health,
   };
@@ -246,6 +247,8 @@ export function statValue(E: Engine, pid: string, def: StatDef, r: Range): StatV
     case "minPct": { const v = sum(L.map(x => x.min)) / (ms.length * E.matchMin()) * 100; return { v: Math.min(100, v) }; }
     case "goals": return { v: sum(L.map(x => x.goals)) };
     case "assists": return { v: sum(L.map(x => x.assists)) };
+    // Pre-Assists: nur Spiele, in denen sie erfasst sind (sonst „–“ statt 0)
+    case "pre": { const L2 = L.filter(x => typeof x.pre === "number"); return { v: L2.length ? sum(L2.map(x => x.pre!)) : null, n: L2.length }; }
     case "scorer": return { v: sum(L.map(x => x.goals + x.assists)) };
     // Torhüter: nur Spiele, in denen Gegentore bzw. Paraden erfasst sind (sonst „–“ statt 0)
     case "clean": { const L2 = played.filter(x => x.conceded != null); return { v: L2.length ? L2.filter(x => x.min >= Math.min(60, E.matchMin()) && x.conceded === 0).length : null }; }

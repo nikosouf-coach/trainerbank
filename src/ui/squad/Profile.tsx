@@ -13,12 +13,14 @@ import { canDirect, chatSettings } from "../../core/chat";
 import { moveTargets } from "../../core/club";
 import { diff } from "../../core/dates";
 import { assessmentsOf, goalProgress, goalsOf } from "../../core/dev";
+import { programOf, programStatus } from "../../core/program";
 import type { Player } from "../../core/types";
 import { divesIn } from "../../core/units";
+import { shareTextFile } from "../../data/files";
 import { useEngine, useStore } from "../../data/store";
 import { BodyMapView } from "../bodyMap";
 import { LoadChart, Ring } from "../charts";
-import { MoveSheet } from "../club";
+import { Confirm, MoveSheet } from "../club";
 import { Icon, type IconName } from "../icons";
 import { MyTarget } from "../indiv";
 import { InjuryCard, currentInjury } from "../injury";
@@ -30,11 +32,12 @@ import { PlayerAvatar } from "../playerAvatar";
 import { TermInfo } from "../termInfo";
 import { radius, statusColor, useTheme } from "../theme";
 import { GroupChip } from "./Groups";
+import { EmergencySection } from "../emergency";
 import { MergeSheet, PlayerSheet } from "./PlayerForm";
 import { ExtraCard, GamesCard, PotCard, RecCard } from "./ProfileCards";
 
-export type SecKey = "load" | "health" | "rec" | "perf" | "games" | "pot" | "abs" | "notes";
-export const SEC_KEYS: SecKey[] = ["load", "health", "rec", "perf", "games", "pot", "abs", "notes"];
+export type SecKey = "load" | "health" | "rec" | "perf" | "games" | "pot" | "abs" | "notes" | "privacy";
+export const SEC_KEYS: SecKey[] = ["load", "health", "rec", "perf", "games", "pot", "abs", "notes", "privacy"];
 
 /** Aktuelle Krankmeldung (Verletzungen laufen über currentInjury) */
 function sickNow(E: ReturnType<typeof useEngine>, pid: string) {
@@ -74,12 +77,13 @@ function useSections(p: Player | undefined) {
       value: mods.spielanalyse && ss.avg != null ? E.num(ss.avg, 1) : null });
   }
   if (mods.entwicklung) {
-    // Kurzfassung: neue Selbsteinschätzung bzw. noch nie eingeschätzt, laufende Ziele (davon hinter Plan), nächstes Gespräch – Details auf der Entwicklungsseite
+    // Kurzfassung: Entwicklungsprogramm, neue Selbsteinschätzung bzw. noch nie eingeschätzt, laufende Ziele (davon hinter Plan), nächstes Gespräch – Details auf der Entwicklungsseite
     const goals = goalsOf(E.D, p.id).filter(g => g.status === "active"), behind = goals.filter(g => goalProgress(E.D, g, E.TODAY).behind).length;
     const coach = assessmentsOf(E.D, p.id, "coach")[0], self = assessmentsOf(E.D, p.id, "self")[0], selfNew = !!self && (!coach || self.date > coach.date);
     const talk = E.D.talks.filter(x => x.pid === p.id).sort((a, b) => a.date < b.date ? 1 : -1)[0], due = !!talk?.next && talk.next <= E.TODAY;
-    L.push({ k: "dev", icon: "trend", color: c.event, title: t("dv_title"), subLines: 2,
-      sub: [selfNew ? t("dv_ovSelfNew") : !coach ? t("ps_notAssessed") : "", goals.length ? tf("ps_goals", { n: goals.length }) + (behind ? ", " + tf("dv_ovBehind", { n: behind }) : "") : t("ps_noGoals"), talk?.next ? `${t("dv_ovTalk")} ${E.de(talk.next)}` : ""].filter(Boolean).join(" · "),
+    const prog = programStatus(programOf(E.D, p.id));
+    L.push({ k: "dev", icon: "weg", color: c.event, title: t("dv_title"), subLines: 2,
+      sub: [prog === "none" ? t("ep_status_none") : `${t("ep_ovProg")}: ${t("ep_status_" + prog)}`, selfNew ? t("dv_ovSelfNew") : !coach ? t("ps_notAssessed") : "", goals.length ? tf("ps_goals", { n: goals.length }) + (behind ? ", " + tf("dv_ovBehind", { n: behind }) : "") : t("ps_noGoals"), talk?.next ? `${t("dv_ovTalk")} ${E.de(talk.next)}` : ""].filter(Boolean).join(" · "),
       value: due ? t("ps_due") : selfNew ? t("newP") : null, valueColor: due || selfNew ? c.warn : undefined });
   }
   const pot = (E.D.pot[p.id] || []).length;
@@ -90,6 +94,7 @@ function useSections(p: Player | undefined) {
   }
   const note = (E.D.notes[p.id] || "").trim();
   L.push({ k: "notes", icon: "note", color: c.muted, title: t("notes"), sub: note ? note.split("\n")[0] : t("ps_noNote") });
+  L.push({ k: "privacy", icon: "shield", color: c.muted, title: t("dsp_title"), sub: t("dsp_sub") });
   return L;
 }
 
@@ -191,8 +196,8 @@ export function ProfileOverview({ id }: { id: string }) {
       </Row>
       {wide ? <Row align="flex-start" gap={24}>
         <Col gap={20} style={{ flex: 1, minWidth: 0 }}>{head}{kpis}</Col>
-        <Col gap={20} style={{ flex: 1, minWidth: 0 }}>{list}</Col>
-      </Row> : <>{head}{kpis}{list}</>}
+        <Col gap={20} style={{ flex: 1, minWidth: 0 }}>{list}<EmergencySection p={p} /></Col>
+      </Row> : <>{head}{kpis}{list}<EmergencySection p={p} /></>}
       <PlayerSheet player={edit} onClose={() => { setEdit(undefined); if (!E.P(id)) goBack(); }} />
       <MergeSheet newPlayer={merge} onClose={() => { setMerge(null); if (!E.P(id)) router.replace("/coach/kader"); }} />
       <MoveSheet player={move} onClose={moved => { setMove(null); if (moved) router.replace("/coach/kader"); }} />
@@ -318,6 +323,44 @@ function NotesSection({ p }: { p: Player }) {
   );
 }
 
+/** Datenschutz: Auskunft über alle Daten des Spielers (Owner) und Gesundheitsdaten löschen (Recht „Gesundheitsdaten“) */
+function PrivacySection({ p }: { p: Player }) {
+  const s = useStore(); const E = useEngine(); const { t, tf } = E;
+  const [ask, setAsk] = useState(false), [busy, setBusy] = useState(false);
+  const owner = s.active?.role === "owner", health = s.can("health"), med = s.can("medical");
+  const nFind = E.D.findings.filter(f => f.pid === p.id).length, nm = E.name(p);
+  const doExport = async () => {
+    setBusy(true);
+    try {
+      const data = await s.playerExport(p.id);
+      const slug = `${p.vn}-${p.nn}`.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "spieler";
+      await shareTextFile(`trainerstab-auskunft-${slug}-${E.TODAY}.json`, JSON.stringify(data, null, 2));
+      s.toast(t("dsp_exportDone"));
+    } catch (e) { s.toast(s.errText(e)); } finally { setBusy(false); }
+  };
+  const doErase = async () => { setBusy(true); try { if (await s.eraseHealth(p.id)) setAsk(false); } finally { setBusy(false); } };
+  return (
+    <>
+      <Section pad testID="profile-privacy">
+        <Muted>{t("dsp_intro")}</Muted>
+      </Section>
+      <Section title={t("dsp_exportT")} pad testID="dsp-export">
+        <Muted>{tf("dsp_exportD", { n: nm })}</Muted>
+        {owner ? <Btn small testID="dsp-export-btn" icon="export" label={t("dsp_export")} disabled={busy} onPress={doExport} style={{ alignSelf: "flex-start" }} />
+          : <Muted small>{t("dsp_exportOwner")}</Muted>}
+      </Section>
+      <Section title={t("dsp_eraseT")} pad testID="dsp-erase">
+        <Muted>{tf("dsp_eraseD", { n: nm })}</Muted>
+        {nFind ? <Muted small>{tf(med ? "dsp_eraseFind" : "dsp_eraseFindNo", { k: nFind })}</Muted> : null}
+        <Muted small>{t("dsp_eraseApp")}</Muted>
+        {!health ? <Muted small>{t("dsp_eraseNoPerm")}</Muted>
+          : ask ? <Confirm danger testID="dsp-erase-q" text={tf("dsp_eraseQ", { n: nm })} yes={t("dsp_eraseYes")} busy={busy} onNo={() => setAsk(false)} onYes={doErase} />
+          : <Btn small kind="danger" testID="dsp-erase-btn" icon="trash" label={t("dsp_erase")} disabled={busy} onPress={() => setAsk(true)} style={{ alignSelf: "flex-start" }} />}
+      </Section>
+    </>
+  );
+}
+
 /** Bereichsseite des Profils */
 export function ProfileSection({ id, sec }: { id: string; sec: string }) {
   const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
@@ -326,7 +369,7 @@ export function ProfileSection({ id, sec }: { id: string; sec: string }) {
   if (!p) return <Screen narrow testID="coach-spieler-sec"><Header title={t("nav_kader")} onBack={back(router, "/coach/kader")} backLabel={t("nav_kader")} /><Muted>{t("err_not_found")}</Muted></Screen>;
   const k = (SEC_KEYS as string[]).includes(sec) ? sec as SecKey : "load";
   const pr = E.profile(p.id), adv = E.advice(pr);
-  const title = { load: t("ps_load"), health: t("ps_health"), rec: t("rec_title"), perf: t("lt_title"), games: t("pr_games"), pot: t("pot_title"), abs: t("abs"), notes: t("notes") }[k];
+  const title = { load: t("ps_load"), health: t("ps_health"), rec: t("rec_title"), perf: t("lt_title"), games: t("pr_games"), pot: t("pot_title"), abs: t("abs"), notes: t("notes"), privacy: t("dsp_title") }[k];
   // Befund in einem Satz (wo es einen gibt)
   const inj = currentInjury(E, p.id), injOn = !!inj && (!inj.bis || inj.bis >= E.TODAY), sick = injOn ? null : sickNow(E, p.id);
   const sub = k === "load" ? (E.lvl(1) && adv ? adv : pr.st !== "none" ? t("st_" + pr.st) : undefined)
@@ -342,6 +385,7 @@ export function ProfileSection({ id, sec }: { id: string; sec: string }) {
     pot: <PotCard p={p} />,
     abs: <AbsSection p={p} />,
     notes: <NotesSection p={p} />,
+    privacy: <PrivacySection p={p} />,
   }[k];
   return (
     <Screen narrow testID={"coach-spieler-" + k}>

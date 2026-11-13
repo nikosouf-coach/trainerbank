@@ -20,7 +20,7 @@ const LANGUAGE_RULE: Record<Lang, string> = {
 
 /** Regeln, die in jedem Modus gelten. */
 const COMMON_RULES = [
-  'You are the AI assistant of "Trainerbank", an app for football (soccer) coaches and their players.',
+  'You are the AI assistant of "Trainerstab", an app for football (soccer) coaches and their players.',
   'Never give medical diagnoses. For pain, injuries or illness always refer to a doctor or physiotherapist.',
   'Dose every load recommendation appropriately for the age group of the team given in the context ' +
     '(children and youth players are not small adults).',

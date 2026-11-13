@@ -1,0 +1,17 @@
+{
+  "app": "Trainerstab",
+  "url": "https://trainerstab.app",
+  "email": "kontakt@trainerstab.app",
+  "publisher": {
+    "name": "Nikolas Swehla",
+    "business": "Trainerstab",
+    "street": "Am Lindenbruch 26",
+    "postcode": "45327",
+    "city": "Essen",
+    "country": "Deutschland",
+    "countryEn": "Germany",
+    "phone": "",
+    "vatId": ""
+  },
+  "install": { "ios": "", "android": "" }
+}

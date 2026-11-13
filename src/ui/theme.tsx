@@ -1,4 +1,4 @@
-// Farben, Abstände und Typografie (Erscheinungsbild „Trainerbank“, Leitfaden: docs/DESIGN.md). Hell/Dunkel: wie das
+// Farben, Abstände und Typografie (Erscheinungsbild „Trainerstab“, Leitfaden: docs/DESIGN.md). Hell/Dunkel: wie das
 // System oder fest gewählt (Konto → Darstellung). Neutraltöne mit einem Hauch Grün-Grau (Kreide auf Rasen), Farbe nur mit
 // Bedeutung: Statusfarben für Belastung und Gesundheit, die Vereinsfarbe (Akzent) für das Wichtigste einer Seite.
 import React, { createContext, useContext, useMemo } from "react";

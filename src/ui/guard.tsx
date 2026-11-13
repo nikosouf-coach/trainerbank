@@ -1,5 +1,5 @@
 // Leitet auf den richtigen Bereich um (Anmeldung, Start, Trainer- oder Spieler-App).
-import React from "react";
+import React, { useEffect } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Redirect } from "expo-router";
 import { useStore } from "../data/store";
@@ -10,7 +10,8 @@ export function targetPath(s: ReturnType<typeof useStore>): string {
   if (s.phase === "signedOut") return "/welcome";
   if (s.phase === "noTeam") return "/start";
   if (s.phase === "pending") return "/pending";
-  if (s.phase === "ready") return s.viewAs === "player" ? (s.mePid ? "/player/heute" : "/demo-player") : "/coach/heute";
+  if (s.phase === "parent") return "/parent";
+  if (s.phase === "ready") return s.viewAs === "parent" ? "/parent" : s.viewAs === "player" ? (s.mePid ? "/player/heute" : "/demo-player") : "/coach/heute";
   return "/";
 }
 export function Splash() {
@@ -22,10 +23,20 @@ export function Splash() {
     </View>
   );
 }
+/** Trainer oder Spieler mit eigenen Kindern öffnet die Eltern-Ansicht (z. B. über „Mehr“ bzw. „Ich“) */
+function EnterParent() {
+  const s = useStore();
+  useEffect(() => { s.setParentMode(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return <Splash />;
+}
 /** In Layouts: nur rendern, wenn der Bereich zur Rolle passt. */
-export function Guard({ area, children }: { area: "coach" | "player"; children: React.ReactNode }) {
+export function Guard({ area, children }: { area: "coach" | "player" | "parent"; children: React.ReactNode }) {
   const s = useStore();
   if (s.phase === "loading") return <Splash />;
+  if (area === "parent") {
+    if (s.viewAs !== "parent") return s.phase === "ready" && !s.isDemo && s.myChildren.length ? <EnterParent /> : <Redirect href={targetPath(s)} />;
+    return s.parent ? <>{children}</> : <Splash />;
+  }
   if (s.phase !== "ready" || !s.D || s.viewAs !== area) return <Redirect href={targetPath(s)} />;
   if (area === "player" && !s.mePid) return <Redirect href="/demo-player" />;
   return <>{children}</>;

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =====================================================================
-# Trainerbank – lokale Datenbanktests (ohne Docker / Supabase CLI)
+# Trainerstab – lokale Datenbanktests (ohne Docker / Supabase CLI)
 #
 # Startet einen Wegwerf-Postgres-Cluster, legt Supabase-Platzhalter an
 # (Rollen anon/authenticated/service_role, Schemas auth und storage),
@@ -9,7 +9,7 @@
 # Aufruf:  supabase/tests/run.sh
 # Variablen (optional):
 #   PGBIN       Postgres-Binärdateien   (Standard: /usr/lib/postgresql/16/bin)
-#   PGTEST_DIR  Arbeitsverzeichnis      (Standard: ${TMPDIR:-/tmp}/trainerbank-pgtest)
+#   PGTEST_DIR  Arbeitsverzeichnis      (Standard: ${TMPDIR:-/tmp}/trainerstab-pgtest)
 #   PGTEST_PORT Port                    (Standard: 54329)
 #   KEEP_DB=1   Cluster nach dem Lauf nicht stoppen (zum Nachschauen)
 # Als root wird Postgres als OS-Benutzer "postgres" gestartet.
@@ -20,12 +20,12 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SUPABASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 PGBIN="${PGBIN:-/usr/lib/postgresql/16/bin}"
-BASE="${PGTEST_DIR:-${TMPDIR:-/tmp}/trainerbank-pgtest}"
+BASE="${PGTEST_DIR:-${TMPDIR:-/tmp}/trainerstab-pgtest}"
 PORT="${PGTEST_PORT:-54329}"
 DATA="$BASE/data"
 LOG="$BASE/postgres.log"
 OUT="$BASE/test-output.log"
-DB="trainerbank_test"
+DB="trainerstab_test"
 
 # Als root: Serverprozesse als "postgres" ausführen
 if [ "$(id -u)" -eq 0 ]; then

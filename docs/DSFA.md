@@ -1,4 +1,4 @@
-# Datenschutz-Folgenabschätzung (DSFA) – Trainerbank
+# Datenschutz-Folgenabschätzung (DSFA) – Trainerstab
 
 > **ENTWURF – vor Verwendung anwaltlich bzw. durch den Datenschutzbeauftragten prüfen lassen.**
 > Vorlage nach Art. 35 DSGVO, vorausgefüllt auf Grundlage von `docs/ARCHITEKTUR.md` (Stand der Architektur, nicht
@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Verantwortlicher | [Herausgeber], [Anschrift], [E-Mail] |
+| Verantwortlicher | Nikolas Swehla, Am Lindenbruch 26, 45327 Essen, kontakt@trainerstab.app |
 | Datenschutzbeauftragter | [Name, Kontakt] – Stellungnahme siehe Abschnitt 11 |
-| Verarbeitungstätigkeit | Betrieb der App „Trainerbank“ (iOS, Android, Web) zur Trainings- und Mannschaftsorganisation mit Belastungssteuerung |
+| Verarbeitungstätigkeit | Betrieb der App „Trainerstab“ (iOS, Android, Web) zur Trainings- und Mannschaftsorganisation mit Belastungssteuerung |
 | Version / Datum | [0.1] / [TT.MM.JJJJ] |
 | Erstellt von | [Name, Funktion] |
 | Beteiligt | [Entwicklung], [DSB], [Vertreter eines Pilotvereins], [Elternvertreter] |
@@ -60,6 +60,22 @@ Mitarbeiterzahl).
 5b. Kaderplanung & Scouting: Planung der nächsten Saison (Schattenkader je Position, Stand der eigenen Spieler,
    Altersgrenze, Aufrücker aus jüngeren Teams des Vereins) und Beobachtung von Spielern anderer Teams und Vereine
    (sportliche Eindrücke, Berichte, Status bis zur Zusage).
+5c. Notfallkontakte: im Notfall (Unfall, medizinischer Notfall bei Training, Spiel oder Fahrt) schnell eine Person
+   erreichen, die der Spieler angegeben hat; freiwillige Hinweise für den Notfall (Gesundheitsdaten).
+5d. Größen & Ausrüstung: Kleider- und Schuhgrößen für Sammelbestellungen; Bestellliste (CSV oder Text), die das
+   Trainerteam selbst weitergibt (z. B. an einen Ausrüster).
+5e. Kader-Nominierung: Kader fürs Spiel (im Kader oder auf Abruf) mit Treffpunkt veröffentlichen; Zu- und Absagen der
+   Spieler, wenn das Trainerteam Absagen durch Spieler erlaubt.
+5f. Fahrgemeinschaften: Fahrten zu Spielen und Terminen mit freien Plätzen und Abfahrt anbieten, mitfahren, eine
+   Mitfahrgelegenheit suchen; Zuordnung durch das Trainerteam.
+5g. Karten und Sperren: Karten im Spielbericht, daraus Sperren nach den Regeln des Verbands, eingetragene Urteile und
+   sonstige Sperren – damit gesperrte Spieler nicht nominiert werden.
+5h. Geburtstage (aus dem vorhandenen Geburtsdatum, nur fürs Trainerteam; Glückwunsch für den Spieler), Foto-Erlaubnis je
+   Kanal (Website, Social Media, Presse und Druck, Name) als Nachweis vor dem Veröffentlichen, Unfallmeldungen
+   (Gesundheitsdaten) für die Meldung an Verein und Sportversicherung.
+5i. Eltern-Zugang: Eltern minderjähriger Spieler mit eigenem Konto (nach Bestätigung durch das Trainerteam) sehen
+   Termine, Abwesenheiten und Nominierungen ihres Kindes, melden ab, sagen zu oder ab, lesen Elterninfos und geben für
+   Kinder unter 16 die Einwilligungen (geprüfte Einwilligung nach Art. 8 Abs. 2 DSGVO).
 6. Erinnerungen per Push-Mitteilung.
 7. Betrieb, Sicherheit, Missbrauchsbegrenzung, Nachweis von Einwilligungen.
 
@@ -71,8 +87,9 @@ Mitarbeiterzahl).
 | Funktionäre im Verein (Vereinsadmin, sportliche Leitung, NLZ-/Jugendleitung, Koordination) | Erwachsene | [Anzahl] |
 | Spieler mit Konto | ab [Mindestalter] bis Erwachsene, Schwerpunkt 14–18 | [Anzahl] |
 | Spieler ohne Konto | ab ca. 7 Jahren (U7 ggf. jünger) | [Anzahl] |
-| Erziehungsberechtigte | Erwachsene | [Anzahl] (nur E-Mail-Adresse) |
+| Erziehungsberechtigte | Erwachsene | [Anzahl] (E-Mail-Adresse bei der Einwilligung; im Eltern-Zugang mit eigenem Konto, höchstens zwei je Kind) |
 | Beobachtete Spieler (Scouting) – nutzen die App nicht | Schwerpunkt Jugend (ca. 12–19 Jahre), auch Erwachsene | [Anzahl] |
+| Notfallkontakte (Eltern, Angehörige, Vertrauenspersonen) – nutzen die App in dieser Rolle nicht | überwiegend Erwachsene | bis zu zwei je Spieler |
 
 ### 2.3 Datenkategorien
 
@@ -93,8 +110,24 @@ Siehe Tabelle in `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 4. Zusammengefasst:
   Aufrücker (Name, Position, Jahrgang, Team); externe Spieler mit Name, Jahrgang/Geburtsdatum, Positionen, Fuß,
   Größe, Verein, Status, Priorität, Einschätzung, Merkmalen, Kontaktweg, Videolink, Notiz und Berichten (Bewertung 1–5,
   Empfehlung, Freitexte), Datum der Information nach Art. 14 – **keine Gesundheitsdaten, keine Fotos**.
+- **Notfallkontakte:** je Spieler ein bis zwei Personen mit Name, Beziehung (feste Liste) und Telefonnummer, wer
+  zuletzt geändert hat; **Hinweise für den Notfall** als Freitext (z. B. Allergie, Asthma, Notfallmedikament) –
+  Gesundheitsdaten (Art. 9).
+- **Größen:** Oberteil, Hose, Schuhe, Torwarthandschuhe, Name für die Beflockung, Hinweis – keine Gesundheitsdaten.
+- **Kader-Nominierung:** Spiel, im Kader oder auf Abruf, Treffpunkt, Hinweis, Zu-/Absage mit freiwilligem Grund (Freitext,
+  kann Gesundheitsbezug haben, z. B. „krank“), Zeitpunkt, Antwort durch das Trainerteam.
+- **Fahrgemeinschaften:** Spiel oder Termin, Fahrer (Spieler bzw. Eltern als Bezeichnung wie „Mama von Max“, oder
+  Trainerteam), Plätze, Abfahrt (Uhrzeit, Ort), Hinweis (Freitext), Mitfahrer, Suchende – keine Adressen, keine
+  Telefonnummern (Hinweis in der App), keine Gesundheitsdaten.
+- **Karten und Sperren:** Karte je Spiel (Gelb, Gelb-Rot, Rot), eingetragene Sperren (Grund, Spiel, Beginn, Spiele oder
+  Ende, Geltungsbereich, Hinweis als Freitext) – sportliche Disziplinarmaßnahmen des Verbands; nach unserer Einschätzung
+  keine Daten über Straftaten im Sinne von Art. 10 DSGVO (rechtlich prüfen lassen).
+- **Eltern-Zugang:** Verknüpfung Elternkonto ↔ Kind (Name, Beziehung aus fester Liste, Stand, wer wann bestätigt hat,
+  Verlängerung durch das volljährige Kind), Einladungscode nur als Hash (Ablauf, verbleibende Nutzungen), falsche
+  Codes mit Zeitpunkt, Lese- und Bestätigungsstand der Elterninfo; Elterninfo (Titel, Text, Verfasser). Was Eltern
+  eintragen, ist gekennzeichnet (Abmeldungen, Zu-/Absagen, Einwilligungen mit `player_id`, Foto-Erlaubnis).
 - **Technische Daten:** Push-Token, KI-Nutzungszähler, Server-Protokolle.
-- **Einwilligungsnachweise** inkl. E-Mail der Erziehungsberechtigten.
+- **Einwilligungsnachweise** inkl. E-Mail der Erziehungsberechtigten bzw. Einwilligungen der Eltern im Eltern-Zugang.
 
 ### 2.4 Systeme und Datenflüsse
 
@@ -140,9 +173,20 @@ Siehe Tabelle in `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 4. Zusammengefasst:
 | `my_test_ranks` (RPC) | – | eigener Platz je Test (ab 5 Werten), optional Teambestwert ohne Namen | nein | – |
 | `scout_players`, `scout_reports`, `scout_lists`, `squad_plans` | nur mit Recht „scout“ | nein | nein | dto. |
 | `club_risers` (RPC) | mit Recht „scout“: Spieler jüngerer Teams des Vereins (nur Name, Position, Jahrgang, Team) | nein | nein | – |
+| `player_guardians` | mit Recht „squad“: lesen, bestätigen, ablehnen, lösen (RPCs) | eigene Verknüpfungen lesen; volljährig verlängern oder lösen | nein | dto. |
+| `guardian_invites` (ohne `code_hash`), `guardian_code_attempts` | mit Recht „squad“: Einladungen lesen, erstellen (`guardian_invite_create`) | nein | nein | dto. |
+| `parent_posts`, `parent_post_reads` | mit Recht „squad“: schreiben, Lesestand lesen | nein | nein | dto. |
 
 Die Rollen Owner, Coach und Physio haben laut Architektur dieselben Datenrechte; nur `regenerate_codes` ist dem
 Owner vorbehalten.
+
+**Eltern** (bestätigt, Kind minderjährig bzw. vom volljährigen Kind verlängert, Modul im Team an) haben keinen
+direkten Zugriff auf Tabellen des Teams: Sie bekommen nur über `guardian_child_data` ein Paket für ihr eigenes Kind
+(Team ohne Codes, Termine im Zeitfenster −14 bis +60 Tage, Abwesenheiten ohne Stufe und Notiz – Krankheit und
+Verletzung nur bei eigenen Abmeldungen, sonst ohne Art –, veröffentlichte Nominierungen mit Treffpunkt ohne Kaderliste,
+Foto-Erlaubnis, eigene Einwilligungen, Elterninfo der letzten 120 Tage) und schreiben nur über eigene RPCs
+(`guardian_absence`, `guardian_answer`, `guardian_consent`, `parent_post_read`, `photo_consent_save`). Die Elterninfo
+lesen sie über RLS (`is_guardian_in_team`).
 
 ### 2.6 Auftragsverarbeiter und Empfänger
 
@@ -157,8 +201,9 @@ Owner vorbehalten.
 
 ### 2.7 Speicherdauer
 
-Vorschlag siehe `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 16 (u. a. Gesundheitsdaten: sofort bei Kontolöschung oder
-Widerruf, sonst 24 Monate nach letzter Aktivität). **Automatische Löschroutinen sind noch nicht umgesetzt.**
+Siehe `docs/DATENSCHUTZERKLAERUNG.md`, Abschnitt 16, und `docs/TOM.md`, Abschnitt 4. Die automatischen Löschroutinen
+sind umgesetzt (M-11, M-39): u. a. Gesundheitsdaten sofort bei Kontolöschung, 30 Tage nach Widerruf, 6 Monate nach
+Deaktivierung, Belastungsdaten 24 Monate nach dem Eintrag.
 
 ---
 
@@ -215,13 +260,13 @@ prüfen:** ob Gesundheitsmodule für Kinderteams (z. B. U7–U11) standardmäßi
 
 ### 3.4 Speicherbegrenzung, Richtigkeit, Transparenz, Betroffenenrechte
 
-- Speicherbegrenzung: Löschkonzept vorgeschlagen; Umsetzung offen (siehe M-11).
+- Speicherbegrenzung: Löschkonzept umgesetzt und getestet (M-11, M-39).
 - Richtigkeit: Eingabebereiche per Datenbank-Constraint begrenzt (RPE 0–10, Minuten 1–300, Wellness 1–7, Schlaf
   0–16 h); Spieler können eigene Daten einsehen; Korrektur durch Spieler bzw. Trainerteam.
 - Transparenz: Datenschutzerklärung mit Kurzfassung für Kinder, Einwilligungstexte mit Kurz- und Langfassung,
   Kennzeichnung von KI-Antworten, Info-Texte mit wissenschaftlichen Quellen.
-- Betroffenenrechte: Export (JSON) und Kontolöschung in der App; Widerruf in der App [umzusetzen]; Auskunft und
-  Widerspruch per E-Mail.
+- Betroffenenrechte: Export (JSON), Kontolöschung und Widerruf in der App; für Spieler ohne Konto Auskunft und
+  Löschen der Gesundheitsdaten durch das Trainerteam (M-40); Ablauf für Anfragen in `docs/DATENPANNEN.md`, Teil B.
 
 ### 3.5 Drittlandübermittlungen
 
@@ -289,6 +334,17 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | R39 | **Matchplan:** Spieler erfahren über die App (statt persönlich), dass sie nicht im Kader oder nicht in der Startelf stehen; Aufgaben/Kritik an einzelnen werden für alle sichtbar; das **Zugriffsprotokoll** wird als Überwachung empfunden oder gegen Spieler verwendet („hat den Plan nicht gelesen“) | Spieler, v. a. Jugendliche | psychischer Druck, Bloßstellung, Gefühl der Kontrolle | 2 | 2 | gering |
 | R40 | **Verein:** Funktionäre sehen mehr Teams und Daten als nötig (z. B. Gesundheitsdaten ganzer Jahrgänge); Daten wandern beim **Hochziehen/Wechsel** unbemerkt in ein anderes Team; Zugriffe bleiben nach dem Ausscheiden eines Funktionärs oder dem Lösen eines Teams bestehen; Vereinsübersicht wird zum Leistungsvergleich einzelner Spieler genutzt | Spieler, v. a. Jugendliche | Offenlegung über das Erforderliche hinaus, Kontrollverlust | 2 | 3 | Risiko |
 | R41 | **Kaderplanung & Scouting:** externe, oft minderjährige Spieler werden ohne ihr Wissen bewertet und dauerhaft gespeichert; Freitexte enthalten Gesundheitsangaben oder abwertende Urteile; Bewertungen werden an Dritte weitergegeben; eigene Spieler erfahren unvermittelt von ihrer Planung („Abgang“); die Aufrücker-Liste legt Daten jüngerer Teams über das Nötige hinaus offen | externe Spieler, eigene Spieler, Spieler jüngerer Teams | Kontrollverlust, Stigmatisierung, Nachteile beim Vereinswechsel | 3 | 3 | **hoch** |
+| R42 | **Entwicklungsprogramm & Stärken-Runde:** Mitspieler-Rückmeldungen werden zum Beliebtheitswettbewerb oder zum Mittel der Ausgrenzung (wer keine Stärken erhält, fühlt sich zurückgesetzt; abwertende Botschaften über eigene Begriffe); Spieler erfahren, wer ihnen was geschenkt hat; das Programm wird als Urteil empfunden oder erreicht den Spieler unvermittelt | Spieler, v. a. Jugendliche | psychischer Druck, Ausgrenzung, Offenlegung | 2 | 3 | Risiko |
+| R43 | **Umfragen:** Antworten in anonymen Umfragen lassen sich einzelnen Spielern zuordnen (kleine Gruppen, Zeitpunkt der Antwort, Inhalt der Freitexte); Antworten mit Namen setzen unter Druck oder werden vor der Mannschaft bloßgestellt; Spieler-Abstimmungen dienen dem Mobbing („Wer ist der Schlechteste?“); Freitexte enthalten Gesundheitsangaben oder Beleidigungen; Einstellungen werden nach den ersten Antworten verändert (z. B. anonym → mit Namen) | Spieler, v. a. Jugendliche | Offenlegung, psychischer Druck, Ausgrenzung | 2 | 2 | gering |
+| R44 | **Notfallkontakte:** Telefonnummern Dritter (Eltern, Angehörige) werden ohne deren Wissen gespeichert oder für andere Zwecke genutzt (z. B. Elterngruppen, Werbung); Hinweise für den Notfall (Allergien, Vorerkrankungen, Medikamente) werden für Mitspieler, Funktionäre oder Trainerteam-Mitglieder ohne Recht sichtbar; im Notfall fehlt der Kontakt, ist veraltet oder ohne Netz nicht abrufbar | Spieler, Kontaktpersonen | Offenlegung von Gesundheitsdaten, Schaden durch verspätete Hilfe | 2 | 3 | Risiko |
+| R45 | **Größen & Bestelllisten:** Die exportierte Bestellliste (Namen und Nummern, oft Minderjähriger) wird an Dritte weitergegeben, breit gestreut (z. B. in Elterngruppen) oder nicht gelöscht; Hinweise enthalten Gesundheitsangaben („wegen Knieorthese …“) | Spieler, v. a. Jugendliche | Offenlegung | 2 | 1 | gering |
+| R46 | **Kader-Nominierung:** Spieler erfahren über die App (statt persönlich), dass sie nicht im Kader stehen, oder sehen Antworten und Gründe anderer; Absagegründe enthalten Gesundheitsangaben; Druck, trotz Krankheit zuzusagen; Antworten werden nachträglich ohne Kennzeichnung durch das Trainerteam geändert | Spieler, v. a. Jugendliche | Bloßstellung, psychischer Druck, Offenlegung von Gesundheitsangaben | 2 | 2 | gering |
+| R47 | **Fahrgemeinschaften:** Wohnorte, Familienverhältnisse oder finanzielle Lage werden ableitbar (wer nie fährt, wer immer sucht); Freitexte enthalten Adressen oder Telefonnummern; Kinder werden ohne Wissen der Eltern einer Fahrt zugeordnet oder fallen nach einer abgesagten Fahrt unbemerkt heraus; fremde Erwachsene erscheinen als Fahrer | Spieler, v. a. Kinder; Eltern | Bloßstellung, Kinderschutz, Sicherheit | 2 | 2 | gering |
+| R48 | **Karten und Sperren:** Spieler werden durch Sperren bloßgestellt oder abgestempelt (Liste „Gesperrt“, Gelb-Warnung); Freitexte zu Urteilen enthalten mehr als nötig (z. B. Beleidigungen, Vorwürfe); falsch berechnete Sperren führen zu falscher Nominierung oder zum Einsatz eines gesperrten Spielers | Spieler, v. a. Jugendliche | Bloßstellung, sportrechtliche Folgen für Spieler und Verein | 2 | 2 | gering |
+| R49 | **Foto-Erlaubnis:** Fotos Minderjähriger werden ohne gültige Einwilligung veröffentlicht (falsch eingetragen, nur die Eltern bei 14- bis 17-Jährigen, Widerruf nicht beachtet); Spieler fühlen sich gedrängt zuzustimmen | Spieler, v. a. Kinder und Jugendliche | Bloßstellung, Verlust der Kontrolle über Bilder im Netz | 2 | 3 | mittel |
+| R50 | **Unfallmeldungen:** Gesundheitsdaten zu Unfällen gelangen an Unbefugte (Trainerteam ohne Recht, Mitspieler) oder werden länger als nötig gespeichert; Freitexte enthalten mehr als nötig (Schuldzuweisungen, Diagnosen Dritter) | Spieler, v. a. Jugendliche | Offenlegung von Gesundheitsdaten, Nachteile im Verein | 2 | 3 | mittel |
+| R51 | **Eltern-Zugang – unbefugter Zugriff:** Eine falsche Person verknüpft sich mit einem Kind (Code in eine Gruppe geschickt, weitergegeben oder erraten; Trainerteam bestätigt ohne Prüfung) – besonders kritisch bei Sorgerechtskonflikten oder Kontaktverboten, weil Termine und Treffpunkte des Kindes sichtbar werden | Kinder und Jugendliche; Eltern | Kinderschutz (Aufenthaltsort und Zeiten), Offenlegung | 2 | 4 | Risiko (Kinderschutz: vorrangig behandeln) |
+| R52 | **Eltern-Zugang – Übermaß und Überwachung:** Eltern sehen mehr als nötig (Gesundheit, Bewertungen, andere Kinder) oder Jugendliche fühlen sich überwacht (16–17); Elterninfos enthalten Angaben zu einzelnen Kindern; Einwilligungen der Eltern gelten weiter, obwohl das Kind selbst entscheiden darf | Spieler, v. a. Jugendliche | Offenlegung, Verlust von Vertrauen und Selbstbestimmung | 2 | 3 | Risiko |
 
 ---
 
@@ -322,6 +378,17 @@ Risikomatrix hier vereinfacht als Produkt abgebildet wird:
 | Transparenz | Senioren: Einzelchats für alle, nicht transparent (Standard); spätere Änderung der Einstellung gilt nur für neue Chats | R34 |
 | Vertraulichkeit | Spielerentwicklung nur mit Recht „Notizen & Bewertungen“; Trainereinschätzungen und Gesprächsprotokolle erst nach Freigabe sichtbar; interne Gesprächsnotiz in eigener Tabelle (`dev_talk_notes`, nie für Spieler, nicht im Export); Spieler ändern bei Zielen des Trainerteams nur Schritte (Trigger); Einschätzung relativ zur Altersklasse, Unterschiede Selbst-/Fremdbild als Gesprächsanlass; höchstens 5 aktive Ziele empfohlen (RLS-Test T44) | R36 |
 | Freiwilligkeit | Wochenchallenge freiwillig; Spieler sehen nur Teilnahme und Teamsumme (`challenge_totals`), Bestenliste nur auf Wunsch des Trainerteams (Vorname + Initial, Top 3, nur bei Bestleistungen); Vorschläge ohne maximale Kraftbelastung für Kinder, Sicherheitshinweis (ohne Schmerzen, nicht am Vortag des Spiels) (RLS-Test T44) | R37 |
+| Vertraulichkeit / Schutz | Entwicklungsprogramm nur mit Recht „Notizen & Bewertungen“, für den Spieler erst nach Freigabe (`dev_programs.visible`, Zeitpunkt `published_at` setzt der Server); Selbstanalyse und Stärken-Runde nur mit Schlüsseln aus dem festen Stärken-Katalog (`skill_keys_ok`, kein Freitext, nur Positives); Stärken-Runde nur während einer vom Trainerteam befristeten Runde (`peer_closed`), nur an aktive Mitspieler des eigenen Teams (`different_teams`); Mitspielerliste nur Vorname, Initial, Nummer, Position (`peer_targets`); Empfänger sehen keine Einträge, nur die vom Trainerteam übernommenen Stärken ohne Namen und Anzahl; Export: geschenkte Stärken mit Vorname, erhaltene nur als Anzahl je Stärke; Löschfrist 12 Monate (`purge_old_peer_skills`) (RLS-Test T52) | R42 |
+| Vertraulichkeit / Schutz | Umfragen nur mit Recht „Nachrichten“ (Lesen, Ergebnisse, Verwalten); einzelne Antworten liest nur der Spieler selbst – Ergebnisse nur über `poll_results`; anonym: keine Namen, keine Liste „wer fehlt“, Ergebnisse erst ab drei Antworten, Freitexte ohne Namen und nach Inhalt statt nach Eingang sortiert, keine Zeitpunkte; Freitexte nur fürs Trainerteam; Hinweis vor dem Antworten (mit Namen/anonym, wer das Ergebnis sieht); nach der ersten Antwort bleiben Fragen und Einstellungen fest (`poll_answered`, anonym bleibt anonym); Spieler-Abstimmungen nur nach Freigabe durch das Trainerteam (`settings.polls.players`, Recht „Nachrichten“), immer mit Namen, ganzes Team, höchstens zwei laufende, für das Trainerteam sichtbar und von ihm zu beenden oder zu löschen; Antworten nur während der Laufzeit und nur von Angesprochenen; Gruppe gelöscht ⇒ Umfrage gelöscht (nie plötzlich ans ganze Team); Löschfrist 12 Monate nach dem Ende (`purge_old_polls`) (RLS-Test T53) | R43 |
+| Vertraulichkeit / Schutz | Notfallkontakte in eigener Tabelle `player_emergency` (ein bis zwei Kontakte mit Name, Beziehung aus fester Liste und gültiger Telefonnummer – `emergency_contacts_ok`); lesen nur der Spieler selbst und das Trainerteam mit Recht „Kader“ oder „Gesundheitsdaten“, ändern nur der Spieler und das Recht „Kader“; Hinweise für den Notfall getrennt in `player_emergency_med` (1–500 Zeichen): lesen und ändern nur der Spieler selbst und das Recht „Gesundheitsdaten“, Eintragen durch den Spieler nur mit Einwilligung (`require_health_consent`); Team setzt der Server, Spieler-ID nicht änderbar, `updated_by` vom Server; Löschung mit dem Spielerprofil (Cascade); Zusammenführen: der neuere Stand gewinnt (`merge_players` v10); Export v11; in der App Pflicht beim Beitreten, Hinweis „Sag der Person Bescheid“, Erinnerung an fehlende Kontakte, auch ohne Netz abrufbar, in der Demo erfundene Nummern und kein Anruf (RLS-Test T54) | R44 |
+| Vertraulichkeit / Datenminimierung | Größen in eigener Tabelle `player_sizes` mit festen Listen bzw. Bereichen (keine freien Größenangaben, Beflockung 1–20 Zeichen, Hinweis 1–200), lesen und ändern nur der Spieler selbst und das Trainerteam mit Recht „Kader“; Team setzt der Server, Spieler-ID nicht änderbar; Löschung mit dem Spielerprofil (Cascade), Zusammenführen: der neuere Stand gewinnt (`merge_players` v11); Export v12; Bestellliste nur mit Rückennummer, Name, Beflockung, Größen und Hinweis (keine Geburtsdaten, Kontakte oder Gesundheitsdaten), Freitexte in der CSV nicht als Formel; die App sendet die Liste an niemanden (RLS-Test T55) | R45 |
+| Vertraulichkeit / Transparenz | Kader in eigenen Tabellen `match_squads` und `match_nominations`: Spieler sehen nur veröffentlichte Kader, in denen sie nominiert sind (`nominated_me`), und nur die eigene Nominierung; die Kaderliste (`squad_mates`) nur bei Freigabe und nur mit Vorname, Initial, Nummer, Position – nie Antworten oder Gründe; Nicht-Nominierte sehen nichts; Schreiben nur mit Recht „Planung“; Spieler antworten nur über `answer_nomination` (eigene Nominierung, veröffentlicht, „Absagen durch Spieler“ an, vor dem Anpfiff in der Zeitzone des Teams); Grund freiwillig, nur bei Absage, höchstens 200 Zeichen, nur fürs Trainerteam, Hinweis „krank genügt“; Antworten des Trainerteams gekennzeichnet (`answered_by_staff`, Zeitpunkt vom Server); Löschfrist 12 Monate nach dem Spiel (`purge_old_squads`); `merge_players` v12, Export v13 (RLS-Test T56) | R46 |
+| Vertraulichkeit / Kinderschutz | Fahrgemeinschaften in eigenen Tabellen `rides`, `ride_seats`, `ride_needs`: lesen nur Mitglieder des Teams (`is_team_member`), Spieler sehen andere nur mit Vorname und Initial (`ride_names`); kein direktes Schreiben – nur über `ride_save`, `ride_delete`, `ride_join`, `ride_leave`, `ride_need` (Spieler nur die eigene Fahrt bzw. sich selbst, Fahrer nehmen nur Suchende mit, Trainerteam alles; nichts für vergangene Ziele; Plätze nicht überbucht, Zeile gesperrt; je Ziel nur eine Fahrt pro Spieler; Modul „fahrten“ aus ⇒ keine neuen Einträge); fällt eine Fahrt aus oder trägt jemand anderes einen Mitfahrer aus, sucht dieser automatisch wieder (niemand fällt unbemerkt heraus); Hinweis in der App „keine Adressen oder Telefonnummern“; Löschfrist: Suchen am Tag nach dem Ziel, Fahrten 30 Tage danach (`purge_old_rides`); `merge_players` v13, Export v14 (RLS-Test T57) | R47 |
+| Vertraulichkeit / Richtigkeit | Karten in `match_stats.card` (feste Werte), eingetragene Sperren in `player_suspensions`: lesen nur das Trainerteam und der Spieler selbst (Mitspieler nie), schreiben nur mit Recht „perf“ (`teams_perm_guard`: auch die Regeln `settings.cards`); je Karte höchstens eine eingetragene Sperre, Spiele 0–30 oder ein Ende (nicht beides), Hinweis 1–200 Zeichen ohne Zeilenumbrüche; Sperren aus Karten werden nach einstellbaren Regeln berechnet (Voreinstellung nach WDFV/FVN je Altersklasse, Hinweis „bei eurem Verband prüfen“) statt fest verdrahtet; Urteile ersetzen die berechnete Sperre; Löschfrist 24 Monate (`purge_old_suspensions`); `merge_players` v14, Export v15 (RLS-Test T58) | R48 |
+| Vertraulichkeit / Richtigkeit | Foto-Erlaubnis in `photo_consents` (je Spieler eine Zeile): lesen das Trainerteam und der Spieler selbst, schreiben nur über `photo_consent_save` – Trainerteam mit Recht „squad“ (Erklärung aus dem Formular: wer, wann), der Spieler selbst „Nein“ immer, „Ja“ nur volljährig (Geburtsdatum; ohne Geburtsdatum nur im Erwachsenenteam); die App zeigt je Alter, wer zustimmen muss (unter 14 Eltern, 14–17 Eltern und Spieler, ab 18 Spieler), „Zustimmung fehlt“ bei unpassender Erklärung und „neu einholen“ bei Volljährigkeit; `merge_players` v15, Export v16 (RLS-Test T59) | R49 |
+| Vertraulichkeit / Speicherbegrenzung | Unfallmeldungen in `accident_reports`: lesen nur das Trainerteam mit Recht „health“ und der Spieler selbst, schreiben nur mit „health“; Spiel aus dem eigenen Team, Verletzung desselben Spielers, Tage nicht in der Zukunft, Längen begrenzt; keine Übermittlung an Versicherungen aus der App (Text zum Teilen); Löschfrist 36 Monate nach dem Unfall (`purge_old_accidents`); Export v16 (RLS-Test T60) | R50 |
+| Vertraulichkeit / Kinderschutz | **Eltern-Zugang:** Code je Kind nur als SHA-256-Hash, 14 Tage gültig, höchstens zwei Elternteile, nur für Minderjährige mit Geburtsdatum; höchstens 10 falsche Codes je Stunde und Konto (`guardian_code_attempts`, nach einem Tag gelöscht); jede Anfrage wartet auf Bestätigung durch das Trainerteam mit Recht „squad“; das Kind sieht unter „Ich“, wer verknüpft ist; Modul im Team abschaltbar (`team_parents_on`: dann kein Paket, keine Codes); RLS-Test T61 | R51 |
+| Datenminimierung / Transparenz | **Eltern-Zugang:** kein Tabellenzugriff, nur das Paket `guardian_child_data` fürs eigene Kind; Krankheit und Verletzung ohne Art, wenn nicht selbst eingetragen; Abwesenheiten ohne Stufe und Notiz; Nominierung ohne Kaderliste; Einträge der Eltern gekennzeichnet (`answered_by_guardian`, `by_parent`); „krank“ unter 16 nur mit der Einwilligung des Elternteils, ab 16 nur mit der des Kindes (`guardian_sick_ok`); Einwilligungen der Eltern zählen nur unter 16 (`missing_health_consent`); Zugang endet 30 Tage nach dem 18. Geburtstag (außer das Kind verlängert, `purge_guardians`); gelöste Verknüpfung beendet die Einwilligungen dieses Elternteils (Trigger `player_guardians_ended`); Elterninfo nach 12 Monaten gelöscht, Hinweis „keine Angaben zu einzelnen Kindern“ | R52 |
 | Kinderschutz | Individualtraining: Anfrage und Zusage für das ganze Trainerteam (Recht „plan“) sichtbar, Einheit erscheint im Tagesplan des Trainerteams mit zuständigem Trainer; Spieler sehen nur die eigene Einheit; Leitfaden empfiehlt Termine auf dem Vereinsgelände bzw. im Sechs-Augen-Prinzip (M-18) | R38 |
 | Vertraulichkeit | Gruppen: Spieler sehen nur freigegebene Gruppen und nur die eigene Mitgliedschaft (`group_visible_to_me`, RLS); nie Mitgliederlisten; Wachstumsschub, Talent und eigene Gruppen standardmäßig verborgen; Trigger erzwingt gleiches Team für Gruppe und Spieler; Videos an Gruppen gehen an die Mitglieder zum Zeitpunkt des Versands (`player_ids`) (RLS-Test T33) | R22 |
 | Freiwilligkeit | Strafenkatalog ist optional, Automatik-Regeln sind standardmäßig aus und schlagen Dienste statt Geld vor; jede Automatik-Regel wirkt erst ab dem Einschalten (`since`), nie rückwirkend; höchstens ein Eintrag je Regel, Spieler und Einheit (Unique-Index); „Belastung nicht eingetragen“ prüft nur das Vorhandensein eines Eintrags und gilt nur für Spieler mit Konto **und** Gesundheits-Einwilligung – ohne Einwilligung keine Strafe; Trainerteam kann jede Strafe erlassen; Spieler sehen nur eigene Einträge, bei Aufgaben nur „erledigt“ änderbar (RLS-Test T36); veraltete erledigte Einträge löscht `purge_stale_health_data` nach 12 Monaten (T24) | R23, R5, R8 |
@@ -345,21 +412,21 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 
 | ID | Maßnahme | adressiert | Prio | verantwortlich | Status |
 |---|---|---|---|---|---|
-| M-1 | **Staff-Beitritt nur mit Bestätigung durch den Owner** (Status „ausstehend“ bis zur Freigabe), Benachrichtigung des Owners, Staff-Liste mit Entfernen-Funktion; Staff-Codes mit Ablaufdatum oder Einmalnutzung | R2 | P1 | [ ] | offen |
-| M-2 | **Profil-Verknüpfung beim Beitritt durch Staff bestätigen lassen**; bis dahin sieht der Spieler keine zuvor erfassten Daten | R3 | P1 | [ ] | offen |
-| M-3 | Automatisierte RLS-Tests in der CI (je Tabelle: Spieler A sieht nicht Spieler B, Spieler sieht keine `coach_notes`, Nicht-Mitglied sieht nichts); Prüfung „RLS aktiv auf allen Tabellen“ bei jeder Migration | R1 | P1 | [ ] | offen |
-| M-4 | Einwilligung serverseitig erzwingen (Policy oder Trigger prüft gültige `health_data`- bzw. `parental`-Einwilligung vor Insert in Gesundheitstabellen); Widerrufsbildschirm; `withdrawn_at`; neue Arten `ai_coach`, `staff_confidentiality` | R8 | P1 | [ ] | offen |
+| M-1 | **Staff-Beitritt nur mit Bestätigung durch den Owner** (Status „ausstehend“ bis zur Freigabe), Benachrichtigung des Owners, Staff-Liste mit Entfernen-Funktion; Staff-Codes mit Ablaufdatum oder Einmalnutzung | R2 | P1 | [ ] | teilweise umgesetzt: Beitritt des Trainerteams erst nach Bestätigung durch den Owner (`approve_staff`/`reject_staff`, Status „ausstehend“), Entfernen, Codes erneuern (`regenerate_codes`); Ablaufdatum der Codes offen |
+| M-2 | **Profil-Verknüpfung beim Beitritt durch Staff bestätigen lassen**; bis dahin sieht der Spieler keine zuvor erfassten Daten | R3 | P1 | [ ] | umgesetzt: keine automatische Verknüpfung; neues Profil mit Markierung „neu“, Zusammenführen nur durch das Trainerteam (`merge_players`) |
+| M-3 | Automatisierte RLS-Tests in der CI (je Tabelle: Spieler A sieht nicht Spieler B, Spieler sieht keine `coach_notes`, Nicht-Mitglied sieht nichts); Prüfung „RLS aktiv auf allen Tabellen“ bei jeder Migration | R1 | P1 | [ ] | umgesetzt: `supabase/tests/rls_test.sql` (1.409 Prüfungen) bei jeder Änderung in der CI |
+| M-4 | Einwilligung serverseitig erzwingen (Policy oder Trigger prüft gültige `health_data`- bzw. `parental`-Einwilligung vor Insert in Gesundheitstabellen); Widerrufsbildschirm; `withdrawn_at`; neue Arten `ai_coach`, `staff_confidentiality` | R8 | P1 | [ ] | umgesetzt: Trigger prüft Einwilligung vor Einträgen in Gesundheitstabellen; `withdrawn_at`; Arten `ai`, `staff_confidentiality`, `findings`; Widerruf im Konto |
 | M-5 | Double-Opt-in für Eltern-Einwilligung (Bestätigungslink); Eltern-Adresse ≠ Konto-Adresse; erneute Bestätigung mit 16 | R8 | P1 | [ ] | offen |
 | M-6 | Spieler ohne Konto: Trainer bestätigt vorliegende Offline-Einwilligung vor der ersten Eingabe von Gesundheitsdaten; ohne Bestätigung nur Abwesenheit „entschuldigt“ | R8 | P1 | [ ] | offen |
-| M-7 | KI-Funktion filtert Kontext auf Spieler mit gültiger KI-Einwilligung; Vornamen durch Platzhalter ersetzen; Nutzlast dokumentieren | R6, R8 | P1 | [ ] | offen |
+| M-7 | KI-Funktion filtert Kontext auf Spieler mit gültiger KI-Einwilligung; Vornamen durch Platzhalter ersetzen; Nutzlast dokumentieren | R6, R8 | P1 | [ ] | umgesetzt (10.11.2026): Kontext nur mit Vornamen eingewilligter Spieler, andere nur als Anzahl; ohne Vereins- und Teamnamen; Potenzial-Vorschläge nur mit Einwilligung und ohne Trainernotizen; Platzhalter statt Vornamen offen |
 | M-8 | KI-Leitplanken im Systemprompt: keine Diagnosen, bei Schmerzen/Verletzung an Arzt verweisen, keine Gewichtsabnahme- oder Diätempfehlungen für Minderjährige, altersgerechte Sprache; Kennzeichnung als KI; Melde-Knopf für problematische Antworten; Testkatalog mit kritischen Fragen | R7 | P1 | [ ] | offen |
 | M-9 | Verträge: AVV mit Supabase, DPA mit Anthropic und Expo; Transfermechanismus je Anbieter verifizieren; Aufbewahrung beim KI-Anbieter klären, Zero Data Retention anfragen; Region `inference_geo` bewusst wählen | R6 | P1 | [ ] | offen |
-| M-10 | Storage: privater Bucket, Zugriff nur über RLS auf `storage.objects` und kurzlebige signierte URLs; EXIF-/GPS-Metadaten vor Upload entfernen (Neukodierung) | R11 | P1 | [ ] | offen |
-| M-11 | Löschroutinen (zeitgesteuerte Funktion): Gesundheitsdaten 24 Monate nach letzter Aktivität; inaktive Spieler nach [6] Monaten; Nachrichten [12] Monate nach Ablauf; Push-Token; KI-Zähler nach 30 Tagen | R9 | P1 | [ ] | offen |
-| M-12 | Push-Texte generisch („Wie war das Training? Trag deine Belastung ein.“), keine Namen anderer Spieler, keine Gesundheitswerte | R10 | P1 | [ ] | zu prüfen |
-| M-13 | Datenschutzbeauftragten benennen; Verzeichnis von Verarbeitungstätigkeiten (Art. 30); Prozess für Datenpannen (Meldung binnen 72 h, Art. 33/34); Prozess für Betroffenenanfragen | alle | P1 | [ ] | offen |
+| M-10 | Storage: privater Bucket, Zugriff nur über RLS auf `storage.objects` und kurzlebige signierte URLs; EXIF-/GPS-Metadaten vor Upload entfernen (Neukodierung) | R11 | P1 | [ ] | umgesetzt: private Buckets, signierte Links (10–60 Minuten), Bilder werden neu kodiert (PDF unverändert) |
+| M-11 | Löschroutinen (zeitgesteuerte Funktion): Gesundheitsdaten 24 Monate nach letzter Aktivität; inaktive Spieler nach [6] Monaten; Nachrichten [12] Monate nach Ablauf; Push-Token; KI-Zähler nach 30 Tagen | R9 | P1 | [ ] | umgesetzt (10.11.2026, M-39): Löschfristen siehe `docs/TOM.md` Abschnitt 4 |
+| M-12 | Push-Texte generisch („Wie war das Training? Trag deine Belastung ein.“), keine Namen anderer Spieler, keine Gesundheitswerte | R10 | P1 | [ ] | umgesetzt: Erinnerungstexte ohne Namen und Werte, Chat-Push ohne Nachrichtentext |
+| M-13 | Datenschutzbeauftragten benennen; Verzeichnis von Verarbeitungstätigkeiten (Art. 30); Prozess für Datenpannen (Meldung binnen 72 h, Art. 33/34); Prozess für Betroffenenanfragen | alle | P1 | [ ] | teilweise umgesetzt: `docs/VVT.md`, `docs/DATENPANNEN.md` (Datenpannen und Betroffenenanfragen), `docs/TOM.md`; Datenschutzbeauftragter offen |
 | M-14 | Rollenmodell festlegen (Herausgeber allein / Verein mit AVV / gemeinsame Verantwortung) und Verträge mit Vereinen | R17 | P1 | [ ] | offen |
-| M-15 | MFA (TOTP) für Staff-Konten anbieten, für Owner empfehlen; Mindestpasswortlänge; Prüfung gegen geleakte Passwörter [Tarif prüfen] | R4 | P2 | [ ] | offen |
+| M-15 | MFA (TOTP) für Staff-Konten anbieten, für Owner empfehlen; Mindestpasswortlänge; Prüfung gegen geleakte Passwörter [Tarif prüfen] | R4 | P2 | [ ] | teilweise umgesetzt: Mindestlänge 8 in App und `config.toml`; im Dashboard setzen, Schutz vor geleakten Passwörtern und Zwei-Faktor offen |
 | M-16 | Ratenbegrenzung für `join_team`, `join_staff`, `team_by_join_code` und Anmeldung | R13, R2 | P2 | [ ] | offen |
 | M-17 | Protokollierung von Staff-Zugriffen auf Gesundheitsdaten (Audit-Log), einsehbar für Owner | R5, R2 | P2 | [ ] | offen |
 | M-18 | Feinere Rollen: Beschwerdedetails optional nur für Physio; Trainerteam-Leitfaden zur fairen Nutzung; für Spieler sichtbar „Das sieht dein Trainerteam“ | R5 | P2 | [ ] | teilweise umgesetzt (Rechte je Mitglied, Paket 11.2); Leitfaden und Spieleranzeige offen |
@@ -370,8 +437,23 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | M-22 | Kennzahlen vorsichtig darstellen (ACWR als Orientierung, nicht als Verletzungsprognose); Zweckbestimmung schriftlich fixieren (siehe Abschnitt 9) | R16 | P1 | [ ] | offen |
 | M-23 | Kinderfreundliches Onboarding (kurze Erklärung in einfacher Sprache vor den Einwilligungen) | R18 | P2 | [ ] | offen |
 | M-24 | Externer Sicherheitstest (Penetrationstest, insbesondere RLS und RPCs) | R1 | P2 | [ ] | offen |
-| M-27 | Leitfaden Scouting für Vereine: Information der Spieler bzw. Eltern (wer informiert – Trainerteam oder Verein), sachliche Formulierungen in Berichten, keine Weitergabe von Bewertungen, eigene Spieler persönlich über die Planung informieren; prüfen, ob Status ab „Probetraining“ ohne eingetragene Information gesperrt werden soll | R41 | P2 | [ ] | offen |
 | M-25 | Konsultation der Betroffenen (Art. 35 Abs. 9): Rückmeldung von Pilotverein, Spielern und Eltern zu Einwilligungsablauf und Sichtbarkeit | R5, R18 | P2 | [ ] | offen |
+| M-27 | Leitfaden Scouting für Vereine: Information der Spieler bzw. Eltern (wer informiert – Trainerteam oder Verein), sachliche Formulierungen in Berichten, keine Weitergabe von Bewertungen, eigene Spieler persönlich über die Planung informieren; prüfen, ob Status ab „Probetraining“ ohne eingetragene Information gesperrt werden soll | R41 | P2 | [ ] | offen |
+| M-28 | Leitfaden Stärken-Runde für Trainerteams: Runde in der Mannschaft ankündigen und erklären (nur Positives, freiwillig), auf Spieler achten, die wenige Stärken erhalten, und deren Programm mit eigenen Stärken füllen; Ergebnisse nur im Einzelgespräch besprechen, nie vor der Mannschaft vergleichen | R42 | P2 | [ ] | offen |
+| M-29 | Leitfaden Umfragen für Trainerteams: persönliche oder heikle Themen (Teamklima, Spielzeit, Trainer) nur anonym und mit Ergebnis fürs Trainerteam; in kleinen Gruppen keine anonymen Fragebögen zu persönlichen Themen; Ergebnisse nicht vor der Mannschaft einzelnen zuordnen; Spieler-Abstimmungen im Blick behalten und unpassende sofort löschen | R43 | P2 | [ ] | offen |
+| M-30 | Leitfaden Notfallkontakte für Trainerteams: Kontakte vor der Saison und vor Fahrten aktualisieren lassen; Nummern nur für Notfälle nutzen (keine Elterngruppen, keine Werbung, keine Weitergabe); Hinweise für den Notfall nur mit Recht „Gesundheitsdaten“ einsehen und vertraulich behandeln; für Spieler ohne Konto Kontakte mit den Eltern abstimmen; Notfallablauf (112, Erste Hilfe, dann Kontakt anrufen) im Trainerteam besprechen | R44 | P2 | [ ] | offen |
+| M-31 | Leitfaden Bestellungen für Trainerteams: Bestellliste nur an den Ausrüster bzw. die bestellende Person im Verein geben, nicht in Gruppen-Chats teilen; nach Abschluss der Bestellung löschen; Hinweise vor dem Weitergeben prüfen | R45 | P2 | [ ] | offen |
+| M-32 | Leitfaden Kader-Nominierung für Trainerteams: Nicht-Nominierung persönlich besprechen (vor allem bei Jugendlichen), Kaderliste nur freigeben, wenn das im Team üblich ist; nach Absagegründen nicht nachfragen, Gesundheitsangaben nicht in der App sammeln; Absagen wegen Krankheit nie mit Druck beantworten | R46 | P2 | [ ] | offen |
+| M-33 | Leitfaden Fahrgemeinschaften für Trainerteams und Eltern: Fahrten sind private Absprachen der Eltern (Haftung, Kindersitze, Versicherung klären – kein Rechtsrat durch die App); Kinder nur mit Wissen der Eltern zuordnen; keine Adressen oder Nummern in Fahrten, Absprachen im Chat; auf Spieler achten, die oft suchen, und Fahrten diskret organisieren | R47 | P2 | [ ] | offen |
+| M-34 | Leitfaden Karten & Sperren für Trainerteams: Regeln zu Saisonbeginn mit dem Verband abgleichen (Spielordnung, Durchführungsbestimmungen, Jugendspielordnung) und in der App einstellen; Sperren im Zweifel beim Staffelleiter bestätigen lassen; im Hinweis nur das Nötige (z. B. „Urteil vom 12.11.: 3 Spiele“), keine Vorwürfe oder Zitate; Sperren nicht vor der Mannschaft thematisieren | R48 | P2 | [ ] | offen |
+| M-35 | Leitfaden Foto-Erlaubnis für Vereine: Formular mit Kanälen und Namen (unter 14 Eltern, 14–17 Eltern und Spieler, ab 18 Spieler), Formular beim Verein aufbewahren, vor jedem Beitrag die Liste prüfen, Widerruf sofort umsetzen und Fotos auf Wunsch herunternehmen, keine Fotos ohne Erklärung | R49 | P2 | [ ] | offen |
+| M-36 | Rechtliche Prüfung Unfallmeldungen: Rechtsgrundlage (Art. 9 Abs. 2 lit. f DSGVO oder Einwilligung), Information der Spieler bzw. Eltern, Löschfrist 36 Monate; Leitfaden für Trainerteams (nur Nötiges eintragen, keine Schuldzuweisungen, Meldeweg des Vereins) | R50 | P2 | [ ] | offen |
+| M-37 | Leitfaden Eltern-Zugang für Trainerteams: Code nur direkt an die Eltern des Kindes geben (persönlich, nicht in Gruppen); Anfragen nur bestätigen, wenn die Person sicher sorgeberechtigt ist, im Zweifel nachfragen; bei Sorgerechtskonflikten oder Kontaktverboten keine Verknüpfung bzw. sofort lösen und die Kinderschutz-Ansprechperson des Vereins einbeziehen; Elterninfo ohne Angaben zu einzelnen Kindern, ohne Gesundheitsangaben | R51, R52 | P1 | [ ] | offen |
+| M-38 | Rechtliche Prüfung Eltern-Zugang: Bestätigung durch das Trainerteam als „angemessene Anstrengung“ nach Art. 8 Abs. 2 DSGVO; gemeinsames Sorgerecht (§ 1629 BGB) bei Einwilligungen und Foto-Erlaubnis; Rechtsgrundlage für das Paket an die Eltern (Art. 6 Abs. 1 lit. f) und Widerspruchsmöglichkeit für 16- und 17-Jährige; Information in der Datenschutzerklärung (Abschnitt „Kurz erklärt – für Eltern“, 4.50) | R51, R52 | P1 | [ ] | offen |
+| M-39 | **Löschkonzept automatisch:** Gesundheitsdaten 30 Tage nach Widerruf (auch durch Eltern bzw. Lösen der Verknüpfung), Befunde 30 Tage nach Widerruf der App-Einwilligung, Gesundheitsdaten und Befunde inaktiver Spieler nach 6 Monaten, inaktive Spielerprofile nach 24 Monaten, Teams ohne Nutzung und Konten ohne Rolle 24 Monate nach der letzten Nutzung (`profiles.last_seen_at`), Anwesenheit und Abwesenheiten nach 24 Monaten, Nachrichten 12 Monate nach Ablauf, Push-Token nach 6 Monaten (`purge_privacy`, `privacy-purge`) | R8, R9 | P1 | [ ] | umgesetzt (Migration `20261105000010`, Tests T62/T63) |
+| M-40 | **Werkzeuge fürs Trainerteam:** Auskunft über alle Daten eines Spielers als Datei, auch ohne Konto und mit internen Notizen, ohne Konto-IDs anderer Personen, anonyme Umfrage-Antworten und Geber der Stärken-Runde (`player_data_export`, nur Owner; Test prüft, dass jede Tabelle mit Spielerbezug enthalten oder ausdrücklich ausgenommen ist); Gesundheitsdaten löschen nach Widerruf auf Papier (`staff_erase_health_data`, Recht „Gesundheitsdaten“) | R8, R9 | P1 | [ ] | umgesetzt |
+| M-41 | **Absturzberichte:** E-Mail-Adressen, IDs, Telefonnummern und Codes in Fehlermeldungen vor dem Senden ersetzen (`scrubText`) | R6 | P2 | [ ] | umgesetzt |
+| M-42 | **Datenminimierung beim Hochladen von Befunden:** Hinweis, Name, Anschrift, Geburtsdatum und Versicherungsnummer vorher abzudecken (gehen sonst bei der KI-Auswertung an den Anbieter) | R19, R20 | P2 | [ ] | umgesetzt (Hinweis); Schwärzen in der App offen |
 
 ---
 
@@ -417,6 +499,17 @@ Priorität: **P1** = vor Store-Start, **P2** = innerhalb von 3 Monaten, **P3** =
 | R39 | 1 | 2 | gering | Freigabe nur ausgewählter Bereiche, Aufgaben nur die eigene, Hinweis zur persönlichen Information, Protokoll gedrosselt und befristet |
 | R40 | 1 | 3 | gering | Zugriff nur zugewiesener Teams mit sparsamen Standardrechten (ohne Gesundheitsdaten), Kennzahlen ohne Namen, Übernahme der Belastung nur ausdrücklich und mit Recht in beiden Teams, sofortiges Ende der Zugriffe |
 | R41 | 1 | 3 | gering | eigenes Recht, keine Gesundheitsdaten, Information nach Art. 14 mit Erinnerung, kurze Löschfristen, Aufrücker nur mit Minimaldaten; Leitfaden (M-27) senkt das Risiko unterlassener Information weiter |
+| R42 | 1 | 2 | gering | nur Positives aus festem Katalog (kein Freitext, eigene Begriffe nur für das Trainerteam), keine Namen und keine Anzahl beim Empfänger, Auswahl durch das Trainerteam, Runde nur befristet durch das Trainerteam, Freigabe des Programms, Löschfrist 12 Monate; Restrisiko im Umgang (Leitfaden M-28) |
+| R43 | 1 | 2 | gering | anonym ohne Namen, ohne „wer fehlt“ und erst ab drei Antworten, Freitexte nur fürs Trainerteam (anonym ohne Namen, nicht nach Eingang sortiert), feste Einstellungen nach der ersten Antwort, Spieler-Abstimmungen nur mit Freigabe, mit Namen und unter Aufsicht des Trainerteams, Löschfrist 12 Monate; Restrisiko Zuordnung durch Beobachten in sehr kleinen Gruppen (Leitfaden M-29) |
+| R44 | 1 | 3 | gering | eigene Tabellen mit Zugriffsregeln (Kontakte: „Kader“ oder „Gesundheitsdaten“; Hinweise: nur „Gesundheitsdaten“), Hinweise nur mit Einwilligung, Pflicht beim Beitreten und Erinnerung, ohne Netz abrufbar; Restrisiko veraltete Nummern und zweckfremde Nutzung durch das Trainerteam (Leitfaden M-30) |
+| R45 | 1 | 1 | gering | nur Größen und Beflockung, eigene Zugriffsregeln (Recht „Kader“), Liste ohne weitere Stammdaten; Restrisiko Weitergabe der exportierten Liste durch das Trainerteam (Leitfaden M-31) |
+| R46 | 1 | 2 | gering | Nicht-Nominierte sehen nichts, Kaderliste nur bei Freigabe und ohne Antworten, Gründe freiwillig und nur fürs Trainerteam, Antworten des Trainerteams gekennzeichnet, Löschfrist 12 Monate; Restrisiko Druck im Team (Leitfaden M-32) |
+| R47 | 1 | 2 | gering | nur Team-Mitglieder, Spieler sehen Vorname und Initial, Schreiben nur über geprüfte Funktionen, keine Adressen oder Nummern (Hinweis), automatische erneute Suche bei Ausfall, kurze Löschfristen; Restrisiko Rückschlüsse aus Mustern und Absprachen außerhalb der App (Leitfaden M-33) |
+| R48 | 1 | 2 | gering | nur Trainerteam und der Spieler selbst, Schreiben nur mit Recht „Leistung & Statistik“, feste Werte und kurze Hinweise, einstellbare Regeln mit Hinweis auf den Verband, Urteile vorrangig, Löschfrist 24 Monate; Restrisiko falsch eingestellter Regeln (Leitfaden M-34) |
+| R49 | 1 | 3 | gering | Erklärung je Kanal mit Alterslogik, „Nein“ des Spielers immer, Volljährige stimmen selbst zu, nur Trainerteam und der Spieler sehen sie; Restrisiko: Veröffentlichung geschieht außerhalb der App (Leitfaden M-35) |
+| R50 | 1 | 3 | gering | nur Trainerteam mit Recht „Gesundheitsdaten“ und der Spieler, keine Übermittlung aus der App, Löschfrist 36 Monate; Restrisiko Freitexte (Leitfaden M-36) |
+| R51 | 1 | 4 | Risiko | Code nur als Hash, kurz gültig, Fehlversuche begrenzt, Bestätigung durch das Trainerteam, Transparenz für das Kind, Lösen jederzeit (Trainerteam, Eltern, volljähriges Kind), Modul abschaltbar; Restrisiko Bestätigung ohne Prüfung und Konflikte in Familien (Leitfaden M-37) |
+| R52 | 1 | 2 | gering | knappes Paket ohne Gesundheitsdetails, kein Tabellenzugriff, Ende mit Volljährigkeit, ab 16 entscheidet das Kind über Einwilligungen; Restrisiko Inhalte der Elterninfo (Hinweis, Leitfaden M-37) |
 
 **Bewertung:** Nach Umsetzung aller P1-Maßnahmen verbleibt **kein hohes Restrisiko**. Eine vorherige Konsultation der
 Aufsichtsbehörde nach Art. 36 DSGVO ist dann voraussichtlich nicht erforderlich.
@@ -439,13 +532,26 @@ abzuraten bzw. die Aufsichtsbehörde nach Art. 36 DSGVO zu konsultieren.
    Retention, Wahl von `inference_geo`. Quellen: platform.claude.com/docs/en/manage-claude/api-and-data-retention und
    …/data-residency (Stand 10/2026 – vor Abschluss erneut prüfen).
 7. Expo: DPA, Transfermechanismus; Supabase: Drittlandzugriffe, Unterauftragsverarbeiter, Backup- und Log-Dauer.
-8. Aufbewahrung von Einwilligungsnachweisen nach Kontolöschung (Cascade vs. Nachweispflicht).
-9. Verhalten bei Löschung des letzten Staff-Kontos eines Teams; Verbleib der Daten ehemaliger Spieler.
+8. ~~Aufbewahrung von Einwilligungsnachweisen nach Kontolöschung~~ – gelöst: Nachweis bleibt ohne Konto-ID mit
+   E-Mail-Hash; Dauer ([3] Jahre) bestätigen.
+9. ~~Verhalten bei Löschung des letzten Staff-Kontos~~ – gelöst: Team wird gelöscht bzw. im Verein vom Vereinsadmin
+   übernommen; ehemalige Spieler: Profile 24 Monate nach Deaktivierung gelöscht (M-39).
 10. Abgrenzung Medizinprodukt (Abschnitt 9) und KI-Verordnung (Art. 50 Transparenz, Art. 4 KI-Kompetenz).
-11. Tatsächliche Nutzlast der KI-Anfragen und Push-Texte im Code verifizieren.
+11. ~~Nutzlast der KI-Anfragen und Push-Texte verifizieren~~ – geprüft am 10.11.2026 (M-7, M-12); Datenschutzerklärung
+    Abschnitt 11 angepasst.
 12. E-Mail-Versanddienst und Webhoster festlegen und in DSFA aufnehmen.
 13. Scouting: Verantwortlichkeit für die Daten externer Spieler (Verein oder Herausgeber) und wer die Information nach
     Art. 14 gibt; Abwägung bei Minderjährigen (Art. 6 Abs. 1 lit. f letzter Halbsatz).
+14. Notfallkontakte: Information der Kontaktpersonen nach Art. 14 (Hinweis in der App an den Spieler und Abschnitt in
+    der Datenschutzerklärung – Ausnahme Art. 14 Abs. 5 lit. b?); Pflichtangabe beim Beitreten und Kopplungsverbot
+    (Art. 7 Abs. 4); Rechtsgrundlage im akuten Notfall (Art. 6 Abs. 1 lit. d, Art. 9 Abs. 2 lit. c).
+15. Eltern-Zugang (M-38): Genügt die Bestätigung durch das Trainerteam für Art. 8 Abs. 2? Einwilligung eines
+    Elternteils bei gemeinsamem Sorgerecht? Soll das Kind (16–17) dem Paket an die Eltern widersprechen können?
+16. Löschfristen (M-39): 30 Tage nach Widerruf statt „unverzüglich“ (Zeit für versehentliche Widerrufe und Export),
+    Löschung von Teams ohne Nutzung ohne vorherige Benachrichtigung (kein E-Mail-Versand eingerichtet) – rechtlich
+    bestätigen lassen; bei Einrichtung eines E-Mail-Dienstes Hinweis vor der Löschung ergänzen.
+17. Match-Analyse mit Videos (Konzept vom 10.11.2026): vor dem Bau DSFA erweitern (Videos Minderjähriger, Leistungs-
+    bewertung, Gegner im Bild, GPU-Dienstleister).
 
 ---
 
@@ -456,7 +562,7 @@ anderem zur Diagnose, Verhütung, Überwachung, Vorhersage, Prognose, Behandlung
 von Verletzungen bestimmt ist. Maßgeblich ist die **Zweckbestimmung** des Herstellers, wie sie sich aus
 Kennzeichnung, Gebrauchsanweisung, Werbung und Store-Texten ergibt (Orientierung: MDCG 2019-11).
 
-**Beabsichtigte Zweckbestimmung (Entwurf):** Trainerbank ist ein Werkzeug zur Organisation von Training und
+**Beabsichtigte Zweckbestimmung (Entwurf):** Die App Trainerstab ist ein Werkzeug zur Organisation von Training und
 Spielbetrieb im Fußball und zur Steuerung der Trainingsbelastung gesunder Sportlerinnen und Sportler auf Grundlage
 allgemeiner sportwissenschaftlicher Methoden. Die App ist nicht zur Diagnose, Überwachung, Vorhersage oder Behandlung
 von Krankheiten oder Verletzungen bestimmt.
@@ -504,5 +610,15 @@ Die Einstufung ist von einer regulatorisch erfahrenen Person zu bestätigen und 
 | 0.6 | [TT.MM.JJJJ] | Ergänzt: Chat (R12 neu bewertet, R33–R35), Spielerentwicklung (R36), Wochenchallenge (R37), Individualtraining (R38). Umgesetzte Maßnahmen: Chat-Regeln je Altersklasse mit Mitlesen in Jugendteams, Melden mit Kopie, Push ohne Inhalt, Spam-Grenze, Löschfristen; interne Gesprächsnotiz getrennt, Freigabe von Einschätzungen/Protokollen, `challenge_totals` ohne Einzelwerte, Einheit nur für einzelne Spieler (`day_units.player_ids`), Export v5, `merge_players` v6 | [ ] |
 | 0.7 | [TT.MM.JJJJ] | Ergänzt: Matchplan mit Freigabe für Spieler und Zugriffsprotokoll (R39). Umgesetzte Maßnahmen: kein direkter Spielerzugriff (nur `match_plan_open`), Freigabe nur ausgewählter Bereiche mit Zeitraum und „nur Kader“, Aufgaben nur die eigene, Protokoll gedrosselt und nach 6 Monaten gelöscht, Wasserzeichen und Bildschirmschutz, Export v6, `merge_players` v7 | [ ] |
 | 0.8 | [TT.MM.JJJJ] | Ergänzt: Verein mit Funktionären, Vereinsübersicht, Hochziehen/Wechsel und Ankündigungen (R40). Umgesetzte Maßnahmen: Zugriff als gespiegelte Trainerteam-Zeile (`club_sync`, `team_staff_club_guard`), Standardrechte ohne Gesundheitsdaten, `club_overview` nur Kennzahlen, `club_move_player` mit Rechteprüfung in beiden Teams, Nachfolge des Vereinsadmins bei Kontolöschung, Export v7 | [ ] |
-| 1.0 | [TT.MM.JJJJ] | Ergänzt: Rückmeldungen aus der App (Tabelle `feedback`, privater Bucket `feedback`, Betreiber `app_admins`; Lesen nur eigene und Betreiber, Spam-Grenze 20 je Tag, Löschfrist 12 Monate nach Erledigung, Cascade bei Kontolöschung, RLS-Test T51), Absturzberichte über Sentry (nur nach Zustimmung auf dem Gerät, Speicherort EU, ohne Namen, E-Mail- und IP-Adressen, Gesundheitsdaten, Bildschirmfotos, Netzwerk- und Konsolendaten), App-Updates über EAS Update, Seite „Nutzung“ nur mit Teamzahlen ohne Namen, Export v8 | [ ] |
 | 0.9 | [TT.MM.JJJJ] | Ergänzt: Kaderplanung & Scouting (Zweck 5b, Betroffene „beobachtete Spieler“, R41, M-27). Umgesetzte Maßnahmen: Recht „scout“, Tabellen nur für das Trainerteam mit diesem Recht, keine Gesundheits- und Fotofelder, Information nach Art. 14 mit Erinnerung, Infotext und Auskunft zum Teilen, Löschfristen 6/24 Monate und für Saisonplanungen, `club_risers` mit Minimaldaten (RLS-Test T48, T24) | [ ] |
+| 1.0 | [TT.MM.JJJJ] | Ergänzt: Rückmeldungen aus der App (Tabelle `feedback`, privater Bucket `feedback`, Betreiber `app_admins`; Lesen nur eigene und Betreiber, Spam-Grenze 20 je Tag, Löschfrist 12 Monate nach Erledigung, Cascade bei Kontolöschung, RLS-Test T51), Absturzberichte über Sentry (nur nach Zustimmung auf dem Gerät, Speicherort EU, ohne Namen, E-Mail- und IP-Adressen, Gesundheitsdaten, Bildschirmfotos, Netzwerk- und Konsolendaten), App-Updates über EAS Update, Seite „Nutzung“ nur mit Teamzahlen ohne Namen, Export v8 | [ ] |
+| 1.1 | [TT.MM.JJJJ] | Ergänzt: Entwicklungsprogramm mit Selbstanalyse und Stärken-Runde (R42, M-28), Pre-Assists in den Spieldaten. Umgesetzte Maßnahmen: Tabellen `dev_programs`, `dev_self`, `dev_peer_skills` mit eigenen Regeln (Recht „notes“, Freigabe, Schenkende sehen nur eigene Einträge), fester Stärken-Katalog ohne Freitext, befristete Runde (`settings.peer`, Recht „notes“), `peer_targets` mit Minimaldaten, Löschfrist 12 Monate, Export v9, `merge_players` v8 (RLS-Test T52) | [ ] |
+| 1.2 | [TT.MM.JJJJ] | Ergänzt: Umfragen – Abstimmungen und Fragebögen, mit Namen oder anonym, für das Team oder eine Gruppe, Spieler-Abstimmungen nach Freigabe (R43, M-29). Umgesetzte Maßnahmen: Tabellen `polls` und `poll_answers` mit eigenen Regeln (Recht „messages“, Antworten liest nur der Spieler selbst), Ergebnisse nur über `poll_results` (anonym ab drei Antworten, ohne Namen und ohne „wer fehlt“, Freitexte nur fürs Trainerteam), feste Inhalte nach der ersten Antwort, `settings.polls` mit Recht „messages“, Löschfrist 12 Monate, Export v10, `merge_players` v9 (RLS-Test T53) | [ ] |
+| 1.3 | [TT.MM.JJJJ] | Ergänzt: Notfallkontakte mit Hinweisen für den Notfall (Zweck 5c, Betroffene „Notfallkontakte“, R44, M-30, offener Punkt 14). Umgesetzte Maßnahmen: Tabellen `player_emergency` und `player_emergency_med` mit eigenen Regeln (Kontakte: Recht „squad“ oder „health“ lesen, „squad“ ändern; Hinweise nur „health“ und nur mit Einwilligung), Prüfung `emergency_contacts_ok`, Pflicht beim Beitreten, Export v11, `merge_players` v10 (RLS-Test T54) | [ ] |
+| 1.4 | [TT.MM.JJJJ] | Ergänzt: Größen & Ausrüstung mit Bestellliste (Zweck 5d, R45, M-31). Umgesetzte Maßnahmen: Tabelle `player_sizes` mit festen Größenlisten und Bereichen, Lesen und Schreiben nur Spieler selbst und Recht „squad“, Modul `ausruestung`, CSV ohne Formel-Ausführung, Export v12, `merge_players` v11 (RLS-Test T55) | [ ] |
+| 1.5 | [TT.MM.JJJJ] | Ergänzt: Kader-Nominierung fürs Spiel mit Zu- und Absagen (Zweck 5e, R46, M-32). Umgesetzte Maßnahmen: Tabellen `match_squads` und `match_nominations` (Schreiben Recht „plan“, Spieler nur eigene veröffentlichte Nominierung), `answer_nomination` mit Regeln (Einstellung `playerAbs`, bis Anpfiff), `squad_mates` mit Minimaldaten nur bei Freigabe, Löschfrist 12 Monate, Export v13, `merge_players` v12 (RLS-Test T56) | [ ] |
+| 1.6 | [TT.MM.JJJJ] | Ergänzt: Fahrgemeinschaften zu Spielen und Terminen (Zweck 5f, R47, M-33). Umgesetzte Maßnahmen: Tabellen `rides`, `ride_seats`, `ride_needs` (lesen Team, schreiben nur über `ride_*`-Funktionen mit Regeln), Namen für Spieler nur mit Vorname und Initial (`ride_names`), automatische erneute Suche, Löschfristen (Tag danach bzw. 30 Tage), Export v14, `merge_players` v13 (RLS-Test T57) | [ ] |
+| 1.7 | [TT.MM.JJJJ] | Ergänzt: Karten und Sperren (Zweck 5g, R48, M-34). Umgesetzte Maßnahmen: `match_stats.card`, Tabelle `player_suspensions` (lesen Trainerteam und Spieler selbst, schreiben Recht „perf“), Regeln in `settings.cards` mit Recht „perf“, Löschfrist 24 Monate, Export v15, `merge_players` v14 (RLS-Test T58) | [ ] |
+| 1.8 | [TT.MM.JJJJ] | Ergänzt: Geburtstage, Foto-Erlaubnis und Unfallmeldungen (Zweck 5h, R49, R50, M-35, M-36). Umgesetzte Maßnahmen: `photo_consents` mit `photo_consent_save` (Trainerteam Recht „squad“, Spieler Nein immer, Ja ab 18), `accident_reports` (Recht „health“, Spieler lesen die eigenen, Löschfrist 36 Monate), Export v16, `merge_players` v15 (RLS-Tests T59, T60) | [ ] |
+| 1.9 | [TT.MM.JJJJ] | Ergänzt: Eltern-Zugang (Zweck 5i, Betroffene Erziehungsberechtigte mit Konto, R51, R52, M-37, M-38, offener Punkt 15). Umgesetzte Maßnahmen: `player_guardians` mit Bestätigung durch das Trainerteam, `guardian_invites` (Code nur als Hash, 14 Tage, höchstens zwei), Fehlversuche begrenzt, Paket `guardian_child_data` statt Tabellenzugriff (Krankheit/Verletzung nur bei eigenen Abmeldungen), gekennzeichnete Einträge der Eltern, `guardian_sick_ok` (unter 16 Eltern, ab 16 Kind), Modul-Schalter serverseitig, Ende mit Volljährigkeit, Einwilligungen enden mit der Verknüpfung, Löschfristen (`purge_guardians`), RLS-Test T61 | [ ] |
+| 1.10 | 10.11.2026 | Gesamtprüfung Datenschutz: Löschkonzept umgesetzt (M-11, M-39: Gesundheitsdaten und Befunde 30 Tage nach Widerruf, inaktive Spieler 6/24 Monate, Teams und Konten ohne Nutzung 24 Monate, Anwesenheit/Abwesenheiten 24 Monate, Nachrichten, Push-Token), Werkzeuge fürs Trainerteam (M-40: Auskunft je Spieler, Gesundheitsdaten löschen), KI-Kontext minimiert (M-7), Absturzberichte gefiltert (M-41), Hinweis beim Hochladen von Befunden (M-42); Status von M-1 bis M-4, M-10, M-12, M-13, M-15 nach Prüfung des Codes aktualisiert; neue Unterlagen `docs/VVT.md`, `docs/TOM.md`, `docs/DATENPANNEN.md`; offene Punkte 8, 9, 11 erledigt, 16 und 17 neu | [ ] |

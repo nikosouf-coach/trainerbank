@@ -1,13 +1,13 @@
 // Expo-Konfiguration. Werte aus .env (siehe .env.example) bzw. aus den EAS-Umgebungsvariablen.
 import type { ExpoConfig } from "expo/config";
 
-const BUNDLE_ID = process.env.APP_BUNDLE_ID || "de.goatsocceracademy.trainerbank";
+const BUNDLE_ID = process.env.APP_BUNDLE_ID || "app.trainerstab";
 const PROJECT_ID = process.env.EAS_PROJECT_ID;
 
 const config: ExpoConfig = {
-  name: "Trainerbank",
-  slug: "trainerbank",
-  scheme: "trainerbank",
+  name: "Trainerstab",
+  slug: "trainerstab",
+  scheme: "trainerstab",
   version: "1.0.0",
   // Updates über EAS Update gelten für alle Builds mit derselben Version. Kommt ein neues natives Paket dazu oder ändert
   // sich die native Konfiguration, die Version erhöhen (z. B. 1.1.0) und neu bauen – sonst bekämen alte Builds
@@ -24,8 +24,8 @@ const config: ExpoConfig = {
     buildNumber: "1",
     infoPlist: {
       ITSAppUsesNonExemptEncryption: false,
-      NSCameraUsageDescription: "Trainerbank nutzt die Kamera, um Profilbilder und Befunde (z. B. Arztbriefe) zu fotografieren.",
-      NSPhotoLibraryUsageDescription: "Trainerbank greift auf deine Fotos zu, wenn du ein Profilbild oder einen Befund auswählst.",
+      NSCameraUsageDescription: "Mit der Kamera fotografierst du Profilbilder und Befunde (z. B. Arztbriefe).",
+      NSPhotoLibraryUsageDescription: "Aus deinen Fotos wählst du ein Profilbild oder einen Befund aus.",
       CFBundleAllowMixedLocalizations: true,
     },
     config: { usesNonExemptEncryption: false },
@@ -51,8 +51,8 @@ const config: ExpoConfig = {
     ["expo-splash-screen", { image: "./assets/splash-icon.png", imageWidth: 96, resizeMode: "contain", backgroundColor: "#F2F4F3", dark: { image: "./assets/splash-icon.png", backgroundColor: "#0D1110" } }],
     ["expo-notifications", { icon: "./assets/notification-icon.png", color: "#0D6B4B" }],
     ["expo-image-picker", {
-      photosPermission: "Trainerbank greift auf deine Fotos zu, wenn du ein Profilbild oder einen Befund auswählst.",
-      cameraPermission: "Trainerbank nutzt die Kamera, um Profilbilder und Befunde (z. B. Arztbriefe) zu fotografieren.",
+      photosPermission: "Aus deinen Fotos wählst du ein Profilbild oder einen Befund aus.",
+      cameraPermission: "Mit der Kamera fotografierst du Profilbilder und Befunde (z. B. Arztbriefe).",
       microphonePermission: false,
     }],
   ],

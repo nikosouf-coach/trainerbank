@@ -22,11 +22,11 @@
    Personengesellschaften zusätzlich Rechtsform und Vertretungsberechtigte.
 2. Angaben zur schnellen elektronischen Kontaktaufnahme und unmittelbaren Kommunikation, **einschließlich
    E-Mail-Adresse**. Eine Telefonnummer wird empfohlen (zumindest ein zweiter schneller Kontaktweg – zu prüfen).
-3. Zuständige Aufsichtsbehörde, wenn die Tätigkeit eine behördliche Zulassung erfordert (bei Trainerbank
+3. Zuständige Aufsichtsbehörde, wenn die Tätigkeit eine behördliche Zulassung erfordert (bei Trainerstab
    voraussichtlich nicht).
 4. Registereintrag mit Registergericht und Registernummer (Handels-, Vereins-, Partnerschafts-,
    Genossenschaftsregister; bei eingetragener GbR das Gesellschaftsregister – Wortlaut prüfen).
-5. Angaben zu reglementierten Berufen (bei Trainerbank voraussichtlich nicht).
+5. Angaben zu reglementierten Berufen (bei Trainerstab voraussichtlich nicht).
 6. **Umsatzsteuer-Identifikationsnummer** (§ 27a UStG) oder **Wirtschafts-Identifikationsnummer** (§ 139c AO), falls
    vorhanden. Nicht die Steuernummer veröffentlichen.
 7. Bei Kapitalgesellschaften in Abwicklung oder Liquidation: entsprechender Hinweis.
@@ -53,7 +53,7 @@ Impressum
 Angaben gemäß § 5 DDG
 
 [Vorname Nachname]
-[ggf. Geschäftsbezeichnung, z. B. „Trainerbank“ – nur als Zusatz zum Namen]
+[ggf. Geschäftsbezeichnung, z. B. „Trainerstab“ – nur als Zusatz zum Namen]
 [Straße Hausnummer]
 [PLZ Ort]
 Deutschland
@@ -186,7 +186,7 @@ Bildnachweise
 **Hinweis zur App (kein Pflichtbestandteil, besser zusätzlich in den Nutzungsbedingungen):**
 
 ```text
-Trainerbank ist ein Werkzeug zur Trainingsorganisation und kein Medizinprodukt. Die App stellt keine
+Trainerstab ist ein Werkzeug zur Trainingsorganisation und kein Medizinprodukt. Die App stellt keine
 Diagnosen und ersetzt keine ärztliche oder physiotherapeutische Beurteilung.
 ```
 

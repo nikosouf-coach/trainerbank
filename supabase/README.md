@@ -1,4 +1,4 @@
-# Trainerbank – Supabase-Backend
+# Trainerstab – Supabase-Backend
 
 Datenbank, Zugriffsregeln, Storage und Edge Functions der App. Verbindliche Vorlage für Tabellen,
 Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
@@ -7,7 +7,7 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 
 | Pfad | Inhalt |
 |---|---|
-| `config.toml` | Supabase-CLI-Konfiguration (Projekt `trainerbank`, Auth-Platzhalter, `verify_jwt` je Function) |
+| `config.toml` | Supabase-CLI-Konfiguration (Projekt `trainerstab`, Website als Site URL, `verify_jwt` je Function) |
 | `migrations/…01_schema.sql` | Tabellen, CHECK-Constraints, Fremdschlüssel (Cascade-Regeln), Indizes, Profil-Trigger auf `auth.users`, `push_log` |
 | `migrations/…02_rls.sql` | Hilfsfunktionen (`is_team_staff` usw.), RLS auf allen Tabellen, Schutz-Trigger (`players`, `teams`, `absences`), RPE ⇒ Anwesenheit `da` |
 | `migrations/…03_rpc.sql` | `create_team`, `join_team`, `join_staff`, `regenerate_codes`, `team_by_join_code`, `register_push_token`, `ai_usage_bump` (nur Server); `join_team`/`join_staff` werden in `…06` ersetzt |
@@ -40,18 +40,32 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 | `migrations/20261008…24_matchplan.sql` | Matchplan: `match_plans` (Inhalt, freigegebener Auszug, Zeitraum, nur Kader), `match_plan_views` (Zugriffsprotokoll, 6 Monate); Spieler nur über `my_match_plans`/`match_plan_open`/`match_plan_event`; Modul `matchplan`; `merge_players` v7, Export v6 |
 | `migrations/20261008…25_verein.sql` | Paket D – Verein: `clubs`, `club_staff`, `teams.club_id`, `team_staff.club_id` (Zugriff über den Verein, gespiegelt von `club_sync`, geschützt durch `team_staff_club_guard`), `players.linked_from`/`origin`; RPCs `club_create`, `club_link_team`, `club_unlink_team`, `club_join`, `club_set_staff`, `club_remove_staff`, `club_regenerate_codes`, `club_delete`, `my_clubs`, `club_staff_list`, `club_teams`, `club_overview`, `club_move_player`, `club_announce`, `team_staff_rights`; Export v7 |
 | `migrations/20261008…26_scouting.sql` | Paket E – Kaderplanung & Scouting: Recht `scout` (Standard für Owner/Trainer, im Verein Leitung/NLZ), `scout_lists`, `scout_players` (externe Spieler, keine Gesundheitsdaten, `informed_at` für Art. 14), `scout_reports` (Autor vom Server, neuer Bericht = Aktivität), `squad_plans` (eine Planung je Team und Saison); alles nur mit `staff_can(team,'scout')`; `club_risers(team, years)` (Aufrücker aus jüngeren Vereinsteams, nur Name/Position/Jahrgang/Team); Löschfristen (6/24 Monate, Saisonplanungen ab der übernächsten Saison) |
+| `migrations/20261008…27_individual_trainer.sql` | Individualtraining beim Wunsch-Trainer anfragen (`indiv_requests.ask_staff`); der angefragte Trainer sieht die Anfrage auch ohne Recht „Planung“ |
+| `migrations/20261008…28_zustaendigkeiten.sql` | Trainingstag: mehrere Zuständigkeiten je Block (`session_blocks.crew`, höchstens 6) |
+| `migrations/20261008…29_eigene_tests.sql` | Eigene Tests des Teams (`teams.settings.customTests`, Tests `c:<id>`), Richtung in `my_test_ranks` |
+| `migrations/20261008…30_rueckmeldungen.sql` | Rückmeldungen aus der App: `feedback`, `app_admins`, privater Bucket `feedback`, `feedback_list`/`feedback_set_done`/`feedback_delete`, `purge_old_feedback` (täglich) |
+| `migrations/20261105…01_entwicklungsprogramm.sql` | Entwicklungsprogramm: `dev_programs`, `dev_self`, `dev_peer_skills` (Stärken-Runde), `peer_targets`, `match_stats.pre_assists`; `merge_players` v8, Export v9, `purge_old_peer_skills` |
+| `migrations/20261105…02_umfragen.sql` | Umfragen: `polls`, `poll_answers`, `poll_results` (anonym ab drei Antworten), Spieler-Abstimmungen; `merge_players` v9, Export v10, `purge_old_polls` |
+| `migrations/20261105…03_notfallkontakte.sql` | Notfallkontakte: `player_emergency` (Kader oder Gesundheitsdaten), `player_emergency_med` (nur Gesundheitsdaten); `merge_players` v10, Export v11 |
+| `migrations/20261105…04_groessen.sql` | Größen & Ausrüstung: `player_sizes` (feste Listen und Bereiche, Recht „Kader“); `merge_players` v11, Export v12 |
+| `migrations/20261105…05_nominierung.sql` | Kader-Nominierung: `match_squads`, `match_nominations`, `answer_nomination`, `squad_mates`; `merge_players` v12, Export v13, `purge_old_squads` |
+| `migrations/20261105…06_fahrgemeinschaften.sql` | Fahrgemeinschaften: `rides`, `ride_seats`, `ride_needs` (lesen Team, schreiben nur über `ride_save`/`ride_delete`/`ride_join`/`ride_leave`/`ride_need`), `ride_names`; `merge_players` v13, Export v14, `purge_old_rides` |
+| `migrations/20261105…07_karten.sql` | Karten & Sperren: `match_stats.card`, `player_suspensions` (lesen Trainerteam und Spieler selbst, schreiben Recht „perf“), `teams_perm_guard` (`settings.cards` mit „perf“); `merge_players` v14, Export v15, `purge_old_suspensions` |
+| `migrations/20261105…08_foto_unfall.sql` | Foto-Erlaubnis (`photo_consents`, lesen Trainerteam und Spieler selbst, schreiben nur `photo_consent_save`: Trainerteam Recht „squad“, Spieler Nein immer und Ja ab 18) und Unfallmeldungen (`accident_reports`, Recht „health“, Spieler lesen die eigenen); `merge_players` v15, Export v16, `purge_old_accidents` |
+| `migrations/20261105…09_eltern.sql` | Eltern-Zugang: `player_guardians` (Verknüpfung mit Bestätigung durch das Trainerteam), `guardian_invites` (Code nur als Hash, 14 Tage, höchstens zwei Elternteile), `guardian_code_attempts` (10 Fehlversuche je Stunde), `parent_posts`/`parent_post_reads` (Elterninfo); Eltern lesen nur das Paket `guardian_child_data` und schreiben über eigene RPCs (Abmelden, Zu-/Absage, Einwilligungen, Lesebestätigung); Modul-Schalter serverseitig (`team_parents_on`); geprüfte Einwilligung unter 16 in `missing_health_consent`; Foto-Erlaubnis der Eltern; `merge_players` v16, Export v17, `purge_guardians` |
 | `functions/chat-push` | Push bei neuen Chat-Nachrichten (vom Trigger per pg_net, Header `x-cron-secret`): Empfänger aus `chat_push_targets`, Titel/Text ohne Nachrichteninhalt (`_shared/chat.ts`), Versand über Expo (`_shared/expo.ts`) |
 | `functions/finding` | Befund-Auswertung: prüft Recht „Befunde“ (`staff_can(team,'medical')`) und Einwilligung `findings`, lädt die Datei, ruft die Claude API (Bild/PDF) auf, speichert den Text am Befund |
 | `functions/ai` | KI-Coach: prüft Login, Mitgliedschaft, Modul `ki`, Tageslimit; ruft die Claude API auf |
 | `functions/delete-account` | Konto löschen (Fotos, Befund-Dateien, Skizzen verwaister Teams, verwaiste Teams – im Verein übernimmt ein Vereinsadmin –, Nachfolge des Vereinsadmins, Auth-Nutzer ⇒ Cascade) |
 | `functions/push-reminders` | RPE-Erinnerung nach Einheiten, Morgen-Check, Pausenprogramm – Zeiten je Team in `settings.reminders`, Pausen werden beachtet (Expo Push) |
+| `functions/privacy-purge` | Löschfristen mit Dateien im Speicher (täglich per pg_cron/pg_net, Header `x-cron-secret`): Befunde nach Widerruf bzw. bei inaktiven Spielern, Spielerprofile 24 Monate nach Deaktivierung, Teams und Konten ohne Nutzung seit 24 Monaten (Auswahl in `privacy_*_due()`, Migration `…10_loeschung.sql`) |
 | `functions/_shared` | CORS/JSON, Supabase-Clients, Systemprompts, Zeitlogik (ohne Abhängigkeiten) |
 | `tests/run.sh` | Lokale Tests: Wegwerf-Postgres + Supabase-Platzhalter + alle Migrationen + `rls_test.sql` + Unit-Tests |
 
 ## Einrichten und Deployen
 
 Voraussetzung: [Supabase CLI](https://supabase.com/docs/guides/cli), Projekt in **Frankfurt (eu-central-1)** anlegen
-(Dashboard oder `supabase projects create trainerbank --region eu-central-1`).
+(Dashboard oder `supabase projects create trainerstab --region eu-central-1`).
 
 ```bash
 supabase login
@@ -66,6 +80,7 @@ supabase functions deploy finding
 supabase functions deploy delete-account
 supabase functions deploy push-reminders
 supabase functions deploy chat-push
+supabase functions deploy privacy-purge
 
 # Secrets (SUPABASE_URL und die Schlüssel – neu SUPABASE_PUBLISHABLE_KEYS/SUPABASE_SECRET_KEYS, alt
 # SUPABASE_ANON_KEY/SUPABASE_SERVICE_ROLE_KEY – setzt Supabase selbst; die Funktionen nehmen zuerst die neuen)
@@ -98,10 +113,31 @@ Zweiter Job (aus `…06_hardening.sql`): `purge-stale-health-data` täglich 03:3
 Zusatzsport-Einträge älter als 24 Monate sowie `push_log` und `ai_usage` älter als 30 Tage
 (`select public.purge_stale_health_data();` liefert die Anzahl gelöschter Zeilen).
 
+Weitere Löschfristen planen die Migrationen ebenfalls per `pg_cron` ein (täglich, nachts UTC), z. B.
+`purge-old-polls`, `purge-old-squads`, `purge-old-rides` (Suchen nach Fahrgemeinschaften am Tag nach dem Spiel,
+Fahrten 30 Tage danach), `purge-old-suspensions` (Sperren nach 24 Monaten), `purge-old-accidents` (Unfallmeldungen nach 36 Monaten) und
+`purge-guardians` (Eltern-Zugang: abgelaufene Codes, Fehlversuche nach einem Tag, unbestätigte Anfragen nach 30 Tagen,
+Verknüpfungen 30 Tage nach dem 18. Geburtstag ohne Verlängerung, Elterninfo nach 12 Monaten). Fehlte `pg_cron` beim `db push`, meldet die Migration das per NOTICE – dann den
+`do $$ … cron.schedule(…) … $$`-Block am Ende der jeweiligen Migration im SQL-Editor ausführen.
+
+Löschung nach Widerruf und weitere Löschfristen (Migration `…10_loeschung.sql`):
+
+- `purge-privacy` täglich 04:35 UTC (`select public.purge_privacy();`): Gesundheitsdaten 30 Tage nach einem Widerruf
+  ohne neue Einwilligung, Gesundheitsdaten inaktiver Spieler nach 6 Monaten, Push-Token nach 6 Monaten ohne
+  Aktualisierung, Nachrichten 12 Monate nach Ablauf, Anwesenheit und Abwesenheiten nach 24 Monaten.
+- `privacy-purge` täglich 04:40 UTC – ruft die gleichnamige Edge Function über `pg_net` auf (dieselben Vault-Secrets
+  `project_url` und `cron_secret` wie `push-reminders`): Befunde (Datei und Eintrag) 30 Tage nach Widerruf der
+  App-Einwilligung bzw. bei Spielern, die seit 6 Monaten inaktiv sind; Spielerprofile 24 Monate nach Deaktivierung;
+  Teams, in denen seit 24 Monaten niemand die App genutzt hat; Konten ohne Rolle, die seit 24 Monaten nicht genutzt
+  wurden. Grundlage ist `profiles.last_seen_at` (die App meldet sich höchstens einmal am Tag über `touch_seen()`);
+  alle Fristen beginnen frühestens mit dem Einspielen der Migration.
+- Prüfen ohne zu löschen: `select * from public.privacy_findings_due();`, `privacy_players_due()`,
+  `privacy_teams_due()`, `privacy_accounts_due()` (nur `service_role` bzw. im SQL-Editor).
+
 Kontrolle:
 
 ```sql
-select jobname, schedule, active from cron.job;   -- push-reminders, purge-stale-health-data
+select jobname, schedule, active from cron.job;   -- push-reminders, purge-stale-health-data, purge-privacy, privacy-purge, purge-old-… (Löschfristen)
 select status, return_message, start_time from cron.job_run_details order by start_time desc limit 5;
 select status_code, content from net._http_response order by created desc limit 5;
 ```
@@ -117,11 +153,11 @@ jeder Nachricht `functions/v1/chat-push` auf. Fehlen pg_net oder die Secrets, we
 
 ```bash
 supabase/tests/run.sh          # Exit 0 = alles bestanden
-KEEP_DB=1 supabase/tests/run.sh   # Cluster danach laufen lassen (psql -h /tmp/trainerbank-pgtest -p 54329 -U postgres trainerbank_test)
+KEEP_DB=1 supabase/tests/run.sh   # Cluster danach laufen lassen (psql -h /tmp/trainerstab-pgtest -p 54329 -U postgres trainerstab_test)
 ```
 
 Braucht nur die PostgreSQL-16-Binärdateien (`PGBIN`, Standard `/usr/lib/postgresql/16/bin`) – kein Docker.
-Das Skript startet einen Wegwerf-Cluster in `PGTEST_DIR` (Standard `$TMPDIR/trainerbank-pgtest`, Port `PGTEST_PORT`
+Das Skript startet einen Wegwerf-Cluster in `PGTEST_DIR` (Standard `$TMPDIR/trainerstab-pgtest`, Port `PGTEST_PORT`
 54329; als root läuft Postgres als OS-Benutzer `postgres`, dafür wird bei Bedarf `o+x` auf das Elternverzeichnis
 gesetzt), legt Supabase-Platzhalter an (Rollen `anon`/`authenticated`/`service_role`, `auth.users`, `auth.uid()`,
 `storage.buckets/objects`, `storage.foldername/filename`, Default-Privileges wie bei Supabase), spielt alle
