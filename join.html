@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self' data:; script-src 'sha256-PWwN66nh3X8O+d5lB5um2VuCVYVVXObmHp+H1g9K9wk='; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Einladung in dein Team – Trainerstab</title>
+<meta name="description" content="Mit diesem Code trittst du deinem Team in der App Trainerstab bei.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f2f4f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1110" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Einladung in dein Team – Trainerstab">
+<meta property="og:description" content="Mit diesem Code trittst du deinem Team in der App Trainerstab bei.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://trainerstab.app/join">
+<meta property="og:locale" content="de_DE">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<a class="skip" href="#inhalt">Zum Inhalt</a>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/" aria-label="Trainerstab – Startseite"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="8.5" fill="#0d6b4b"/><path d="M6.425 8.25H19.125V9.75A6.25 6.25 0 0 0 14.205 12.15H6.425A1.3 1.3 0 0 1 5.125 10.85V9.55A1.3 1.3 0 0 1 6.425 8.25Z" fill="#fff"/><circle cx="19.125" cy="16" r="6.25" fill="none" stroke="#fff" stroke-width="3"/><circle cx="19.125" cy="16" r="1.6" fill="#fff"/></svg><span>trainer<b>stab</b></span></a>
+  <nav class="top" aria-label="Hauptnavigation"><a href="/hilfe">Hilfe</a><a href="/datenschutz">Datenschutz</a></nav>
+</div></header>
+<main id="inhalt"><div class="wrap narrow">
+<div class="page-head"><h1>Einladung in dein Team</h1><p>Mit diesem Code trittst du deinem Team in der App Trainerstab bei.</p></div>
+<div class="panel" id="ok" hidden>
+  <p class="label">Dein Code</p>
+  <p class="code" id="code"></p>
+  <div class="actions"><a class="btn primary" id="open" href="#">In der App öffnen</a><button class="btn ghost" id="copy" type="button" hidden>Code kopieren</button></div>
+  <p class="hint">Passiert nichts? Dann ist die App noch nicht installiert – oder du gibst den Code in der App von Hand ein.</p>
+</div>
+<div class="panel" id="bad" hidden><p>Dieser Link enthält keinen gültigen Team-Code. Bitte frag dein Trainerteam nach einem neuen Link.</p></div>
+<noscript><div class="panel"><p>Gib den Code aus deinem Einladungslink in der App ein.</p></div></noscript>
+<div class="doc">
+  <h2>So geht es</h2>
+  <ol class="steps"><li>App installieren (siehe unten).</li><li>In der App registrieren und die E-Mail-Adresse bestätigen.</li><li>Hier auf „In der App öffnen“ tippen – oder in der App den Code eingeben.</li></ol>
+  <h2>App installieren</h2>
+  <div class="install" id="installieren"><div><strong>iPhone</strong><span>Den Link bekommst du von deinem Trainerteam.</span></div><div><strong>Android</strong><span>Den Link bekommst du von deinem Trainerteam.</span></div></div>
+  <p class="hint">Fragen? Schreib uns an <a href="mailto:kontakt@trainerstab.app">kontakt@trainerstab.app</a>.</p>
+</div>
+</div></main>
+<footer class="bottom"><div class="wrap">
+  <span>© 2026 Nikolas Swehla</span>
+  <nav aria-label="Rechtliches und Hilfe"><a href="/hilfe">Hilfe</a><a href="/datenschutz">Datenschutz</a><a href="/impressum">Impressum</a><a href="/konto-loeschen">Konto löschen</a></nav>
+</div></footer>
+<script>(function(){var KIND="join",RE=new RegExp("^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$"),LEN=8,HALF=4;
+function clean(r){if(!r)return null;var c=String(r).toUpperCase().replace(/[^A-Z0-9]/g,"");var s=c.length===LEN?c.slice(0,HALF)+"-"+c.slice(HALF):"";return RE.test(s)?s:null;}
+var code=clean(new URLSearchParams(location.search).get("code"));
+var ok=document.getElementById("ok"),bad=document.getElementById("bad");
+if(!code){bad.hidden=false;return;}
+ok.hidden=false;document.getElementById("code").textContent=code;
+var q="?code="+encodeURIComponent(code),deep="trainerstab://"+KIND+q;
+var a=document.getElementById("open");
+if(/Android/i.test(navigator.userAgent)){var fb=location.origin+location.pathname+q+"#installieren";a.href="intent://"+KIND+q+"#Intent;scheme=trainerstab;package=app.trainerstab;S.browser_fallback_url="+encodeURIComponent(fb)+";end";}else{a.href=deep;}
+var b=document.getElementById("copy"),done=function(){b.textContent="Code kopiert";setTimeout(function(){b.textContent="Code kopieren";},2500);};
+b.hidden=false;b.addEventListener("click",function(){var c=document.getElementById("code");
+if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(done,function(){sel(c);});}else{sel(c);}});
+function sel(el){var r=document.createRange();r.selectNodeContents(el);var s=window.getSelection();s.removeAllRanges();s.addRange(r);}})();</script>
+</body>
+</html>
