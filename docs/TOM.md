@@ -1,4 +1,4 @@
-# Technische und organisatorische Maßnahmen (Art. 32 DSGVO) – Trainerbank
+# Technische und organisatorische Maßnahmen (Art. 32 DSGVO) – Trainerstab
 
 > **ENTWURF – vor Verwendung durch den Datenschutzbeauftragten prüfen lassen.**
 > Stand: 10.11.2026 (Migrationen bis `20261105000010`). Beschreibt, was im Code umgesetzt und durch Tests belegt ist
@@ -27,7 +27,7 @@
 | Weitergabe | nur verschlüsselte Verbindungen (TLS); keine Fremd-Skripte, kein Tracking, keine Werbung; Push-Texte ohne Gesundheitsangaben und ohne Chat-Inhalt | umgesetzt |
 | Eingabe | Wertebereiche per Datenbankregeln; `created_by`/`updated_by` und Zeitstempel; nicht fälschbare Felder per Trigger geschützt (z. B. `inactive_since`, `last_seen_at`) | umgesetzt |
 | Nachvollziehbarkeit | Einwilligungen mit Art, Version, Zeitpunkt, Widerruf (Nachweis bleibt nach Kontolöschung ohne Konto-ID); Zugriffsprotokoll des Matchplans; Bestätigungen im Eltern-Zugang | umgesetzt; Protokoll für Zugriffe auf Gesundheitsdaten **offen** (DSFA M-17) |
-| Änderungen am System | jede Änderung über Pull Request mit automatischen Prüfungen (Datenbank, Zugriffsregeln, Kernlogik, TypeScript, Web); Zusammenführen nur durch [Herausgeber] | umgesetzt |
+| Änderungen am System | jede Änderung über Pull Request mit automatischen Prüfungen (Datenbank, Zugriffsregeln, Kernlogik, TypeScript, Web); Zusammenführen nur durch Nikolas Swehla | umgesetzt |
 
 ## 3. Verfügbarkeit und Belastbarkeit
 

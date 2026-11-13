@@ -43,7 +43,7 @@ export class DemoApi implements Api {
   private consent: ConsentState = { privacy: true, health_data: true, parental: true, ai: true, staff_confidentiality: true, findings: true };
   constructor(public cls: ClassKey = "u19", public depth: Depth = "basis", public lang: Lang = "de", public over: DemoSetup = {}) {
     const name = over.me?.name?.trim() || (lang === "en" ? "Demo coach" : "Demo-Trainer");
-    this.user = { id: "demo-user", email: "demo@trainerbank.app", displayName: name, lang, prefs: { info: true, ...(over.prefs || {}) } };
+    this.user = { id: "demo-user", email: "demo@trainerstab.app", displayName: name, lang, prefs: { info: true, ...(over.prefs || {}) } };
   }
   /** Nur Demo: „kein Netz“ simulieren (Demo-Leiste), damit man die Offline-Warteschlange ausprobieren kann */
   offline = false;
@@ -431,7 +431,7 @@ export class DemoApi implements Api {
   async playerDataExport(pid: string) {
     this.net();
     const p = this.data?.players.find(x => x.id === pid);
-    return { format: "trainerbank-auskunft", version: 1, hinweis: "Demo-Modus: Beispiel einer Auskunft – in der echten App stehen hier alle gespeicherten Daten des Spielers.",
+    return { format: "trainerstab-auskunft", version: 1, hinweis: "Demo-Modus: Beispiel einer Auskunft – in der echten App stehen hier alle gespeicherten Daten des Spielers.",
       spieler: p ? { vorname: p.vn, nachname: p.nn, position: p.pos } : null };
   }
   async deleteAccount() { /* nichts gespeichert */ }

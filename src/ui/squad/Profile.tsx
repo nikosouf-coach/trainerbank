@@ -334,7 +334,7 @@ function PrivacySection({ p }: { p: Player }) {
     try {
       const data = await s.playerExport(p.id);
       const slug = `${p.vn}-${p.nn}`.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "spieler";
-      await shareTextFile(`trainerbank-auskunft-${slug}-${E.TODAY}.json`, JSON.stringify(data, null, 2));
+      await shareTextFile(`trainerstab-auskunft-${slug}-${E.TODAY}.json`, JSON.stringify(data, null, 2));
       s.toast(t("dsp_exportDone"));
     } catch (e) { s.toast(s.errText(e)); } finally { setBusy(false); }
   };

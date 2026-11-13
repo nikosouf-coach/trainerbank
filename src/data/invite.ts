@@ -1,7 +1,11 @@
 // Einladungen per Link und QR-Code: Spieler (Team-Code), Trainerteam (Trainer-Code) und Eltern (Eltern-Code je Kind).
-// Ohne eigene Website öffnet der Link direkt die App (trainerbank://join?code=…). Mit EXPO_PUBLIC_INVITE_URL
-// (z. B. https://trainerbank.de) zeigt der Link eine Seite, die zur App bzw. in die Stores weiterleitet.
-// Installationslinks der Testversion (TestFlight, Google Play Test): EXPO_PUBLIC_INSTALL_IOS, EXPO_PUBLIC_INSTALL_ANDROID.
+// Der Link führt auf die Website (https://trainerstab.app/join?code=…): Sie zeigt den Code, öffnet die App
+// (trainerstab://join?code=…) und erklärt die Installation. Links in Messengern sind so immer antippbar.
+// EXPO_PUBLIC_INVITE_URL ersetzt die Website-Adresse; leer gesetzt (EXPO_PUBLIC_INVITE_URL=) öffnet der Link direkt die
+// App. Installationslinks der Testversion (TestFlight, Google Play Test): EXPO_PUBLIC_INSTALL_IOS bzw.
+// EXPO_PUBLIC_INSTALL_ANDROID, sonst aus src/data/site.json.
+import { SITE_INSTALL, SITE_URL } from "./site";
+
 export type InviteKind = "player" | "staff" | "parent";
 export interface PendingInvite { kind: InviteKind; code: string }
 
@@ -31,13 +35,14 @@ export const invitePath = (kind: InviteKind): string => kind === "staff" ? "staf
 
 /** Link zum Beitreten bzw. Verknüpfen */
 export function inviteUrl(kind: InviteKind, code: string): string {
-  const base = (process.env.EXPO_PUBLIC_INVITE_URL || "").trim().replace(/\/+$/, "");
+  const env = process.env.EXPO_PUBLIC_INVITE_URL;
+  const base = (env === undefined ? SITE_URL : env).trim().replace(/\/+$/, "");
   const path = invitePath(kind), q = "code=" + encodeURIComponent(code);
-  return base ? `${base}/${path}?${q}` : `trainerbank://${path}?${q}`;
+  return base ? `${base}/${path}?${q}` : `trainerstab://${path}?${q}`;
 }
 
 /** Links zur Testversion bzw. zu den Stores (leer = nicht eingerichtet) */
 export const installLinks = (): { ios: string; android: string } => ({
-  ios: (process.env.EXPO_PUBLIC_INSTALL_IOS || "").trim(),
-  android: (process.env.EXPO_PUBLIC_INSTALL_ANDROID || "").trim(),
+  ios: (process.env.EXPO_PUBLIC_INSTALL_IOS || SITE_INSTALL.ios || "").trim(),
+  android: (process.env.EXPO_PUBLIC_INSTALL_ANDROID || SITE_INSTALL.android || "").trim(),
 });

@@ -1,6 +1,7 @@
 // Spieler treten mit dem Team-Code bei: Code → Profil → Einwilligungen → Notfallkontakt (Pflicht).
-// Aus einem Einladungslink (trainerbank://join?code=…): Code vorausgefüllt und geprüft; ohne Anmeldung wird die
-// Einladung gemerkt und es geht nach Anmeldung bzw. Registrierung weiter (Start zeigt sie an).
+// Aus einem Einladungslink (trainerstab://join?code=…, geöffnet von der Seite https://trainerstab.app/join): Code
+// vorausgefüllt und geprüft; ohne Anmeldung wird die Einladung gemerkt und es geht nach Anmeldung bzw. Registrierung
+// weiter (Start zeigt sie an).
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { teamLabel, POS } from "../src/core/classes";
@@ -11,6 +12,9 @@ import { EmergencyFields, MedField, draftError, toDraft, type EmDraft } from "..
 import { Splash } from "../src/ui/guard";
 import { Banner, Btn, Card, CardTitle, Check, ChoiceChips, Col, DateField, Field, Header, Info, Muted, NumField, Row, Screen, T } from "../src/ui/kit";
 import { useTheme } from "../src/ui/theme";
+
+/** Eigenes Konto als Spieler ab 13 (jüngere legt das Trainerteam ohne Konto an; Store-Zielgruppe 13+, docs/STORE.md 8.1) */
+const MIN_AGE = 13;
 
 export default function Join() {
   const s = useStore(); const tr = s.tr; const { t } = tr; const router = useRouter(); const { c } = useTheme();
@@ -37,17 +41,19 @@ export default function Join() {
     if (s.phase === "signedOut") { s.rememberInvite({ kind: "player", code: linkCode }); router.replace("/welcome"); return; }
     setCode(linkCode); check(linkCode);
   }, [linkCode, s.phase]); // eslint-disable-line react-hooks/exhaustive-deps
-  const consentsOk = () => cPrivacy && cHealth && (!under16 || (cParent && /^\S+@\S+\.\S+$/.test(parentMail)));
+  // Gesundheitsdaten sind freiwillig (Art. 7 Abs. 4 DSGVO): Beitritt auch ohne; Belastung & Co. bleiben dann gesperrt
+  // und lassen sich später in der App freischalten (HealthConsentGate).
+  const consentsOk = () => cPrivacy && (!under16 || (cParent && /^\S+@\S+\.\S+$/.test(parentMail)));
   const go = async () => {
     if (!consentsOk()) { setMsg(t("cs_need")); setStep(2); return; }
     const r = draftError(tr.tf, em);
     if ("error" in r) { setMsg(r.error); return; }
     setBusy(true); setMsg("");
     try {
-      await s.giveConsent("privacy"); await s.giveConsent("health_data");
+      await s.giveConsent("privacy"); if (cHealth) await s.giveConsent("health_data");
       if (under16) await s.giveConsent("parental", { parentEmail: parentMail.trim() });
       if (cAi) await s.giveConsent("ai");
-      const j = await s.joinTeam(code, { vn: vn.trim(), nn: nn.trim(), geb: geb!, pos, nr, kg }, { contacts: r.contacts, med });
+      const j = await s.joinTeam(code, { vn: vn.trim(), nn: nn.trim(), geb: geb!, pos, nr, kg }, { contacts: r.contacts, med: cHealth ? med : "" });
       s.rememberInvite(null);
       s.toast(t(j.saved ? "jn_done" : "jn_doneNoEm")); router.replace("/");
     } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
@@ -78,7 +84,7 @@ export default function Join() {
         </Row>
         <Muted small>{t("po_kgHint")}</Muted>
         {err}
-        <Btn testID="jn-next" kind="primary" label={t("ob_next")} onPress={() => { if (!vn.trim() || !nn.trim() || !geb) { setMsg(t("po_need")); return; } setMsg(""); setStep(2); }} />
+        <Btn testID="jn-next" kind="primary" label={t("ob_next")} onPress={() => { if (!vn.trim() || !nn.trim() || !geb) { setMsg(t("po_need")); return; } if (ageOn(geb, new Date()) < MIN_AGE) { setMsg(t("jn_tooYoung")); return; } setMsg(""); setStep(2); }} />
       </Col> : null}
       {step === 2 ? <Col gap={12} style={{ maxWidth: 600 }}>
         <Banner>{t("po_privacy")}</Banner>
@@ -89,6 +95,7 @@ export default function Join() {
         <Card>
           <CardTitle title={t("cs_health")} info={<Info title={t("cs_health")} text={t("cs_health_l")} />} />
           <Check testID="jn-c-health" value={cHealth} onChange={setCHealth} label={t("cs_health_s")} />
+          <Muted small>{t("cs_health_opt")}</Muted>
         </Card>
         {under16 ? <Card>
           <CardTitle title={t("cs_parent")} info={<Info title={t("cs_parent")} text={t("cs_parent_l")} />} />
@@ -109,9 +116,9 @@ export default function Join() {
           <EmergencyFields testID="jn-nf" value={em} onChange={v => { setEm(v); setMsg(""); }} />
           <Muted small>{t("nf_tell")}</Muted>
         </Card>
-        <Card>
+        {cHealth ? <Card>
           <MedField testID="jn-nf-med" value={med} onChange={setMed} />
-        </Card>
+        </Card> : null}
         {err}
         <Btn testID="jn-go" kind="primary" label={t("jn_go")} onPress={go} disabled={busy} />
       </Col> : null}

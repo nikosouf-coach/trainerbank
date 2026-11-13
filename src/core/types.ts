@@ -1,4 +1,4 @@
-// Fachliche Typen der Trainerbank. Unabhängig von React und Supabase.
+// Fachliche Typen von Trainerstab. Unabhängig von React und Supabase.
 
 export type Lang = "de" | "en";
 export type Depth = "org" | "basis" | "pro";

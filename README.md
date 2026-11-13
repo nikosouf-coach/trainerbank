@@ -1,4 +1,4 @@
-# Trainerbank
+# Trainerstab
 
 App für Fußballtrainer und ihre Spieler – vom Kinderfußball bis zu den Senioren. Planung, Belastungssteuerung und
 Spielerentwicklung an einem Ort, mit einer eigenen Spieler-App, die Spaß macht.
@@ -6,7 +6,8 @@ Spielerentwicklung an einem Ort, mit einer eigenen Spieler-App, die Spaß macht.
 **Technik:** Expo SDK 57 (iOS, Android, Web) · React Native · Expo Router · TypeScript · Supabase (Region Frankfurt) ·
 Claude API für den KI-Coach und die Befund-Auswertung.
 
-Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt für Schritt).
+Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt für Schritt). Website mit
+Datenschutzerklärung, Impressum und Hilfe: **https://trainerstab.app** (Quelle in `website/`).
 
 ## Funktionen
 
@@ -58,12 +59,13 @@ Einrichten, Veröffentlichen und alle Konten: **[SETUP.md](SETUP.md)** (Schritt 
 |---|---|
 | `app/` | Bildschirme (Expo Router): `coach/…`, `player/…`, Anmeldung, Konto |
 | `src/core/` | Fachlogik ohne React und Datenbank (Wochenplan, Erholung, Leistung, Pausen, Gruppen, Reha, Dienste, Gamification, Entwicklung, Entwicklungsprogramm, Umfragen, Notfallkontakte, Größen, Kader-Nominierung, Fahrgemeinschaften, Karten & Sperren, Geburtstage, Foto-Erlaubnis, Unfallmeldung, Eltern-Zugang, Datenschutz, Challenge, Chat-Regeln, Matchplan, Verein, Kaderplanung & Scouting, Statistik) mit Tests |
-| `src/data/` | Datenzugriff: Supabase oder Demo-Modus im Speicher |
+| `src/data/` | Datenzugriff: Supabase oder Demo-Modus im Speicher; `site.json`: Website, Kontakt und Anbieter (Impressum) für App und Website |
 | `src/ui/` | Bausteine der Oberfläche (`kit.tsx`: Section, Group, NavRow, Metric, Detailseiten-Bausteine …); Erscheinungsbild in `theme.tsx` (Farben, Typografie, Hell/Dunkel), Marke in `brand.tsx`, Leitfaden in [docs/DESIGN.md](docs/DESIGN.md) |
 | `src/i18n/` | Texte Deutsch/Englisch |
 | `supabase/` | Datenbank-Migrationen, Zugriffsregeln, Edge Functions, Tests ([README](supabase/README.md)) |
 | `docs/` | Architektur, Gestaltung (DESIGN.md), Datenschutzerklärung, Einwilligungen, DSFA, Verarbeitungsverzeichnis (VVT.md), technische und organisatorische Maßnahmen (TOM.md), Ablauf bei Datenpannen und Anfragen (DATENPANNEN.md), Store-Texte, Impressum-Vorlage |
-| `.github/workflows/` | CI, Backend-Deploy, App-Build, App-Update (EAS Update), Werkzeug (Expo-Pakete) |
+| `website/` | Website trainerstab.app: `build.mjs` baut sie nach `website/dist` (Datenschutzerklärung aus `docs/`), `pages.mjs` enthält die Seiten |
+| `.github/workflows/` | CI, Backend-Deploy, App-Build, App-Update (EAS Update), Website (GitHub Pages), Werkzeug (Expo-Pakete) |
 
 ## Befehle
 
@@ -73,6 +75,7 @@ npx expo start         # App starten (Expo Go auf dem Handy oder Web mit "w")
 npm test               # Kernlogik-Tests
 npm run test:db        # Datenbank + Zugriffsregeln (braucht PostgreSQL 16)
 npm run typecheck      # TypeScript
+node website/build.mjs # Website bauen und prüfen (Ausgabe in website/dist)
 ```
 
 Ohne `.env` startet die App im Demo-Modus mit Beispieldaten.

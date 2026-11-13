@@ -26,7 +26,7 @@ export const en_squad: Dict = {
   mh_trainingSub: "{n} training days · athletics & goalkeeping · principles · own session types",
   cd_title: "Invite players", cd_sub: "Players download the app, enter the team code and create their profile.",
   cd_join: "Team code for players", cd_staff: "Staff code (assistant coaches, physio)", cd_share: "Share", cd_new: "Create new codes",
-  cd_newQ: "Create new codes? The old codes will stop working.", cd_shareText: "Join our team “{t}” in the Trainerbank app: code {c}",
+  cd_newQ: "Create new codes? The old codes will stop working.", cd_shareText: "Join our team “{t}” in the Trainerstab app: code {c}",
   cd_hidden: "Codes are loaded when opened.", cd_show: "Show codes", cd_ownerOnly: "Only the team owner can create new codes.",
   st_title2: "Coaching staff", st_pending: "Open requests", st_approve: "Accept", st_reject: "Decline", st_asCoach: "as coach", st_asPhysio: "as physio",
   pm_title: "Permissions", pm_edit: "Permissions", pm_mine: "Your permissions", pm_preset: "Template by role", pm_custom: "Custom selection", pm_reset: "Role default", pm_roleDefault: "Role default",

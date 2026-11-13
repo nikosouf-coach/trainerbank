@@ -1,9 +1,9 @@
-# Supabase CLI – Konfiguration für Trainerbank
+# Supabase CLI – Konfiguration für Trainerstab
 # Gilt für die lokale Entwicklung (`supabase start`) und für die Deploy-Einstellungen
 # der Edge Functions. Das gehostete Projekt (Region Frankfurt, eu-central-1) wird mit
 # `supabase link --project-ref <PROJECT_REF>` verbunden – siehe supabase/README.md.
 
-project_id = "trainerbank"
+project_id = "trainerstab"
 
 [api]
 enabled = true
@@ -19,10 +19,12 @@ major_version = 17
 
 [auth]
 enabled = true
-# Platzhalter: Web-Adresse der App bzw. Ziel der Bestätigungs-/Reset-Links.
-site_url = "https://trainerbank.example"
-# Platzhalter: Deep-Link-Schema der Expo-App (app.json → "scheme") und Expo-Web-Dev-Server.
-additional_redirect_urls = ["trainerbank://", "http://localhost:8081"]
+# Website: Ziel der Bestätigungslinks (zeigt „E-Mail bestätigt“); im gehosteten Projekt unter Authentication →
+# URL Configuration genauso eintragen.
+site_url = "https://trainerstab.app"
+# Erlaubte Ziele nach Bestätigung bzw. Passwort-Link: Website, Deep-Link-Schema der App (app.config.ts → scheme) und
+# Expo-Web-Dev-Server.
+additional_redirect_urls = ["https://trainerstab.app/**", "trainerstab://**", "http://localhost:8081"]
 jwt_expiry = 3600
 enable_signup = true
 # Mindestlänge wie bei der Registrierung in der App. Im gehosteten Projekt zusätzlich im Dashboard setzen

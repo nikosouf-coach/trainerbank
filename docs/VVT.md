@@ -1,4 +1,4 @@
-# Verzeichnis von Verarbeitungstätigkeiten (Art. 30 DSGVO) – Trainerbank
+# Verzeichnis von Verarbeitungstätigkeiten (Art. 30 DSGVO) – Trainerstab
 
 > **ENTWURF – vor Verwendung durch den Datenschutzbeauftragten bzw. anwaltlich prüfen lassen.**
 > Stand: 10.11.2026 (Migrationen bis `20261105000010`). Das Verzeichnis ist schriftlich bzw. elektronisch zu führen
@@ -10,14 +10,14 @@
 
 | | |
 |---|---|
-| Verantwortlicher | [Herausgeber] ([Rechtsform]), [Anschrift], [E-Mail], [Telefon] |
+| Verantwortlicher | Nikolas Swehla (Einzelperson; Gründung einer Gesellschaft geplant), Am Lindenbruch 26, 45327 Essen, kontakt@trainerstab.app |
 | Vertreten durch | [vertretungsberechtigte Person(en)] |
 | Datenschutzbeauftragter | [Name bzw. Firma, Kontakt] – Benennung nach § 38 Abs. 1 Satz 2 BDSG sehr wahrscheinlich Pflicht (DSFA erforderlich) |
 | Rollenmodell | **offen** (DSFA M-14): Dieses Verzeichnis geht wie die Datenschutzerklärung von Modell A aus (Herausgeber allein verantwortlich). Bei Modell B (Verein verantwortlich, Herausgeber Auftragsverarbeiter) führt der Herausgeber zusätzlich ein Verzeichnis nach Art. 30 Abs. 2 und jeder Verein ein eigenes. |
 
 ## B. Gemeinsame Angaben für alle Tätigkeiten
 
-- **Systeme:** App Trainerbank (iOS, Android, Web), Datenbank, Anmeldung, Dateispeicher und Serverfunktionen bei
+- **Systeme:** App Trainerstab (iOS, Android, Web), Website trainerstab.app (GitHub Pages), Datenbank, Anmeldung, Dateispeicher und Serverfunktionen bei
   Supabase (Region Frankfurt, eu-central-1).
 - **Auftragsverarbeiter:** Supabase (Hosting, Datenbank, Anmeldung, Speicher, Serverfunktionen), Anthropic (KI, nur mit
   Einwilligung), Expo/650 Industries (Push-Versand, App-Updates), Sentry/Functional Software (Absturzberichte, nur mit
@@ -60,7 +60,7 @@
 
 ## D. Pflege
 
-- Verantwortlich für die Pflege: [Name]. Überprüfung: bei jeder neuen Funktion, mindestens jährlich.
+- Verantwortlich für die Pflege: Nikolas Swehla. Überprüfung: bei jeder neuen Funktion, mindestens jährlich.
 - Änderungen:
 
 | Datum | Änderung |

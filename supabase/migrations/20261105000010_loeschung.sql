@@ -1,5 +1,5 @@
 -- =====================================================================
--- Trainerbank – Löschung nach Widerruf und weitere Löschfristen (Art. 5 Abs. 1 lit. e, Art. 17 Abs. 1 lit. b DSGVO)
+-- Trainerstab – Löschung nach Widerruf und weitere Löschfristen (Art. 5 Abs. 1 lit. e, Art. 17 Abs. 1 lit. b DSGVO)
 --
 -- - health_basis(player): Gibt es für die Gesundheitsdaten des Spielers (noch) eine Einwilligung in der App?
 --   Eigene Einwilligung in Gesundheitsdaten (unter 16 auch die eines bestätigten Elternteils) und unter 16 zusätzlich
@@ -469,11 +469,11 @@ begin
   );
 
   return jsonb_build_object(
-    'format', 'trainerbank-auskunft',
+    'format', 'trainerstab-auskunft',
     'version', 1,
     'erstellt', now(),
     'hinweise', jsonb_build_array(
-      'Auskunft nach Art. 15 DSGVO über alle Daten, die das Trainerteam in Trainerbank zu diesem Spieler gespeichert hat, auch interne Notizen.',
+      'Auskunft nach Art. 15 DSGVO über alle Daten, die das Trainerteam in der App Trainerstab zu diesem Spieler gespeichert hat, auch interne Notizen.',
       'Vor dem Weitergeben prüfen: Angaben über andere Personen in Freitexten (z. B. Notizen) schwärzen.',
       'Dateien (Foto, Befunde) sind nicht enthalten; sie lassen sich in der App einzeln öffnen.',
       'Daten aus dem eigenen Konto des Spielers (z. B. Chats) enthält der Datenexport im Konto des Spielers.'),

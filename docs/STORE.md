@@ -1,4 +1,4 @@
-# Store-Kit – Trainerbank (App Store und Google Play)
+# Store-Kit – Trainerstab (App Store und Google Play)
 
 > **ENTWURF – vor Veröffentlichung prüfen.** Die Datenschutz-Angaben (App-Datenschutz bei Apple, Datensicherheit bei
 > Google), Altersfreigaben und alle Hinweise auf Richtlinien sind **anwaltlich bzw. anhand der aktuellen
@@ -6,9 +6,10 @@
 > „zu prüfen“ markiert ist, vor dem Einreichen in App Store Connect bzw. der Play Console abgleichen.
 > Die Angaben müssen mit `docs/DATENSCHUTZERKLAERUNG.md` und der tatsächlich ausgelieferten App übereinstimmen.
 
-Platzhalter: [Herausgeber], [Anschrift], [E-Mail], [Support-E-Mail], [Support-URL], [Datenschutz-URL],
-[Impressum-URL], [Konto-Löschen-URL], [Marketing-URL], [Demo-Zugang Trainer: E-Mail/Passwort],
-[Demo-Zugang Spieler: E-Mail/Passwort], [Demo-Team-Code], [Bundle-ID], [Tageslimit].
+Anbieter und Adressen (aus `src/data/site.json`): Nikolas Swehla, Am Lindenbruch 26, 45327 Essen;
+kontakt@trainerstab.app; Website https://trainerstab.app mit /datenschutz, /impressum, /hilfe (Support) und
+/konto-loeschen. Offene Platzhalter: [Telefon], [Demo-Zugang Trainer: E-Mail/Passwort],
+[Demo-Zugang Spieler: E-Mail/Passwort], [Demo-Team-Code], [Tageslimit].
 
 ---
 
@@ -16,17 +17,17 @@ Platzhalter: [Herausgeber], [Anschrift], [E-Mail], [Support-E-Mail], [Support-UR
 
 | Feld | Wert |
 |---|---|
-| App-Name (max. 30 Zeichen) | **Trainerbank** |
-| Bundle-ID / Package-Name | [Bundle-ID, z. B. `de.[herausgeber].trainerbank`] – nach dem ersten Upload nicht mehr änderbar |
-| SKU (nur Apple, intern) | [z. B. `trainerbank-ios-001`] |
+| App-Name (max. 30 Zeichen) | **Trainerstab** |
+| Bundle-ID / Package-Name | `app.trainerstab` (Domain rückwärts) – nach dem ersten Upload nicht mehr änderbar |
+| SKU (nur Apple, intern) | `trainerstab-ios-001` |
 | Primärsprache | Deutsch; zusätzliche Lokalisierung: Englisch |
 | Preis | [kostenlos / Preismodell – siehe Abschnitt 12] |
 | Verfügbarkeit | Empfehlung für den Start: Deutschland, Österreich, Schweiz [ggf. weitere EU-Länder]. Andere Länder bedeuten andere Altersgrenzen und Rechtsordnungen. |
-| Copyright (Apple) | © 2026 [Herausgeber] |
+| Copyright (Apple) | © 2026 Nikolas Swehla |
 | Plattformen | iPhone, [iPad – siehe Screenshots], Android, Web (Web nicht über die Stores) |
 
-**Zu prüfen:** Ist „Trainerbank“ als App-Name im App Store und bei Google Play noch frei (Apple erlaubt jeden Namen
-nur einmal)? Markenrecherche (DPMA, EUIPO) und Domain sichern.
+**Zu prüfen:** Ist „Trainerstab“ als App-Name im App Store und bei Google Play noch frei (Apple erlaubt jeden Namen
+nur einmal)? Markenrecherche (DPMA, EUIPO). Domain trainerstab.app ist gesichert (13.11.2026).
 
 ---
 
@@ -65,7 +66,7 @@ Namen anderer Mobilplattformen (Richtlinie 2.3.10).
 
 <!-- desc-de:start -->
 ```text
-Trainerbank ist die App für Fußballtrainer und ihre Teams – von der U7 bis zu den Senioren. Plane Training und Spiele, behalte die Belastung deiner Spieler im Blick und organisiere dein Team an einem Ort. Deine Spieler tragen ihre Werte selbst ein, du siehst das Ergebnis sofort.
+Trainerstab ist die App für Fußballtrainer und ihre Teams – von der U7 bis zu den Senioren. Plane Training und Spiele, behalte die Belastung deiner Spieler im Blick und organisiere dein Team an einem Ort. Deine Spieler tragen ihre Werte selbst ein, du siehst das Ergebnis sofort.
 
 FÜR TRAINERINNEN UND TRAINER
 • Kalender für Spiele, Trainings und Termine – Absagen und Zusatztrainings mit wenigen Tipps
@@ -117,13 +118,13 @@ Die Methoden beruhen auf etablierten sportwissenschaftlichen Ansätzen, etwa Ses
 
 Auf dem Smartphone, [dem Tablet] und im Browser – auf Deutsch und Englisch.
 
-Wichtiger Hinweis: Trainerbank ist ein Werkzeug zur Trainingsorganisation und kein Medizinprodukt. Die App stellt keine Diagnosen und ersetzt keine ärztliche oder physiotherapeutische Beurteilung.
+Wichtiger Hinweis: Trainerstab ist ein Werkzeug zur Trainingsorganisation und kein Medizinprodukt. Die App stellt keine Diagnosen und ersetzt keine ärztliche oder physiotherapeutische Beurteilung.
 
 [Preisinformation, z. B. „Kostenlos für Spieler. Für Trainerteams …“]
 
-Support: [Support-URL]
-Datenschutz: [Datenschutz-URL]
-Impressum: [Impressum-URL]
+Support: https://trainerstab.app/hilfe
+Datenschutz: https://trainerstab.app/datenschutz
+Impressum: https://trainerstab.app/impressum
 ```
 <!-- desc-de:end -->
 
@@ -131,7 +132,7 @@ Impressum: [Impressum-URL]
 
 <!-- desc-en:start -->
 ```text
-Trainerbank is the app for football coaches and their teams – from under-7s to adult squads. Plan training and matches, keep an eye on your players' training load and organise your team in one place. Your players log their own data, and you see the result straight away.
+Trainerstab is the app for football coaches and their teams – from under-7s to adult squads. Plan training and matches, keep an eye on your players' training load and organise your team in one place. Your players log their own data, and you see the result straight away.
 
 FOR COACHES
 • Calendar for matches, training sessions and events – cancel sessions or add extra ones in a few taps
@@ -183,13 +184,13 @@ The methods are based on established sports-science approaches, such as session 
 
 On your phone, [tablet] and in the browser – in German and English.
 
-Important: Trainerbank is a training-management tool and not a medical device. It does not provide diagnoses and does not replace assessment by a doctor or physiotherapist.
+Important: Trainerstab is a training-management tool and not a medical device. It does not provide diagnoses and does not replace assessment by a doctor or physiotherapist.
 
 [Pricing information]
 
-Support: [Support-URL]
-Privacy: [Datenschutz-URL]
-Legal notice: [Impressum-URL]
+Support: https://trainerstab.app/hilfe
+Privacy: https://trainerstab.app/datenschutz
+Legal notice: https://trainerstab.app/impressum
 ```
 <!-- desc-en:end -->
 
@@ -238,8 +239,8 @@ Keyword-Listen oder Wiederholungen in der Beschreibung (Metadaten-Richtlinie).
 
 ## 6. „Neu in dieser Version“ (erste Version)
 
-- DE: `Erste Version von Trainerbank: Kalender, Wochenplan mit Spieltagsbezug, Belastungssteuerung, Anwesenheit, Spieler-App und optionaler KI-Coach.`
-- EN: `First release of Trainerbank: calendar, match-day-based weekly plan, load management, attendance, player app and optional AI coach.`
+- DE: `Erste Version von Trainerstab: Kalender, Wochenplan mit Spieltagsbezug, Belastungssteuerung, Anwesenheit, Spieler-App und optionaler KI-Coach.`
+- EN: `First release of Trainerstab: calendar, match-day-based weekly plan, load management, attendance, player app and optional AI coach.`
 
 ---
 
@@ -295,7 +296,7 @@ Blockiermöglichkeiten sowie veröffentlichte Kontaktdaten. Umgesetzt im Chat: M
 Trainerteam), Löschen eigener Nachrichten, Moderation (Löschen) durch das Trainerteam, Stummschalten von Chats,
 Ankündigungs-Modus, Chat-Regeln in der App, Spam-Grenze, Entfernen von Personen über Kader/Trainerteam. **Zu prüfen:**
 ob zusätzlich „Nutzer blockieren“ verlangt wird (im geschlossenen Team-Kontext ersetzt durch Moderation und Einzelchat-
-Einstellungen) und ob Meldungen auch den Herausgeber erreichen müssen ([Support-E-Mail] in den Chat-Regeln nennen).
+Einstellungen) und ob Meldungen auch den Herausgeber erreichen müssen (kontakt@trainerstab.app in den Chat-Regeln nennen).
 
 ### 8.3 Google Play – IARC-Fragebogen
 
@@ -325,7 +326,7 @@ Grundfragen: Werden Daten erhoben? **Ja.** Werden Daten für Tracking verwendet?
 Transparency-Dialog nötig). Alle Datentypen sind **mit der Identität verknüpft** (Konto). Zweck jeweils
 **App-Funktionalität**; keine Werbung, keine Analyse, kein Tracking.
 
-| Apple-Kategorie | Datentyp | Erhoben | Verknüpft | Tracking | Zweck | Inhalt bei Trainerbank |
+| Apple-Kategorie | Datentyp | Erhoben | Verknüpft | Tracking | Zweck | Inhalt bei Trainerstab |
 |---|---|---|---|---|---|---|
 | Kontaktinformationen | Name | ja | ja | nein | App-Funktionalität | Anzeigename, Vor-/Nachname, Name der Notfallkontakte, Name der Eltern im Eltern-Zugang |
 | Kontaktinformationen | E-Mail-Adresse | ja | ja | nein | App-Funktionalität | Konto-E-Mail (auch von Eltern im Eltern-Zugang), E-Mail der Erziehungsberechtigten |
@@ -360,9 +361,9 @@ Apple-Definitionen bestätigen – im Zweifel angeben.
 |---|---|
 | Erhebt oder teilt die App erforderliche Nutzerdatentypen? | Ja |
 | Werden alle Nutzerdaten bei der Übertragung verschlüsselt? | Ja (TLS) |
-| Können Nutzer die Löschung ihrer Daten beantragen? | Ja – in der App und über [Konto-Löschen-URL] |
+| Können Nutzer die Löschung ihrer Daten beantragen? | Ja – in der App und über https://trainerstab.app/konto-loeschen |
 | Kontoerstellung | Ja, mit E-Mail-Adresse und Passwort |
-| Web-Link zur Kontolöschung | [Konto-Löschen-URL] |
+| Web-Link zur Kontolöschung | https://trainerstab.app/konto-loeschen |
 | Unabhängige Sicherheitsprüfung (MASA) | Nein [optional] |
 
 **„Geteilt“** bedeutet bei Google die Übermittlung an Dritte. Übermittlungen an Dienstleister, die im Auftrag
@@ -395,7 +396,7 @@ sie vertraglich als Auftragsverarbeiter handeln (**zu prüfen**, siehe DSFA M-9)
 
 | Formular | Antwort |
 |---|---|
-| Datenschutzerklärung | [Datenschutz-URL] (öffentlich, ohne Anmeldung, nicht als PDF) |
+| Datenschutzerklärung | https://trainerstab.app/datenschutz (öffentlich, ohne Anmeldung, nicht als PDF) |
 | App-Zugriff | „Alle oder einige Funktionen sind eingeschränkt“ → Zugangsdaten aus Abschnitt 13 |
 | Werbung | Enthält keine Werbung |
 | Werbe-ID | Wird nicht verwendet – prüfen, dass im zusammengeführten Android-Manifest keine Berechtigung `com.google.android.gms.permission.AD_ID` steht (kann über Abhängigkeiten hineinkommen) |
@@ -485,7 +486,7 @@ Apple: Felder „Anmeldung erforderlich“ (Benutzername/Passwort) und „Notize
 ### Vorlage (Englisch)
 
 ```text
-Trainerbank is a training-management app for football (soccer) coaching staff and their players:
+Trainerstab is a training-management app for football (soccer) coaching staff and their players:
 team calendar, weekly training plan built around match day, attendance, absences, load management
 with session RPE, player self-reporting and an optional AI coach.
 
@@ -528,7 +529,7 @@ Deletion removes the account, the player profile and all associated health data.
 Data export (JSON) is available under [path].
 
 NOT A MEDICAL DEVICE
-Trainerbank is a training-management tool. It does not diagnose or treat. Recommendations are
+Trainerstab is a training-management tool. It does not diagnose or treat. Recommendations are
 general sports-science guidance; sources are cited in the in-app info texts (e.g. Foster et al.
 2001, session RPE; Hooper & Mackinnon 1995, wellness questionnaire).
 
@@ -538,7 +539,7 @@ PAYMENTS
 PUSH NOTIFICATIONS
 Optional reminders to log RPE/wellness. The app works fully without them.
 
-Contact for the review team: [Name], [E-Mail], [Telefon]
+Contact for the review team: Nikolas Swehla, kontakt@trainerstab.app, [Telefon]
 ```
 
 ---
@@ -549,7 +550,7 @@ Contact for the review team: [Name], [E-Mail], [Telefon]
 |---|---|---|---|
 | Datenschutz-URL | Pflicht | Pflicht (bei Gesundheitsdaten und Minderjährigen ohnehin) | öffentlich, ohne Anmeldung, HTML (nicht nur PDF), nennt App und Herausgeber, deckt sich mit den Formularangaben; zusätzlich in der App erreichbar |
 | Support-URL | Pflicht | – (Website optional) | Seite mit Kontaktmöglichkeit (E-Mail oder Formular), FAQ empfohlen |
-| Marketing-URL | optional | Website optional | [Marketing-URL] |
+| Marketing-URL | optional | Website optional | https://trainerstab.app |
 | Kontakt-E-Mail | im Review-Kontakt | **Pflicht, öffentlich sichtbar** | eigene Support-Adresse verwenden, keine private Adresse |
 | Telefon | im Review-Kontakt | optional | – |
 | Konto-Löschen-URL | – | **Pflicht** | Webseite, über die Nutzer ohne App die Löschung von Konto und Daten beantragen können |
@@ -563,16 +564,16 @@ Contact for the review team: [Name], [E-Mail], [Telefon]
 **Apple (Richtlinie 5.1.1(v)):** Apps, die eine Kontoerstellung anbieten, müssen die Löschung des Kontos **in der App**
 ermöglichen. Deaktivieren reicht nicht; die Funktion muss leicht auffindbar sein.
 
-**Google Play:** Kontolöschung in der App **und** eine Web-Ressource ([Konto-Löschen-URL]), über die die Löschung von
+**Google Play:** Kontolöschung in der App **und** eine Web-Ressource (https://trainerstab.app/konto-loeschen), über die die Löschung von
 Konto und zugehörigen Daten beantragt werden kann; Angabe im Datensicherheitsformular.
 
-**Umsetzung in Trainerbank:**
+**Umsetzung in Trainerstab:**
 
 | Rolle | Pfad | Wirkung |
 |---|---|---|
 | Spieler | **Ich → Konto löschen** | löscht Konto, Spielerzeile und alle Gesundheitsdaten (Cascade über `players.user_id`) |
 | Trainerteam | **Mehr → Konto löschen** | löscht Konto; Team bleibt für übriges Trainerteam erhalten |
-| ohne App | [Konto-Löschen-URL] | Formular oder E-Mail an [Support-E-Mail]; Bearbeitung innerhalb von [30] Tagen |
+| ohne App | https://trainerstab.app/konto-loeschen | E-Mail an kontakt@trainerstab.app von der Adresse des Kontos; Bearbeitung unverzüglich, spätestens innerhalb eines Monats (Art. 12 Abs. 3 DSGVO) |
 
 **Zu prüfen bzw. umzusetzen:**
 - Löschung des Owners bzw. letzten Staff-Mitglieds darf nicht blockiert werden; vorher Übertragung anbieten, sonst
@@ -603,7 +604,7 @@ GmbH) als Organisation akzeptiert wird; aktuelle Jahresgebühr; Händlerstatus n
 | Organisation (**empfohlen**) | **D-U-N-S-Nummer**, Verifizierung von Organisation, Website und Kontaktdaten | kein 12-Tester-Test erforderlich; für Gesundheits-Apps empfohlen |
 
 **Zu prüfen:** Google verlangt für bestimmte App-Kategorien (u. a. bestimmte Gesundheits- bzw. medizinische Apps) ein
-Organisationskonto. Trainerbank ist als Sport-App mit Fitness- und Wellness-Daten nicht als medizinische App
+Organisationskonto. Trainerstab ist als Sport-App mit Fitness- und Wellness-Daten nicht als medizinische App
 gedacht; ob die Pflicht greift, hängt von der Gesundheits-Apps-Erklärung ab. D-U-N-S-Beantragung kann mehrere Tage bis
 Wochen dauern – früh starten.
 
@@ -615,7 +616,7 @@ Wochen dauern – früh starten.
 |---|---|---|
 | Datenschutzmanifest (`PrivacyInfo.xcprivacy`) | iOS | Expo-Module liefern eigene Manifeste; App-eigene „Required Reason APIs“ (z. B. UserDefaults über AsyncStorage) in `app.json` unter `ios.privacyManifests` deklarieren; Warn-E-Mails von Apple nach dem Upload beachten |
 | Exportkontrolle | iOS | nur Standard-Verschlüsselung (HTTPS) → `ios.config.usesNonExemptEncryption: false` – zu prüfen |
-| Berechtigungstexte | iOS | `NSPhotoLibraryUsageDescription` (DE: „Trainerbank greift auf deine Fotos zu, damit du ein Profilbild auswählen kannst.“ / EN: „Trainerbank accesses your photos so you can choose a profile picture.“); `NSCameraUsageDescription` nur, wenn die Kamera genutzt wird |
+| Berechtigungstexte | iOS | `NSPhotoLibraryUsageDescription` (DE: „Aus deinen Fotos wählst du ein Profilbild oder einen Befund aus.“ / EN: „Lets you choose a profile picture or a medical report from your photos.“) und `NSCameraUsageDescription` (DE: „Mit der Kamera fotografierst du Profilbilder und Befunde (z. B. Arztbriefe).“) – gesetzt in `app.config.ts` und `assets/locales/*.json` |
 | Push-Berechtigung | iOS, Android | erst im Kontext anfragen (z. B. beim Einschalten von Erinnerungen), nicht beim ersten Start; Android 13+: `POST_NOTIFICATIONS` |
 | App Tracking Transparency | iOS | **nicht** einbinden (kein Tracking) |
 | Mit Apple anmelden | iOS | nicht erforderlich, solange nur E-Mail/Passwort angeboten wird (Richtlinie 4.8 greift bei Anmeldung über Drittanbieter) |
@@ -632,10 +633,10 @@ Wochen dauern – früh starten.
 
 ## 18. Offene Punkte für dieses Dokument
 
-1. Mindestalter für eigene Konten (8.1) – bestimmt Altersfreigabe und Google-Zielgruppe.
+1. ~~Mindestalter für eigene Konten (8.1)~~ – festgelegt: 13 Jahre, die App prüft es beim Beitritt (13.11.2026).
 2. Preismodell und Bezahlweg (Abschnitt 12).
 3. iPad-Unterstützung ja/nein (Screenshots 13").
 4. Rechtsform des Herausgebers, D-U-N-S, Kontoart bei Apple und Google, Händlerstatus.
-5. URLs: Datenschutz, Support, Konto-Löschen, Impressum, Marketing.
+5. ~~URLs~~ – erledigt: https://trainerstab.app (/datenschutz, /hilfe, /konto-loeschen, /impressum).
 6. Einordnung von Push-Token, KI-Zähler und Trainer-Nachrichten in den Datenschutzformularen bestätigen.
 7. Status der Dienstleister als Auftragsverarbeiter (Voraussetzung für „Geteilt: nein“ bei Google).

@@ -1,11 +1,11 @@
-# Trainerbank – Gestaltung
+# Trainerstab – Gestaltung
 
 Leitfaden für Oberfläche und Texte. Umgesetzt in `src/ui/theme.tsx` (Farben, Schrift, Formen) und `src/ui/kit.tsx`
 (Bausteine). Neue Seiten setzen sich nur aus diesen Bausteinen zusammen.
 
 ## Worum es geht
 
-Trainerbank steuert Training und Belastung einer Fußballmannschaft. Das Trainerteam nutzt die App am Platz (Handy,
+Die App Trainerstab steuert Training und Belastung einer Fußballmannschaft. Das Trainerteam nutzt die App am Platz (Handy,
 eine Hand) und abends bei der Planung (Tablet, Laptop); Spieler (11 bis 19 Jahre) tragen am Handy ein und sehen ihren
 Plan. Die erste Ansicht beantwortet immer nur eine Frage: **Was ist jetzt wichtig?** Alles Weitere – Erklärung,
 Wissenschaft, Vorschläge – liegt eine Ebene tiefer.
@@ -65,6 +65,17 @@ Charakter entsteht über Größe, Gewicht und gleich breite Ziffern.
 | Nebentext `small` | 13/18 | 400 |
 | Kennzeichnung `eyebrow` | 12.5/16 | 600, Satzschreibung |
 | Kennzahl | 30–44 | 800, gleich breite Ziffern |
+
+## Marke
+
+- **Name:** Trainerstab, in Texten als „die App Trainerstab“ oder „die Trainerstab-App“, wo „Trainerstab“ sonst als
+  Trainerteam gelesen werden könnte (z. B. in Einwilligungen). Für die Menschen bleibt es beim Wort „Trainerteam“.
+- **Bildzeichen:** Trillerpfeife – Mundstück und Kugel mit Anstoßpunkt – weiß auf Markengrün `#0D6B4B`, abgerundetes
+  Quadrat, 32er-Raster mit Strichstärke 3 wie die übrigen Symbole (`src/ui/brand.tsx`). Dieselbe Geometrie steckt in
+  den App-Symbolen (`assets/`) und im Favicon der Website (`website/static/favicon.svg`).
+- **Wortmarke:** „trainer“ in Textfarbe, „stab“ in Markengrün, kleingeschrieben, Gewicht 800.
+- **Website** (`website/`): dieselben Farben und die Systemschrift wie die App; ein einziges Schmuckelement (der
+  Mittelkreis als Kreidelinie), keine externen Schriften oder Bilder.
 
 ## Formen nach Rolle
 

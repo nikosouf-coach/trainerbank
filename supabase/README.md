@@ -1,4 +1,4 @@
-# Trainerbank – Supabase-Backend
+# Trainerstab – Supabase-Backend
 
 Datenbank, Zugriffsregeln, Storage und Edge Functions der App. Verbindliche Vorlage für Tabellen,
 Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
@@ -7,7 +7,7 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 
 | Pfad | Inhalt |
 |---|---|
-| `config.toml` | Supabase-CLI-Konfiguration (Projekt `trainerbank`, Auth-Platzhalter, `verify_jwt` je Function) |
+| `config.toml` | Supabase-CLI-Konfiguration (Projekt `trainerstab`, Website als Site URL, `verify_jwt` je Function) |
 | `migrations/…01_schema.sql` | Tabellen, CHECK-Constraints, Fremdschlüssel (Cascade-Regeln), Indizes, Profil-Trigger auf `auth.users`, `push_log` |
 | `migrations/…02_rls.sql` | Hilfsfunktionen (`is_team_staff` usw.), RLS auf allen Tabellen, Schutz-Trigger (`players`, `teams`, `absences`), RPE ⇒ Anwesenheit `da` |
 | `migrations/…03_rpc.sql` | `create_team`, `join_team`, `join_staff`, `regenerate_codes`, `team_by_join_code`, `register_push_token`, `ai_usage_bump` (nur Server); `join_team`/`join_staff` werden in `…06` ersetzt |
@@ -65,7 +65,7 @@ Spalten, Rollen und RLS: [`docs/ARCHITEKTUR.md`](../docs/ARCHITEKTUR.md).
 ## Einrichten und Deployen
 
 Voraussetzung: [Supabase CLI](https://supabase.com/docs/guides/cli), Projekt in **Frankfurt (eu-central-1)** anlegen
-(Dashboard oder `supabase projects create trainerbank --region eu-central-1`).
+(Dashboard oder `supabase projects create trainerstab --region eu-central-1`).
 
 ```bash
 supabase login
@@ -153,11 +153,11 @@ jeder Nachricht `functions/v1/chat-push` auf. Fehlen pg_net oder die Secrets, we
 
 ```bash
 supabase/tests/run.sh          # Exit 0 = alles bestanden
-KEEP_DB=1 supabase/tests/run.sh   # Cluster danach laufen lassen (psql -h /tmp/trainerbank-pgtest -p 54329 -U postgres trainerbank_test)
+KEEP_DB=1 supabase/tests/run.sh   # Cluster danach laufen lassen (psql -h /tmp/trainerstab-pgtest -p 54329 -U postgres trainerstab_test)
 ```
 
 Braucht nur die PostgreSQL-16-Binärdateien (`PGBIN`, Standard `/usr/lib/postgresql/16/bin`) – kein Docker.
-Das Skript startet einen Wegwerf-Cluster in `PGTEST_DIR` (Standard `$TMPDIR/trainerbank-pgtest`, Port `PGTEST_PORT`
+Das Skript startet einen Wegwerf-Cluster in `PGTEST_DIR` (Standard `$TMPDIR/trainerstab-pgtest`, Port `PGTEST_PORT`
 54329; als root läuft Postgres als OS-Benutzer `postgres`, dafür wird bei Bedarf `o+x` auf das Elternverzeichnis
 gesetzt), legt Supabase-Platzhalter an (Rollen `anon`/`authenticated`/`service_role`, `auth.users`, `auth.uid()`,
 `storage.buckets/objects`, `storage.foldername/filename`, Default-Privileges wie bei Supabase), spielt alle

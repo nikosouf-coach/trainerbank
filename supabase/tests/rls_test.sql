@@ -1,5 +1,5 @@
 -- =====================================================================
--- Trainerbank – RLS-/RPC-Tests (ausgeführt von supabase/tests/run.sh)
+-- Trainerstab – RLS-/RPC-Tests (ausgeführt von supabase/tests/run.sh)
 --
 -- Identitätswechsel wie bei PostgREST:
 --   set local role authenticated;
@@ -4975,7 +4975,7 @@ begin
   x := public.my_data_export();
   perform tst.eq((x ->> 'format') || '/' || jsonb_array_length(x -> 'guardian_links')::text || '/' || jsonb_array_length(x -> 'parent_post_reads')::text
                  || '/' || (select count(*) from jsonb_array_elements(x -> 'consents') c where c ->> 'player_id' = tst.get('p4_player'))::text,
-                 'trainerbank-export-v17/1/1/1', 'T61 Export der Eltern: Verknüpfung, Lesebestätigung, Einwilligung');
+                 'trainerstab-export-v17/1/1/1', 'T61 Export der Eltern: Verknüpfung, Lesebestätigung, Einwilligung');
   perform public.guardian_remove(tst.get('link_g1')::uuid);
   perform tst.eq((select count(*) from public.guardian_children())::text, '0', 'T61 Eltern lösen die Verknüpfung selbst');
   perform tst.eq((select count(*) filter (where withdrawn_at is null)::text || '/' || count(*)::text from public.consents
@@ -5090,7 +5090,7 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v17', 'T21b Exportformat v17');
+  perform tst.eq(x ->> 'format', 'trainerstab-export-v17', 'T21b Exportformat v17');
   perform tst.eq(jsonb_array_length(x -> 'photo_consents')::text || '/' || (x -> 'photo_consents' -> 0 ->> 'declared_by'), '1/player', 'T21b Export: eigene Foto-Erlaubnis');
   perform tst.eq(jsonb_array_length(x -> 'accident_reports')::text || '/' || (x -> 'accident_reports' -> 0 ->> 'injury') || '/' || (x -> 'accident_reports' -> 0 ->> 'claim_number'), '1/Prellung Knie/SV-1', 'T21b Export: eigene Unfallmeldungen');
   perform tst.eq(jsonb_array_length(x -> 'suspensions')::text || '/' || (x -> 'suspensions' -> 0 ->> 'kind') || '/' || (x -> 'suspensions' -> 0 ->> 'games'), '1/red/3', 'T21b Export: eigene Sperren');
@@ -5531,7 +5531,7 @@ commit;
 do $$
 declare x jsonb := tst.get('export63')::jsonb;
 begin
-  perform tst.eq(x ->> 'format', 'trainerbank-auskunft', 'T63 Auskunft: Format');
+  perform tst.eq(x ->> 'format', 'trainerstab-auskunft', 'T63 Auskunft: Format');
   perform tst.ok((x -> 'daten') ? 'abwesenheiten' and (x -> 'daten') ? 'trainernotizen' and (x -> 'daten') ? 'einwilligungen'
                  and (x -> 'daten') ? 'umfragen' and (x -> 'daten') ? 'morgen_check', 'T63 Auskunft: alle Bereiche, auch interne Notizen');
   perform tst.ok(not (x -> 'spieler') ? 'user_id' and (x -> 'spieler') ? 'konto', 'T63 Auskunft: ohne Konto-ID, mit Hinweis auf das Konto');

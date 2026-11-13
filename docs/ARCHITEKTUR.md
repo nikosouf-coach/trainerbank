@@ -1,6 +1,6 @@
-# Trainerbank – Architektur
+# Trainerstab – Architektur
 
-Trainerbank ist eine App für Fußballtrainer (Senioren bis U7) und ihre Spieler: Kalender, Wochenplanung mit
+Trainerstab ist eine App für Fußballtrainer (Senioren bis U7) und ihre Spieler: Kalender, Wochenplanung mit
 Spieltags-Prinzipien, Belastungssteuerung (Session-RPE, ACWR), Regeneration nach Alter, Anwesenheit,
 Abwesenheiten, Spieler-App mit Selbsteingabe und KI-Coach.
 
@@ -15,10 +15,18 @@ Abwesenheiten, Spieler-App mit Selbsteingabe und KI-Coach.
 | Server | Supabase (Postgres, Auth, Storage, Edge Functions), Region Frankfurt | `supabase/` |
 | KI | Edge Function `ai` ruft die Claude API serverseitig auf | `supabase/functions/ai` |
 | Push | `expo-notifications` + Edge Function `push-reminders` (zeitgesteuert) | `supabase/functions/push-reminders` |
+| Website trainerstab.app | statische Seiten (Datenschutz, Impressum, Hilfe, Konto löschen, Einladungen, E-Mail bestätigt, neues Passwort), gebaut mit `website/build.mjs`, veröffentlicht über GitHub Pages (Branch `gh-pages`) | `website/` |
+| Anbieter, Kontakt, Adressen | eine JSON-Datei für App (Impressum, Rechtstexte, Einladungslinks) und Website | `src/data/site.json` |
 
 Grundsatz: Die gesamte Fachlogik (Wochenplan, Erholungsmodell, Kennzahlen, Tipps) liegt in `src/core` und kennt
 weder React noch Supabase. Sie arbeitet auf einem `TeamData`-Objekt (siehe `src/core/types.ts`). Die App baut
 `TeamData` aus der Datenbank (oder aus den Demo-Daten) und ruft die Logik auf.
+
+Links aus E-Mails und Einladungen: Einladungslinks zeigen auf die Website (`https://trainerstab.app/join?code=…`,
+`/staff-join`, `/parent-link`); die Seite zeigt den Code und öffnet die App über `trainerstab://…` (Android über einen
+Intent mit Rückfall auf die Installationshinweise). Bestätigungs-E-Mails führen auf `/bestaetigt`, Passwort-E-Mails auf
+`/passwort` (setzt das neue Passwort direkt über die Auth-API von Supabase; beide Seiten beenden die Sitzung aus dem
+Link danach). Dafür müssen beide Adressen in Supabase unter Redirect URLs erlaubt sein (`https://trainerstab.app/**`).
 
 ## Rollen
 
@@ -462,7 +470,7 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Antwort, nach dem Ende oder bei der eigenen Abstimmung. Hilfen: `team_today(team)`, `poll_running(poll)`,
   `poll_target_me(team, group)`, `poll_my_player(team)`, `poll_group_ok(group, team)`.
 - `purge_old_polls()` (täglich) – Umfragen mit allen Antworten 12 Monate nach dem Ende (ohne Ende: nach dem Start).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v17` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort; v14: eigene Fahrgemeinschaften – Fahrten als Fahrer mit Zahl der Mitfahrer, Plätze mit Fahrer und Abfahrt, Suchen, ohne Namen anderer; v15: eingetragene Sperren – Karten stehen bei den Spieldaten; v16: Foto-Erlaubnis und Unfallmeldungen; v17: als Elternteil eigene Verknüpfungen, Lesestand der Elterninfo, als Spieler die verknüpften Eltern): Profil, Gesundheitsdaten
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerstab-export-v17` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort; v14: eigene Fahrgemeinschaften – Fahrten als Fahrer mit Zahl der Mitfahrer, Plätze mit Fahrer und Abfahrt, Suchen, ohne Namen anderer; v15: eingetragene Sperren – Karten stehen bei den Spieldaten; v16: Foto-Erlaubnis und Unfallmeldungen; v17: als Elternteil eigene Verknüpfungen, Lesestand der Elterninfo, als Spieler die verknüpften Eltern): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,

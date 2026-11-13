@@ -344,7 +344,7 @@ set search_path = public
 as $$
 begin
   if tg_op = 'INSERT' or new.answer is distinct from old.answer or new.answered_at is distinct from old.answered_at then
-    new.answered_by_guardian := new.answer is not null and coalesce(current_setting('trainerbank.by_guardian', true), '') = 'on';
+    new.answered_by_guardian := new.answer is not null and coalesce(current_setting('trainerstab.by_guardian', true), '') = 'on';
   else
     new.answered_by_guardian := old.answered_by_guardian;
   end if;
@@ -794,12 +794,12 @@ begin
   end if;
   v_reason := case when p_answer = 'no'
                    then nullif(btrim(left(btrim(regexp_replace(coalesce(p_reason, ''), '[[:cntrl:]]', ' ', 'g')), 200)), '') end;
-  perform set_config('trainerbank.by_guardian', 'on', true);
+  perform set_config('trainerstab.by_guardian', 'on', true);
   update public.match_nominations
      set answer = p_answer, reason = v_reason, answered_at = now(), answered_by_staff = false
    where match_id = p_match and player_id = p_player
   returning * into v_nom;
-  perform set_config('trainerbank.by_guardian', 'off', true);
+  perform set_config('trainerstab.by_guardian', 'off', true);
   return v_nom;
 end;
 $$;
@@ -1295,7 +1295,7 @@ begin
   select coalesce(array_agg(p.id), '{}') into v_players from public.players p where p.user_id = v_uid;
 
   return jsonb_build_object(
-    'format', 'trainerbank-export-v17',
+    'format', 'trainerstab-export-v17',
     'exported_at', now(),
     'user_id', v_uid,
     'profile', (select to_jsonb(p) from public.profiles p where p.id = v_uid),

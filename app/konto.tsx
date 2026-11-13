@@ -62,7 +62,7 @@ export default function Konto() {
   }
   const doExport = () => run(async () => {
     const data = await s.exportMyData();
-    await shareTextFile(`trainerbank-export-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2));
+    await shareTextFile(`trainerstab-export-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2));
   }, t("ko_exportDone"));
   const doPush = () => run(async () => setPush(await enablePush((tok, pf) => s.api.registerPushToken(tok, pf), true)));
 

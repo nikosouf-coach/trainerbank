@@ -1,4 +1,4 @@
-# Ablauf bei Datenpannen und bei Anfragen von Betroffenen – Trainerbank
+# Ablauf bei Datenpannen und bei Anfragen von Betroffenen – Trainerstab
 
 > **ENTWURF – vor Verwendung durch den Datenschutzbeauftragten prüfen lassen.** Stand: 10.11.2026.
 > Teil A gilt für Datenpannen (Art. 33 und 34 DSGVO), Teil B für Anfragen von Betroffenen (Art. 12 bis 22 DSGVO).
@@ -7,13 +7,13 @@
 ## Teil A – Datenpannen
 
 Eine Datenpanne ist jede Verletzung der Sicherheit, die dazu führt, dass personenbezogene Daten vernichtet, verloren,
-verändert, unbefugt offengelegt oder unbefugt zugänglich werden. Beispiele für Trainerbank: ein geleakter
+verändert, unbefugt offengelegt oder unbefugt zugänglich werden. Beispiele für Trainerstab: ein geleakter
 Service-Schlüssel, eine fehlerhafte Zugriffsregel, durch die ein Team Daten eines anderen sieht, ein verlorenes Gerät
 eines Trainers mit angemeldeter App, ein falsch versandter Export, eine Panne bei einem Auftragsverarbeiter.
 
 ### A1. Erkennen und intern melden (sofort)
 
-- Wer etwas bemerkt, meldet es **sofort** an [Name, Telefon, E-Mail] und den Datenschutzbeauftragten [Kontakt] –
+- Wer etwas bemerkt, meldet es **sofort** an Nikolas Swehla (kontakt@trainerstab.app) und – sobald benannt – den Datenschutzbeauftragten –
   auch nur bei Verdacht. Hinweise kommen z. B. über Rückmeldungen in der App, Support-E-Mails, Meldungen von Supabase,
   Expo, Sentry oder Anthropic, GitHub-Sicherheitswarnungen.
 - Uhrzeit des Bekanntwerdens festhalten: Ab dann laufen die **72 Stunden** für die Meldung an die Aufsichtsbehörde.
@@ -87,7 +87,7 @@ Danach: Ursache beheben, automatischen Test ergänzen, DSFA und TOM bei Bedarf a
 | Auskunft (Art. 15), Datenübertragbarkeit (Art. 20) | Spieler mit Konto: „Konto → Meine Daten exportieren“ (JSON). Spieler ohne Konto oder vollständige Auskunft mit internen Notizen: Der Owner des Teams erstellt sie im Spielerprofil → Datenschutz → „Auskunft erstellen“. Vor der Herausgabe Angaben über andere Personen in Freitexten schwärzen (Art. 15 Abs. 4). Dateien (Foto, Befunde) bei Bedarf einzeln beilegen. Zusätzlich die Informationen nach Art. 15 Abs. 1 (Zwecke, Empfänger, Dauer, Rechte) – sie stehen in der Datenschutzerklärung. |
 | Berichtigung (Art. 16) | Spieler korrigieren eigene Angaben in der App; alles andere korrigiert das Trainerteam; Eltern ihre Angaben im Eltern-Zugang. |
 | Löschung (Art. 17) | Konto löschen in der App (löscht Spielerprofil und Gesundheitsdaten). Widerruf in der App löscht Gesundheitsdaten und Befunde nach 30 Tagen automatisch. Widerruf auf Papier oder Löschwunsch eines Spielers ohne Konto: Trainerteam → Spielerprofil → Datenschutz → „Gesundheitsdaten löschen“ bzw. Spieler löschen. |
-| Einschränkung (Art. 18) | Trainerteam setzt den Spieler auf inaktiv (der Eltern-Zugang ruht); die Daten bleiben bis zur Klärung unverändert. Achtung: Nach 6 Monaten Inaktivität löscht Trainerbank die Gesundheitsdaten – bei längerer Klärung vorher sichern (Auskunft erstellen). |
+| Einschränkung (Art. 18) | Trainerteam setzt den Spieler auf inaktiv (der Eltern-Zugang ruht); die Daten bleiben bis zur Klärung unverändert. Achtung: Nach 6 Monaten Inaktivität löscht die App die Gesundheitsdaten – bei längerer Klärung vorher sichern (Auskunft erstellen). |
 | Widerspruch (Art. 21) | bei Verarbeitung auf Grundlage berechtigter Interessen (z. B. Scouting, Notfallkontakte): Einzelfall prüfen; Scouting-Einträge löscht das Trainerteam auf Verlangen. |
 | Widerruf einer Einwilligung (Art. 7 Abs. 3) | in der App unter Konto → Einwilligungen bzw. im Eltern-Zugang; Folgen stehen im Bestätigungsblatt. |
 | Beschwerde (Art. 77) | Hinweis auf die Aufsichtsbehörde steht in der Datenschutzerklärung. |
@@ -95,4 +95,4 @@ Danach: Ursache beheben, automatischen Test ergänzen, DSFA und TOM bei Bedarf a
 ### B3. Anfragen über das Trainerteam
 
 Bitten Spieler oder Eltern das Trainerteam um Auskunft oder Löschung, erledigt der Owner das mit den Werkzeugen oben
-und meldet es an [Support-E-Mail], damit die Frist und die Erledigung dokumentiert sind.
+und meldet es an kontakt@trainerstab.app, damit die Frist und die Erledigung dokumentiert sind.

@@ -1,4 +1,4 @@
-# Datenschutz-Folgenabschätzung (DSFA) – Trainerbank
+# Datenschutz-Folgenabschätzung (DSFA) – Trainerstab
 
 > **ENTWURF – vor Verwendung anwaltlich bzw. durch den Datenschutzbeauftragten prüfen lassen.**
 > Vorlage nach Art. 35 DSGVO, vorausgefüllt auf Grundlage von `docs/ARCHITEKTUR.md` (Stand der Architektur, nicht
@@ -7,9 +7,9 @@
 
 | | |
 |---|---|
-| Verantwortlicher | [Herausgeber], [Anschrift], [E-Mail] |
+| Verantwortlicher | Nikolas Swehla, Am Lindenbruch 26, 45327 Essen, kontakt@trainerstab.app |
 | Datenschutzbeauftragter | [Name, Kontakt] – Stellungnahme siehe Abschnitt 11 |
-| Verarbeitungstätigkeit | Betrieb der App „Trainerbank“ (iOS, Android, Web) zur Trainings- und Mannschaftsorganisation mit Belastungssteuerung |
+| Verarbeitungstätigkeit | Betrieb der App „Trainerstab“ (iOS, Android, Web) zur Trainings- und Mannschaftsorganisation mit Belastungssteuerung |
 | Version / Datum | [0.1] / [TT.MM.JJJJ] |
 | Erstellt von | [Name, Funktion] |
 | Beteiligt | [Entwicklung], [DSB], [Vertreter eines Pilotvereins], [Elternvertreter] |
@@ -562,7 +562,7 @@ anderem zur Diagnose, Verhütung, Überwachung, Vorhersage, Prognose, Behandlung
 von Verletzungen bestimmt ist. Maßgeblich ist die **Zweckbestimmung** des Herstellers, wie sie sich aus
 Kennzeichnung, Gebrauchsanweisung, Werbung und Store-Texten ergibt (Orientierung: MDCG 2019-11).
 
-**Beabsichtigte Zweckbestimmung (Entwurf):** Trainerbank ist ein Werkzeug zur Organisation von Training und
+**Beabsichtigte Zweckbestimmung (Entwurf):** Die App Trainerstab ist ein Werkzeug zur Organisation von Training und
 Spielbetrieb im Fußball und zur Steuerung der Trainingsbelastung gesunder Sportlerinnen und Sportler auf Grundlage
 allgemeiner sportwissenschaftlicher Methoden. Die App ist nicht zur Diagnose, Überwachung, Vorhersage oder Behandlung
 von Krankheiten oder Verletzungen bestimmt.

@@ -165,7 +165,7 @@ export const en_parents: Dict = {
   el_codeShare: "Send code to the parents",
   el_codeDirect: "Only send the code directly to {n}'s parents – not to a group.",
   el_qr: "QR code for {n}'s parents",
-  el_shareText: "Parent access for {n} ({t}) in Trainerbank:\n1. Install the app and register.\n2. Choose “I'm a parent” and enter the code: {c}\n(or open this link: {l})\nThe code is valid until {d}. The coaching staff then confirms the request.",
+  el_shareText: "Parent access for {n} ({t}) in the Trainerstab app:\n1. Install the app and register.\n2. Choose “I'm a parent” and enter the code: {c}\n(or open this link: {l})\nThe code is valid until {d}. The coaching staff then confirms the request.",
   el_copied: "Text copied – now paste it into your message to the parents.",
   el_full: "Two parents are linked or have requested – that's the maximum. Remove a link first.",
   el_needBirth: "Add the birth date first – parent access is only for minors.",

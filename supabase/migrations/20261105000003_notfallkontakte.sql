@@ -325,7 +325,7 @@ begin
   select coalesce(array_agg(p.id), '{}') into v_players from public.players p where p.user_id = v_uid;
 
   return jsonb_build_object(
-    'format', 'trainerbank-export-v11',
+    'format', 'trainerstab-export-v11',
     'exported_at', now(),
     'user_id', v_uid,
     'profile', (select to_jsonb(p) from public.profiles p where p.id = v_uid),

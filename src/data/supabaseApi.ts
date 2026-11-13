@@ -35,6 +35,7 @@ import {
 import { supabase } from "./supabase";
 import { cleanClubPerms, type ClubInfo, type ClubRole, type ClubStaffEntry, type ClubTeam, type TeamSummary } from "../core/club";
 import { cleanCrew } from "../core/day";
+import { SITE_URL } from "./site";
 
 type Row = Record<string, any>;
 const KNOWN_CODES = ["invalid_years", "managed_by_club", "already_in_club", "already_in_team", "last_admin", "different_clubs", "invalid_target", "invalid_body", "invalid_code", "not_authenticated", "forbidden", "invalid_name", "consent_required", "invalid_merge", "not_found", "different_teams", "already_linked", "not_linked", "invalid_role",
@@ -256,11 +257,12 @@ export class SupabaseApi implements Api {
     if (error) throw new ApiError(/confirm/i.test(error.message) ? "email_not_confirmed" : "invalid_login", error.message);
   }
   async signUp(email: string, password: string, displayName: string, lang: Lang) {
-    const { data, error } = await this.sb.auth.signUp({ email: email.trim(), password, options: { data: { display_name: displayName, lang } } });
+    // Bestätigungslink führt auf die Website (Seite „E-Mail bestätigt“), Passwort-Link auf die Seite zum Neusetzen
+    const { data, error } = await this.sb.auth.signUp({ email: email.trim(), password, options: { data: { display_name: displayName, lang }, emailRedirectTo: `${SITE_URL}/bestaetigt` } });
     if (error) throw new ApiError(/registered|exists/i.test(error.message) ? "email_taken" : /password/i.test(error.message) ? "weak_password" : "server", error.message);
     return { needsConfirmation: !data.session };
   }
-  async resetPassword(email: string) { const { error } = await this.sb.auth.resetPasswordForEmail(email.trim()); if (error) fail(error); }
+  async resetPassword(email: string) { const { error } = await this.sb.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${SITE_URL}/passwort` }); if (error) fail(error); }
   async signOut() { await this.sb.auth.signOut(); }
   async savePrefs(prefs: UserPrefs) { const { data } = await this.sb.auth.getSession(); const id = data.session?.user.id; if (id) await q(this.sb.from("profiles").update({ prefs }).eq("id", id)); }
   async setDisplayName(name: string) { const { data } = await this.sb.auth.getSession(); const id = data.session?.user.id; if (id) await q(this.sb.from("profiles").update({ display_name: name.slice(0, 80) }).eq("id", id)); }

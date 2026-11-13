@@ -1,4 +1,4 @@
-// Fachlogik der Trainerbank: Spieltags-Bezug, Wochenplan, Erholung, Kennzahlen, Empfehlungen.
+// Fachlogik von Trainerstab: Spieltags-Bezug, Wochenplan, Erholung, Kennzahlen, Empfehlungen.
 // Alles hier ist reine Berechnung auf einem TeamData-Objekt – ohne UI und ohne Datenbank.
 
 import { CONTENT } from "./content";

@@ -18,7 +18,7 @@ export function startCrashReports(on: boolean): void {
     Sentry.init({
       dsn: DSN,
       environment: a.channel || "development",
-      release: `trainerbank@${a.version}${a.build ? "+" + a.build : ""}`,
+      release: `trainerstab@${a.version}${a.build ? "+" + a.build : ""}`,
       dist: a.build || undefined,
       sendDefaultPii: false,
       tracesSampleRate: 0,

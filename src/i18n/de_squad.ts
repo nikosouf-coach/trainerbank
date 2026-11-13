@@ -29,7 +29,7 @@ export const de_squad: Dict = {
   // Team-Codes & Trainerteam
   cd_title: "Spieler einladen", cd_sub: "Spieler laden die App, geben den Team-Code ein und legen ihr Profil an.",
   cd_join: "Team-Code für Spieler", cd_staff: "Trainer-Code (für Co-Trainer, Physio)", cd_share: "Teilen", cd_new: "Neue Codes erzeugen",
-  cd_newQ: "Neue Codes erzeugen? Die alten Codes funktionieren danach nicht mehr.", cd_shareText: "Tritt unserem Team „{t}“ in der Trainerbank-App bei: Code {c}",
+  cd_newQ: "Neue Codes erzeugen? Die alten Codes funktionieren danach nicht mehr.", cd_shareText: "Tritt unserem Team „{t}“ in der Trainerstab-App bei: Code {c}",
   cd_hidden: "Codes werden beim Öffnen geladen.", cd_show: "Codes anzeigen", cd_ownerOnly: "Nur der Teaminhaber kann Codes neu erzeugen.",
   st_title2: "Trainerteam", st_pending: "Offene Anfragen", st_approve: "Annehmen", st_reject: "Ablehnen", st_asCoach: "als Trainer", st_asPhysio: "als Physio",
   pm_title: "Rechte", pm_edit: "Rechte", pm_mine: "Deine Rechte", pm_preset: "Vorlage nach Funktion", pm_custom: "Eigene Auswahl", pm_reset: "Standard der Rolle", pm_roleDefault: "Standard der Rolle",

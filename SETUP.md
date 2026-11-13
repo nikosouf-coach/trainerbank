@@ -1,4 +1,4 @@
-# Trainerbank einrichten und veröffentlichen
+# Trainerstab einrichten und veröffentlichen
 
 Diese Anleitung führt dich vom Code im GitHub-Repository bis zur App im App Store und bei Google Play.
 Alles, was sich automatisieren lässt, ist vorbereitet. Du legst die Konten an, trägst Schlüssel ein und klickst die
@@ -28,9 +28,9 @@ eine D-U-N-S-Nummer der Firma (kostenlos, rund eine Woche, erst nach der Gründu
 geschlossenen Test reicht ein Konto als Einzelperson; es ist meist in ein bis zwei Tagen frei. Damit der Wechsel zur
 Firma (UG) später einfach bleibt:
 
-- Für alle Konten eine eigene E-Mail-Adresse nur für Trainerbank nutzen (am besten an der eigenen Domain), auch für
+- Für alle Konten eine eigene E-Mail-Adresse nur für Trainerstab nutzen (kontakt@trainerstab.app), auch für
   die Apple-ID – nicht die private.
-- Bei Supabase und Sentry eine Organisation „Trainerbank“ anlegen; die Rechnungsdaten lassen sich später auf die
+- Bei Supabase und Sentry eine Organisation „Trainerstab“ anlegen; die Rechnungsdaten lassen sich später auf die
   Firma ändern, Supabase-Projekte auch zwischen Organisationen verschieben. Das persönliche Expo-Konto lässt sich
   später in eine Organisation umwandeln (Updates und Push laufen weiter).
 - Domain auf dich registrieren, später per Inhaberwechsel auf die Firma übertragen.
@@ -55,17 +55,22 @@ der Play Console „Zugriff auf Produktion beantragen“ (Prüfung meist bis zu 
 
 ## 2. Supabase-Projekt anlegen
 
-1. Auf supabase.com eine Organisation anlegen, Tarif **Pro**. Dann **New project** → Name `trainerbank`, Region
+1. Auf supabase.com eine Organisation anlegen, Tarif **Pro**. Dann **New project** → Name `trainerstab`, Region
    **Central EU (Frankfurt)**, sicheres Datenbank-Passwort erzeugen und im Passwort-Manager speichern.
 2. Unter **Project Settings → General** die **Project ID** (Reference ID) notieren.
 3. Oben im Projekt auf **Connect** klicken: Dort stehen die **Project URL** und der **Publishable key** (beginnt mit
    `sb_publishable_`). Alle Schlüssel stehen auch unter **Project Settings → API Keys**.
 4. Unter **Account → Access Tokens** einen Token erzeugen (für GitHub).
 5. Unter **Authentication → URL Configuration**:
-   - Site URL: deine Website, z. B. `https://trainerbank.de`
-   - Redirect URLs: `trainerbank://` hinzufügen
-6. Unter **Authentication → Emails** die Absenderadresse und die Texte (Bestätigung, Passwort zurücksetzen) auf
-   Deutsch anpassen. Für den echten Betrieb einen eigenen SMTP-Server eintragen, sonst gilt ein niedriges Versandlimit.
+   - Site URL: `https://trainerstab.app`
+   - Redirect URLs: `https://trainerstab.app/**` und `trainerstab://**` hinzufügen (Bestätigungs- und Passwort-Links
+     führen auf die Website: Seiten `/bestaetigt` und `/passwort`)
+6. Unter **Authentication → Emails → SMTP Settings** den SMTP-Server deines E-Mail-Anbieters eintragen (Absender
+   kontakt@trainerstab.app, Name „Trainerstab“; Server, Port, Benutzer und Passwort laut Anbieter – das Passwort nur dort eintragen).
+   **Pflicht vor dem Pilot:** Ohne eigenen SMTP-Server schickt Supabase Bestätigungs- und Passwort-E-Mails nur an
+   Mitglieder des Supabase-Teams und höchstens zwei pro Stunde. Danach die Texte (Bestätigung, Passwort zurücksetzen)
+   auf Deutsch anpassen und mit dem E-Mail-Anbieter den Vertrag zur Auftragsverarbeitung abschließen.
+   In den Einstellungen für die Anmeldung mit E-Mail die Mindestlänge für Passwörter auf 8 setzen (wie in der App).
 7. In den Einstellungen der Organisation den Vertrag zur Auftragsverarbeitung (DPA) anfordern und unterschreiben.
 
 ## 3. Schlüssel in GitHub hinterlegen
@@ -81,7 +86,9 @@ GitHub → Repository → **Settings → Secrets and variables → Actions → N
 | `EXPO_TOKEN` | expo.dev → Account settings → Access tokens |
 | `ANTHROPIC_API_KEY` | erst, wenn der KI-Coach eingeschaltet wird (im Piloten aus) |
 
-Zusätzlich unter dem Reiter **Variables** (nicht Secrets): `EAS_PROJECT_ID` = Projekt-ID aus Schritt 5.
+Zusätzlich unter dem Reiter **Variables** (nicht Secrets): `EAS_PROJECT_ID` = Projekt-ID aus Schritt 5, und für die
+Website (Seiten „E-Mail bestätigt“ und „Neues Passwort“) `EXPO_PUBLIC_SUPABASE_URL` und `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+– dieselben öffentlichen Werte wie bei Expo (Schritt 5). Danach **Actions → Website → Run workflow**.
 
 Unter **Settings → Environments** eine Umgebung `production` anlegen (der Backend-Deploy nutzt sie; dort kannst du
 eine Freigabe durch dich verlangen).
@@ -107,27 +114,26 @@ Prüfen: `select jobname, schedule, active from cron.job;` zeigt `push-reminders
 
 ## 5. App mit Expo verbinden (im Browser)
 
-1. Auf expo.dev → **Projects → Create a project** → Name `trainerbank`. Die **Projekt-ID** (lange Zeichenkette) ist
+1. Auf expo.dev → **Projects → Create a project** → Name `trainerstab`. Die **Projekt-ID** (lange Zeichenkette) ist
    nicht geheim: als GitHub-Variable `EAS_PROJECT_ID` eintragen (Schritt 3) und an Claude schicken – sie wird dann als
    Standard in `app.config.ts` eingetragen, damit der erste Build ohne weitere Einstellung läuft.
-2. expo.dev → Projekt **trainerbank** → **Environment variables** für die Umgebungen `preview` und `production`:
+2. expo.dev → Projekt **trainerstab** → **Environment variables** für die Umgebungen `preview` und `production`:
 
 | Name | Wert | Sichtbarkeit |
 |---|---|---|
 | `EXPO_PUBLIC_SUPABASE_URL` | Project URL | Plain text |
 | `EXPO_PUBLIC_SUPABASE_ANON_KEY` | Publishable key (`sb_publishable_…`; bei älteren Projekten der anon key) | Plain text (ist öffentlich, Schutz kommt aus den Zugriffsregeln) |
-| `EXPO_PUBLIC_PRIVACY_URL` | Adresse der Datenschutzerklärung | Plain text |
-| `EXPO_PUBLIC_IMPRINT_URL` | Adresse des Impressums | Plain text |
 | `EXPO_PUBLIC_SENTRY_DSN` | DSN aus Schritt 6 (ohne: keine Absturzberichte) | Plain text |
-| `EXPO_PUBLIC_INSTALL_IOS` | öffentlicher TestFlight-Link (Schritt 9) – erscheint als QR-Code beim Einladen | Plain text |
+| `EXPO_PUBLIC_INSTALL_IOS` | öffentlicher TestFlight-Link (Schritt 9) – erscheint als QR-Code beim Einladen; alternativ an Claude schicken, dann steht er in `src/data/site.json` für App und Website | Plain text |
 | `EXPO_PUBLIC_INSTALL_ANDROID` | Link zum Test bei Google Play (Schritt 9) | Plain text |
-| `EXPO_PUBLIC_INVITE_URL` | optional, sobald die Website Einladungen weiterleitet (z. B. `https://trainerbank.de`); ohne öffnet der Einladungslink direkt die App | Plain text |
 | `EAS_PROJECT_ID` | Projekt-ID | Plain text |
 
-Für die Entwicklung auf einem Rechner dieselben Werte in eine Datei `.env` schreiben (Vorlage: `.env.example`).
+Datenschutzerklärung, Impressum, Kontakt und Einladungslinks brauchen keine Variable: Sie stehen in
+`src/data/site.json` (Website https://trainerstab.app). Für die Entwicklung auf einem Rechner dieselben Werte in eine
+Datei `.env` schreiben (Vorlage: `.env.example`).
 
-**Bundle-ID:** voreingestellt ist `de.goatsocceracademy.trainerbank`. Sie lässt sich nach dem ersten Hochladen nicht
-mehr ändern. Wenn du eine andere willst (z. B. `de.trainerbank.app`), vorher in `eas.json` (`APP_BUNDLE_ID`) ändern.
+**Bundle-ID:** `app.trainerstab` (die Domain rückwärts, in `eas.json` und `app.config.ts`). Sie lässt sich nach dem
+ersten Hochladen nicht mehr ändern.
 
 ## 6. Absturzberichte (Sentry)
 
@@ -162,7 +168,7 @@ npx eas-cli@latest submit --platform ios --latest
 
 Bei den Fragen jeweils die Vorschläge annehmen (Apple-Anmeldung mit Zwei-Faktor-Code, Zertifikate und Android-Schlüssel
 von EAS erzeugen lassen). Ein Build dauert 15–30 Minuten; die Dateien stehen auf expo.dev unter **Builds**. Beim
-Hochladen legt EAS die App in App Store Connect an (Name „Trainerbank“, falls vergeben mit Zusatz, z. B. „Trainerbank –
+Hochladen legt EAS die App in App Store Connect an (Name „Trainerstab“, falls vergeben mit Zusatz, z. B. „Trainerstab –
 Teamplaner“). Danach die Apple-ID der App (Zahl in App Store Connect unter **App-Informationen**) in `eas.json` unter
 `submit.production.ios.ascAppId` eintragen. Ab dann laufen alle weiteren Builds über GitHub → **Actions → App bauen →
 Run workflow** (Plattform, Profil `production`, optional **einreichen**). Die Android-Datei (.aab) für den ersten
@@ -215,6 +221,7 @@ Für die Prüfung durch Apple und Google: In der App gibt es den Demo-Modus ohne
 | Backend deployen | bei Änderungen in `supabase/` auf `main` und manuell | Tests, dann Migrationen, Secrets, Server-Funktionen |
 | App bauen | manuell | Testversion oder Store-Version, optional mit Einreichung |
 | App-Update ausliefern | manuell | Korrekturen ohne Store-Prüfung (Schritt 8) |
+| Website | bei Änderungen an `website/`, der Datenschutzerklärung oder `src/data/site.json` (Branches `main` und `entwicklungsprogramm`) und manuell | baut trainerstab.app, prüft auf Platzhalter und legt sie in den Branch `gh-pages`, den GitHub Pages veröffentlicht (Schritt 12) |
 | Dependabot | wöchentlich | Vorschläge für Paket-Updates als Pull Request |
 | Datenbank (pg_cron) | täglich | Löschfristen (`purge-stale-health-data`, `purge-old-feedback`), Push-Erinnerungen |
 
@@ -235,6 +242,38 @@ lang Fehlerkorrekturen.
 - [ ] Update über „App-Update ausliefern“ kommt nach zwei Starts an (Version im Konto)
 - [ ] KI-Coach antwortet, Befund-Auswertung mit Einwilligung funktioniert (erst wenn eingeschaltet)
 - [ ] Datenexport und Konto löschen im Bereich Konto getestet
-- [ ] Datenschutzerklärung und Impressum online, Adressen in den EAS-Umgebungsvariablen
+- [ ] https://trainerstab.app erreichbar (HTTPS), Datenschutz, Impressum, Hilfe und Konto löschen; Passwort über „Passwort vergessen?“ neu gesetzt
 - [ ] Screenshots erstellt (Motive in `docs/STORE.md`)
-- [ ] App-Symbol: Platzhalter in `assets/` durch ein gestaltetes Symbol ersetzen (gleiche Dateinamen und Größen)
+- [ ] App-Symbol (Pfeife, `assets/`) passt – bei einem neuen Entwurf gleiche Dateinamen und Größen verwenden
+
+## 12. Website trainerstab.app (GitHub Pages)
+
+Die Website liegt im Ordner `website/` und wird mit GitHub Pages veröffentlicht: Startseite, Datenschutzerklärung
+(aus `docs/DATENSCHUTZERKLAERUNG.md`), Impressum, Hilfe, Konto löschen, Einladungsseiten (`/join`, `/staff-join`,
+`/parent-link`) und die Seiten `/bestaetigt` und `/passwort` für die Links aus den E-Mails. Anbieter und Kontakt
+stehen in `src/data/site.json` – dieselbe Datei nutzt die App. Der Workflow **Website** baut alles, bricht bei
+Platzhaltern in eckigen Klammern ab und legt das Ergebnis in den Branch `gh-pages`.
+
+**Einmalig in GitHub:** Repository → **Settings → Pages** → „Build and deployment“ → Source **Deploy from a branch** →
+Branch **gh-pages**, Ordner **/ (root)** → **Save**. Unter „Custom domain“ muss danach `trainerstab.app` stehen (kommt
+aus der Datei `CNAME`; sonst eintragen und speichern).
+
+**DNS beim Domain-Anbieter** (einmalig; die Einträge für E-Mail – MX, SPF/TXT – nicht anfassen):
+
+| Typ | Name | Wert |
+|---|---|---|
+| A | `@` (Hauptdomain) | `185.199.108.153` |
+| A | `@` | `185.199.109.153` |
+| A | `@` | `185.199.110.153` |
+| A | `@` | `185.199.111.153` |
+| CNAME | `www` | `nikosouf-coach.github.io` |
+| AAAA (optional) | `@` | `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153` |
+
+Vorhandene A-, AAAA- oder CNAME-Einträge für `@` und `www` (z. B. eine Parkseite des Anbieters) vorher löschen.
+Erlaubt der Anbieter nur einen A-Eintrag, reicht der erste. Keine Platzhalter-Einträge (`*`) für die Domain anlegen.
+Sobald die Einträge wirken (Minuten bis wenige Stunden), stellt GitHub ein Zertifikat aus; danach unter
+**Settings → Pages** „Enforce HTTPS“ anhaken. `.app`-Adressen öffnen Browser nur über HTTPS – vorher ist die Seite
+nicht erreichbar.
+
+Quellen: [GitHub Docs – Managing a custom domain](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site),
+[GitHub Docs – What is GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages).

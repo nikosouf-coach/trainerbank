@@ -1,11 +1,12 @@
-# Einwilligungstexte in der App – Trainerbank
+# Einwilligungstexte in der App – Trainerstab
 
 > **ENTWURF – vor Veröffentlichung anwaltlich prüfen lassen.**
 > Die Texte sind Formulierungsvorschläge. Sie müssen zur endgültigen Datenschutzerklärung
 > (`docs/DATENSCHUTZERKLAERUNG.md`), zum gewählten Rollenmodell (Herausgeber allein verantwortlich oder Verein
 > verantwortlich) und zur tatsächlichen Umsetzung in der App passen.
 
-Platzhalter: [Herausgeber], [E-Mail], [Datenschutz-URL], [Nutzungsbedingungen-URL], [Vorname des Kindes],
+Anbieter: Nikolas Swehla, Am Lindenbruch 26, 45327 Essen, kontakt@trainerstab.app (eingesetzt am 13.11.2026).
+Platzhalter: [Nutzungsbedingungen-URL], [Vorname des Kindes],
 [Pfad zum Widerruf], [Tageslimit]. Wörter in eckigen Klammern, die mit „falls“ beginnen, nur übernehmen, wenn die
 Funktion umgesetzt ist.
 
@@ -76,7 +77,7 @@ Eltern (g):   Registrierung → (a) → „Ich bin Elternteil“ → Code vom Tr
 **Langfassung (Mehr lesen):**
 > **So gehen wir mit deinen Daten um**
 >
-> Trainerbank ist eine App für Fußballteams. Wir – [Herausgeber] – verarbeiten deine Daten, damit du und dein Team
+> Trainerstab ist eine App für Fußballteams. Wir – Nikolas Swehla – verarbeiten deine Daten, damit du und dein Team
 > die App nutzen könnt: dein Konto (E-Mail-Adresse, Anzeigename, Sprache), deine Teamzugehörigkeit und, wenn du
 > Spieler bist, Name, Geburtsdatum, Position und Rückennummer.
 >
@@ -97,7 +98,7 @@ Eltern (g):   Registrierung → (a) → „Ich bin Elternteil“ → Code vom Tr
 **Long version (Read more):**
 > **How we handle your data**
 >
-> Trainerbank is an app for football teams. We – [Herausgeber] – process your data so that you and your team can use
+> Trainerstab is an app for football teams. We – Nikolas Swehla – process your data so that you and your team can use
 > the app: your account (e-mail address, display name, language), your team membership and, if you are a player, your
 > name, date of birth, position and shirt number.
 >
@@ -161,14 +162,14 @@ Knöpfe: **„Einwilligen und weiter“** · **„Ohne Gesundheitsdaten fortfahr
 > Deine Teilnahme an Training und Spielen darf nicht von der Einwilligung abhängen. Ohne Einwilligung gibt es auch
 > keine Strafen oder Dienste wegen fehlender Einträge.
 >
-> **Kein Medizinprodukt.** Trainerbank stellt keine Diagnosen und gibt keine Therapieempfehlungen. Bei Schmerzen,
+> **Kein Medizinprodukt.** Die App stellt keine Diagnosen und gibt keine Therapieempfehlungen. Bei Schmerzen,
 > Krankheit oder Verletzung wende dich an eine Ärztin oder einen Arzt.
 >
 > **Widerruf.** Du kannst die Einwilligung jederzeit unter [Pfad zum Widerruf] widerrufen. Danach werden keine neuen
 > Gesundheitsdaten erfasst, und deine gespeicherten Gesundheitsdaten werden nach 30 Tagen gelöscht, wenn du bis dahin
 > nicht erneut einwilligst. Was bis zum Widerruf verarbeitet wurde, bleibt rechtmäßig.
 >
-> Verantwortlich: [Herausgeber], [E-Mail]. Mehr in der [Datenschutzerklärung].
+> Verantwortlich: Nikolas Swehla, kontakt@trainerstab.app. Mehr in der [Datenschutzerklärung].
 
 > **Prüfhinweis (Paket A):** Ergänzt wurden die Belastung je Einheit (mehrere Einheiten am Tag) und – nur bei Torhütern –
 > die ungefähre Zahl der Sprünge/Hechtsprünge. Prüfen, ob diese Erweiterung vom bisherigen Zweck gedeckt ist oder eine
@@ -212,13 +213,13 @@ Buttons: **"Consent and continue"** · **"Continue without health data"**
 > details). Entering load, wellness, extra sport and body data is then disabled. Your participation in training and
 > matches must not depend on this consent. Without consent there are no fines or duties for missing entries either.
 >
-> **Not a medical device.** Trainerbank does not diagnose or recommend treatment. If you have pain, illness or an
+> **Not a medical device.** The app does not diagnose or recommend treatment. If you have pain, illness or an
 > injury, please see a doctor.
 >
 > **Withdrawal.** You can withdraw consent at any time under [path]. No new health data will be recorded and your
 > stored health data will be deleted. Processing before withdrawal remains lawful.
 >
-> Controller: [Herausgeber], [E-Mail]. More in the [Privacy Policy].
+> Controller: Nikolas Swehla, kontakt@trainerstab.app. More in the [Privacy Policy].
 
 ---
 
@@ -227,7 +228,7 @@ Buttons: **"Consent and continue"** · **"Continue without health data"**
 ### Deutsch
 
 **Hinweis an das Kind (vor dem Eltern-Bildschirm):**
-> **Fast geschafft!** Du bist jünger als 16. Damit du Trainerbank nutzen kannst, muss ein Elternteil zustimmen. Gib
+> **Fast geschafft!** Du bist jünger als 16. Damit du die App nutzen kannst, muss ein Elternteil zustimmen. Gib
 > dein Gerät bitte kurz deiner Mutter, deinem Vater oder einer anderen sorgeberechtigten Person.
 
 Knopf: **„Meine Eltern sind da“**
@@ -241,7 +242,7 @@ Hinweistext unter dem Feld: *An diese Adresse senden wir [falls umgesetzt: einen
 zum Widerruf. Sie wird nur für diese Einwilligung verwendet.*
 
 **Kästchen 1 – Pflicht, Kurzfassung:**
-> Ich bin erziehungsberechtigt für [Vorname des Kindes] und willige ein, dass mein Kind Trainerbank nutzt und seine
+> Ich bin erziehungsberechtigt für [Vorname des Kindes] und willige ein, dass mein Kind die App Trainerstab nutzt und seine
 > Gesundheitsdaten (Belastung, Wohlbefinden, Beschwerden, Krankheit, Verletzungen, Größe, Gewicht) zur
 > Trainingssteuerung verarbeitet und dem Trainerteam angezeigt werden. Ich kann die Einwilligung jederzeit
 > widerrufen; [falls umgesetzt: eine Bestätigung geht an die angegebene E-Mail-Adresse].
@@ -255,7 +256,7 @@ Knöpfe: **„Einwilligen“** · **„Abbrechen“**
 **Langfassung (Mehr lesen):**
 > **Information und Einwilligung für Erziehungsberechtigte**
 >
-> Ihr Kind möchte Trainerbank nutzen, eine App, mit der das Trainerteam seiner Mannschaft Training, Spiele und
+> Ihr Kind möchte Trainerstab nutzen, eine App, mit der das Trainerteam seiner Mannschaft Training, Spiele und
 > Belastung plant. Weil Ihr Kind jünger als 16 Jahre ist, benötigen wir Ihre Einwilligung (Art. 8 DSGVO).
 >
 > **Was Ihr Kind in der App tut:** Es sieht den Teamkalender und den Wochenplan, meldet Abwesenheiten, liest
@@ -291,7 +292,7 @@ Knöpfe: **„Einwilligen“** · **„Abbrechen“**
 > Gesundheitsdaten Ihres Kindes gespeichert.]
 >
 > **Freiwilligkeit und Widerruf:** Die Einwilligung ist freiwillig. Sie können sie jederzeit mit Wirkung für die
-> Zukunft widerrufen – per E-Mail an [E-Mail] [oder über den Link in der Bestätigungs-E-Mail]. Ihr Kind kann den
+> Zukunft widerrufen – per E-Mail an kontakt@trainerstab.app [oder über den Link in der Bestätigungs-E-Mail]. Ihr Kind kann den
 > Widerruf auch in der App unter [Pfad zum Widerruf] erklären. Gespeicherte Gesundheitsdaten werden dann gelöscht.
 > Sie können für Ihr Kind Auskunft, Berichtigung, Löschung und eine Kopie der Daten verlangen.
 >
@@ -299,12 +300,12 @@ Knöpfe: **„Einwilligen“** · **„Abbrechen“**
 >
 > Bitte erteilen Sie diese Einwilligung nur, wenn Sie für das Kind sorgeberechtigt sind.
 >
-> Verantwortlich: [Herausgeber], [Anschrift], [E-Mail]. Mehr in der [Datenschutzerklärung].
+> Verantwortlich: Nikolas Swehla, Am Lindenbruch 26, 45327 Essen, kontakt@trainerstab.app. Mehr in der [Datenschutzerklärung].
 
 ### English
 
 **Notice to the child:**
-> **Almost done!** You are younger than 16. A parent needs to agree before you can use Trainerbank. Please hand your
+> **Almost done!** You are younger than 16. A parent needs to agree before you can use Trainerstab. Please hand your
 > device to your mum, dad or another person with parental responsibility for a moment.
 
 Button: **"My parent is here"**
@@ -316,7 +317,7 @@ Helper text: *We will send [if implemented: a confirmation link and] information
 used only for this consent.*
 
 **Checkbox 1 – required, short version:**
-> I have parental responsibility for [child's first name] and consent to my child using Trainerbank and to their
+> I have parental responsibility for [child's first name] and consent to my child using Trainerstab and to their
 > health data (training load, wellness, complaints, illness, injuries, height, weight) being processed for training
 > management and shown to the coaching staff. I can withdraw this consent at any time; [if implemented: a confirmation
 > will be sent to the e-mail address provided].
@@ -330,7 +331,7 @@ Buttons: **"Consent"** · **"Cancel"**
 **Long version (Read more):**
 > **Information and consent for parents and guardians**
 >
-> Your child would like to use Trainerbank, an app the coaching staff of their team use to plan training, matches and
+> Your child would like to use Trainerstab, an app the coaching staff of their team use to plan training, matches and
 > training load. Because your child is under 16, we need your consent (Art. 8 GDPR).
 >
 > **What your child does in the app:** views the team calendar and weekly plan, reports absences, reads messages from
@@ -364,7 +365,7 @@ Buttons: **"Consent"** · **"Cancel"**
 > receive an e-mail with a confirmation link. No health data of your child is stored until you confirm.]
 >
 > **Voluntary, withdrawal:** consent is voluntary. You can withdraw it at any time with effect for the future – by
-> e-mail to [E-Mail] [or via the link in the confirmation e-mail]. Your child can also withdraw in the app under
+> e-mail to kontakt@trainerstab.app [or via the link in the confirmation e-mail]. Your child can also withdraw in the app under
 > [path]. Stored health data will then be deleted. You can request access, rectification, erasure and a copy of the
 > data on behalf of your child.
 >
@@ -372,18 +373,18 @@ Buttons: **"Consent"** · **"Cancel"**
 >
 > Please only give this consent if you have parental responsibility for the child.
 >
-> Controller: [Herausgeber], [Anschrift], [E-Mail]. More in the [Privacy Policy].
+> Controller: Nikolas Swehla, Am Lindenbruch 26, 45327 Essen, kontakt@trainerstab.app. More in the [Privacy Policy].
 
 ### Vorlage: Bestätigungs-E-Mail an Erziehungsberechtigte (empfohlen, noch nicht umgesetzt)
 
 **Deutsch**
 
 ```
-Betreff: Bitte bestätigen: Einwilligung für [Vorname des Kindes] in Trainerbank
+Betreff: Bitte bestätigen: Einwilligung für [Vorname des Kindes] in der App Trainerstab
 
 Guten Tag,
 
-über die App Trainerbank wurde soeben eine Einwilligung für [Vorname des Kindes] erteilt, damit
+über die App Trainerstab wurde soeben eine Einwilligung für [Vorname des Kindes] erteilt, damit
 [er/sie] die App des Teams [Teamname] nutzen kann. Dabei wurde diese E-Mail-Adresse als Adresse
 eines Erziehungsberechtigten angegeben.
 
@@ -397,20 +398,20 @@ Falls Sie diese Einwilligung nicht erteilt haben oder sie widerrufen möchten:  
 Ohne Bestätigung innerhalb von [7] Tagen werden keine Gesundheitsdaten von [Vorname des Kindes]
 gespeichert [und die Einwilligung verfällt].
 
-Was wir verarbeiten und welche Rechte Sie haben: [Datenschutz-URL]
-Fragen: [E-Mail]
+Was wir verarbeiten und welche Rechte Sie haben: https://trainerstab.app/datenschutz
+Fragen: kontakt@trainerstab.app
 
-[Herausgeber], [Anschrift]
+Nikolas Swehla, Am Lindenbruch 26, 45327 Essen
 ```
 
 **English**
 
 ```
-Subject: Please confirm: consent for [child's first name] in Trainerbank
+Subject: Please confirm: consent for [child's first name] in Trainerstab
 
 Hello,
 
-A consent was just given in the Trainerbank app so that [child's first name] can use the app of the
+A consent was just given in the Trainerstab app so that [child's first name] can use the app of the
 team [team name]. This e-mail address was entered as the address of a parent or guardian.
 
 Consent given for:
@@ -423,10 +424,10 @@ If you did not give this consent or want to withdraw it:  [decline/withdraw link
 If not confirmed within [7] days, no health data of [child's first name] will be stored
 [and the consent will lapse].
 
-What we process and your rights: [Datenschutz-URL]
-Questions: [E-Mail]
+What we process and your rights: https://trainerstab.app/datenschutz
+Questions: kontakt@trainerstab.app
 
-[Herausgeber], [Anschrift]
+Nikolas Swehla, Am Lindenbruch 26, 45327 Essen
 ```
 
 > **Prüfhinweis:**
@@ -492,7 +493,7 @@ Knöpfe: **„Einwilligen und KI-Coach öffnen“** · **„Nicht jetzt“**
 > Einwilligung jederzeit unter [Pfad zum Widerruf] widerrufen; danach ist der KI-Coach für dich gesperrt und es
 > werden keine Daten mehr an Anthropic übermittelt.
 >
-> Verantwortlich: [Herausgeber], [E-Mail]. Mehr in der [Datenschutzerklärung], Abschnitt „KI-Coach“.
+> Verantwortlich: Nikolas Swehla, kontakt@trainerstab.app. Mehr in der [Datenschutzerklärung], Abschnitt „KI-Coach“.
 
 ### English
 
@@ -538,7 +539,7 @@ Buttons: **"Consent and open AI coach"** · **"Not now"**
 > **Voluntary and revocable:** without consent you can use all other features. You can withdraw at any time under
 > [path]; the AI coach is then disabled for you and no further data is sent to Anthropic.
 >
-> Controller: [Herausgeber], [E-Mail]. More in the [Privacy Policy], section "AI coach".
+> Controller: Nikolas Swehla, kontakt@trainerstab.app. More in the [Privacy Policy], section "AI coach".
 
 > **Prüfhinweis:** Apple verlangt in Richtlinie 5.1.2(i) eine ausdrückliche Erlaubnis, bevor personenbezogene Daten
 > an Dritte – nach aktueller Fassung ausdrücklich auch an Dritt-KI – weitergegeben werden; Wortlaut der aktuellen
@@ -560,7 +561,7 @@ Buttons: **"Consent and open AI coach"** · **"Not now"**
 **Langfassung (Mehr lesen):**
 > **Deine Verantwortung als Teil des Trainerteams**
 >
-> Du siehst in Trainerbank Daten aller Spieler deines Teams, darunter Gesundheitsdaten – oft von Kindern und
+> Du siehst in der App Daten aller Spieler deines Teams, darunter Gesundheitsdaten – oft von Kindern und
 > Jugendlichen. Bitte beachte:
 >
 > - Nutze die Daten nur, um Training, Belastung und Spielbetrieb zu organisieren – nicht für andere Zwecke und nicht
@@ -584,9 +585,9 @@ Buttons: **"Consent and open AI coach"** · **"Not now"**
 >   Absprache mit den Eltern.
 > - **Entwicklungsgespräche** mit Jugendlichen nicht unter vier Augen hinter verschlossener Tür; interne Notizen nur
 >   sachlich.
-> - Trainerbank ersetzt keine ärztliche Beurteilung. Bei Verletzungen und Beschwerden zählt die Freigabe durch Arzt
+> - Die App ersetzt keine ärztliche Beurteilung. Bei Verletzungen und Beschwerden zählt die Freigabe durch Arzt
 >   oder Physiotherapeut.
-> - Melde Verdachtsfälle (z. B. verlorenes Gerät, fremder Zugriff) sofort an [E-Mail].
+> - Melde Verdachtsfälle (z. B. verlorenes Gerät, fremder Zugriff) sofort an kontakt@trainerstab.app.
 
 ### English
 
@@ -598,7 +599,7 @@ Buttons: **"Consent and open AI coach"** · **"Not now"**
 **Long version (Read more):**
 > **Your responsibility as a member of the coaching staff**
 >
-> In Trainerbank you see the data of all players in your team, including health data – often of children and
+> In Trainerstab you see the data of all players in your team, including health data – often of children and
 > adolescents. Please note:
 >
 > - Use the data only to organise training, load and matches – not for other purposes and not outside the coaching
@@ -619,9 +620,9 @@ Buttons: **"Consent and open AI coach"** · **"Not now"**
 > - **Individual sessions** with minors preferably on club grounds, at known times and with a second adult or other
 >   players present; no driving alone with a child without the parents' agreement.
 > - **Development talks** with young people not behind closed doors; internal notes factual only.
-> - Trainerbank does not replace a medical assessment. For injuries and complaints, clearance by a doctor or
+> - Trainerstab does not replace a medical assessment. For injuries and complaints, clearance by a doctor or
 >   physiotherapist is what counts.
-> - Report suspected incidents (e.g. lost device, unauthorised access) immediately to [E-Mail].
+> - Report suspected incidents (e.g. lost device, unauthorised access) immediately to kontakt@trainerstab.app.
 
 ---
 
@@ -770,7 +771,7 @@ widerrufbar; dort steht stattdessen der Hinweis auf „Konto löschen“.
 > Guten Tag, wir haben Ihren Widerruf der Einwilligung für [Vorname des Kindes] am [Datum] umgesetzt. Die
 > Gesundheitsdaten Ihres Kindes wurden gelöscht (Trainerteam: Spielerprofil → Datenschutz → „Gesundheitsdaten
 > löschen“); Gesundheitsfunktionen und KI-Coach sind gesperrt. [Konto und
-> Teamzugehörigkeit bleiben bestehen / wurden ebenfalls gelöscht.] Mit freundlichen Grüßen, [Herausgeber]
+> Teamzugehörigkeit bleiben bestehen / wurden ebenfalls gelöscht.] Mit freundlichen Grüßen, Nikolas Swehla
 
 **Erneute Abfrage bei neuer Textversion:**
 > **Wir haben unsere Einwilligungstexte aktualisiert.** Bitte lies die neue Fassung und entscheide, ob du weiterhin
@@ -814,7 +815,7 @@ widerrufbar; dort steht stattdessen der Hinweis auf „Konto löschen“.
 **Withdrawal by parents via e-mail – reply template:**
 > Hello, we have processed your withdrawal of consent for [child's first name] on [date]. Your child's health data
 > has been deleted; health features and the AI coach are disabled. [The account and team membership remain / have
-> also been deleted.] Kind regards, [Herausgeber]
+> also been deleted.] Kind regards, Nikolas Swehla
 
 **Re-consent after a new text version:**
 > **We have updated our consent texts.** Please read the new version and decide whether you continue to consent.
@@ -850,23 +851,23 @@ inhaltlichen Änderungen mit erneuter Abfrage.
 > Der Verein bewahrt das unterschriebene Formular auf.
 
 ```
-Einwilligung in die Verarbeitung von Gesundheitsdaten in der App „Trainerbank“
+Einwilligung in die Verarbeitung von Gesundheitsdaten in der App „Trainerstab“
 
 Spielerin/Spieler: ____________________________  Geburtsdatum: ___________
 Mannschaft: __________________________________  Verein: ___________________
 
-Das Trainerteam unserer Mannschaft nutzt die App Trainerbank, um Training, Spiele und Belastung zu
+Das Trainerteam unserer Mannschaft nutzt die App Trainerstab, um Training, Spiele und Belastung zu
 planen. Dafür möchte es folgende Gesundheitsdaten erfassen: Belastungsempfinden und Trainingsminuten je Einheit,
 Abwesenheiten wegen Krankheit oder Verletzung mit Rückkehrstufe, Körpergröße und ggf. Gewicht.
 Die Daten sieht nur das Trainerteam der Mannschaft; Mitspieler sehen sie nicht. Gespeichert wird
-in der EU (Frankfurt) bei [Herausgeber] bzw. dessen Dienstleister. Die App stellt keine Diagnosen.
+in der EU (Frankfurt) bei Nikolas Swehla bzw. dessen Dienstleister. Die App stellt keine Diagnosen.
 
 [ ] Ich willige / wir willigen ausdrücklich ein, dass diese Gesundheitsdaten zu den genannten
-    Zwecken in Trainerbank verarbeitet werden.
+    Zwecken in der App Trainerstab verarbeitet werden.
 
 Die Einwilligung ist freiwillig. Die Teilnahme am Training hängt nicht davon ab. Sie kann jederzeit
 gegenüber dem Trainerteam oder [E-Mail des Vereins] widerrufen werden; die Daten werden dann gelöscht.
-Weitere Informationen: [Datenschutz-URL] [und Datenschutzhinweise des Vereins].
+Weitere Informationen: https://trainerstab.app/datenschutz [und Datenschutzhinweise des Vereins].
 
 Ort, Datum: __________________
 
