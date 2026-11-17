@@ -197,7 +197,8 @@ lesen sie über RLS (`is_guardian_in_team`).
 | Expo (650 Industries, Inc.) | Push-Versand, App-Updates (EAS Update) | USA | DPA, Transfermechanismus [prüfen] |
 | Sentry (Functional Software, Inc.) | Absturzberichte – nur mit Zustimmung auf dem Gerät, ohne Namen, IP-Adressen, Gesundheitsdaten und Bildschirmfotos | Speicherort EU (Deutschland); Zugriffe aus den USA [prüfen] | DPA, Einstellung „IP-Adressen nicht speichern“, Speicherdauer [prüfen] |
 | Apple, Google | Push-Zustellung, App Stores | [prüfen] | Rolle [prüfen] |
-| [E-Mail-Versand], [Webhoster] | E-Mails, Web-Auslieferung | [Ort] | [prüfen] |
+| IONOS SE (Montabaur) | Postfach kontakt@trainerstab.app, Versand der Anmelde-E-Mails (SMTP für Supabase), DNS der Domain | Anbieter mit Sitz in Deutschland; Rechenzentrumsstandort [prüfen] | AVV seit 19.07.2022 Teil der IONOS-AGB – im Kundenkonto einsehen und ablegen |
+| GitHub, Inc. (GitHub Pages) | Auslieferung der Website trainerstab.app | USA | EU-US Data Privacy Framework; Zugriffsprotokolle verarbeitet GitHub in eigener Verantwortung – Rolle [prüfen] |
 
 ### 2.7 Speicherdauer
 

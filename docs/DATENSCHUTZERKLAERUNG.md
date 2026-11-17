@@ -7,7 +7,7 @@
 
 | | |
 |---|---|
-| Stand | 13.11.2026 |
+| Stand | 17.11.2026 |
 | Version | 2026-11 |
 | Geltungsbereich | App „Trainerstab“ für iOS und Android sowie die Website https://trainerstab.app |
 | Abrufbar unter | https://trainerstab.app/datenschutz und in der App unter „Ich → Konto, Einwilligungen & Datenschutz“ (Spieler und Eltern) bzw. „Mehr → Konto & Datenschutz“ (Trainerteam) |
@@ -723,7 +723,7 @@ ein Anbieter Daten auch in eigener Verantwortung verarbeitet, steht das dabei:
 | Sentry (Functional Software, Inc., USA) | Absturzberichte – nur, wenn du sie einschaltest | Daten nach 4.39 | Speicherort in der EU (Deutschland); Zugriffe des Anbieters aus den USA möglich | Auftragsverarbeitungsvertrag; EU-US Data Privacy Framework und EU-Standardvertragsklauseln |
 | Apple (Apple Push Notification Service) bzw. Google (Firebase Cloud Messaging) | Zustellung von Push-Mitteilungen auf dein Gerät | Push-Token, Text der Mitteilung | weltweit, auch USA | Zustelldienste der Betriebssysteme; Apple und Google verarbeiten dabei Daten auch in eigener Verantwortung |
 | GitHub (GitHub, Inc., USA) | Hosting der Website trainerstab.app | IP-Adresse, Zugriffsdaten (Abschnitt 13) | USA | EU-US Data Privacy Framework; Sicherheitsprotokolle führt GitHub in eigener Verantwortung |
-| unser E-Mail-Anbieter (Postfach kontakt@trainerstab.app) | Bearbeitung von Anfragen; Versand von Bestätigungs- und Passwort-E-Mails | Inhalt der Anfrage, Kontaktdaten; E-Mail-Adresse und Link | Rechenzentren des Anbieters | Auftragsverarbeitungsvertrag |
+| IONOS (IONOS SE, Montabaur) | Postfach kontakt@trainerstab.app (Empfang und Beantwortung von Anfragen); Versand der Bestätigungs- und Passwort-E-Mails der App | Inhalt der Anfrage, Kontaktdaten; E-Mail-Adresse und Link | Rechenzentren von IONOS (Anbieter mit Sitz in Deutschland) | Auftragsverarbeitungsvertrag |
 
 **App Stores und Testversion:** Wenn du die App aus dem App Store oder Google Play lädst, verarbeiten Apple bzw.
 Google dabei Daten in eigener Verantwortung nach ihren Datenschutzbestimmungen. Von den Stores erhalten wir vor allem
@@ -911,7 +911,8 @@ Statuscode, technische Client-Kennung), um den Betrieb sicherzustellen, Fehler z
 
 ## 15. Kontakt und Support
 
-Wenn du uns schreibst, verarbeiten wir deine Angaben, um die Anfrage zu beantworten. Schick uns bitte **keine
+Wenn du uns schreibst, verarbeiten wir deine Angaben, um die Anfrage zu beantworten. E-Mails an
+kontakt@trainerstab.app liegen in unserem Postfach bei IONOS (Abschnitt 9). Schick uns bitte **keine
 Gesundheitsdaten per E-Mail**. Für Anfragen zu Auskunft, Löschung oder Export nutze bevorzugt die Funktionen in der
 App (Abschnitt 20).
 
@@ -1082,7 +1083,7 @@ findest du immer unter https://trainerstab.app/datenschutz und in der App. Bei w
 Einwilligung erforderlich ist – informieren wir dich in der App vorab und bitten gegebenenfalls erneut um deine
 Zustimmung.
 
-Stand: 13.11.2026 · Version 2026-11
+Stand: 17.11.2026 · Version 2026-11
 
 ---
 ---
@@ -1188,7 +1189,8 @@ after one day, unconfirmed requests after 30 days, parent updates after 12 month
 Germany – AWS eu-central-1; support access from the USA and Singapore possible); Anthropic (Claude API, AI coach and
 AI summaries of medical reports only with separate consent; USA); Expo (push notifications, app updates; USA) and
 Apple/Google push services; Sentry (crash reports only if you switch them on; stored in the EU); GitHub (hosting of the
-website trainerstab.app; USA); our e-mail provider. Transfers to the USA rely on the EU-US Data Privacy Framework where
+website trainerstab.app; USA); IONOS (IONOS SE, Montabaur, Germany: mailbox kontakt@trainerstab.app and sending of
+confirmation and password e-mails). Transfers to the USA rely on the EU-US Data Privacy Framework where
 the recipient is certified (Expo, Sentry, GitHub), otherwise on Standard Contractual Clauses (Anthropic, Supabase).
 
 **AI coach:** optional; your question plus reduced context (first name, age, training data) is sent via our server to
@@ -1214,4 +1216,4 @@ data after a withdrawal. In the app: export your data (JSON) and delete your acc
 Einwilligungen & Datenschutz" (players, parents) or "Mehr → Konto & Datenschutz" (coaching staff), or without the app
 via https://trainerstab.app/konto-loeschen. Contact: kontakt@trainerstab.app.
 
-Status: 13 November 2026 · Version 2026-11
+Status: 17 November 2026 · Version 2026-11

@@ -3,7 +3,7 @@
 > **ENTWURF – vor Verwendung durch den Datenschutzbeauftragten prüfen lassen.**
 > Stand: 10.11.2026 (Migrationen bis `20261105000010`). Beschreibt, was im Code umgesetzt und durch Tests belegt ist
 > (`supabase/tests/rls_test.sql`, `supabase/tests/functions.test.ts`, `src/core/__tests__`), und was organisatorisch
-> noch zu regeln ist (**offen**). Ergänzt durch die TOM der Auftragsverarbeiter (Supabase, Expo, Sentry, Anthropic –
+> noch zu regeln ist (**offen**). Ergänzt durch die TOM der Auftragsverarbeiter (Supabase, Expo, Sentry, Anthropic, IONOS –
 > als Anlage zum jeweiligen Vertrag ablegen).
 
 ## 1. Vertraulichkeit
@@ -12,7 +12,7 @@
 |---|---|---|
 | Zutritt | Rechenzentrum des Hosters (AWS eu-central-1 über Supabase); keine eigenen Server | laut TOM von Supabase – **Anlage ablegen** |
 | Zugang | Anmeldung mit E-Mail und Passwort (nur als Hash gespeichert), Mindestlänge 8 Zeichen in der App und in `supabase/config.toml`; kurze Zugangstoken (1 Stunde) | umgesetzt; **offen:** im Supabase-Dashboard Mindestlänge 8 und Schutz vor geleakten Passwörtern einschalten, Zwei-Faktor für Owner anbieten (DSFA M-15) |
-| Zugang Betreiber | Zugang zu Supabase, GitHub, Expo, Sentry, Anthropic nur für [Personen], jeweils mit Zwei-Faktor-Anmeldung; Schlüssel nur in GitHub- und Expo-Secrets bzw. Supabase-Vault, nie im Code oder Chat | **organisatorisch festlegen** und regelmäßig prüfen |
+| Zugang Betreiber | Zugang zu Supabase, GitHub, Expo, Sentry, Anthropic und IONOS (Domain, DNS, Postfach – wer sie kontrolliert, kontrolliert Website und Passwort-E-Mails) nur für [Personen], jeweils mit Zwei-Faktor-Anmeldung; Schlüssel nur in GitHub- und Expo-Secrets bzw. Supabase-Vault, nie im Code oder Chat | **organisatorisch festlegen** und regelmäßig prüfen |
 | Zugriff | Zeilenbasierte Zugriffsregeln (RLS) auf allen Tabellen; Teamdaten nur für Mitglieder, Gesundheitsdaten nur mit Recht „Gesundheitsdaten“, Befunde nur mit „Befunde“; Rechte je Mitglied des Trainerteams (`staff_can`); Schreiben heikler Daten nur über geprüfte Funktionen | umgesetzt, 1.400+ automatische Tests |
 | Zugriff Eltern | kein Tabellenzugriff; nur ein geprüftes Paket fürs eigene Kind ohne Gesundheitsdetails, Noten, Notizen und Chats; Zugang erst nach Bestätigung durch das Trainerteam | umgesetzt (T61) |
 | Trennung | jedes Team getrennt über RLS; Dateien je Team und Spieler in Ordnern mit Pfadprüfung; Demo-Modus ohne echte Daten | umgesetzt |
@@ -73,7 +73,7 @@ erstellen im Spielerprofil → Datenschutz (Trainerteam).
 | Maßnahme | Stand |
 |---|---|
 | Datenschutzbeauftragter benannt und der Aufsichtsbehörde gemeldet | **offen** |
-| Verträge zur Auftragsverarbeitung mit Supabase, Anthropic, Expo, Sentry (inkl. Unterauftragsverarbeiter und Drittlandgarantien) | **offen** (DSFA M-9) |
+| Verträge zur Auftragsverarbeitung mit Supabase, Anthropic, Expo, Sentry, IONOS (inkl. Unterauftragsverarbeiter und Drittlandgarantien) | **offen** (DSFA M-9); IONOS: AVV Teil der AGB, nur ablegen |
 | Rollenmodell mit Vereinen festlegen | **offen** (DSFA M-14) |
 | Vertraulichkeit im Trainerteam: Einwilligung bzw. Verpflichtung „Vertraulichkeit“ beim Zugang zu Gesundheitsdaten | in der App umgesetzt (`staff_confidentiality`) |
 | Leitfäden für Trainerteams (Scouting, Stärken-Runde, Umfragen, Notfallkontakte, Bestellungen, Nominierung, Fahrten, Karten, Fotos, Unfälle, Eltern-Zugang) | **offen** (DSFA M-27 bis M-37) |

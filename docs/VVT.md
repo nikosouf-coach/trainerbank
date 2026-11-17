@@ -21,9 +21,11 @@
   Supabase (Region Frankfurt, eu-central-1).
 - **Auftragsverarbeiter:** Supabase (Hosting, Datenbank, Anmeldung, Speicher, Serverfunktionen), Anthropic (KI, nur mit
   Einwilligung), Expo/650 Industries (Push-Versand, App-Updates), Sentry/Functional Software (Absturzberichte, nur mit
-  Zustimmung, Speicherort EU), Apple und Google (Zustellung von Push-Mitteilungen; Rolle zu klären), [E-Mail-Versand],
-  [Webhoster], [Support-Postfach]. Verträge nach Art. 28: **offen** (DSFA M-9).
-- **Drittländer:** USA (Anthropic, Expo; ggf. Zugriffe von Sentry und Supabase-Unterauftragsverarbeitern) – Grundlage
+  Zustimmung, Speicherort EU), Apple und Google (Zustellung von Push-Mitteilungen; Rolle zu klären), IONOS SE
+  (Postfach kontakt@trainerstab.app, Versand der Anmelde-E-Mails über SMTP, DNS der Domain), GitHub, Inc. (Website
+  über GitHub Pages; Zugriffsprotokolle in eigener Verantwortung – Rolle zu klären). Verträge nach Art. 28: **offen**
+  (DSFA M-9).
+- **Drittländer:** USA (Anthropic, Expo, GitHub; ggf. Zugriffe von Sentry und Supabase-Unterauftragsverarbeitern) – Grundlage
   EU-US Data Privacy Framework oder Standardvertragsklauseln, je Anbieter zu verifizieren (Datenschutzerklärung
   Abschnitt 10).
 - **Technische und organisatorische Maßnahmen:** `docs/TOM.md`.

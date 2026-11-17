@@ -65,11 +65,25 @@ der Play Console „Zugriff auf Produktion beantragen“ (Prüfung meist bis zu 
    - Site URL: `https://trainerstab.app`
    - Redirect URLs: `https://trainerstab.app/**` und `trainerstab://**` hinzufügen (Bestätigungs- und Passwort-Links
      führen auf die Website: Seiten `/bestaetigt` und `/passwort`)
-6. Unter **Authentication → Emails → SMTP Settings** den SMTP-Server deines E-Mail-Anbieters eintragen (Absender
-   kontakt@trainerstab.app, Name „Trainerstab“; Server, Port, Benutzer und Passwort laut Anbieter – das Passwort nur dort eintragen).
+6. Unter **Authentication → Emails → SMTP Settings** den Postausgang des Postfachs kontakt@trainerstab.app (IONOS)
+   eintragen:
+
+   | Feld | Wert |
+   |---|---|
+   | Sender email | `kontakt@trainerstab.app` |
+   | Sender name | `Trainerstab` |
+   | Host | `smtp.ionos.de` |
+   | Port | `465` (klappt es nicht: `587`) |
+   | Username | `kontakt@trainerstab.app` (muss gleich der Absender-Adresse sein, sonst lehnt IONOS die E-Mail ab) |
+   | Password | Passwort dieses Postfachs – nur dort eintragen |
+
    **Pflicht vor dem Pilot:** Ohne eigenen SMTP-Server schickt Supabase Bestätigungs- und Passwort-E-Mails nur an
-   Mitglieder des Supabase-Teams und höchstens zwei pro Stunde. Danach die Texte (Bestätigung, Passwort zurücksetzen)
-   auf Deutsch anpassen und mit dem E-Mail-Anbieter den Vertrag zur Auftragsverarbeitung abschließen.
+   Mitglieder des Supabase-Teams und höchstens zwei pro Stunde. Mit eigenem SMTP gilt zunächst ein Limit von 30
+   E-Mails pro Stunde (änderbar unter **Authentication → Rate Limits**). Danach die Texte (Bestätigung, Passwort
+   zurücksetzen) auf Deutsch anpassen und mit einer Probe-Registrierung prüfen. Die Vereinbarung zur
+   Auftragsverarbeitung mit IONOS ist seit 19.07.2022 Teil der IONOS-AGB; einsehen im IONOS-Konto unter
+   **Menü → Mein Konto → Datenschutz & Privatsphäre**. Nimmst du statt IONOS einen anderen Versanddienst, die Zeile
+   „IONOS“ in `docs/DATENSCHUTZERKLAERUNG.md` (Abschnitt 9) anpassen.
    In den Einstellungen für die Anmeldung mit E-Mail die Mindestlänge für Passwörter auf 8 setzen (wie in der App).
 7. In den Einstellungen der Organisation den Vertrag zur Auftragsverarbeitung (DPA) anfordern und unterschreiben.
 
@@ -269,6 +283,9 @@ aus der Datei `CNAME`; sonst eintragen und speichern).
 | CNAME | `www` | `nikosouf-coach.github.io` |
 | AAAA (optional) | `@` | `2606:50c0:8000::153`, `2606:50c0:8001::153`, `2606:50c0:8002::153`, `2606:50c0:8003::153` |
 
+Bei IONOS: **Menü → Domains & SSL** → bei `trainerstab.app` unter „Aktionen“ auf **⋯ → DNS**; dort mit „Record
+hinzufügen“ anlegen, mit dem Mülleimer löschen. Hostname `@` steht für die Hauptdomain. Direkt zur Tabelle:
+https://mein.ionos.de/domain-dns-settings/trainerstab.app (Anmeldung über das Kundenkonto, nicht über das Webmail).
 Vorhandene A-, AAAA- oder CNAME-Einträge für `@` und `www` (z. B. eine Parkseite des Anbieters) vorher löschen.
 Erlaubt der Anbieter nur einen A-Eintrag, reicht der erste. Keine Platzhalter-Einträge (`*`) für die Domain anlegen.
 Sobald die Einträge wirken (Minuten bis wenige Stunden), stellt GitHub ein Zertifikat aus; danach unter
