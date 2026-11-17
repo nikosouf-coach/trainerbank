@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self' data:; script-src 'sha256-9QV0Fz94dljV5vv73+KyLFSkI90T/GAcVFjssYKmJ+c='; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Neues Passwort – Trainerstab</title>
+<meta name="description" content="Neues Passwort für die App Trainerstab festlegen.">
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#f2f4f3" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1110" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Neues Passwort – Trainerstab">
+<meta property="og:description" content="Neues Passwort für die App Trainerstab festlegen.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://trainerstab.app/passwort">
+<meta property="og:locale" content="de_DE">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="48x48">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<a class="skip" href="#inhalt">Zum Inhalt</a>
+<header class="top"><div class="wrap">
+  <a class="brand" href="/" aria-label="Trainerstab – Startseite"><svg viewBox="0 0 32 32" aria-hidden="true" focusable="false"><rect width="32" height="32" rx="8.5" fill="#0d6b4b"/><path d="M6.425 8.25H19.125V9.75A6.25 6.25 0 0 0 14.205 12.15H6.425A1.3 1.3 0 0 1 5.125 10.85V9.55A1.3 1.3 0 0 1 6.425 8.25Z" fill="#fff"/><circle cx="19.125" cy="16" r="6.25" fill="none" stroke="#fff" stroke-width="3"/><circle cx="19.125" cy="16" r="1.6" fill="#fff"/></svg><span>trainer<b>stab</b></span></a>
+  <nav class="top" aria-label="Hauptnavigation"><a href="/hilfe">Hilfe</a><a href="/datenschutz">Datenschutz</a></nav>
+</div></header>
+<main id="inhalt"><div class="wrap narrow">
+<div class="page-head"><h1>Neues Passwort</h1></div>
+<div class="panel" id="set" hidden>
+  <p>Leg ein neues Passwort für dein Konto fest – mindestens 8 Zeichen.</p>
+  <form class="pw" id="pwform" novalidate>
+    <label>Neues Passwort<input name="pw1" type="password" autocomplete="new-password" minlength="8" required></label>
+    <label>Passwort wiederholen<input name="pw2" type="password" autocomplete="new-password" minlength="8" required></label>
+    <div class="actions"><button class="btn primary" id="pwbtn" type="submit">Passwort speichern</button></div>
+  </form>
+  <p class="msg" id="pwmsg" hidden role="status"></p>
+</div>
+<div class="panel" id="saved" hidden>
+  <p class="msg ok">Dein neues Passwort ist gespeichert.</p>
+  <p class="hint">Öffne die App Trainerstab und melde dich mit dem neuen Passwort an.</p>
+  <div class="actions"><a class="btn primary" href="trainerstab://">App öffnen</a></div>
+</div>
+<div class="panel" id="expired" hidden>
+  <p class="msg err">Der Link ist abgelaufen oder wurde schon benutzt.</p>
+  <p class="hint">Fordere in der App bei der Anmeldung über „Passwort vergessen?“ einen neuen Link an. Er gilt eine Stunde.</p>
+</div>
+<div class="panel" id="failed" hidden>
+  <p class="msg err">Der Link funktioniert nicht.</p>
+  <p class="hint">Fordere in der App über „Passwort vergessen?“ einen neuen Link an. Klappt es weiter nicht, schreib uns an <a href="mailto:kontakt@trainerstab.app">kontakt@trainerstab.app</a>.</p>
+</div>
+<div class="panel" id="plain" hidden>
+  <p>Hier setzt du ein neues Passwort, nachdem du in der App auf „Passwort vergessen?“ getippt und den Link aus der E-Mail geöffnet hast.</p>
+</div>
+<div class="panel" id="off" hidden>
+  <p>Das Zurücksetzen über die Website ist noch nicht eingerichtet. Schreib uns an <a href="mailto:kontakt@trainerstab.app">kontakt@trainerstab.app</a> – wir helfen dir weiter.</p>
+</div>
+<noscript><div class="panel"><p>Für diese Seite muss JavaScript eingeschaltet sein. Alternativ schreib uns an <a href="mailto:kontakt@trainerstab.app">kontakt@trainerstab.app</a>.</p></div></noscript>
+</div></main>
+<footer class="bottom"><div class="wrap">
+  <span>© 2026 Nikolas Swehla</span>
+  <nav aria-label="Rechtliches und Hilfe"><a href="/hilfe">Hilfe</a><a href="/datenschutz">Datenschutz</a><a href="/impressum">Impressum</a><a href="/konto-loeschen">Konto löschen</a></nav>
+</div></footer>
+<script>(function(){var CFG=null;var h=location.hash;var p=new URLSearchParams((h||"").slice(1));
+if(h){try{history.replaceState(null,"",location.pathname);}catch(e){}}
+var show=function(id){document.getElementById(id).hidden=false;},hide=function(id){document.getElementById(id).hidden=true;};
+if(!CFG){show("off");return;}
+if(p.get("error")||p.get("error_code")){show(p.get("error_code")==="otp_expired"?"expired":"failed");return;}
+var at=p.get("access_token");
+if(!at||p.get("type")!=="recovery"){show("plain");return;}
+show("set");var f=document.getElementById("pwform"),m=document.getElementById("pwmsg"),btn=document.getElementById("pwbtn");
+var say=function(t,ok){m.textContent=t;m.className="msg "+(ok?"ok":"err");m.hidden=false;};
+f.addEventListener("submit",function(ev){ev.preventDefault();var a=f.elements.pw1.value,b=f.elements.pw2.value;
+if(a.length<8){say("Das Passwort muss mindestens 8 Zeichen haben.");return;}
+if(a!==b){say("Die beiden Passwörter stimmen nicht überein.");return;}
+btn.disabled=true;m.hidden=true;
+fetch(CFG.url+"/auth/v1/user",{method:"PUT",headers:{apikey:CFG.key,Authorization:"Bearer "+at,"Content-Type":"application/json"},body:JSON.stringify({password:a})})
+.then(function(r){return r.json().catch(function(){return {};}).then(function(j){return {r:r,j:j};});})
+.then(function(x){if(x.r.ok){hide("set");show("saved");
+fetch(CFG.url+"/auth/v1/logout?scope=local",{method:"POST",headers:{apikey:CFG.key,Authorization:"Bearer "+at}}).catch(function(){});return;}
+var c=String(x.j.error_code||x.j.code||"");btn.disabled=false;
+if(c==="same_password"){say("Das neue Passwort muss sich vom bisherigen unterscheiden.");}
+else if(c==="weak_password"||x.r.status===422){say("Das Passwort ist zu schwach. Nimm ein längeres oder weniger gebräuchliches.");}
+else if(x.r.status===401||x.r.status===403){hide("set");show("expired");}
+else{say("Das hat nicht geklappt. Bitte versuch es noch einmal.");}})
+.catch(function(){btn.disabled=false;say("Keine Verbindung. Bitte prüf dein Internet und versuch es noch einmal.");});});})();</script>
+</body>
+</html>
