@@ -324,7 +324,7 @@ export const de: Dict = {
   "t_del": "Gelöscht",
   "stages": ["Individuell / Reha","Teiltraining","Volles Training","Spielfähig"],
   "wd": ["So","Mo","Di","Mi","Do","Fr","Sa"],
-  "ob_hi": "Willkommen bei Trainerbank",
+  "ob_hi": "Willkommen bei Trainerstab",
   "ob_hi2": "In 1 Minute auf dich zugeschnitten. Alles lässt sich später unter „Mehr“ ändern.",
   "ob_next": "Weiter",
   "ob_back": "Zurück",

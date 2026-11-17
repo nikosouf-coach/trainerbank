@@ -1,6 +1,6 @@
 // Spieler – Heute: aufs Wesentliche reduziert (Standard nach Wichtigkeit): Einträge (Morgen-Check, RPE), Körper heute,
-// Trainer-Nachrichten, Reha, Matchplan, nächster Termin (→ Kalender), Aufgaben, neue Bewertung, Programm und eine
-// Kurzübersicht (Challenge, Ziele, Woche, Kasse). Die ausführlichen Karten lassen sich unter „Startseite anpassen“
+// Trainer-Nachrichten, offene Umfragen, Reha, Matchplan, nächster Termin (→ Kalender), Aufgaben, „Mein Weg“ (Entwicklungsprogramm),
+// neue Bewertung, Programm und eine Kurzübersicht (Challenge, Ziele, Woche, Kasse). Die ausführlichen Karten lassen sich unter „Startseite anpassen“
 // dazuschalten.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -21,6 +21,14 @@ import { PlayerTasksCard } from "../../../src/ui/tasks/widgets";
 import { MyKasseCard } from "../../../src/ui/kasse";
 import { ChallengeCard } from "../../../src/ui/challenge";
 import { MyGoalsCard } from "../../../src/ui/dev";
+import { WegCard } from "../../../src/ui/program";
+import { PlayerPollsCard } from "../../../src/ui/polls";
+import { PlayerSquadCard } from "../../../src/ui/nomination";
+import { PlayerRidesCard } from "../../../src/ui/rides";
+import { PlayerCardsNotice } from "../../../src/ui/cards";
+import { PlayerBirthdayCard } from "../../../src/ui/birthdays";
+import { PlayerGuardiansNotice } from "../../../src/ui/parent";
+import { PlayerEmergencyCard } from "../../../src/ui/emergency";
 import { PlayerPlansCard } from "../../../src/ui/matchplan/cards";
 import { radius, useTheme } from "../../../src/ui/theme";
 
@@ -37,7 +45,7 @@ export default function PlayerHeute() {
 
   const cards: Record<string, React.ReactNode> = {
     todo: E.mods.belastung ? <Row wrap gap={10}>
-      <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} done={wellDone} onPress={() => router.push("/player/eintragen?tab=well")} />
+      <TodoTile testID="todo-well" icon="moon" title={t("pl_todoWell")} sub={wellDone ? t("pw_doneToday") : g.streak ? tf(g.streak === 1 ? "gm_streak1" : "gm_streak", { n: g.streak }) : t("gm_streak0")} done={wellDone} onPress={() => router.push("/player/eintragen?tab=well")} />
       <TodoTile testID="todo-rpe" icon="bolt" title={t("pl_todoRpe")} sub={open ? sessLabel(open) : t("pl_allDone")} done={!open} onPress={() => router.push("/player/eintragen?tab=rpe" + (open ? `&date=${open.date}&slot=${open.slot}` : ""))} />
     </Row> : null,
     // Körper heute: Zustand und Empfehlung in einer Zeile – die Seite dahinter erklärt Gründe, Tipps und Hintergrund
@@ -54,10 +62,14 @@ export default function PlayerHeute() {
       </Pressable>
     ) : null,
     msgs: msgs.length ? <Col gap={10}>{msgs.map(m => <Msg key={m.id} testID={"msg-" + m.id} eyebrow={`${E.coachName() ? E.tf("ph_coachN", { n: E.coachName() }) : t("ph_coach")} · ${t("ry_" + m.typ)}${m.bis ? " · " + t("until") + " " + E.de(m.bis) : ""}`} text={m.text} color={msgColor(c, m.typ)} />)}</Col> : null,
+    squad: s.mySquads.length ? <PlayerSquadCard /> : null,
+    rides: <PlayerRidesCard />,
+    polls: s.myPolls.length ? <PlayerPollsCard onAll={() => router.push("/player/umfragen")} /> : null,
     reha: <PlayerRehaCard pid={p.id} />,
     plan: <PlayerPlansCard />,
     dates: <NextDates pid={p.id} max={1} onMore={() => router.push("/player/kalender")} />,
     tasks: <PlayerTasksCard pid={p.id} />,
+    weg: E.playerSees("dev") ? <WegCard p={p} onOpen={() => router.push("/player/weg")} /> : null,
     rating: <NewRating pid={p.id} />,
     program: <PlayerProgramCard pid={p.id} />,
     quick: <PlayerQuick p={p} g={g} />,
@@ -69,11 +81,15 @@ export default function PlayerHeute() {
     badges: <Badges g={g} compact />,
   };
   const available = (k: string): boolean => ({ todo: !!E.mods.belastung, body: seesLoad && (!!E.mods.belastung || !!E.mods.regeneration), challenge: !!E.mods.challenge,
-    devgoals: E.playerSees("dev"), pot: E.playerSees("goals") } as Record<string, boolean>)[k] ?? true;
+    devgoals: E.playerSees("dev"), weg: E.playerSees("dev"), pot: E.playerSees("goals"), rides: E.mods.fahrten !== false } as Record<string, boolean>)[k] ?? true;
 
   return (
     <Screen testID="player-heute">
       <PlayerHero p={p} g={g} />
+      <PlayerBirthdayCard />
+      <PlayerEmergencyCard />
+      <PlayerCardsNotice />
+      <PlayerGuardiansNotice />
       <CrashAsk />
       {dash.order.map(k => cards[k] ? <React.Fragment key={k}>{cards[k]}</React.Fragment> : null)}
       <CustomizeLinks testID="p-dash-edit" onDash={() => setEdit(true)} />

@@ -3,13 +3,37 @@ import type { ClubInfo, ClubRole, ClubStaffEntry, ClubTeam, TeamSummary } from "
 import type { ChatFolderPrefs } from "../core/chat";
 import type { StatPeriod } from "../core/stats";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SquadPlan, MatchPlan, MpAvail, MpLog, MpOpened, MpPublished, MpShare, CashEntry, CashWaiver, Assessment, Challenge, ChallengeEntry, ChallengeTotals, Chat, ChatKind, ChatMsg, ChatPerson, ChatReport, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
-  Absence, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
+  DevProgram, DevSelf, PeerGift, PeerMate, Poll, PollAnswer, PollResult, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, Suspension, PhotoConsent, Accident, GuardianLink, GuardianRelation, ParentPost,
+  Absence, AbsenceType, AttStatus, CalOverride, ClassKey, CoachMsg, CustomKind, DayUnit, Depth, Extra, Growth, Lang, Match, Phase, Contact, Modules, TeamGroup, DayBlock, DutyEntry, FineEntry, TeamTask,
   MatchStat, Player, PlanOverride, Potential, Principles, Rating, RpeEntry, Session, Team, TeamData, TeamEvent, TeamSettings, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
 
 export type Role = "owner" | "coach" | "physio" | "pending" | "player";
 export const isStaffRole = (r: Role | undefined | null): boolean => r === "owner" || r === "coach" || r === "physio";
 
+/** Eltern-Zugang: verknüpftes Kind aus Sicht der Eltern */
+export interface GuardianChild {
+  linkId: string; pid: string; vn: string; nn: string; teamId: string; team: string; club: string; cls: string;
+  status: "pending" | "active"; relation: GuardianRelation; access: boolean;
+  /** Modul „Eltern-Zugang“ im Team ausgeschaltet (Verknüpfung bleibt, ohne Zugang) */
+  off: boolean;
+  /** Kind nicht mehr aktiv im Team (Zugang ruht, nach 30 Tagen wird die Verknüpfung gelöscht) */
+  inactive: boolean;
+  /** eigene Angaben des Elternteils (Name, wie ihn das Trainerteam und das Kind sehen) */
+  myName: string;
+}
+/** Paket fürs Kind (nur, was Eltern sehen dürfen) */
+export interface ChildData {
+  D: TeamData; consents: { parental: boolean; health: boolean }; posts: ParentPost[]; guardians: number;
+  /** „krank“ angeben möglich: unter 16 mit eigener Einwilligung dieses Elternteils, ab 16 mit der des Kindes */
+  sickOk: boolean;
+  /** Abmeldungen, die dieser Elternteil selbst eingetragen hat (darf er zurücknehmen) */
+  mineAbs: string[];
+  /** Abwesenheiten ohne Art (Krankheit bzw. Verletzung, vom Trainerteam oder vom Kind eingetragen): nur „abwesend“ */
+  awayAbs: string[];
+  /** von Eltern eingetragen (auch vom anderen Elternteil) */
+  parentAbs: string[];
+}
 export interface Membership { teamId: string; club: string; name: string; role: Role; playerId?: string | null;
   /** Trainerteam: einzelne Rechte (null/fehlend = Standard der Rolle, core/perms) */
   perms?: string[] | null;
@@ -257,6 +281,85 @@ export interface Api {
   /** Gespräch mit interner Notiz (eigene Tabelle, nie für Spieler) */
   saveTalk(teamId: string, t: DevTalk): Promise<DevTalk>;
   deleteTalk(id: string): Promise<void>;
+  // Entwicklungsprogramm (Trainerteam mit Recht „Notizen“; Spieler: Selbstanalyse und Stärken-Runde)
+  saveProgram(teamId: string, p: DevProgram): Promise<DevProgram>;
+  deleteProgram(pid: string): Promise<void>;
+  saveSelfSkills(teamId: string, s: DevSelf): Promise<DevSelf>;
+  /** Stärken für einen Mitspieler (nur während einer Runde); leere Liste = zurücknehmen */
+  savePeerGift(teamId: string, g: PeerGift): Promise<PeerGift | null>;
+  /** Mitspieler für die Stärken-Runde (nur Spieler, nur während einer Runde: Vorname, Initial, Nummer, Position) */
+  peerMates(teamId: string): Promise<PeerMate[]>;
+  // Umfragen (Trainerteam mit Recht „Nachrichten“; Spieler: eigene Abstimmungen, wenn erlaubt, und Antworten)
+  /** Umfrage anlegen bzw. Fragen und Einstellungen ändern (nur ohne Antworten) */
+  savePoll(teamId: string, p: Poll): Promise<Poll>;
+  /** Beenden, wieder öffnen, Ende ändern (geht auch mit Antworten) */
+  setPollState(id: string, s: { closed: boolean; until: string | null }): Promise<Poll>;
+  deletePoll(id: string): Promise<void>;
+  /** Eigene Antwort speichern (eine je Spieler und Umfrage) */
+  savePollAnswer(a: PollAnswer): Promise<PollAnswer>;
+  deletePollAnswer(pollId: string, pid: string): Promise<void>;
+  /** Ergebnis vom Server (anonym erst ab drei Antworten; Freitexte nur fürs Trainerteam) */
+  pollResults(pollId: string): Promise<PollResult>;
+  // Notfallkontakte (Spieler: eigene; Trainerteam: Kontakte mit Recht „Kader“, Hinweise mit „Gesundheitsdaten“)
+  saveEmergency(pid: string, contacts: EmContact[]): Promise<EmContact[]>;
+  /** Hinweise für den Notfall; leer = löschen */
+  saveEmergencyMed(pid: string, note: string): Promise<string>;
+  /** Größen (Spieler: eigene; Trainerteam mit Recht „Kader“); alles leer = löschen (Ergebnis null) */
+  saveSizes(pid: string, s: PlayerSizes): Promise<PlayerSizes | null>;
+  // Kader-Nominierung (Trainerteam mit Recht „Planung“; Spieler antworten über answerNomination)
+  /** Kader speichern (Treffpunkt, Hinweis, Sichtbarkeit; veröffentlicht – den Zeitpunkt setzt der Server) */
+  saveSquad(sq: MatchSquad): Promise<MatchSquad>;
+  deleteSquad(matchId: string): Promise<void>;
+  /** Nominierungen eines Kaders abgleichen (neue, entfernte, Abruf geändert) – vorhandene Antworten bleiben */
+  setNominations(matchId: string, list: { pid: string; standby: boolean }[]): Promise<Nomination[]>;
+  /** Antwort durch das Trainerteam (null = wieder offen; Grund nur bei Absage) */
+  setNomAnswer(matchId: string, pid: string, answer: NomAnswer | null, reason: string): Promise<Nomination>;
+  /** Antwort des Spielers (eigene Nominierung – der Server bestimmt den Spieler; pid nur für die Demo) */
+  answerNomination(matchId: string, pid: string, answer: NomAnswer, reason: string): Promise<Nomination>;
+  // Fahrgemeinschaften (Schreiben nur über die Funktionen der Datenbank; Regeln: core/rides)
+  /** Fahrt anlegen bzw. ändern – Spieler nur die eigene, das Trainerteam alle; Ziel und Fahrer bleiben beim Ändern */
+  saveRide(r: Ride): Promise<Ride>;
+  /** Fahrt löschen; Mitfahrer kommender Ziele suchen danach wieder (Ergebnis: wie viele) */
+  deleteRide(id: string): Promise<number>;
+  /** Mitfahren (Trainerteam: jeden zuordnen; Spieler: sich selbst; Fahrer: Suchende mitnehmen) – Wechsel gibt den alten Platz frei */
+  joinRide(rideId: string, pid: string): Promise<void>;
+  /** Austragen (Trainerteam, der Spieler selbst oder der Fahrer); need: sucht danach wieder */
+  leaveRide(rideId: string, pid: string, need: boolean): Promise<void>;
+  /** Mitfahrgelegenheit suchen bzw. nicht mehr suchen (Trainerteam oder der Spieler selbst) */
+  setRideNeed(kind: RideKind, refId: string, pid: string, on: boolean): Promise<void>;
+  // Karten & Sperren (Karten stehen im Spielbericht – saveStat; Sperren eintragen mit Recht „Leistung & Statistik“)
+  /** Sperre eintragen bzw. ändern (Urteil, aufgehoben = 0 Spiele, sonstige) */
+  saveSuspension(teamId: string, s: Suspension): Promise<Suspension>;
+  deleteSuspension(id: string): Promise<void>;
+  // ---------- Eltern-Zugang ----------
+  /** Eltern: eigene Verknüpfungen (auch wartende) */
+  guardianChildren(): Promise<GuardianChild[]>;
+  /** Eltern: Paket fürs Kind (nur nötige Felder, Zeitfenster) als TeamData fürs Kind */
+  guardianChildData(pid: string): Promise<ChildData>;
+  guardianRedeem(code: string, name: string, relation: GuardianRelation): Promise<{ vn: string; team: string }>;
+  guardianAbsence(pid: string, a: { typ: AbsenceType; von: string; bis: string | null }): Promise<Absence>;
+  guardianAbsenceDelete(id: string): Promise<void>;
+  guardianAnswer(matchId: string, pid: string, answer: NomAnswer, reason: string): Promise<void>;
+  guardianConsent(pid: string, kind: "parental" | "health_data", give: boolean): Promise<void>;
+  parentPostRead(postId: string, ack: boolean): Promise<void>;
+  /** Verknüpfung lösen: Trainerteam (Recht „Kader“), der Elternteil selbst oder das volljährige Kind */
+  guardianRemove(linkId: string): Promise<void>;
+  /** Trainerteam: Einladungscode (14 Tage, für bis zu zwei Elternteile), Anfrage bestätigen/ablehnen, Elterninfo */
+  guardianInvite(pid: string): Promise<{ code: string; expires: string }>;
+  guardianDecide(linkId: string, ok: boolean): Promise<GuardianLink | null>;
+  saveParentPost(teamId: string, p: ParentPost): Promise<ParentPost>;
+  deleteParentPost(id: string): Promise<void>;
+  /** volljähriges Kind: Zugang der Eltern verlängern bzw. beenden */
+  guardianAdultOk(linkId: string, ok: boolean): Promise<GuardianLink>;
+  /** Eltern: eigenen Namen und die Beziehung berichtigen */
+  guardianUpdate(linkId: string, name: string, relation: GuardianRelation): Promise<void>;
+  /** Eltern: Foto-Erlaubnis fürs minderjährige Kind (gilt als Erklärung der Eltern; nur Widerrufe lassen sie unverändert) */
+  guardianPhoto(pid: string, c: PhotoConsent): Promise<PhotoConsent>;
+  /** Foto-Erlaubnis speichern (Trainerteam: Recht „Kader“; Spieler: eigene – Ja ab 18, Nein immer; prüft der Server) */
+  savePhotoConsent(pid: string, c: PhotoConsent): Promise<PhotoConsent>;
+  /** Unfallmeldung anlegen bzw. ändern, löschen (Recht „Gesundheitsdaten“) */
+  saveAccident(teamId: string, a: Accident): Promise<Accident>;
+  deleteAccident(id: string): Promise<void>;
   // Wochenchallenge
   saveChallenge(teamId: string, c: Challenge): Promise<Challenge>;
   deleteChallenge(id: string): Promise<void>;
@@ -324,6 +427,12 @@ export interface Api {
   aiConsentPlayers(teamId: string): Promise<string[]>;
   registerPushToken(token: string, platform: "ios" | "android" | "web"): Promise<void>;
   exportMyData(): Promise<unknown>;
+  /** Zuletzt genutzt melden (höchstens einmal am Tag, Grundlage der Löschfristen für Konten und Teams) */
+  touchSeen(): Promise<void>;
+  /** Trainerteam: Gesundheitsdaten eines Spielers löschen (Recht „Gesundheitsdaten“; Befunde löscht die App vorher einzeln) */
+  staffEraseHealth(pid: string): Promise<number>;
+  /** Trainerteam (Owner): Auskunft über alle Daten eines Spielers als JSON (Art. 15/20 DSGVO) */
+  playerDataExport(pid: string): Promise<unknown>;
   deleteAccount(): Promise<void>;
 
   // KI

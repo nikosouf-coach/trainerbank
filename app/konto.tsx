@@ -16,12 +16,15 @@ import { CrashCard, VersionRow } from "../src/ui/pilot";
 import { useTheme } from "../src/ui/theme";
 import { tmpId } from "../src/data/store";
 
+/** Was ein Widerruf bewirkt (Hinweis im Bestätigungsblatt) */
+const WITHDRAW_TEXT: Partial<Record<ConsentKind, string>> = { health_data: "cs_withdrawHealth", parental: "cs_withdrawParental", findings: "cs_withdrawFindings", ai: "cs_withdrawAi" };
+
 export default function Konto() {
   const s = useStore(); const { t } = s.tr; const router = useRouter(); const { c } = useTheme();
   const [ask, setAsk] = useState<null | "delete" | ConsentKind>(null);
   const [busy, setBusy] = useState(false); const [dash, setDash] = useState(false);
   const [push, setPush] = useState<PushStatus | null>(null);
-  const isPlayer = s.viewAs === "player";
+  const isPlayer = s.viewAs === "player", isParent = s.viewAs === "parent";
   // Eigenes Trainerprofil
   const my = s.myStaff, myPhoto = usePhotoUrl(my?.photo || null);
   const [prof, setProf] = useState<ProfileDraft | null>(null), [newPhoto, setNewPhoto] = useState<string | null>(null);
@@ -59,7 +62,7 @@ export default function Konto() {
   }
   const doExport = () => run(async () => {
     const data = await s.exportMyData();
-    await shareTextFile(`trainerbank-export-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2));
+    await shareTextFile(`trainerstab-export-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data, null, 2));
   }, t("ko_exportDone"));
   const doPush = () => run(async () => setPush(await enablePush((tok, pf) => s.api.registerPushToken(tok, pf), true)));
 
@@ -104,13 +107,22 @@ export default function Konto() {
         <Btn small kind="ghost" icon="plus" label={t("st_title")} onPress={() => router.push("/start")} style={{ alignSelf: "flex-start" }} />
       </Card> : null}
 
+      {!s.isDemo ? <Card testID="ko-parent">
+        <CardTitle title={t("el_title")} />
+        <Muted small>{s.myChildren.length ? s.tr.tf("el_koKids", { n: s.myChildren.map(k => k.vn).join(", ") }) : t("el_koNone")}</Muted>
+        <Row gap={8} wrap>
+          {s.myChildren.length && !isParent ? <Btn small testID="ko-parent-view" label={t("el_parentView")} onPress={() => router.push("/parent")} /> : null}
+          <Btn small kind="ghost" icon="plus" testID="ko-parent-link" label={t("el_enterCode")} onPress={() => router.push("/parent-link")} />
+        </Row>
+      </Card> : null}
+
       <Card testID="ko-consents">
         <CardTitle title={t("cs_title")} />
         {isPlayer ? <>
           {consentRow("health_data", t("cs_health"), t("cs_health_s"), t("cs_health_l"))}
           {consentRow("ai", t("cs_ai"), t("cs_ai_s"), t("cs_ai_l"))}
           {s.D?.team.modules.befunde ? consentRow("findings", t("cs_findings"), t("cs_findings_s"), t("cs_findings_l")) : null}
-        </> : consentRow("staff_confidentiality", t("sj_title"), t("sj_conf"), t("sj_conf"))}
+        </> : isParent ? null : consentRow("staff_confidentiality", t("sj_title"), t("sj_conf"), t("sj_conf"))}
         <ListItem title={t("cs_privacy")} sub={t("cs_privacy_s")} right={<StatusChip status={s.consents?.privacy ? "ok" : "none"} label={t(s.consents?.privacy ? "cs_active" : "cs_inactive")} />} />
       </Card>
 
@@ -152,7 +164,7 @@ export default function Konto() {
         </Row>
       </Sheet>
       <Sheet visible={!!ask && ask !== "delete"} onClose={() => setAsk(null)} title={t("cs_withdrawQ")} testID="ko-withdraw-sheet">
-        {ask === "health_data" ? <T>{t("cs_withdrawHealth")}</T> : null}
+        {ask && WITHDRAW_TEXT[ask as ConsentKind] ? <T testID="ko-withdraw-text">{t(WITHDRAW_TEXT[ask as ConsentKind]!)}</T> : null}
         <Row gap={10}>
           <Btn label={t("no")} onPress={() => setAsk(null)} />
           <Btn testID="ko-withdraw-confirm" kind="danger" label={t("cs_withdraw")} disabled={busy}

@@ -1,0 +1,61 @@
+# Website trainerstab.app: baut website/ (Datenschutzerklärung aus docs/, Anbieter und Kontakt aus src/data/site.json)
+# und legt das Ergebnis in den Branch „gh-pages“ (nur der letzte Stand, ein Commit). GitHub Pages veröffentlicht
+# diesen Branch (Settings → Pages → Deploy from a branch → gh-pages, / (root)); die Domain steht in der Datei CNAME.
+# Der Build bricht ab, wenn in der Datenschutzerklärung noch Platzhalter in eckigen Klammern stehen oder Anbieter und
+# Kontakt nicht zu site.json passen. Bei Pull Requests wird nur gebaut und geprüft.
+# Optional (Seiten „E-Mail bestätigt“ und „Neues Passwort“): Repository-Variablen EXPO_PUBLIC_SUPABASE_URL und
+# EXPO_PUBLIC_SUPABASE_ANON_KEY – öffentliche Werte wie in der App, keine Secrets.
+name: Website
+
+on:
+  push:
+    branches: [main, entwicklungsprogramm]
+    paths:
+      - "website/**"
+      - "docs/DATENSCHUTZERKLAERUNG.md"
+      - "src/data/site.json"
+      - ".github/workflows/website.yml"
+  pull_request:
+    paths:
+      - "website/**"
+      - "docs/DATENSCHUTZERKLAERUNG.md"
+      - "src/data/site.json"
+      - ".github/workflows/website.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: website-${{ github.event_name == 'pull_request' && github.ref || 'gh-pages' }}
+  cancel-in-progress: false
+
+jobs:
+  website:
+    name: Website bauen, prüfen und veröffentlichen
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Bauen und prüfen
+        run: node website/build.mjs
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+      - name: Inhalt
+        run: find website/dist -type f -printf '%s\t%p\n' | sort -k2
+      - name: Branch „gh-pages“ aktualisieren
+        # nur im eigenen Repository und nicht bei Pull Requests
+        if: github.event_name != 'pull_request' && github.repository == 'nikosouf-coach/trainerbank'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd website/dist
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Website ${GITHUB_SHA::7} (${GITHUB_REF_NAME})"
+          git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages:gh-pages

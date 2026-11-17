@@ -2,7 +2,7 @@
 import type { Dict } from "./types";
 
 export const de_player: Dict = {
-  gm_streak: "{n} Tage Serie", gm_streak0: "Starte deine Serie", gm_days: "Tage",
+  gm_streak: "{n} Tage Serie", gm_streak1: "1 Tag Serie", gm_streak0: "Starte deine Serie", gm_days: "Tage", gm_day: "Tag",
   gm_rel: "Zuverlässigkeit (4 Wochen)", gm_relD: "Check-ins {c}/{ct} · RPE {r}/{rt}", gm_relFew: "Nach ein paar Einträgen siehst du hier, wie vollständig deine Angaben sind.",
   gm_relTop: "Top – damit wird deine Steuerung genau.", gm_rpeQuote: "RPE-Quote 4 Wochen: {q} %",
   gm_streakHint: "Jeden Tag Morgen-Check machen und die Serie wachsen lassen.", gm_best: "Rekord: {n} Tage",

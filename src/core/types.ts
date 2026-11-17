@@ -1,4 +1,4 @@
-// Fachliche Typen der Trainerbank. Unabhängig von React und Supabase.
+// Fachliche Typen von Trainerstab. Unabhängig von React und Supabase.
 
 export type Lang = "de" | "en";
 export type Depth = "org" | "basis" | "pro";
@@ -76,6 +76,12 @@ export interface TeamSettings {
   indivReq?: boolean;
   /** Wochenchallenge: Bestenliste anzeigen (Standard: aus – persönliche Bestleistung und Teamziel statt Vergleich) */
   challengeRank?: boolean;
+  /** Stärken-Runde des Entwicklungsprogramms (Spieler schenken einander Stärken); fehlt = noch keine Runde */
+  peer?: PeerRound | null;
+  /** Umfragen: Spieler dürfen selbst Abstimmungen starten (Standard: aus; Recht „Nachrichten“) */
+  polls?: PollSettings | null;
+  /** Karten und Sperren: Regeln des Verbands (fehlt = Voreinstellung nach Altersklasse, core/cards) */
+  cards?: CardRules | null;
 }
 /**
  * Chat: wer Einzelchats starten darf (aus / nur mit dem Trainerteam / auch Spieler untereinander), ob das ganze Trainerteam
@@ -136,6 +142,20 @@ export interface Modules {
   archiv: boolean; vorbereitung: boolean; kontakte: boolean;
   /** Spielerentwicklung (Ziele, Kompetenzprofil, Selbsteinschätzung, Gespräche), Wochenchallenge, Chat */
   entwicklung: boolean; challenge: boolean; chat: boolean;
+  /** Größen & Ausrüstung (Spieler tragen ihre Größen ein, Bestellliste fürs Trainerteam) */
+  ausruestung: boolean;
+  /** Fahrgemeinschaften zu Spielen und Terminen */
+  fahrten: boolean;
+  /** Karten und Sperren (Gelb, Gelb-Rot, Rot; Sperren für die nächsten Spiele) */
+  karten: boolean;
+  /** Geburtstage (Startseite, Liste, Kalender, Glückwunsch im Teamchat) */
+  geburtstage: boolean;
+  /** Foto-Erlaubnis je Spieler (Website, Social Media, Presse, Name) */
+  fotos: boolean;
+  /** Unfallmeldungen für die Sportversicherung (Recht „Gesundheitsdaten“) */
+  unfall: boolean;
+  /** Eltern-Zugang (Termine, Abmelden, Elterninfo, Einwilligungen) */
+  eltern: boolean;
 }
 export interface Team {
   id: string;
@@ -217,7 +237,72 @@ export interface Potential { id: string; cat: PotCat; text: string; vis: boolean
 export interface CoachMsg { id: string; date: string; typ: MsgType; text: string; bis: string | null }
 /** Spieldaten eines Spielers in einem Spiel (vom Trainerteam erfasst). */
 export interface MatchStat { min: number; goals: number; assists: number; start: boolean;
-  /** Torhüter: Gegentore in seiner Spielzeit und Paraden */ conceded?: number | null; saves?: number | null }
+  /** Torhüter: Gegentore in seiner Spielzeit und Paraden */ conceded?: number | null; saves?: number | null;
+  /** Pre-Assists (Pass vor der Vorlage); fehlt = nicht erfasst */ pre?: number | null;
+  /** Karte im Spiel (die schwerste): Gelb, Gelb-Rot, Rot */ card?: CardKind | null }
+/** Karte im Spiel: Gelb, Gelb-Rot, Rot */
+export type CardKind = "y" | "yr" | "r";
+/**
+ * Regeln für Sperren (je Verband und Altersklasse verschieden): Gelbsperre nach `yellowLimit` Gelben in
+ * Meisterschaftsspielen einer Saison (0 = keine) für `yellowGames` Meisterschaftsspiele; nach Gelb-Rot `yrGames`
+ * Spiele (0 = keine Sperre); nach Rot `redGames` Spiele (null = bis zum Urteil, Anzahl dann eintragen)
+ */
+export interface CardRules { yellowLimit: number; yellowGames: number; yrGames: number; redGames: number | null }
+/** Grund einer Sperre */
+export type SuspKind = "yellow" | "yellow_red" | "red" | "other";
+/**
+ * Sperre eines Spielers: Auslöser (Spiel mit der Karte), ab wann, für wie viele Spiele (0 = aufgehoben, null = bis zum
+ * Urteil) oder bis zu einem Tag, für Meisterschaftsspiele oder alle Pflichtspiele, Hinweis. auto = aus den Karten nach
+ * den Regeln abgeleitet (nicht gespeichert); eine gespeicherte Sperre mit gleichem Auslöser und Grund ersetzt sie.
+ */
+/** Foto-Erlaubnis: Kanäle (Vereinswebsite, Social Media des Vereins, Presse und Druck, Name zum Foto) und wer erklärt hat */
+export type PhotoChannel = "web" | "social" | "press" | "name";
+export type PhotoBy = "player" | "parents" | "both";
+export interface PhotoConsent {
+  web: boolean | null; social: boolean | null; press: boolean | null; name: boolean | null;
+  /** wer hat erklärt (null: noch keine Erklärung, nur Ablehnungen des Spielers) */
+  by: PhotoBy | null;
+  /** Datum der Erklärung */
+  on: string | null;
+  /** z. B. „Formular vom 01.09.“ */
+  note: string;
+  /** zuletzt geändert (Server) */
+  at?: string | null;
+}
+/** Unfallmeldung (Sportunfall) – Gesundheitsdaten */
+export type AccActivity = "training" | "match" | "travel" | "other";
+export interface Accident {
+  id: string; pid: string;
+  date: string; time: string | null; place: string;
+  activity: AccActivity; matchId: string | null; absenceId: string | null;
+  /** Hergang */
+  how: string;
+  /** Verletzung (Art, Körperteil) und Körperregion (core/body, z. B. „knee:r“) */
+  injury: string; area: string | null;
+  firstAid: string; treatment: string; witnesses: string;
+  /** an den Verein bzw. an die Versicherung gemeldet am, Schadennummer */
+  clubOn: string | null; insurerOn: string | null; claimNo: string;
+  closed: boolean; note: string;
+  /** zuletzt geändert (Server) */
+  at?: string | null;
+}
+/** Eltern-Zugang: Verknüpfung Elternkonto ↔ Kind (bestätigt vom Trainerteam), Einladung, Elterninfo */
+export type GuardianRelation = "mother" | "father" | "guardian";
+export interface GuardianLink {
+  id: string; pid: string; userId: string; name: string; relation: GuardianRelation;
+  status: "pending" | "active";
+  /** volljähriges Kind hat den Zugang verlängert */
+  adultOk: boolean;
+  at: string; confirmedAt: string | null;
+}
+export interface GuardianInvite { pid: string; expires: string; usesLeft: number }
+export interface ParentPost {
+  id: string; title: string; body: string; needAck: boolean; author: string; at: string;
+  /** nur in der Eltern-Ansicht: eigener Lesestand */
+  readAt?: string | null; ackedAt?: string | null;
+}
+export interface ParentRead { postId: string; userId: string; readAt: string; ackedAt: string | null }
+export interface Suspension { id: string; pid: string; kind: SuspKind; matchId: string | null; start: string; games: number | null; until: string | null; scope: "league" | "all"; note: string; auto?: boolean }
 /** Note (1–10, eine Nachkommastelle) und Feedback des Trainers zu Spiel oder Training. */
 export interface Rating { id: string; pid: string; date: string; kind: "spiel" | "training"; rating: number | null; text: string; vis: boolean;
   /** Training: nur Abweichungen vom Durchschnitt – besonders gut oder besonders schwach (Standard = Durchschnitt, nicht gespeichert) */
@@ -361,6 +446,133 @@ export interface IndivRequest {
   /** staffId: wer die Einheit leitet (bei Zusage); ask: bei wem der Spieler angefragt hat (null = Trainerteam) */
   answer: string; date: string | null; slot: number | null; staffId: string | null; created: string; ask?: string | null;
 }
+
+// ---------- Individuelles Entwicklungsprogramm (Herzstück der Spielerentwicklung) ----------
+/** Felder unter „Improve“: Stärke veredeln, Extraschicht, Fokus im Spiel, abseits des Platzes */
+export type ImproveKind = "excel" | "extra" | "focus" | "off";
+/** Wo der Spieler daran arbeitet */
+export type ImproveWhere = "training" | "indiv" | "extra" | "home" | "video" | "athletik" | "spiel";
+export interface ImproveItem {
+  kind: ImproveKind;
+  /** Thema in eigenen Worten (z. B. „Linker Fuß“); optional eine Stärke aus dem Katalog (core/program → SKILLS) */
+  topic: string; skill: string | null;
+  where: ImproveWhere[];
+  /** Wo nach Hilfe fragen: "team" (Trainerteam), "mates" (Mitspieler) oder ID eines Trainerprofils */
+  help: string[];
+  /** So gelingt es (z. B. „nach jedem Training 10 Min.“) */ how: string;
+  /** verknüpftes messbares Ziel (Fortschritt aus „Ziele“) */ goalId: string | null;
+}
+/** Waffen (höchstens 3) und weitere Stärken (höchstens 3) als Schlüssel aus SKILLS – das Trainerteam darf eigene Begriffe („t:…“) nutzen */
+export interface SkillView { weapons: string[]; skills: string[] }
+/** Entwicklungsprogramm eines Spielers: Spielerkarte, Perform, Improve und die Sicht von Spieler, Mitspielern und Trainerteam */
+export interface DevProgram {
+  pid: string;
+  /** Motto ohne „#“ (z. B. FESTMACHEN) */ tag: string;
+  /** X-Faktor: die 1–3 Waffen, mit denen der Spieler den Unterschied macht */ xf: string[];
+  /** So mache ich den Unterschied: Situationen in Ich-Form (höchstens 3) */ sit: string[];
+  /** Stärkster Bereich auf dem Feld (Zonen aus core/program → ZONES) */ zones: string[];
+  improve: ImproveItem[];
+  /** Sicht des Trainerteams */ coach: SkillView;
+  /** Vom Trainerteam ausgewählte Stärken aus der Stärken-Runde der Mitspieler (höchstens 5, ohne Namen) */ peers: string[];
+  /** für den Spieler freigegeben */ vis: boolean;
+  /** zuletzt freigegeben bzw. geändert (ISO) */ at: string | null;
+}
+/** Selbstanalyse des Spielers: eigene Waffen und weitere Stärken */
+export interface DevSelf { pid: string; weapons: string[]; skills: string[]; at: string | null }
+/** Stärken, die ein Spieler einem Mitspieler in der Stärken-Runde zuschreibt (nur positiv, nur aus dem Katalog) */
+export interface PeerGift { giver: string; target: string; skills: string[]; at: string }
+/** Mitspieler für die Stärken-Runde in der Spieler-App (Vorname, Initial, Rückennummer, Position – keine weiteren Daten) */
+export interface PeerMate { id: string; name: string; nr: number | null; pos: string }
+/** Stärken-Runde des Teams (Team-Einstellungen, Recht „notes“): Spieler schenken einander Stärken von `since` bis `until` */
+export interface PeerRound { since: string; until: string }
+
+// ---------- Umfragen ----------
+/** quick = Abstimmung (eine Frage mit Antworten), survey = Fragebogen (mehrere Fragen) */
+export type PollKind = "quick" | "survey";
+/** Einfachauswahl, Mehrfachauswahl, Skala 1–5, Freitext */
+export type PollQType = "single" | "multi" | "scale" | "text";
+export interface PollQuestion {
+  /** stabil innerhalb der Umfrage (q1, q2 …) */ id: string;
+  type: PollQType; text: string;
+  /** Antworten bei Auswahl (2–10), sonst leer */ options: string[];
+  required: boolean;
+  /** Skala: Beschriftung bei 1 und 5 */ lo: string; hi: string;
+}
+/** Wer die Ergebnisse sieht: alle Angesprochenen (nach eigener Antwort bzw. nach dem Ende) oder nur das Trainerteam */
+export type PollResultsVis = "all" | "staff";
+export interface Poll {
+  id: string; kind: PollKind;
+  /** Abstimmung: die Frage; Fragebogen: der Titel */ title: string;
+  intro: string; questions: PollQuestion[];
+  /** anonym: niemand sieht, wer was geantwortet hat; Ergebnisse erst ab drei Antworten */ anonymous: boolean;
+  results: PollResultsVis;
+  /** Zielgruppe: Gruppe des Teams, null = ganzes Team */ groupId: string | null;
+  /** letzter Tag (Zeitzone des Teams), null = ohne Ende */ until: string | null;
+  /** von Hand beendet */ closed: boolean;
+  /** von einem Spieler gestartet */ byPlayer: boolean; authorPid: string | null;
+  /** Name der Person, die die Umfrage gestartet hat */ author: string;
+  /** Konto der Person, die sie gestartet hat */ createdBy: string | null;
+  created: string;
+  /** so viele haben geantwortet (zählt der Server; anonyme Antworten liest niemand einzeln) */ answers: number;
+}
+export type PollValue = number | number[] | string;
+/** Antwort eines Spielers: Frage-ID → Index (Einfachauswahl), Indizes (Mehrfachauswahl), 1–5 (Skala), Text */
+export interface PollAnswer { pollId: string; pid: string; answers: Record<string, PollValue>; at: string }
+export interface PollQResult {
+  id: string;
+  /** so viele haben die Frage beantwortet (Mehrfachauswahl: Personen, nicht Kreuze) */ answered: number;
+  /** Auswahl: Anzahl je Antwort; Skala: Anzahl je Stufe 1–5 */ counts: number[];
+  /** Ergebnisse mit Namen: wer welche Antwort gewählt hat (Vorname, Initial) */ voters?: string[][];
+  /** Skala: Durchschnitt */ avg: number | null;
+  /** Freitext (nur Trainerteam; anonym ohne Namen und gemischt) */ texts?: { text: string; name?: string }[];
+}
+/** Ergebnis einer Umfrage – vom Server (poll_results) bzw. in der Demo berechnet */
+export interface PollResult {
+  pollId: string; n: number; targets: number;
+  /** anonym und weniger als drei Antworten: keine Einzelergebnisse */ hidden: boolean;
+  questions: PollQResult[];
+  /** mit Namen (nur Trainerteam): wer geantwortet hat und wer noch nicht */
+  respondents?: { pid: string; name: string }[]; missing?: { pid: string; name: string }[];
+}
+export interface PollSettings { players?: boolean }
+
+// ---------- Notfallkontakte ----------
+/** Beziehung zum Spieler */
+export type EmRel = "mother" | "father" | "guardian" | "partner" | "sibling" | "grandparent" | "other";
+/** Notfallkontakt (Person, die das Trainerteam im Notfall anruft) */
+export interface EmContact { name: string; rel: EmRel; phone: string }
+
+// ---------- Größen & Ausrüstung ----------
+/**
+ * Größen eines Spielers: Oberteil und Hose (Kinder 116–176 oder XS–3XL), Schuhe (EU, halbe Größen), Torwarthandschuhe;
+ * dazu Name für die Beflockung und ein Hinweis (z. B. „fällt klein aus“). Leere Angaben: null bzw. "".
+ */
+export interface PlayerSizes { top: string | null; bottom: string | null; shoes: number | null; gloves: number | null; print: string; note: string }
+
+// ---------- Kader-Nominierung fürs Spiel ----------
+/**
+ * Kader eines Spiels: Treffpunkt (Uhrzeit, Ort), Hinweis, ob die Spieler die ganze Liste sehen (sonst nur die eigene
+ * Nominierung), veröffentlicht am (null = Entwurf, nur fürs Trainerteam)
+ */
+export interface MatchSquad { matchId: string; meetTime: string | null; meetPlace: string; note: string; showAll: boolean; published: string | null }
+export type NomAnswer = "yes" | "no";
+/** Nominierung: im Kader oder auf Abruf; Zu- oder Absage (mit Grund), wann und ob das Trainerteam sie eingetragen hat */
+export interface Nomination { matchId: string; pid: string; standby: boolean; answer: NomAnswer | null; reason: string; at: string | null; byStaff: boolean; /** von Eltern beantwortet */ byGuardian?: boolean }
+/** Kader aus Sicht eines Spielers (nur veröffentlicht und für alle sichtbar): Vorname und Initial, Nummer, Position */
+export interface SquadMate { pid: string; name: string; nr: number | null; pos: string; standby: boolean }
+
+// ---------- Fahrgemeinschaften ----------
+/** Wofür gefahren wird: ein Spiel oder ein Termin */
+export type RideKind = "match" | "event";
+/**
+ * Fahrt zu einem Spiel oder Termin: wer fährt (Spieler bzw. seine Eltern – driverPid – oder das Trainerteam, dann
+ * null), Bezeichnung („Mama von Luca“), freie Plätze, Abfahrt (Uhrzeit, Treffpunkt), Hinweis
+ */
+export interface Ride { id: string; kind: RideKind; refId: string; driverPid: string | null; driver: string; seats: number; time: string | null; place: string; note: string }
+/** Platz in einer Fahrt */
+export interface RideSeat { rideId: string; pid: string }
+/** Spieler sucht eine Mitfahrgelegenheit */
+export interface RideNeed { kind: RideKind; refId: string; pid: string }
 
 // ---------- Chat ----------
 export type ChatKind = "team" | "staff" | "group" | "direct" | "custom";
@@ -557,6 +769,38 @@ export interface TeamData {
   challenges: Challenge[]; chEntries: ChallengeEntry[]; chTotals: Record<string, ChallengeTotals>;
   /** Anfragen für Individualtraining (Spieler: eigene) */
   indiv: IndivRequest[];
+  /** Entwicklungsprogramme (Spieler: eigenes, wenn freigegeben), Selbstanalysen (Spieler: eigene), Stärken-Runde
+   *  (Trainerteam: alle Einträge; Spieler: nur selbst verschenkte) und Mitspieler für die Runde (nur Spieler-App) */
+  programs: DevProgram[]; selfSkills: DevSelf[]; peerGifts: PeerGift[]; peerMates: PeerMate[];
+  /** Umfragen (Spieler: die an sie gerichteten und eigene), Antworten (Spieler: eigene; Trainerteam mit „Nachrichten“:
+   *  alle zu Umfragen mit Namen), Ergebnisse je Umfrage (vom Server geladen bzw. in der Demo berechnet) */
+  polls: Poll[]; pollAnswers: PollAnswer[]; pollResults: Record<string, PollResult>;
+  /** Notfallkontakte je Spieler (Trainerteam mit Recht „Kader“ oder „Gesundheitsdaten“; Spieler: eigene) */
+  emergency: Record<string, EmContact[]>;
+  /** Wichtige Hinweise für den Notfall je Spieler (Gesundheitsdaten: Recht „Gesundheitsdaten“; Spieler: eigene) */
+  emergencyMed: Record<string, string>;
+  /** Notfallkontakte wurden geladen (sonst zeigt die App „fehlt“ nicht an – z. B. ohne Verbindung beim ersten Start) */
+  emergencyOk: boolean;
+  /** Größen je Spieler (Trainerteam mit Recht „Kader“; Spieler: eigene) und ob sie geladen wurden */
+  sizes: Record<string, PlayerSizes>; sizesOk: boolean;
+  /** Kader je Spiel (Trainerteam: alle; Spieler: veröffentlichte, in denen sie stehen oder die für alle sichtbar sind),
+   *  Nominierungen (Trainerteam: alle; Spieler: eigene), Kaderlisten für Spieler (Schlüssel = Spiel) */
+  squads: Record<string, MatchSquad>; noms: Nomination[]; squadMates: Record<string, SquadMate[]>;
+  /** Fahrgemeinschaften: Fahrten, Plätze, wer sucht; Namen (Vorname und Initial) für Spieler – das Trainerteam nimmt den Kader */
+  rides: Ride[]; rideSeats: RideSeat[]; rideNeeds: RideNeed[]; rideNames: Record<string, string>;
+  /** Eingetragene Sperren (Trainerteam; Spieler: eigene) – die Sperren aus Karten leitet core/cards ab */
+  suspensions: Suspension[];
+  /** Foto-Erlaubnis je Spieler (Trainerteam: alle; Spieler: eigene) */
+  photos: Record<string, PhotoConsent>;
+  /** Unfallmeldungen (Trainerteam mit Recht „Gesundheitsdaten“; Spieler: eigene) */
+  accidents: Accident[];
+  /** Eltern-Zugang: Verknüpfungen (Trainerteam mit Recht „Kader“; Spieler: eigene), offene Einladungen, Elterninfo mit Lesestand,
+   *  geprüfte Einwilligungen der Eltern je Spieler */
+  guardians: GuardianLink[];
+  guardianInvites: GuardianInvite[];
+  parentPosts: ParentPost[];
+  parentReads: ParentRead[];
+  guardianConsents: Record<string, { parental: boolean; health: boolean }>;
   /** Chat: Unterhaltungen, Nachrichten je Chat, eigener Lesestand je Chat, Personen im Team */
   chats: Chat[]; chatMsgs: Record<string, ChatMsg[]>; chatRead: Record<string, string>; chatPeople: ChatPerson[];
   /** Meldungen (Trainerteam) bzw. eigene Meldungen (Spieler) */
@@ -626,6 +870,9 @@ export function emptyTeamData(team: Team): TeamData {
     rpe: {}, rpeU: {}, units: {}, well: {}, att: {}, extra: {}, growth: {}, kinds: [], pot: {}, msgs: {}, notes: {},
     stats: {}, ratings: [], videos: [], tests: [], findings: [], exercises: [], templates: [], staff: [], phases: [], contacts: [], groups: [], blocks: [], duties: [], fines: [], tasks: [], cash: [], waivers: [], inactive: [],
     assessments: [], goals: [], goalEntries: [], talks: [], challenges: [], chEntries: [], chTotals: {}, indiv: [],
+    programs: [], selfSkills: [], peerGifts: [], peerMates: [],
+    polls: [], pollAnswers: [], pollResults: {},
+    emergency: {}, emergencyMed: {}, emergencyOk: false, sizes: {}, sizesOk: false, squads: {}, noms: [], squadMates: {}, rides: [], rideSeats: [], rideNeeds: [], rideNames: {}, suspensions: [], photos: {}, accidents: [], guardians: [], guardianInvites: [], parentPosts: [], parentReads: [], guardianConsents: {},
     chats: [], chatMsgs: {}, chatRead: {}, chatPeople: [], chatReports: [], chatMore: {},
     plans: [], planLogs: {}, myPlans: [],
     scouts: [], scoutReports: [], scoutLists: [], squadPlans: [],

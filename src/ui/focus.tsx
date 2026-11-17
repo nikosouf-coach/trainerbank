@@ -4,6 +4,7 @@
 // Punkte: „Alles erledigt“.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
+import { accOverdue, openAccidents } from "../core/accidents";
 import { addDays } from "../core/dates";
 import { myBlocks, myTask } from "../core/day";
 import { useEngine, useStore } from "../data/store";
@@ -30,6 +31,11 @@ export function useFocusItems(): FocusItem[] {
     // 2. Offene Punkte vor dem nächsten Spiel (ohne Belastung – steht oben – und ohne reine Hinweise)
     if (m) for (const x of checks) if ((x.state === "todo" || x.state === "warn") && x.k !== "load" && x.href)
       L.push({ k: "md-" + x.k, icon: x.k === "plan" || x.k === "lineup" ? "board" : x.k === "duties" ? "checklist" : "flag", title: x.title, color: x.state === "warn" ? c.warn : c.accentTx, go: x.href });
+    // 2b. Unfallmeldungen, die noch nicht an den Verein gingen (Recht „Gesundheitsdaten“)
+    if (E.mods.unfall !== false && s.can("health")) {
+      const late = openAccidents(E.D).filter(a => accOverdue(a, E.TODAY)).length;
+      if (late) L.push({ k: "accidents", icon: "aid", title: t("fc_accidents"), n: late, color: c.warn, go: "/coach/unfaelle" });
+    }
     // 3. Fehlende RPE der letzten Einheit (bis 2 Tage danach)
     const last = E.D.sessions.filter(x => x.date <= E.TODAY && x.date >= addDays(E.TODAY, -2)).at(-1);
     if (last && E.mods.belastung) {

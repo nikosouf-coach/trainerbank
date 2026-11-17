@@ -251,13 +251,14 @@ export function ChatListScreen({ area }: { area: Area }) {
 
 // ---------- Unterhaltung ----------
 export function ChatThreadScreen({ area }: { area: Area }) {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // draft: vorgeschlagener Text (z. B. Glückwunsch zum Geburtstag) – steht im Eingabefeld, gesendet wird erst mit „Senden“
+  const { id, draft } = useLocalSearchParams<{ id: string; draft?: string }>();
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter(); const ins = useSafeAreaInsets();
   useChatPolling();
   const D = E.D, me = s.chatMeId, chat = s.chats.find(x => x.id === id), st = chatSettings(D.team);
   const L = msgsOf(D, id || "");
   const [firstUnread] = useState(() => { const r = D.chatRead[id || ""] || ""; return L.find(m => m.at > r && m.uid !== me)?.id || null; });
-  const [text, setText] = useState(""); const [reply, setReply] = useState<ChatMsg | null>(null);
+  const [text, setText] = useState(() => typeof draft === "string" ? draft.slice(0, 2000) : ""); const [reply, setReply] = useState<ChatMsg | null>(null);
   const [act, setAct] = useState<ChatMsg | null>(null); const [report, setReport] = useState<ChatMsg | null>(null); const [info, setInfo] = useState(false);
   const sv = useRef<ScrollView>(null); const stick = useRef(true);
   useEffect(() => {

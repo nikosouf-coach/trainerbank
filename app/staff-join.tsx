@@ -1,5 +1,6 @@
 // Trainerteam bzw. Funktionäre treten mit dem Trainer- oder Vereinscode bei. Aus einem Einladungslink
-// (trainerbank://staff-join?code=…) ist der Code vorausgefüllt; ohne Anmeldung wird die Einladung gemerkt.
+// (trainerstab://staff-join?code=…, geöffnet von https://trainerstab.app/staff-join) ist der Code vorausgefüllt; ohne
+// Anmeldung wird die Einladung gemerkt.
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { cleanCode } from "../src/data/invite";

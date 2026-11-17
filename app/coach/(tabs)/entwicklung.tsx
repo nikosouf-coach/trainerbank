@@ -1,18 +1,21 @@
-// Trainer – Entwicklung im Team: wer wurde wann eingeschätzt, welche Ziele laufen, welche Gespräche stehen an.
+// Trainer – Entwicklung im Team: Entwicklungsprogramme (freigegeben/Entwurf), Stärken-Runde, wer wurde wann
+// eingeschätzt, welche Ziele laufen, welche Gespräche stehen an.
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
 import { addDays } from "../../../src/core/dates";
 import { assessmentsOf, goalProgress, goalsOf, openRequests } from "../../../src/core/dev";
+import { programOf, programStatus } from "../../../src/core/program";
 import { useEngine } from "../../../src/data/store";
 import { Banner, Bar, Card, Chip, Header, Info, ListItem, Muted, Row, Screen, Seg } from "../../../src/ui/kit";
 import { PlayerAvatar } from "../../../src/ui/playerAvatar";
+import { PeerRoundAdmin } from "../../../src/ui/program";
 import { useTheme } from "../../../src/ui/theme";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, View, useWindowDimensions } from "react-native";
 import { useNavBack } from "../../../src/ui/nav";
 
 export default function EntwicklungTeam() {
   const nb = useNavBack("entwicklung");
-  const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();
+  const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter(); const { width } = useWindowDimensions();
   const [filter, setFilter] = useState<"all" | "todo">("all");
   const rows = useMemo(() => E.D.players.map(p => {
     const coach = assessmentsOf(E.D, p.id, "coach")[0], self = assessmentsOf(E.D, p.id, "self")[0];
@@ -21,14 +24,18 @@ export default function EntwicklungTeam() {
     const selfNew = !!self && (!coach || self.date > coach.date);
     const stale = !coach || coach.date < addDays(E.TODAY, -90);
     const due = !!talk?.next && talk.next <= addDays(E.TODAY, 7);
+    const prog = programStatus(programOf(E.D, p.id));
     // To-do: neue Selbsteinschätzung, Gespräch fällig (7 Tage), Ziel hinter Plan, noch nie bzw. lange nicht eingeschätzt (mit laufenden Zielen)
-    return { p, coach, self, goals, behind, talk, selfNew, stale, due, todo: selfNew || due || behind > 0 || (stale && goals.length > 0) };
+    return { p, coach, self, goals, behind, talk, selfNew, stale, due, prog, todo: selfNew || due || behind > 0 || (stale && goals.length > 0) };
   }), [E]);
   const list = filter === "todo" ? rows.filter(r => r.todo) : rows;
   // Überblick: wie viele aktuell eingeschätzt (90 Tage), mit laufenden Zielen, Gespräche fällig
   const n = rows.length, assessed = rows.filter(r => !r.stale).length, withGoals = rows.filter(r => r.goals.length).length, talksDue = rows.filter(r => r.due).length;
+  const live = rows.filter(r => r.prog === "live").length;
+  // Vier Kennzahlen: am Handy 2 × 2, sonst nebeneinander
+  const narrow = width < 560;
   const kpi = (k: string, label: string, v: number, of: number | null, col: string) => (
-    <View key={k} testID={"dev-sum-" + k} style={{ flex: 1, minWidth: 0, gap: 4 }}>
+    <View key={k} testID={"dev-sum-" + k} style={narrow ? { flexBasis: "45%", flexGrow: 1, minWidth: 0, gap: 4 } : { flex: 1, minWidth: 0, gap: 4 }}>
       <Text numberOfLines={2} style={{ fontSize: 12.5, fontWeight: "600", color: c.muted }}>{label}</Text>
       <Text style={{ fontSize: 22, fontWeight: "800", color: c.ink, fontVariant: ["tabular-nums"] }}>{v}{of != null ? <Text style={{ fontSize: 14, color: c.muted }}> / {of}</Text> : null}</Text>
       {of != null ? <Bar value={of ? v / of : 0} color={col} /> : null}
@@ -40,17 +47,20 @@ export default function EntwicklungTeam() {
       <Header title={t("dv_overview")} onBack={nb.onBack} backLabel={nb.backLabel} info={<Info title={t("dv_overview")} text={[t("dv_ovInfo"), t("dv_info")]} />} />
       {!E.mods.entwicklung ? <Muted>{tf("bk_needs", { m: t("m_entwicklung") })}</Muted> : <>
         {iq ? <Pressable testID="dev-team-iq" accessibilityRole="button" onPress={() => router.push("/coach/individual")}><Banner>{t("iq_open")}: {iq}</Banner></Pressable> : null}
-        {n ? <Card testID="dev-team-sum"><Row gap={14} align="flex-start">
+        {n ? <Card testID="dev-team-sum"><Row gap={14} wrap={narrow} align="flex-start" style={narrow ? { rowGap: 16 } : undefined}>
+          {kpi("prog", t("ep_sumLive"), live, n, c.accent)}
           {kpi("assessed", t("dv_sumAssessed"), assessed, n, c.ok)}
-          {kpi("goals", t("dv_sumGoals"), withGoals, n, c.accent)}
+          {kpi("goals", t("dv_sumGoals"), withGoals, n, c.low)}
           {kpi("talks", t("dv_sumTalks"), talksDue, null, c.warn)}
         </Row></Card> : null}
+        <PeerRoundAdmin />
         <Seg testID="dev-filter" value={filter} onChange={setFilter} options={[{ key: "all", label: t("dv_ovFilter_all") }, { key: "todo", label: `${t("dv_ovFilter_todo")} · ${rows.filter(r => r.todo).length}` }]} />
         <Card style={{ paddingVertical: 4, gap: 0 }}>
           {list.length ? list.map(r => (
             <ListItem key={r.p.id} testID={"dev-row-" + r.p.id} left={<PlayerAvatar p={r.p} size={40} />} title={E.name(r.p)} sub={`${r.p.pos} · ${t("dv_ovLast")}: ${r.coach ? E.de(r.coach.date) : t("dv_ovNever")}`}
               onPress={() => router.push("/coach/entwicklung/" + r.p.id)}>
               <Row wrap gap={4}>
+                {r.prog !== "none" ? <Chip testID={"dev-prog-" + r.p.id} label={`${t("ep_ovProg")}: ${t("ep_status_" + r.prog)}`} color={r.prog === "live" ? c.ok : c.warn} /> : null}
                 {r.selfNew ? <Chip label={t("dv_ovSelfNew")} color={c.warn} /> : null}
                 {r.goals.length ? <Chip label={`${t("dv_ovGoals")}: ${r.goals.length}`} color={c.ok} /> : null}
                 {r.behind ? <Chip label={tf("dv_ovBehind", { n: r.behind })} color={c.warn} /> : null}

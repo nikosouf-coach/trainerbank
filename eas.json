@@ -7,7 +7,7 @@
     "base": {
       "node": "22.12.0",
       "env": {
-        "APP_BUNDLE_ID": "de.goatsocceracademy.trainerbank"
+        "APP_BUNDLE_ID": "app.trainerstab"
       }
     },
     "preview": {

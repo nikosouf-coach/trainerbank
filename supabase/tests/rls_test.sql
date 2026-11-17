@@ -1,5 +1,5 @@
 -- =====================================================================
--- Trainerbank – RLS-/RPC-Tests (ausgeführt von supabase/tests/run.sh)
+-- Trainerstab – RLS-/RPC-Tests (ausgeführt von supabase/tests/run.sh)
 --
 -- Identitätswechsel wie bei PostgREST:
 --   set local role authenticated;
@@ -3461,6 +3461,1618 @@ commit;
 delete from public.feedback where user_id = :'p2';
 
 -- =====================================================================
+-- T52 Entwicklungsprogramm: Programm, Selbstanalyse, Stärken-Runde, Pre-Assists
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$insert into public.dev_programs (player_id, content, visible) values (%L, '{"tag": "FESTMACHEN", "xf": ["festmachen", "schusstechnik"], "sit": ["Wenn ich den Ball festmache"], "zones": ["o3"], "improve": [], "coach": {"weapons": ["festmachen"], "skills": []}, "peers": []}', false)$q$, tst.get('max')),
+                   1, 'T52 Trainerteam legt Programm an (Entwurf)');
+select tst.throws(format($q$insert into public.dev_programs (player_id, content) values (%L, '{"xf": ["a", "b", "c", "d"]}')$q$, tst.get('p2_player')), 'T52 höchstens drei Waffen im X-Faktor', 'check constraint');
+select tst.throws(format($q$insert into public.dev_programs (player_id, content) values (%L, '[]')$q$, tst.get('p2_player')), 'T52 Inhalt ist ein Objekt', 'check constraint');
+select tst.throws(format($q$insert into public.dev_programs (player_id, content) values (%L, jsonb_build_object('tag', repeat('X', 30)))$q$, tst.get('p2_player')), 'T52 Motto höchstens 24 Zeichen', 'check constraint');
+select tst.throws(format($q$insert into public.dev_programs (player_id, content) values (%L, jsonb_build_object('sit', jsonb_build_array(repeat('x', 17000))))$q$, tst.get('p2_player')), 'T52 Programm höchstens 16 KB', 'check constraint');
+do $$ begin
+  perform tst.eq((select team_id::text || '/' || coalesce(published_at::text, '-') from public.dev_programs where player_id = tst.get('max')::uuid), tst.get('team_a') || '/-',
+                 'T52 Team aus dem Spieler, Entwurf ohne Freigabezeitpunkt');
+end $$;
+select tst.affects(format($q$update public.teams set settings = settings || jsonb_build_object('peer', jsonb_build_object('since', current_date - 1, 'until', current_date + 7)) where id = %L$q$, tst.get('team_a')),
+                   1, 'T52 Trainerteam startet die Stärken-Runde');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.dev_programs)::text, '0', 'T52 Spieler sieht den Entwurf nicht');
+end $$;
+select tst.affects(format($q$insert into public.dev_self (player_id, weapons, skills) values (%L, '{physis,schusstechnik}', '{kopfball}')$q$, tst.get('max')), 1, 'T52 Spieler speichert seine Selbstanalyse');
+select tst.throws(format($q$insert into public.dev_self (player_id, weapons) values (%L, '{physis}')$q$, tst.get('erik')), 'T52 Selbstanalyse nur für sich selbst', 'row-level security');
+select tst.throws(format($q$update public.dev_self set weapons = '{physis,physis}' where player_id = %L$q$, tst.get('max')), 'T52 Selbstanalyse ohne Doppelungen', 'check constraint');
+select tst.throws(format($q$update public.dev_self set weapons = '{"Freitext mit Leerzeichen"}' where player_id = %L$q$, tst.get('max')), 'T52 nur Schlüssel aus dem Katalog', 'check constraint');
+select tst.throws(format($q$update public.dev_self set skills = '{physis}' where player_id = %L$q$, tst.get('max')), 'T52 Waffe nicht zugleich weitere Stärke', 'check constraint');
+do $$ begin
+  perform tst.ok((select count(*) from public.peer_targets(tst.get('team_a')::uuid)) >= 2, 'T52 Mitspieler für die Runde');
+  perform tst.ok(not exists (select 1 from public.peer_targets(tst.get('team_a')::uuid) t where t.id = tst.get('max')::uuid), 'T52 Mitspielerliste ohne sich selbst');
+  perform tst.eq((select t.first_name || ' ' || t.last_initial from public.peer_targets(tst.get('team_a')::uuid) t where t.id = tst.get('p2_player')::uuid), 'Paul N',
+                 'T52 Mitspieler nur mit Vorname und Initial');
+  perform tst.eq((select count(*) from public.peer_targets(tst.get('team_b')::uuid))::text, '0', 'T52 fremdes Team: keine Mitspielerliste');
+end $$;
+select tst.affects(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{kopfball,physis}')$q$, tst.get('max'), tst.get('p2_player')), 1, 'T52 Spieler schenkt einem Mitspieler Stärken');
+select tst.affects(format($q$update public.dev_peer_skills set skills = '{kopfball,physis,abschluss}' where giver_id = %L and target_id = %L$q$, tst.get('max'), tst.get('p2_player')), 1, 'T52 Spieler ändert seine Stärken');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut}')$q$, tst.get('max'), tst.get('max')), 'T52 nicht an sich selbst', 'check constraint');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut,ruhe,einsatz,physis}')$q$, tst.get('max'), tst.get('erik')), 'T52 höchstens drei Stärken', 'check constraint');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{}')$q$, tst.get('max'), tst.get('erik')), 'T52 mindestens eine Stärke', 'check constraint');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{"Du bist schlecht"}')$q$, tst.get('max'), tst.get('erik')), 'T52 kein Freitext in der Runde', 'check constraint');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut}')$q$, tst.get('p2_player'), tst.get('erik')), 'T52 nur im eigenen Namen', 'row-level security');
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut}')$q$, tst.get('max'), tst.get('tom_b')), 'T52 nur an Mitspieler im eigenen Team', 'different_teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.affects(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut,physis}')$q$, tst.get('p2_player'), tst.get('max')), 1, 'T52 zweiter Spieler schenkt Stärken');
+do $$ begin
+  perform tst.eq((select count(*) from public.dev_peer_skills where giver_id <> tst.get('p2_player')::uuid)::text, '0', 'T52 Spieler sehen nur selbst verschenkte Stärken');
+  perform tst.eq((select count(*) from public.dev_programs)::text, '0', 'T52 Mitspieler sehen fremde Programme nicht');
+  perform tst.eq((select count(*) from public.dev_self)::text, '0', 'T52 Mitspieler sehen fremde Selbstanalysen nicht');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select array_to_string(skills, ',') from public.dev_peer_skills where target_id = tst.get('p2_player')::uuid), 'kopfball,physis,abschluss', 'T52 Trainerteam sieht die Stärken-Runde');
+  perform tst.eq((select array_to_string(weapons, ',') from public.dev_self where player_id = tst.get('max')::uuid), 'physis,schusstechnik', 'T52 Trainerteam sieht die Selbstanalyse');
+end $$;
+select tst.affects(format($q$update public.dev_self set weapons = '{mut}' where player_id = %L$q$, tst.get('max')), 0, 'T52 Trainerteam ändert die Selbstanalyse nicht');
+select tst.affects(format($q$update public.dev_programs set visible = true, content = content || '{"peers": ["mut", "physis"]}' where player_id = %L$q$, tst.get('max')), 1, 'T52 Programm freigeben');
+do $$ begin
+  perform tst.ok((select published_at is not null from public.dev_programs where player_id = tst.get('max')::uuid), 'T52 Freigabe setzt den Zeitpunkt');
+end $$;
+select tst.affects(format($q$insert into public.match_stats (team_id, match_id, player_id, minutes, goals, assists, started, pre_assists)
+                             values (%L, (select id from public.matches where team_id = %L order by date limit 1), %L, 90, 1, 0, true, 2)
+                             on conflict (match_id, player_id) do update set pre_assists = excluded.pre_assists$q$, tst.get('team_a'), tst.get('team_a'), tst.get('max')), 1, 'T52 Pre-Assists speichern');
+select tst.throws(format($q$update public.match_stats set pre_assists = 25 where player_id = %L$q$, tst.get('max')), 'T52 Pre-Assists 0–20', 'check constraint');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select content ->> 'tag' from public.dev_programs), 'FESTMACHEN', 'T52 Spieler sieht sein freigegebenes Programm');
+  perform tst.eq((select count(*) from public.dev_peer_skills where target_id = tst.get('max')::uuid)::text, '0', 'T52 Empfänger sehen keine Einträge der Runde');
+  perform tst.eq((select pre_assists::text from public.match_stats where player_id = tst.get('max')::uuid and pre_assists is not null limit 1), '2', 'T52 Spieler sieht seine Pre-Assists');
+end $$;
+select tst.affects(format($q$update public.dev_programs set content = '{}' where player_id = %L$q$, tst.get('max')), 0, 'T52 Spieler ändert sein Programm nicht');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.teams set settings = jsonb_set(settings, '{peer,until}', to_jsonb((current_date - 2)::text)) where id = %L$q$, tst.get('team_a')), 1, 'T52 Trainerteam beendet die Runde');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$insert into public.dev_peer_skills (giver_id, target_id, skills) values (%L, %L, '{mut}')$q$, tst.get('max'), tst.get('erik')), 'T52 nach der Runde wird nichts mehr geschenkt', 'peer_closed');
+do $$ begin
+  perform tst.eq((select count(*) from public.peer_targets(tst.get('team_a')::uuid))::text, '0', 'T52 nach der Runde keine Mitspielerliste');
+end $$;
+commit;
+
+-- Löschfrist der Stärken-Runde (12 Monate)
+alter table public.dev_peer_skills disable trigger dev_peer_skills_prepare;
+insert into public.dev_peer_skills (giver_id, target_id, team_id, skills, updated_at)
+values (tst.get('tom')::uuid, tst.get('erik')::uuid, tst.get('team_a')::uuid, '{einsatz}', now() - interval '13 months');
+alter table public.dev_peer_skills enable trigger dev_peer_skills_prepare;
+begin;
+set local role service_role;
+do $$ begin
+  perform tst.eq(public.purge_old_peer_skills()::text, '1', 'T52 Einträge der Stärken-Runde nach 12 Monaten gelöscht');
+  perform tst.eq((select count(*) from public.dev_peer_skills)::text, '2', 'T52 jüngere Einträge bleiben');
+end $$;
+commit;
+
+-- =====================================================================
+-- T53 Umfragen: Abstimmung, Fragebogen, Zielgruppe, anonym, Ergebnisse, Abstimmungen von Spielern, Löschfrist
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (
+  insert into public.polls (team_id, kind, title, questions)
+  values (tst.get('team_a')::uuid, 'quick', 'Wie kommst du hin?',
+          '[{"id": "q1", "type": "single", "text": "Wie kommst du hin?", "options": ["Bus", "Selbst"], "required": true, "lo": "", "hi": ""}]')
+  returning id
+) select tst.put('poll_q', id::text) from ins;
+with ins as (
+  insert into public.polls (team_id, kind, title, intro, questions, anonymous, results)
+  values (tst.get('team_a')::uuid, 'survey', 'Feedback', 'Anonym, dauert eine Minute.',
+          '[{"id": "q1", "type": "scale", "text": "Wie war die Woche?", "options": [], "required": true, "lo": "locker", "hi": "hart"},
+            {"id": "q2", "type": "text", "text": "Was noch?", "options": [], "required": false, "lo": "", "hi": ""}]', true, 'staff')
+  returning id
+) select tst.put('poll_s', id::text) from ins;
+with g as (insert into public.team_groups (team_id, name, kind, visible) values (tst.get('team_a')::uuid, 'Umfrage-Gruppe', 'custom', false) returning id)
+select tst.put('grp_poll', id::text) from g;
+select tst.affects(format($q$insert into public.group_members (group_id, player_id) values (%L, %L)$q$, tst.get('grp_poll'), tst.get('p2_player')), 1, 'T53 Mitglied der Gruppe');
+with ins as (
+  insert into public.polls (team_id, kind, title, questions, group_id)
+  values (tst.get('team_a')::uuid, 'quick', 'Nur für die Gruppe?',
+          '[{"id": "q1", "type": "multi", "text": "Nur für die Gruppe?", "options": ["Mo", "Di", "Do"], "required": true, "lo": "", "hi": ""}]', tst.get('grp_poll')::uuid)
+  returning id
+) select tst.put('poll_g', id::text) from ins;
+do $$ begin
+  perform tst.eq((select count(*) from public.polls where team_id = tst.get('team_a')::uuid)::text, '3', 'T53 Trainerteam legt Abstimmung, Fragebogen und Gruppen-Abstimmung an');
+  perform tst.ok((select not by_player and author_player is null and author_name <> '' and answer_count = 0 and created_by = tst.uid('coachA')
+                    from public.polls where id = tst.get('poll_q')::uuid), 'T53 Autor und Zähler setzt der Server');
+end $$;
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Zwei?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a", "b"], "required": true}, {"id": "q2", "type": "single", "text": "B?", "options": ["a", "b"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Abstimmung hat genau eine Frage', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Skala?', '[{"id": "q1", "type": "scale", "text": "A?", "options": [], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Abstimmung nur mit Auswahl', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Eine?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 mindestens zwei Antworten', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Doppelt?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["Bus", " bus"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 keine doppelten Antworten', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'survey', 'IDs', '[{"id": "q1", "type": "text", "text": "A?", "options": [], "required": true}, {"id": "q1", "type": "text", "text": "B?", "options": [], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 eindeutige Frage-IDs', 'polls_questions_valid');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, intro, questions) values (%L, 'quick', 'Intro?', 'Text', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a", "b"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Einleitung nur im Fragebogen', 'polls_intro_survey');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions, group_id) values (%L, 'quick', 'Fremd?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a", "b"], "required": true}]', %L)$q$, tst.get('team_a'), tst.get('grp_b')),
+                  'T53 nur Gruppen des eigenen Teams', 'different_teams');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Fremdes Team?', '[{"id": "q1", "type": "single", "text": "A?", "options": ["a", "b"], "required": true}]')$q$, tst.get('team_b')),
+                  'T53 keine Umfrage in fremden Teams', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select string_agg(title, ',' order by title) from public.polls), 'Feedback,Wie kommst du hin?', 'T53 Spieler sieht die an ihn gerichteten Umfragen (nicht die Gruppe ohne ihn)');
+end $$;
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 1}')$q$, tst.get('poll_q'), tst.get('max')), 1, 'T53 Spieler stimmt ab');
+select tst.affects(format($q$update public.poll_answers set answers = '{"q1": 0}' where poll_id = %L$q$, tst.get('poll_q')), 1, 'T53 Spieler ändert seine Antwort');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 0}')$q$, tst.get('poll_q'), tst.get('erik')), 'T53 nur im eigenen Namen', 'row-level security');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": [0]}')$q$, tst.get('poll_g'), tst.get('max')), 'T53 nicht angesprochen: Umfrage unbekannt', 'not_found');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": 2}' where poll_id = %L$q$, tst.get('poll_q')), 'T53 Index außerhalb', 'invalid_answer');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": "0"}' where poll_id = %L$q$, tst.get('poll_q')), 'T53 Auswahl als Zahl', 'invalid_answer');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": 0, "x": 1}' where poll_id = %L$q$, tst.get('poll_q')), 'T53 nur bekannte Fragen', 'invalid_answer');
+select tst.throws(format($q$update public.poll_answers set answers = '{}' where poll_id = %L$q$, tst.get('poll_q')), 'T53 leere Antwort', 'invalid_answer');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q2": "Nur Text"}')$q$, tst.get('poll_s'), tst.get('max')), 'T53 Pflichtfrage fehlt', 'invalid_answer');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 6}')$q$, tst.get('poll_s'), tst.get('max')), 'T53 Skala 1–5', 'invalid_answer');
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, jsonb_build_object('q1', 3, 'q2', repeat('x', 501)))$q$, tst.get('poll_s'), tst.get('max')), 'T53 Freitext höchstens 500 Zeichen', 'invalid_answer');
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 4, "q2": "Mehr Spielformen"}')$q$, tst.get('poll_s'), tst.get('max')), 1, 'T53 Spieler beantwortet den Fragebogen');
+do $$ begin
+  perform tst.eq((public.poll_results(tst.get('poll_q')::uuid) -> 'questions' -> 0 ->> 'counts') || '/' || (public.poll_results(tst.get('poll_q')::uuid) -> 'questions' -> 0 -> 'voters' ->> 0),
+                 '[1, 0]/["Max M."]', 'T53 Ergebnis mit Namen nach der eigenen Antwort');
+  perform tst.ok(not (public.poll_results(tst.get('poll_q')::uuid) ? 'missing'), 'T53 Spieler sehen nicht, wer fehlt');
+end $$;
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_s')), 'T53 Ergebnisse nur fürs Trainerteam', 'forbidden');
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_g')), 'T53 nicht angesprochen: kein Ergebnis', 'forbidden');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Ich frage', '[{"id": "q1", "type": "single", "text": "Ich frage", "options": ["a", "b"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Spieler-Abstimmungen sind aus', 'polls_off');
+select tst.affects(format($q$update public.polls set title = 'Geändert' where id = %L$q$, tst.get('poll_q')), 0, 'T53 Spieler ändert fremde Umfragen nicht');
+select tst.affects(format($q$delete from public.polls where id = %L$q$, tst.get('poll_q')), 0, 'T53 Spieler löscht fremde Umfragen nicht');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.polls)::text, '3', 'T53 Mitglied sieht auch die Gruppen-Abstimmung (Gruppe nicht freigegeben)');
+  perform tst.eq((select count(*) from public.team_groups where id = tst.get('grp_poll')::uuid)::text, '0', 'T53 Name der verborgenen Gruppe bleibt verborgen');
+end $$;
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 0}'), (%L, %L, '{"q1": 2}'), (%L, %L, '{"q1": [0, 2]}')$q$,
+                          tst.get('poll_q'), tst.get('p2_player'), tst.get('poll_s'), tst.get('p2_player'), tst.get('poll_g'), tst.get('p2_player')), 3, 'T53 zweiter Spieler antwortet dreimal');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": [0, 0]}' where poll_id = %L$q$, tst.get('poll_g')), 'T53 Mehrfachauswahl ohne Doppelungen', 'invalid_answer');
+do $$ begin
+  perform tst.eq((select count(*) from public.poll_answers)::text, '3', 'T53 Spieler sieht nur eigene Antworten');
+  perform tst.eq(public.poll_results(tst.get('poll_q')::uuid) -> 'questions' -> 0 ->> 'counts', '[2, 0]', 'T53 Ergebnis zählt beide Stimmen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$
+declare
+  r jsonb;
+begin
+  perform tst.eq((select string_agg(answer_count::text, ',' order by title) from public.polls where team_id = tst.get('team_a')::uuid), '2,1,2', 'T53 Zähler: Fragebogen 2, Gruppe 1, Fahrt 2');
+  perform tst.eq((select count(*) from public.poll_answers)::text, '0', 'T53 Trainerteam liest keine einzelnen Antworten');
+  r := public.poll_results(tst.get('poll_s')::uuid);
+  perform tst.eq((r ->> 'hidden') || '/' || (r ->> 'n') || '/' || jsonb_array_length(r -> 'questions'), 'true/2/0', 'T53 anonym: unter drei Antworten kein Ergebnis');
+  perform tst.ok(not (r ? 'missing') and not (r ? 'respondents'), 'T53 anonym: auch nicht, wer fehlt');
+  r := public.poll_results(tst.get('poll_q')::uuid);
+  perform tst.eq((select string_agg(e ->> 'name', ',' order by e ->> 'name') from jsonb_array_elements(r -> 'respondents') e), 'Max M.,Paul N.', 'T53 mit Namen: wer geantwortet hat');
+  perform tst.ok(jsonb_array_length(r -> 'missing') >= 2 and (r ->> 'targets')::int = jsonb_array_length(r -> 'missing') + 2, 'T53 mit Namen: wer fehlt');
+  r := public.poll_results(tst.get('poll_g')::uuid);
+  perform tst.eq((r ->> 'targets') || '/' || (r -> 'questions' -> 0 ->> 'counts') || '/' || (r -> 'questions' -> 0 ->> 'answered'), '1/[1, 0, 1]/1', 'T53 Gruppe: Zielgruppe und Mehrfachauswahl');
+end $$;
+select tst.throws(format($q$update public.polls set title = 'Neu' where id = %L$q$, tst.get('poll_q')), 'T53 nach Antworten bleibt die Frage fest', 'poll_answered');
+select tst.throws(format($q$update public.polls set anonymous = false where id = %L$q$, tst.get('poll_s')), 'T53 anonym bleibt anonym', 'poll_answered');
+select tst.throws(format($q$update public.polls set results = 'all' where id = %L$q$, tst.get('poll_s')), 'T53 Sichtbarkeit der Ergebnisse bleibt fest', 'poll_answered');
+select tst.affects(format($q$update public.polls set until = current_date + 5, answer_count = 99 where id = %L$q$, tst.get('poll_q')), 1, 'T53 Ende ändern geht');
+do $$ begin
+  perform tst.eq((select answer_count::text from public.polls where id = tst.get('poll_q')::uuid), '2', 'T53 Zähler lässt sich nicht setzen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 5, "q2": "Gut so"}')$q$, tst.get('poll_s'), tst.get('p4_player')), 1, 'T53 dritte Antwort im Fragebogen');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$
+declare
+  r jsonb := public.poll_results(tst.get('poll_s')::uuid);
+begin
+  perform tst.eq((r ->> 'hidden') || '/' || (r -> 'questions' -> 0 ->> 'counts') || '/' || (r -> 'questions' -> 0 ->> 'avg'), 'false/[0, 1, 0, 1, 1]/3.7', 'T53 anonym ab drei Antworten: Verteilung und Schnitt');
+  perform tst.eq((select string_agg(e ->> 'text', ',' order by e ->> 'text') from jsonb_array_elements(r -> 'questions' -> 1 -> 'texts') e), 'Gut so,Mehr Spielformen', 'T53 Freitexte fürs Trainerteam');
+  perform tst.ok((select bool_and(not (e ? 'name')) from jsonb_array_elements(r -> 'questions' -> 1 -> 'texts') e), 'T53 anonyme Freitexte ohne Namen');
+  perform tst.ok((r -> 'questions' -> 0 -> 'voters') is null, 'T53 anonym: keine Namen bei Antworten');
+end $$;
+select tst.affects(format($q$update public.teams set settings = settings || '{"polls": {"players": true}}' where id = %L$q$, tst.get('team_a')), 1, 'T53 Trainerteam erlaubt Spieler-Abstimmungen');
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.polls)::text, '0', 'T53 ohne Recht „Nachrichten“ keine Umfragen');
+end $$;
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_q')), 'T53 ohne Recht „Nachrichten“ kein Ergebnis', 'forbidden');
+select tst.throws(format($q$update public.teams set settings = settings || '{"polls": {"players": false}}' where id = %L$q$, tst.get('team_a')),
+                  'T53 Spieler-Abstimmungen erlauben braucht „Nachrichten“', 'polls needs messages');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.polls where team_id = tst.get('team_a')::uuid)::text, '0', 'T53 fremdes Trainerteam sieht keine Umfragen');
+end $$;
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_q')), 'T53 fremdes Trainerteam: kein Ergebnis', 'forbidden');
+commit;
+
+-- Abstimmungen von Spielern: immer mit Namen, fürs ganze Team, höchstens zwei laufende
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+with ins as (
+  insert into public.polls (team_id, kind, title, questions)
+  values (tst.get('team_a')::uuid, 'quick', 'Kicken am Samstag?',
+          '[{"id": "q1", "type": "single", "text": "Kicken am Samstag?", "options": ["Bin dabei", "Kann nicht"], "required": true, "lo": "", "hi": ""}]')
+  returning id
+) select tst.put('poll_p1', id::text) from ins;
+do $$ begin
+  perform tst.eq((select by_player::text || '/' || author_player::text || '/' || author_name from public.polls where id = tst.get('poll_p1')::uuid),
+                 'true/' || tst.get('max') || '/Max M.', 'T53 Spieler startet eine Abstimmung (Autor mit Kurznamen)');
+end $$;
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions, anonymous) values (%L, 'quick', 'Anonym?', '[{"id": "q1", "type": "single", "text": "Anonym?", "options": ["a", "b"], "required": true}]', true)$q$, tst.get('team_a')),
+                  'T53 Spieler-Abstimmungen immer mit Namen', 'polls_player_rules');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions, group_id) values (%L, 'quick', 'Gruppe?', '[{"id": "q1", "type": "single", "text": "Gruppe?", "options": ["a", "b"], "required": true}]', %L)$q$, tst.get('team_a'), tst.get('grp_poll')),
+                  'T53 Spieler-Abstimmungen ans ganze Team', 'polls_player_rules');
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'survey', 'Fragebogen?', '[{"id": "q1", "type": "text", "text": "Frei?", "options": [], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 Spieler starten keine Fragebögen', 'polls_player_rules');
+with ins as (
+  insert into public.polls (team_id, kind, title, questions)
+  values (tst.get('team_a')::uuid, 'quick', 'Zweite?', '[{"id": "q1", "type": "single", "text": "Zweite?", "options": ["Ja", "Nein"], "required": true, "lo": "", "hi": ""}]')
+  returning id
+) select tst.put('poll_p1b', id::text) from ins;
+select tst.throws(format($q$insert into public.polls (team_id, kind, title, questions) values (%L, 'quick', 'Dritte?', '[{"id": "q1", "type": "single", "text": "Dritte?", "options": ["Ja", "Nein"], "required": true}]')$q$, tst.get('team_a')),
+                  'T53 höchstens zwei laufende Abstimmungen je Spieler', 'limit');
+select tst.affects(format($q$update public.polls set closed_at = now() where id = %L$q$, tst.get('poll_p1b')), 1, 'T53 Spieler beendet seine Abstimmung');
+with ins as (
+  insert into public.polls (team_id, kind, title, questions)
+  values (tst.get('team_a')::uuid, 'quick', 'Dritte?', '[{"id": "q1", "type": "single", "text": "Dritte?", "options": ["Ja", "Nein"], "required": true, "lo": "", "hi": ""}]')
+  returning id
+) select tst.put('poll_p1c', id::text) from ins;
+select tst.throws(format($q$update public.polls set closed_at = null where id = %L$q$, tst.get('poll_p1b')), 'T53 Wiederöffnen zählt zur Grenze', 'limit');
+select tst.affects(format($q$update public.polls set title = 'Kicken am Sonntag?', questions = jsonb_set(questions, '{0,text}', '"Kicken am Sonntag?"') where id = %L$q$, tst.get('poll_p1')),
+                   1, 'T53 Spieler ändert seine Abstimmung ohne Antworten');
+select tst.affects(format($q$delete from public.polls where id = %L$q$, tst.get('poll_p1c')), 1, 'T53 Spieler löscht seine Abstimmung');
+do $$ begin
+  perform tst.eq(public.poll_results(tst.get('poll_p1')::uuid) ->> 'n', '0', 'T53 Autor sieht das Ergebnis seiner Abstimmung');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.affects(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 0}')$q$, tst.get('poll_p1'), tst.get('p2_player')), 1, 'T53 Mitspieler stimmt bei der Spieler-Abstimmung ab');
+select tst.affects(format($q$update public.polls set closed_at = now() where id = %L$q$, tst.get('poll_p1')), 0, 'T53 Mitspieler beendet fremde Abstimmungen nicht');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$update public.polls set title = 'Vom Trainer', questions = jsonb_set(questions, '{0,text}', '"Vom Trainer"') where id = %L$q$, tst.get('poll_p1b')),
+                  'T53 Trainerteam ändert Spieler-Abstimmungen nicht', 'forbidden');
+select tst.affects(format($q$update public.polls set closed_at = now() where id = %L$q$, tst.get('poll_p1')), 1, 'T53 Trainerteam beendet eine Spieler-Abstimmung');
+select tst.affects(format($q$delete from public.polls where id = %L$q$, tst.get('poll_p1b')), 1, 'T53 Trainerteam löscht eine Spieler-Abstimmung');
+select tst.affects(format($q$update public.polls set until = current_date - 1 where id = %L$q$, tst.get('poll_q')), 1, 'T53 Ende liegt in der Vergangenheit');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.throws(format($q$insert into public.poll_answers (poll_id, player_id, answers) values (%L, %L, '{"q1": 1}') on conflict (poll_id, player_id) do update set answers = excluded.answers$q$, tst.get('poll_q'), tst.get('p2_player')),
+                  'T53 nach dem Ende keine Antworten mehr', 'poll_closed');
+select tst.throws(format($q$update public.poll_answers set answers = '{"q1": 1}' where poll_id = %L$q$, tst.get('poll_p1')), 'T53 beendete Abstimmung: Antwort bleibt', 'poll_closed');
+select tst.affects(format($q$delete from public.poll_answers where poll_id = %L$q$, tst.get('poll_q')), 0, 'T53 nach dem Ende nicht zurückziehen');
+select tst.affects(format($q$delete from public.poll_answers where poll_id = %L$q$, tst.get('poll_g')), 1, 'T53 Antwort zurückziehen, solange die Umfrage läuft');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select answer_count::text from public.polls where id = tst.get('poll_g')::uuid), '0', 'T53 Zähler sinkt beim Zurückziehen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.eq(public.poll_results(tst.get('poll_q')::uuid) -> 'questions' -> 0 ->> 'counts', '[2, 0]', 'T53 nach dem Ende: Ergebnis auch ohne eigene Antwort');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = '';
+select tst.throws(format($q$select public.poll_results(%L)$q$, tst.get('poll_q')), 'T53 Ergebnis nur angemeldet', 'not_authenticated');
+commit;
+
+-- Löschfrist: 12 Monate nach dem Ende (ohne Ende: nach dem Start)
+insert into public.polls (team_id, kind, title, questions, closed_at, created_at) values
+  (tst.get('team_a')::uuid, 'quick', 'Uralt beendet', '[{"id": "q1", "type": "single", "text": "Uralt", "options": ["a", "b"], "required": true}]', now() - interval '13 months', now() - interval '14 months'),
+  (tst.get('team_a')::uuid, 'quick', 'Alt ohne Ende', '[{"id": "q1", "type": "single", "text": "Alt", "options": ["a", "b"], "required": true}]', null, now() - interval '13 months');
+insert into public.polls (team_id, kind, title, questions, until, created_at) values
+  (tst.get('team_a')::uuid, 'quick', 'Ende vor 11 Monaten', '[{"id": "q1", "type": "single", "text": "Jünger", "options": ["a", "b"], "required": true}]', current_date - 330, now() - interval '12 months');
+begin;
+set local role service_role;
+do $$ begin
+  perform tst.eq(public.purge_old_polls()::text, '2', 'T53 Umfragen 12 Monate nach dem Ende gelöscht');
+  perform tst.ok(exists (select 1 from public.polls where title = 'Ende vor 11 Monaten') and exists (select 1 from public.polls where id = tst.get('poll_q')::uuid), 'T53 jüngere Umfragen bleiben');
+end $$;
+commit;
+
+-- =====================================================================
+-- T54 Notfallkontakte: Spieler selbst, Trainerteam mit Kader bzw. Gesundheitsdaten, Hinweise nur mit Gesundheitsdaten
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$insert into public.player_emergency (player_id, contacts) values (%L, '[{"name": "Sabine Muster", "rel": "mother", "phone": "0171 2345678"}]')$q$, tst.get('max')), 1, 'T54 Spieler trägt seinen Notfallkontakt ein');
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and updated_by = tst.uid('p1') from public.player_emergency where player_id = tst.get('max')::uuid), 'T54 Team und Konto setzt der Server');
+end $$;
+select tst.throws(format($q$insert into public.player_emergency (player_id, contacts) values (%L, '[{"name": "Fremd", "rel": "other", "phone": "0171 2345678"}]')$q$, tst.get('erik')), 'T54 nur für sich selbst', 'row-level security');
+select tst.throws(format($q$update public.player_emergency set contacts = '[]' where player_id = %L$q$, tst.get('max')), 'T54 mindestens ein Kontakt', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "mother", "phone": "12345"}]' where player_id = %L$q$, tst.get('max')), 'T54 mindestens 6 Ziffern', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "mother", "phone": "0171+234567"}]' where player_id = %L$q$, tst.get('max')), 'T54 + nur am Anfang', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "chef", "phone": "0171 234567"}]' where player_id = %L$q$, tst.get('max')), 'T54 Beziehung aus der Liste', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "mother", "phone": "0171 1111111"}, {"name": "B", "rel": "father", "phone": "0171 2222222"}, {"name": "C", "rel": "other", "phone": "0171 3333333"}]' where player_id = %L$q$, tst.get('max')), 'T54 höchstens zwei Kontakte', 'player_emergency_contacts_valid');
+select tst.throws(format($q$update public.player_emergency set contacts = '[{"name": "A", "rel": "mother", "phone": "0171 1111111"}, {"name": "B", "rel": "father", "phone": "0171-111 111 1"}]' where player_id = %L$q$, tst.get('max')), 'T54 dieselbe Nummer nicht zweimal', 'player_emergency_contacts_valid');
+select tst.affects(format($q$update public.player_emergency set contacts = '[{"name": "Sabine Muster", "rel": "mother", "phone": "+49 171 2345678"}, {"name": "Thomas Muster", "rel": "father", "phone": "(0201) 12 34 56"}]' where player_id = %L$q$, tst.get('max')), 1, 'T54 zwei Kontakte');
+select tst.throws(format($q$update public.player_emergency set player_id = %L where player_id = %L$q$, tst.get('erik'), tst.get('max')), 'T54 Spieler lässt sich nicht wechseln', 'forbidden');
+select tst.affects(format($q$insert into public.player_emergency_med (player_id, note) values (%L, 'Asthma – Spray in der Sporttasche')$q$, tst.get('max')), 1, 'T54 Spieler trägt einen Hinweis für den Notfall ein');
+select tst.throws(format($q$update public.player_emergency_med set note = '   ' where player_id = %L$q$, tst.get('max')), 'T54 Hinweis nicht leer', 'player_emergency_med_note_valid');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_emergency)::text || '/' || (select count(*) from public.player_emergency_med)::text, '0/0', 'T54 Mitspieler sehen keine Notfallkontakte');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_emergency where player_id = tst.get('max')::uuid)::text, '1', 'T54 Recht Kader: Kontakte sichtbar');
+  perform tst.eq((select count(*) from public.player_emergency_med)::text, '0', 'T54 Recht Kader: keine Hinweise (Gesundheitsdaten)');
+end $$;
+select tst.affects(format($q$insert into public.player_emergency (player_id, contacts) values (%L, '[{"name": "Petra Beispiel", "rel": "mother", "phone": "0172 7654321"}]')$q$, tst.get('erik')), 1, 'T54 Trainerteam trägt den Kontakt für einen Spieler ein');
+select tst.throws(format($q$insert into public.player_emergency_med (player_id, note) values (%L, 'Allergie')$q$, tst.get('erik')), 'T54 Hinweise nur mit Recht Gesundheitsdaten', 'row-level security');
+commit;
+update public.team_staff set perms = array['health']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_emergency where team_id = tst.get('team_a')::uuid)::text || '/' || (select count(*) from public.player_emergency_med)::text, '2/1', 'T54 Recht Gesundheitsdaten: Kontakte und Hinweise sichtbar');
+end $$;
+select tst.affects(format($q$update public.player_emergency set contacts = '[{"name": "X", "rel": "other", "phone": "0172 1111111"}]' where player_id = %L$q$, tst.get('erik')), 0, 'T54 ohne Recht Kader keine Änderung der Kontakte');
+select tst.affects(format($q$insert into public.player_emergency_med (player_id, note) values (%L, 'Allergie gegen Wespenstiche – Notfallset in der Tasche')$q$, tst.get('erik')), 1, 'T54 Recht Gesundheitsdaten: Hinweis eintragen');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_emergency where team_id = tst.get('team_a')::uuid)::text, '0', 'T54 fremdes Trainerteam sieht keine Notfallkontakte');
+end $$;
+select tst.throws(format($q$insert into public.player_emergency (player_id, contacts) values (%L, '[{"name": "Fremd", "rel": "other", "phone": "0172 7654321"}]')$q$, tst.get('tom')), 'T54 fremdes Trainerteam trägt nichts ein', 'row-level security');
+commit;
+
+-- =====================================================================
+-- T55 Größen: Spieler selbst und Trainerteam mit Recht Kader; Werte aus den Listen bzw. Bereichen
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.affects(format($q$insert into public.player_sizes (player_id, top, bottom, shoes) values (%L, 'M', 'S', 42.5)$q$, tst.get('max')), 1, 'T55 Spieler trägt seine Größen ein');
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and updated_by = tst.uid('p1') from public.player_sizes where player_id = tst.get('max')::uuid), 'T55 Team und Konto setzt der Server');
+end $$;
+select tst.affects(format($q$insert into public.player_sizes (player_id, top, shoes, print_name) values (%L, 'L', 43, 'MAXI') on conflict (player_id) do update set top = excluded.top, shoes = excluded.shoes, print_name = excluded.print_name$q$, tst.get('max')), 1, 'T55 erneut speichern wie die App (upsert)');
+select tst.throws(format($q$insert into public.player_sizes (player_id, top) values (%L, 'M')$q$, tst.get('erik')), 'T55 nur für sich selbst', 'row-level security');
+select tst.throws(format($q$update public.player_sizes set top = 'XXXL' where player_id = %L$q$, tst.get('max')), 'T55 Kleidergröße aus der Liste', 'player_sizes_top_valid');
+select tst.throws(format($q$update public.player_sizes set bottom = 'm' where player_id = %L$q$, tst.get('max')), 'T55 Hose aus der Liste (Großbuchstaben)', 'player_sizes_bottom_valid');
+select tst.throws(format($q$update public.player_sizes set shoes = 42.3 where player_id = %L$q$, tst.get('max')), 'T55 Schuhe nur in halben Größen', 'player_sizes_shoes_valid');
+select tst.throws(format($q$update public.player_sizes set shoes = 51 where player_id = %L$q$, tst.get('max')), 'T55 Schuhe höchstens 50', 'player_sizes_shoes_valid');
+select tst.throws(format($q$update public.player_sizes set gloves = 3.5 where player_id = %L$q$, tst.get('max')), 'T55 Handschuhe ab 4', 'player_sizes_gloves_valid');
+select tst.throws(format($q$update public.player_sizes set print_name = %L where player_id = %L$q$, repeat('X', 21), tst.get('max')), 'T55 Beflockung höchstens 20 Zeichen', 'player_sizes_print_valid');
+select tst.throws(format($q$update public.player_sizes set print_name = %L where player_id = %L$q$, E'MAX\nI', tst.get('max')), 'T55 Beflockung ohne Zeilenumbruch', 'player_sizes_print_valid');
+select tst.throws(format($q$update public.player_sizes set note = '  ' where player_id = %L$q$, tst.get('max')), 'T55 Hinweis nicht leer', 'player_sizes_note_valid');
+select tst.throws(format($q$update public.player_sizes set top = null, bottom = null, shoes = null, gloves = null, print_name = null, note = null where player_id = %L$q$, tst.get('max')), 'T55 kein leerer Eintrag', 'player_sizes_not_empty');
+select tst.throws(format($q$update public.player_sizes set player_id = %L where player_id = %L$q$, tst.get('erik'), tst.get('max')), 'T55 Spieler lässt sich nicht wechseln', 'forbidden');
+select tst.affects(format($q$update public.player_sizes set gloves = 9.5, note = 'Hosen fallen klein aus' where player_id = %L$q$, tst.get('max')), 1, 'T55 Handschuhe und Hinweis');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_sizes)::text, '0', 'T55 Mitspieler sehen keine Größen');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select top || '/' || bottom || '/' || shoes::text || '/' || print_name from public.player_sizes where player_id = tst.get('max')::uuid), 'L/S/43.0/MAXI', 'T55 Recht Kader: Größen sichtbar');
+end $$;
+select tst.affects(format($q$insert into public.player_sizes (player_id, top, bottom, shoes) values (%L, 'XL', 'L', 45)$q$, tst.get('erik')), 1, 'T55 Trainerteam trägt Größen für einen Spieler ein');
+commit;
+update public.team_staff set perms = array['health']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_sizes)::text, '0', 'T55 ohne Recht Kader keine Größen');
+end $$;
+select tst.affects(format($q$update public.player_sizes set top = 'S' where player_id = %L$q$, tst.get('erik')), 0, 'T55 ohne Recht Kader keine Änderung');
+select tst.throws(format($q$insert into public.player_sizes (player_id, top) values (%L, 'M')$q$, tst.get('tom')), 'T55 ohne Recht Kader nichts eintragen', 'row-level security');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_sizes where team_id = tst.get('team_a')::uuid)::text, '0', 'T55 fremdes Trainerteam sieht keine Größen');
+end $$;
+select tst.throws(format($q$insert into public.player_sizes (player_id, top) values (%L, 'M')$q$, tst.get('tom')), 'T55 fremdes Trainerteam trägt nichts ein', 'row-level security');
+commit;
+
+-- =====================================================================
+-- T56 Kader-Nominierung: Trainerteam (Recht Planung) nominiert; Spieler sehen nur die veröffentlichte eigene
+--     Nominierung und antworten über answer_nomination (wenn erlaubt, bis zum Anpfiff)
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.matches (team_id, date, time, opponent) values (tst.get('team_a')::uuid, current_date + 3, '15:00', 'T56 FC') returning id)
+select tst.put('m56', id::text) from ins;
+with ins as (insert into public.matches (team_id, date, time, opponent) values (tst.get('team_a')::uuid, current_date - 1, '10:00', 'T56 alt') returning id)
+select tst.put('m56old', id::text) from ins;
+with ins as (insert into public.matches (team_id, date, time, opponent) values (tst.get('team_a')::uuid, current_date + 10, '19:30', 'T56 Pokal') returning id)
+select tst.put('m56b', id::text) from ins;
+with ins as (insert into public.matches (team_id, date, opponent) values (tst.get('team_a')::uuid, current_date - 400, 'T56 vor einem Jahr') returning id)
+select tst.put('m56gone', id::text) from ins;
+select tst.affects(format($q$insert into public.match_squads (match_id, meet_time, meet_place, note) values (%L, '13:45', 'Vereinsheim', 'Weiße Trikots')$q$, tst.get('m56')), 1, 'T56 Kader anlegen (Entwurf)');
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and published_at is null and updated_by = tst.uid('coachA') from public.match_squads where match_id = tst.get('m56')::uuid),
+                 'T56 Team und Konto setzt der Server, zunächst Entwurf');
+end $$;
+select tst.affects(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L), (%L, %L)$q$, tst.get('m56'), tst.get('max'), tst.get('m56'), tst.get('p2_player')), 2, 'T56 zwei Spieler nominieren');
+select tst.affects(format($q$insert into public.match_nominations (match_id, player_id, standby, answer, answered_by_staff) values (%L, %L, true, 'yes', false)$q$, tst.get('m56'), tst.get('erik')), 1, 'T56 auf Abruf mit Zusage vom Trainerteam');
+do $$ begin
+  perform tst.ok((select answered_by_staff and answered_at is not null and team_id = tst.get('team_a')::uuid from public.match_nominations
+                   where match_id = tst.get('m56')::uuid and player_id = tst.get('erik')::uuid), 'T56 Antwort des Trainerteams wird gekennzeichnet');
+end $$;
+select tst.throws(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L)$q$, tst.get('m56'), tst.get('p46b')), 'T56 nur Spieler des eigenen Teams', 'different_teams');
+select tst.throws(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L)$q$, tst.get('m56b'), tst.get('tom')), 'T56 Nominierung nur mit Kader', 'foreign key');
+select tst.throws(format($q$update public.match_squads set meet_time = '25:00' where match_id = %L$q$, tst.get('m56')), 'T56 Treffpunkt: gültige Uhrzeit', 'match_squads_meet_time_valid');
+select tst.throws(format($q$update public.match_squads set meet_place = %L where match_id = %L$q$, repeat('x', 121), tst.get('m56')), 'T56 Ort höchstens 120 Zeichen', 'match_squads_meet_place_valid');
+select tst.throws(format($q$update public.match_nominations set answer = 'vielleicht' where match_id = %L and player_id = %L$q$, tst.get('m56'), tst.get('max')), 'T56 Antwort ja oder nein', 'match_nominations_answer_valid');
+select tst.throws(format($q$update public.match_squads set match_id = %L where match_id = %L$q$, tst.get('m56b'), tst.get('m56')), 'T56 Spiel lässt sich nicht wechseln', 'forbidden');
+select tst.affects(format($q$update public.match_nominations set answer = 'yes', reason = 'egal' where match_id = %L and player_id = %L$q$, tst.get('m56'), tst.get('p2_player')), 1, 'T56 Trainerteam trägt eine Zusage ein');
+do $$ begin
+  perform tst.ok((select reason is null and answered_by_staff from public.match_nominations where match_id = tst.get('m56')::uuid and player_id = tst.get('p2_player')::uuid),
+                 'T56 Grund nur bei Absage');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.match_squads where match_id = tst.get('m56')::uuid)::text || '/' || (select count(*) from public.match_nominations where match_id = tst.get('m56')::uuid)::text,
+                 '0/0', 'T56 Entwurf: Spieler sehen nichts');
+  perform tst.eq((select count(*) from public.squad_mates(tst.get('team_a')::uuid))::text, '0', 'T56 Entwurf: keine Kaderliste');
+end $$;
+select tst.throws(format($q$select public.answer_nomination(%L, 'yes')$q$, tst.get('m56')), 'T56 vor dem Veröffentlichen keine Antwort', 'not_found');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$update public.match_squads set published_at = '2000-01-01' where match_id = %L$q$, tst.get('m56')), 1, 'T56 veröffentlichen');
+do $$ begin
+  perform tst.ok((select published_at > now() - interval '1 minute' from public.match_squads where match_id = tst.get('m56')::uuid), 'T56 Zeitpunkt der Veröffentlichung setzt der Server');
+end $$;
+select tst.affects(format($q$insert into public.match_squads (match_id, published_at) values (%L, now())$q$, tst.get('m56old')), 1, 'T56 Kader fürs vergangene Spiel');
+select tst.affects(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L)$q$, tst.get('m56old'), tst.get('max')), 1, 'T56 Max im vergangenen Spiel');
+select tst.affects(format($q$insert into public.match_squads (match_id, published_at) values (%L, now())$q$, tst.get('m56gone')), 1, 'T56 Kader vor einem Jahr');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare
+  r public.match_nominations;
+begin
+  perform tst.eq((select meet_time || '/' || meet_place from public.match_squads where match_id = tst.get('m56')::uuid), '13:45/Vereinsheim', 'T56 veröffentlicht: Spieler sieht Treffpunkt');
+  perform tst.eq((select count(*) from public.match_nominations where match_id = tst.get('m56')::uuid)::text, '1', 'T56 Spieler sieht nur die eigene Nominierung');
+  perform tst.eq((select string_agg(name || '/' || standby::text, ', ' order by name) from public.squad_mates(tst.get('team_a')::uuid) where match_id = tst.get('m56')::uuid),
+                 'Erik B./true, Max M./false, Paul N./false', 'T56 Kaderliste mit Vorname und Initial');
+  r := public.answer_nomination(tst.get('m56')::uuid, 'no', E'  Familienfeier\nbei Oma  ');
+  perform tst.eq(r.answer || '/' || r.reason || '/' || r.answered_by_staff::text, 'no/Familienfeier bei Oma/false', 'T56 Absage mit Grund (bereinigt)');
+  r := public.answer_nomination(tst.get('m56')::uuid, 'yes', 'egal');
+  perform tst.ok(r.answer = 'yes' and r.reason is null and r.answered_at > now() - interval '1 minute', 'T56 Zusage ohne Grund');
+end $$;
+select tst.throws(format($q$select public.answer_nomination(%L, 'vielleicht')$q$, tst.get('m56')), 'T56 nur ja oder nein', 'invalid_answer');
+select tst.throws(format($q$select public.answer_nomination(%L, 'yes')$q$, tst.get('m56old')), 'T56 nach dem Anpfiff keine Antwort', 'match_started');
+select tst.throws(format($q$select public.answer_nomination(%L, 'yes')$q$, tst.get('m56b')), 'T56 ohne Nominierung keine Antwort', 'not_found');
+select tst.affects(format($q$update public.match_nominations set answer = 'no' where match_id = %L$q$, tst.get('m56')), 0, 'T56 Spieler ändern Nominierungen nicht direkt');
+select tst.throws(format($q$insert into public.match_nominations (match_id, player_id) values (%L, %L)$q$, tst.get('m56'), tst.get('tom')), 'T56 Spieler nominieren nicht', 'row-level security');
+commit;
+
+update public.teams set settings = settings || '{"playerAbs": false}'::jsonb where id = tst.get('team_a')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+select tst.throws(format($q$select public.answer_nomination(%L, 'no')$q$, tst.get('m56')), 'T56 Absagen durch Spieler aus', 'answers_off');
+commit;
+update public.teams set settings = settings - 'playerAbs' where id = tst.get('team_a')::uuid;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.affects(format($q$delete from public.match_nominations where match_id = %L and player_id = %L$q$, tst.get('m56'), tst.get('p2_player')), 1, 'T56 Spieler aus dem Kader nehmen');
+select tst.affects(format($q$update public.match_nominations set standby = false where match_id = %L and player_id = %L$q$, tst.get('m56'), tst.get('max')), 1, 'T56 nur Abruf geändert');
+do $$ begin
+  perform tst.ok((select answer = 'yes' and not answered_by_staff from public.match_nominations where match_id = tst.get('m56')::uuid and player_id = tst.get('max')::uuid),
+                 'T56 Antwort des Spielers bleibt bei anderen Änderungen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.match_squads where match_id = tst.get('m56')::uuid)::text || '/' || (select count(*) from public.squad_mates(tst.get('team_a')::uuid))::text,
+                 '0/0', 'T56 nicht nominiert: Spieler sieht keinen Kader');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.match_nominations where match_id = tst.get('m56')::uuid)::text, '2', 'T56 Trainerteam ohne Recht Planung sieht den Kader');
+end $$;
+select tst.affects(format($q$update public.match_nominations set standby = true where match_id = %L$q$, tst.get('m56')), 0, 'T56 ohne Recht Planung keine Änderung');
+select tst.throws(format($q$insert into public.match_squads (match_id) values (%L)$q$, tst.get('m56b')), 'T56 ohne Recht Planung kein Kader', 'row-level security');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.match_squads where team_id = tst.get('team_a')::uuid)::text, '0', 'T56 fremdes Trainerteam sieht keinen Kader');
+end $$;
+select tst.throws(format($q$insert into public.match_squads (match_id) values (%L)$q$, tst.get('m56b')), 'T56 fremdes Trainerteam legt keinen Kader an', 'row-level security');
+commit;
+
+do $$ begin
+  perform tst.ok(public.purge_old_squads() >= 1, 'T56 Löschfrist: alte Kader werden gelöscht');
+  perform tst.eq((select count(*) from public.match_squads where match_id in (tst.get('m56gone')::uuid, tst.get('m56')::uuid))::text, '1', 'T56 Löschfrist: nur Kader älter als 12 Monate');
+end $$;
+delete from public.matches where id = tst.get('m56old')::uuid;
+do $$ begin
+  perform tst.eq((select count(*) from public.match_nominations where match_id = tst.get('m56old')::uuid)::text, '0', 'T56 Spiel gelöscht: Kader und Nominierungen weg');
+end $$;
+
+-- =====================================================================
+-- T57 Fahrgemeinschaften: Lesen alle im Team, Schreiben nur über die Funktionen; Spieler nur eigene Fahrt bzw. sich
+--     selbst, Fahrer nehmen Suchende mit, Plätze nicht überbucht, Wechsel, Löschen mit erneuter Suche, Löschfrist
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.matches (team_id, date, time, opponent, home) values (tst.get('team_a')::uuid, current_date + 4, '15:00', 'T57 Auswärts', false) returning id)
+select tst.put('m57', id::text) from ins;
+with ins as (insert into public.matches (team_id, date, time, opponent, home) values (tst.get('team_a')::uuid, current_date - 2, '15:00', 'T57 vorbei', false) returning id)
+select tst.put('m57old', id::text) from ins;
+with ins as (insert into public.team_events (team_id, date, time, title, type) values (tst.get('team_a')::uuid, current_date + 6, '10:00', 'T57 Turnier', 'sonst') returning id)
+select tst.put('e57', id::text) from ins;
+do $$
+declare
+  r public.rides;
+begin
+  r := public.ride_save(null, 'match', tst.get('m57')::uuid, null, E'  Vereins\nbus  ', 2, '13:30', '  Vereinsheim ', '   ');
+  perform tst.put('r57bus', r.id::text);
+  perform tst.ok(r.team_id = tst.get('team_a')::uuid and r.ref_id = tst.get('m57')::uuid and r.event_id is null and r.driver_pid is null
+                 and r.driver_label = 'Vereins bus' and r.depart_time = '13:30' and r.depart_place = 'Vereinsheim' and r.note is null,
+                 'T57 Trainerteam legt eine Fahrt an (Texte bereinigt)');
+  perform public.ride_join(r.id, tst.get('tom')::uuid);
+  perform public.ride_need('match', tst.get('m57')::uuid, tst.get('erik')::uuid, true);
+  perform public.ride_need('match', tst.get('m57')::uuid, tst.get('erik')::uuid, true);
+  perform tst.eq((select count(*) from public.ride_seats where ride_id = r.id)::text || '/' || (select count(*) from public.ride_needs where ref_id = tst.get('m57')::uuid)::text,
+                 '1/1', 'T57 Trainerteam ordnet zu und trägt Suchende ein (doppelt nur einmal)');
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and ref_id = tst.get('m57')::uuid from public.ride_seats where ride_id = r.id), 'T57 Team und Ziel des Platzes setzt der Server');
+end $$;
+select tst.throws(format($q$insert into public.rides (team_id, match_id, seats) values (%L, %L, 3)$q$, tst.get('team_a'), tst.get('m57')), 'T57 kein direktes Anlegen', 'permission denied');
+select tst.throws(format($q$delete from public.ride_seats where ride_id = %L$q$, tst.get('r57bus')), 'T57 kein direktes Austragen', 'permission denied');
+select tst.throws(format($q$update public.ride_needs set player_id = %L$q$, tst.get('max')), 'T57 kein direktes Ändern', 'permission denied');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, null, null, 9, null, null, null)$q$, tst.get('m57')), 'T57 höchstens 8 Plätze', 'invalid_seats');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, null, null, 3, null, null, null)$q$, tst.get('m57old')), 'T57 keine Fahrt für vergangene Spiele', 'ride_past');
+select tst.throws(format($q$select public.ride_need('match', %L, %L, true)$q$, tst.get('m57old'), tst.get('tom')), 'T57 keine Suche für vergangene Spiele', 'ride_past');
+select tst.throws(format($q$select public.ride_save(null, 'event', %L, null, null, 3, null, null, null)$q$, tst.get('m57')), 'T57 Ziel muss zur Art passen', 'not_found');
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('p46b')), 'T57 nur Spieler des eigenen Teams', 'different_teams');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, %L, null, 3, null, null, null)$q$, tst.get('m57'), tst.get('p46b')), 'T57 Fahrer aus dem eigenen Team', 'different_teams');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare
+  r public.rides;
+begin
+  perform tst.eq((select count(*) from public.rides where ref_id = tst.get('m57')::uuid)::text || '/' || (select count(*) from public.ride_seats)::text || '/' || (select count(*) from public.ride_needs)::text,
+                 '1/1/1', 'T57 Spieler sehen Fahrten, Plätze und Suchende im Team');
+  perform tst.eq((select string_agg(name, ', ' order by name) from public.ride_names(tst.get('team_a')::uuid)), 'Erik B., Tom O.', 'T57 Namen der Beteiligten mit Vorname und Initial');
+  r := public.ride_save(null, 'match', tst.get('m57')::uuid, tst.get('max')::uuid, 'Mama von Max', 2, '13:15', 'Parkplatz am Vereinsheim', 'nur Hinfahrt');
+  perform tst.put('r57max', r.id::text);
+  perform tst.ok(r.driver_pid = tst.get('max')::uuid and r.seats = 2 and r.driver_label = 'Mama von Max' and r.note = 'nur Hinfahrt', 'T57 Spieler bietet die eigene Fahrt an');
+  perform public.ride_join(r.id, tst.get('erik')::uuid);
+  perform tst.eq((select count(*) from public.ride_needs where ref_id = tst.get('m57')::uuid)::text || '/' || (select count(*) from public.ride_seats where ride_id = r.id)::text,
+                 '0/1', 'T57 Fahrer nimmt einen Suchenden mit – der sucht nicht mehr');
+end $$;
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, %L, null, 3, null, null, null)$q$, tst.get('m57'), tst.get('erik')), 'T57 Spieler bieten keine Fahrt für andere an', 'forbidden');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, null, null, 3, null, null, null)$q$, tst.get('m57')), 'T57 Spieler legen keine Fahrt des Trainerteams an', 'forbidden');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, %L, null, 3, null, null, null)$q$, tst.get('m57'), tst.get('max')), 'T57 je Ziel nur eine eigene Fahrt', 'already_in_ride');
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('max')), 'T57 Fahrer fährt nicht zusätzlich mit', 'already_in_ride');
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57max'), tst.get('tom')), 'T57 Fahrer nimmt nur Suchende mit', 'forbidden');
+select tst.throws(format($q$select public.ride_leave(%L, %L)$q$, tst.get('r57bus'), tst.get('tom')), 'T57 Spieler tragen andere nicht aus', 'forbidden');
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('erik')), 'T57 Spieler ordnen niemanden der Fahrt des Trainerteams zu', 'forbidden');
+select tst.throws(format($q$select public.ride_delete(%L)$q$, tst.get('r57bus')), 'T57 Spieler löschen fremde Fahrten nicht', 'forbidden');
+select tst.throws(format($q$select public.ride_save(%L, 'match', %L, null, 'Bus', 2, null, null, null)$q$, tst.get('r57bus'), tst.get('m57')), 'T57 Spieler ändern fremde Fahrten nicht', 'forbidden');
+select tst.throws(format($q$select public.ride_need('match', %L, %L, true)$q$, tst.get('m57'), tst.get('tom')), 'T57 Spieler tragen andere nicht als suchend ein', 'forbidden');
+select tst.throws(format($q$select public.ride_need('match', %L, %L, true)$q$, tst.get('m57'), tst.get('max')), 'T57 Fahrer sucht nicht zusätzlich', 'already_in_ride');
+do $$ begin
+  perform public.ride_leave(tst.get('r57max')::uuid, tst.get('erik')::uuid, true);
+  perform tst.eq((select count(*) from public.ride_seats where ride_id = tst.get('r57max')::uuid)::text || '/' || (select count(*) from public.ride_needs where player_id = tst.get('erik')::uuid)::text,
+                 '0/1', 'T57 Fahrer trägt einen Mitfahrer aus – der sucht wieder');
+  perform public.ride_join(tst.get('r57max')::uuid, tst.get('erik')::uuid);
+  perform public.ride_save(tst.get('r57max')::uuid, 'match', tst.get('m57')::uuid, null, 'Mama von Max', 1, '13:20', 'Parkplatz', null);
+  perform tst.eq((select seats::text || '/' || depart_time || '/' || coalesce(note, '-') || '/' || driver_pid::text from public.rides where id = tst.get('r57max')::uuid),
+                 '1/13:20/-/' || tst.get('max'), 'T57 Fahrer ändert die eigene Fahrt (Fahrer bleibt)');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57max'), tst.get('p2_player')), 'T57 volle Fahrt', 'ride_full');
+do $$ begin
+  perform public.ride_join(tst.get('r57bus')::uuid, tst.get('p2_player')::uuid);
+  perform public.ride_join(tst.get('r57bus')::uuid, tst.get('p2_player')::uuid);
+  perform tst.eq((select count(*) from public.ride_seats where ride_id = tst.get('r57bus')::uuid)::text, '2', 'T57 Spieler fährt mit (zweimal = einmal)');
+end $$;
+select tst.throws(format($q$select public.ride_need('match', %L, %L, true)$q$, tst.get('m57'), tst.get('p2_player')), 'T57 Mitfahrer sucht nicht zusätzlich', 'already_in_ride');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, %L, null, 3, null, null, null)$q$, tst.get('m57'), tst.get('p2_player')), 'T57 Mitfahrer bietet nicht zusätzlich an', 'already_in_ride');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$select public.ride_save(%L, 'match', %L, null, 'Vereinsbus', 1, null, null, null)$q$, tst.get('r57bus'), tst.get('m57')), 'T57 Plätze nicht unter die Zahl der Mitfahrer', 'seats_taken');
+do $$ begin
+  perform public.ride_save(tst.get('r57max')::uuid, 'match', tst.get('m57')::uuid, null, 'Mama von Max', 3, '13:20', 'Parkplatz', null);
+  perform tst.eq((select seats::text from public.rides where id = tst.get('r57max')::uuid), '3', 'T57 Trainerteam ändert jede Fahrt');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform public.ride_join(tst.get('r57max')::uuid, tst.get('p2_player')::uuid);
+  perform tst.eq((select string_agg(ride_id::text, ',') from public.ride_seats where player_id = tst.get('p2_player')::uuid), tst.get('r57max'), 'T57 Wechsel gibt den alten Platz frei');
+  perform public.ride_leave(tst.get('r57max')::uuid, tst.get('p2_player')::uuid);
+  perform public.ride_need('match', tst.get('m57')::uuid, tst.get('p2_player')::uuid, true);
+  perform tst.eq((select count(*) from public.ride_seats where player_id = tst.get('p2_player')::uuid)::text || '/' || (select count(*) from public.ride_needs where player_id = tst.get('p2_player')::uuid)::text,
+                 '0/1', 'T57 austragen und Mitfahrgelegenheit suchen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform public.ride_join(tst.get('r57max')::uuid, tst.get('tom')::uuid);
+  perform tst.eq((select string_agg(ride_id::text, ',') from public.ride_seats where player_id = tst.get('tom')::uuid), tst.get('r57max'), 'T57 Trainerteam setzt einen Mitfahrer um');
+  perform tst.eq(public.ride_delete(tst.get('r57max')::uuid)::text, '2', 'T57 Fahrt gelöscht: ihre Mitfahrer suchen wieder');
+  perform tst.eq((select string_agg(p.first_name, ', ' order by p.first_name) from public.ride_needs n join public.players p on p.id = n.player_id where n.ref_id = tst.get('m57')::uuid),
+                 'Erik, Paul, Tom', 'T57 Suchende nach dem Löschen');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare
+  r public.rides;
+begin
+  r := public.ride_save(null, 'event', tst.get('e57')::uuid, tst.get('max')::uuid, null, 2, null, null, null);
+  perform tst.put('r57ev', r.id::text);
+  perform tst.ok(r.event_id = tst.get('e57')::uuid and r.match_id is null and r.ref_id = tst.get('e57')::uuid and r.driver_label is null and r.depart_time is null,
+                 'T57 Fahrt zu einem Termin');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform public.ride_join(tst.get('r57ev')::uuid, tst.get('p2_player')::uuid);
+  perform tst.eq((select count(*) from public.ride_seats where ride_id = tst.get('r57ev')::uuid)::text, '1', 'T57 Mitfahren beim Termin');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.rides where team_id = tst.get('team_a')::uuid)::text || '/' || (select count(*) from public.ride_needs where team_id = tst.get('team_a')::uuid)::text
+                 || '/' || (select count(*) from public.ride_names(tst.get('team_a')::uuid))::text, '0/0/0', 'T57 fremdes Trainerteam sieht keine Fahrgemeinschaften');
+end $$;
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('tom')), 'T57 fremdes Trainerteam ordnet nicht zu', 'not_found');
+select tst.throws(format($q$select public.ride_save(null, 'match', %L, null, null, 3, null, null, null)$q$, tst.get('m57')), 'T57 fremdes Trainerteam legt keine Fahrt an', 'not_found');
+select tst.throws(format($q$select public.ride_delete(%L)$q$, tst.get('r57bus')), 'T57 fremdes Trainerteam löscht nichts', 'not_found');
+commit;
+
+begin;
+set local role anon;
+select tst.throws(format($q$select public.ride_names(%L)$q$, tst.get('team_a')), 'T57 anon darf ride_names nicht aufrufen', 'permission denied');
+select tst.throws(format($q$select count(*) from public.rides$q$), 'T57 anon liest keine Fahrten', 'permission denied');
+commit;
+
+update public.teams set modules = modules || '{"fahrten": false}'::jsonb where id = tst.get('team_a')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.throws(format($q$select public.ride_join(%L, %L)$q$, tst.get('r57bus'), tst.get('p2_player')), 'T57 Modul aus: keine neuen Einträge', 'rides_off');
+do $$ begin
+  perform public.ride_need('match', tst.get('m57')::uuid, tst.get('p2_player')::uuid, false);
+  perform tst.eq((select count(*) from public.ride_needs where player_id = tst.get('p2_player')::uuid and ref_id = tst.get('m57')::uuid)::text, '0', 'T57 Modul aus: Suche beenden geht');
+end $$;
+commit;
+update public.teams set modules = modules - 'fahrten' where id = tst.get('team_a')::uuid;
+
+-- Löschfrist und Cascade (als Betreiber angelegt)
+with ins as (insert into public.matches (team_id, date, opponent, home) values (tst.get('team_a')::uuid, current_date - 40, 'T57 lange her', false) returning id)
+select tst.put('m57gone', id::text) from ins;
+insert into public.rides (team_id, match_id, seats) values (tst.get('team_a')::uuid, tst.get('m57gone')::uuid, 3), (tst.get('team_a')::uuid, tst.get('m57old')::uuid, 3);
+insert into public.ride_needs (team_id, match_id, player_id) values (tst.get('team_a')::uuid, tst.get('m57old')::uuid, tst.get('tom')::uuid);
+do $$ begin
+  perform tst.eq(public.purge_old_rides()::text, '2', 'T57 Löschfrist: alte Fahrt und vergangene Suche gelöscht');
+  perform tst.eq((select count(*) from public.rides where match_id = tst.get('m57gone')::uuid)::text || '/' || (select count(*) from public.rides where match_id = tst.get('m57old')::uuid)::text
+                 || '/' || (select count(*) from public.ride_needs where match_id = tst.get('m57old')::uuid)::text || '/' || (select count(*) from public.rides where match_id = tst.get('m57')::uuid)::text,
+                 '0/1/0/1', 'T57 Löschfrist: Fahrten 30 Tage, Suchen bis zum Tag, kommende bleiben');
+end $$;
+delete from public.matches where id in (tst.get('m57')::uuid, tst.get('m57old')::uuid, tst.get('m57gone')::uuid);
+do $$ begin
+  perform tst.eq((select count(*) from public.rides where match_id is not null and team_id = tst.get('team_a')::uuid)::text || '/' || (select count(*) from public.ride_needs where match_id is not null and team_id = tst.get('team_a')::uuid)::text
+                 || '/' || (select count(*) from public.ride_seats s where s.team_id = tst.get('team_a')::uuid and s.ref_id <> tst.get('e57')::uuid)::text, '0/0/0', 'T57 Spiel gelöscht: Fahrten, Plätze und Suchen weg');
+end $$;
+
+-- =====================================================================
+-- T58 Karten und Sperren: Karte im Spielbericht, eingetragene Sperren (Recht Leistung), Spieler lesen nur die eigenen,
+--     Regeln in den Team-Einstellungen mit Recht Leistung, Löschfrist, Spiel gelöscht
+-- =====================================================================
+with ins as (insert into public.matches (team_id, date, opponent) values (tst.get('team_b')::uuid, current_date, 'T58 B') returning id)
+select tst.put('m58b', id::text) from ins;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.matches (team_id, date, time, opponent, competition) values (tst.get('team_a')::uuid, current_date - 3, '15:00', 'T58 FC', 'liga') returning id)
+select tst.put('m58', id::text) from ins;
+select tst.affects(format($q$insert into public.match_stats (match_id, player_id, minutes, card) values (%L, %L, 70, 'r')$q$, tst.get('m58'), tst.get('max')), 1, 'T58 Rote Karte im Spielbericht');
+select tst.affects(format($q$insert into public.match_stats (match_id, player_id, card) values (%L, %L, 'y')$q$, tst.get('m58'), tst.get('tom')), 1, 'T58 Gelbe Karte auf der Bank (ohne Minuten)');
+select tst.throws(format($q$update public.match_stats set card = 'x' where match_id = %L$q$, tst.get('m58')), 'T58 nur Gelb, Gelb-Rot, Rot', 'match_stats_card_valid');
+select tst.affects(format($q$insert into public.player_suspensions (player_id, match_id, kind, start_date, games, note) values (%L, %L, 'red', current_date - 3, 3, 'Urteil Sportgericht')$q$, tst.get('max'), tst.get('m58')), 1, 'T58 Urteil nach der Roten Karte');
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and updated_by = tst.uid('coachA') and scope = 'all' from public.player_suspensions where player_id = tst.get('max')::uuid),
+                 'T58 Team und Konto setzt der Server');
+end $$;
+select tst.throws(format($q$insert into public.player_suspensions (player_id, match_id, kind, start_date, games) values (%L, %L, 'red', current_date, 2)$q$, tst.get('max'), tst.get('m58')), 'T58 je Karte nur eine Sperre', 'duplicate key');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 31)$q$, tst.get('tom')), 'T58 höchstens 30 Spiele', 'player_suspensions_games_valid');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games, until_date) values (%L, 'other', current_date, 2, current_date + 7)$q$, tst.get('tom')), 'T58 Spiele oder bis', 'player_suspensions_games_or_until');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, until_date) values (%L, 'other', current_date, current_date - 1)$q$, tst.get('tom')), 'T58 bis nicht vor dem Beginn', 'player_suspensions_until_after');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'blau', current_date, 1)$q$, tst.get('tom')), 'T58 Grund aus der Liste', 'player_suspensions_kind_valid');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, note) values (%L, 'other', current_date, E'a\nb')$q$, tst.get('tom')), 'T58 Hinweis einzeilig', 'player_suspensions_note_valid');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, match_id, kind, start_date, games) values (%L, %L, 'red', current_date, 2)$q$, tst.get('tom'), tst.get('m58b')), 'T58 Auslöser aus dem eigenen Team', 'different_teams');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 2)$q$, tst.get('p46b')), 'T58 nur Spieler des eigenen Teams', 'row-level security');
+select tst.affects(format($q$insert into public.player_suspensions (player_id, kind, start_date, until_date, scope) values (%L, 'other', current_date, current_date + 30, 'league')$q$, tst.get('tom')), 1, 'T58 sonstige Sperre bis zu einem Tag');
+select tst.affects(format($q$insert into public.player_suspensions (player_id, kind, start_date) values (%L, 'red', current_date)$q$, tst.get('erik')), 1, 'T58 Sperre bis zum Urteil (ohne Spiele und Datum)');
+select tst.throws(format($q$update public.player_suspensions set player_id = %L where player_id = %L$q$, tst.get('tom'), tst.get('max')), 'T58 Spieler nicht wechselbar', 'forbidden');
+select tst.affects(format($q$update public.player_suspensions set games = 0 where player_id = %L$q$, tst.get('erik')), 1, 'T58 Sperre aufheben (0 Spiele)');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_suspensions)::text || '/' || (select string_agg(kind || ':' || games::text, ',') from public.player_suspensions), '1/red:3', 'T58 Spieler sieht nur die eigene Sperre');
+end $$;
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 1)$q$, tst.get('max')), 'T58 Spieler tragen keine Sperren ein', 'row-level security');
+select tst.affects($q$update public.player_suspensions set games = 0$q$, 0, 'T58 Spieler ändern ihre Sperre nicht');
+select tst.affects($q$delete from public.player_suspensions$q$, 0, 'T58 Spieler löschen ihre Sperre nicht');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_suspensions)::text, '0', 'T58 Mitspieler sehen keine Sperren');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_suspensions where team_id = tst.get('team_a')::uuid)::text, '3', 'T58 Trainerteam ohne Recht Leistung sieht die Sperren');
+end $$;
+select tst.affects(format($q$update public.player_suspensions set games = 1 where team_id = %L$q$, tst.get('team_a')), 0, 'T58 ohne Recht Leistung keine Änderung');
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 1)$q$, tst.get('tom')), 'T58 ohne Recht Leistung nichts eintragen', 'row-level security');
+select tst.throws(format($q$update public.teams set settings = settings || '{"cards": {"yellowLimit": 5}}'::jsonb where id = %L$q$, tst.get('team_a')), 'T58 Regeln nur mit Recht Leistung', 'cards needs perf');
+commit;
+update public.team_staff set perms = array['perf']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.affects(format($q$update public.teams set settings = settings || '{"cards": {"yellowLimit": 5, "yellowGames": 1, "yrGames": 1, "redGames": 2}}'::jsonb where id = %L$q$, tst.get('team_a')), 1, 'T58 Regeln mit Recht Leistung');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+update public.teams set settings = settings - 'cards' where id = tst.get('team_a')::uuid;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_suspensions where team_id = tst.get('team_a')::uuid)::text, '0', 'T58 fremdes Trainerteam sieht keine Sperren');
+end $$;
+select tst.throws(format($q$insert into public.player_suspensions (player_id, kind, start_date, games) values (%L, 'other', current_date, 1)$q$, tst.get('tom')), 'T58 fremdes Trainerteam trägt nichts ein', 'row-level security');
+commit;
+
+insert into public.player_suspensions (team_id, player_id, kind, start_date, games) values (tst.get('team_a')::uuid, tst.get('tom')::uuid, 'other', current_date - 800, 2);
+do $$ begin
+  perform tst.eq(public.purge_old_suspensions()::text, '1', 'T58 Löschfrist: Sperre älter als 24 Monate gelöscht');
+  perform tst.eq((select count(*) from public.player_suspensions where team_id = tst.get('team_a')::uuid)::text, '3', 'T58 Löschfrist: aktuelle Sperren bleiben');
+end $$;
+delete from public.matches where id = tst.get('m58')::uuid;
+do $$ begin
+  perform tst.ok((select match_id is null and games = 3 from public.player_suspensions where player_id = tst.get('max')::uuid), 'T58 Spiel gelöscht: Sperre bleibt ohne Auslöser');
+  perform tst.eq((select count(*) from public.match_stats where match_id = tst.get('m58')::uuid)::text, '0', 'T58 Spiel gelöscht: Karten weg');
+end $$;
+delete from public.matches where id = tst.get('m58b')::uuid;
+
+-- =====================================================================
+-- T59 Foto-Erlaubnis: Trainerteam mit Recht Kader trägt aus dem Formular ein, Spieler sagen Nein immer und Ja nur
+--     volljährig, Lesen Trainerteam und der Spieler selbst, nur über die Funktion
+-- =====================================================================
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$
+declare r public.photo_consents;
+begin
+  r := public.photo_consent_save(tst.get('p4_player')::uuid, true, true, true, true, 'parents', current_date - 30, 'Formular Saisonstart');
+  perform tst.eq(r.given_by || '/' || r.web::text || '/' || r.note, 'parents/true/Formular Saisonstart', 'T59 Trainerteam trägt die Erklärung der Eltern ein');
+  perform tst.ok(r.team_id = tst.get('team_a')::uuid and r.updated_by = tst.uid('coachA'), 'T59 Team und Konto setzt der Server');
+end $$;
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'opa', current_date, null)$q$, tst.get('max')), 'T59 Erklärt von: nur Spieler, Eltern, beide', 'invalid_by');
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'player', current_date + 5, null)$q$, tst.get('max')), 'T59 Datum nicht in der Zukunft', 'date_future');
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'player', current_date, E'a\nb')$q$, tst.get('max')), 'T59 Hinweis einzeilig', 'photo_consents_note_valid');
+select tst.throws(format($q$insert into public.photo_consents (player_id, team_id, web) values (%L, %L, true)$q$, tst.get('tom'), tst.get('team_a')), 'T59 nur über die Funktion', 'permission denied');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$
+declare r public.photo_consents;
+begin
+  perform tst.eq((select count(*) from public.photo_consents)::text, '1', 'T59 Spielerin (14) sieht die eigene Erklärung');
+  r := public.photo_consent_save(tst.get('p4_player')::uuid, true, false, true, true, null, null, null);
+  perform tst.eq(r.social::text || '/' || r.given_by || '/' || r.note, 'false/parents/Formular Saisonstart', 'T59 Minderjährige sagen selbst Nein – Erklärung der Eltern bleibt');
+end $$;
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, null, null, null)$q$, tst.get('p4_player')), 'T59 Minderjährige nehmen ein Nein nicht selbst zurück', 'forbidden');
+select tst.throws(format($q$select public.photo_consent_save(%L, null, false, true, true, null, null, null)$q$, tst.get('p4_player')), 'T59 zurück auf offen nur über das Trainerteam', 'forbidden');
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, null, null, null)$q$, tst.get('max')), 'T59 fremde Erklärung nicht änderbar', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$
+declare r public.photo_consents;
+begin
+  r := public.photo_consent_save(tst.get('max')::uuid, true, true, false, null, 'parents', current_date - 400, 'egal');
+  perform tst.eq(r.given_by || '/' || (r.given_on = public.team_today(r.team_id))::text || '/' || r.press::text || '/' || coalesce(r.name_ok::text, 'offen') || '/' || coalesce(r.note, '-'),
+                 'player/true/false/offen/-', 'T59 Volljährige stimmen selbst zu (Erklärung: Spieler, heute)');
+  perform tst.eq((select count(*) from public.photo_consents)::text, '1', 'T59 Spieler sieht nur die eigene Erklärung');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.photo_consents)::text, '0', 'T59 Mitspieler sehen keine Erklärungen');
+end $$;
+commit;
+
+update public.team_staff set perms = array['notes']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.photo_consents where team_id = tst.get('team_a')::uuid)::text, '2', 'T59 ganzes Trainerteam sieht die Erklärungen');
+end $$;
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'both', current_date, null)$q$, tst.get('tom')), 'T59 Eintragen nur mit Recht Kader', 'forbidden');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.photo_consents where team_id = tst.get('team_a')::uuid)::text, '0', 'T59 fremdes Trainerteam sieht nichts');
+end $$;
+select tst.throws(format($q$select public.photo_consent_save(%L, true, true, true, true, 'both', current_date, null)$q$, tst.get('tom')), 'T59 fremdes Trainerteam trägt nichts ein', 'not_found');
+commit;
+
+-- =====================================================================
+-- T60 Unfallmeldungen: nur Trainerteam mit Recht Gesundheitsdaten (lesen und schreiben), Spieler lesen die eigenen,
+--     Prüfungen (Tage, Uhrzeit, Tätigkeit, Spiel und Verletzung aus dem Team bzw. vom Spieler), Löschfrist, Spiel gelöscht
+-- =====================================================================
+with ins as (insert into public.matches (team_id, date, opponent) values (tst.get('team_b')::uuid, current_date - 2, 'T60 B') returning id)
+select tst.put('m60b', id::text) from ins;
+with ins as (insert into public.absences (team_id, player_id, type, from_date) values (tst.get('team_a')::uuid, tst.get('tom')::uuid, 'verletzung', current_date - 2) returning id)
+select tst.put('ab60tom', id::text) from ins;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+with ins as (insert into public.matches (team_id, date, time, opponent, competition) values (tst.get('team_a')::uuid, current_date - 2, '15:00', 'T60 FC', 'liga') returning id)
+select tst.put('m60', id::text) from ins;
+with ins as (insert into public.absences (team_id, player_id, type, from_date) values (tst.get('team_a')::uuid, tst.get('max')::uuid, 'verletzung', current_date - 2) returning id)
+select tst.put('ab60', id::text) from ins;
+with ins as (insert into public.accident_reports (player_id, accident_date, accident_time, place, activity, match_id, absence_id, how, injury, body_area, first_aid)
+             values (tst.get('max')::uuid, current_date - 2, '15:40', 'Auswärts', 'match', tst.get('m60')::uuid, tst.get('ab60')::uuid, 'Zweikampf an der Seitenlinie', 'Prellung Knie', 'knee:r', 'Kühlen')
+             returning id)
+select tst.put('ac60', id::text) from ins;
+do $$ begin
+  perform tst.ok((select team_id = tst.get('team_a')::uuid and updated_by = tst.uid('coachA') and match_id = tst.get('m60')::uuid and not closed
+                  from public.accident_reports where id = tst.get('ac60')::uuid), 'T60 Unfall im Spiel – Team und Konto setzt der Server');
+end $$;
+select tst.affects(format($q$insert into public.accident_reports (player_id, accident_date, activity, match_id, how, injury) values (%L, current_date - 1, 'training', %L, 'Umgeknickt', 'Sprunggelenk')$q$, tst.get('tom'), tst.get('m60')), 1, 'T60 Training – zweite Meldung');
+do $$ begin
+  perform tst.ok((select match_id is null from public.accident_reports where player_id = tst.get('tom')::uuid), 'T60 Spiel nur bei Spiel oder Weg');
+end $$;
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date + 5, 'x', 'y')$q$, tst.get('tom')), 'T60 Unfalltag nicht in der Zukunft', 'date_future');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury, club_on) values (%L, current_date - 2, 'x', 'y', current_date - 3)$q$, tst.get('tom')), 'T60 Meldung nicht vor dem Unfall', 'accident_reports_club_after');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury, insurer_on) values (%L, current_date - 2, 'x', 'y', current_date + 9)$q$, tst.get('tom')), 'T60 Meldung nicht in der Zukunft', 'date_future');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, accident_time, how, injury) values (%L, current_date, '25:00', 'x', 'y')$q$, tst.get('tom')), 'T60 Uhrzeit gültig', 'accident_reports_time_valid');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, activity, how, injury) values (%L, current_date, 'party', 'x', 'y')$q$, tst.get('tom')), 'T60 Tätigkeit aus der Liste', 'accident_reports_activity_valid');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, body_area, how, injury) values (%L, current_date, 'Knie rechts', 'x', 'y')$q$, tst.get('tom')), 'T60 Körperregion als Code', 'accident_reports_area_valid');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date, '  ', 'y')$q$, tst.get('tom')), 'T60 Hergang Pflicht', 'accident_reports_how_valid');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, absence_id, how, injury) values (%L, current_date, %L, 'x', 'y')$q$, tst.get('erik'), tst.get('ab60tom')), 'T60 Verletzung desselben Spielers', 'different_player');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, activity, match_id, how, injury) values (%L, current_date, 'match', %L, 'x', 'y')$q$, tst.get('tom'), tst.get('m60b')), 'T60 Spiel aus dem eigenen Team', 'different_teams');
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date, 'x', 'y')$q$, tst.get('p46b')), 'T60 nur Spieler des eigenen Teams', 'row-level security');
+select tst.affects(format($q$update public.accident_reports set club_on = current_date - 1, claim_no = 'SV-1' where id = %L$q$, tst.get('ac60')), 1, 'T60 an den Verein gemeldet');
+select tst.throws(format($q$update public.accident_reports set player_id = %L where id = %L$q$, tst.get('tom'), tst.get('ac60')), 'T60 Spieler nicht wechselbar', 'forbidden');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p1';
+do $$ begin
+  perform tst.eq((select count(*)::text || '/' || max(claim_no) from public.accident_reports), '1/SV-1', 'T60 Spieler sieht die eigene Meldung');
+end $$;
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date, 'x', 'y')$q$, tst.get('max')), 'T60 Spieler melden nicht selbst', 'row-level security');
+select tst.affects($q$update public.accident_reports set closed = true$q$, 0, 'T60 Spieler ändern ihre Meldung nicht');
+select tst.affects($q$delete from public.accident_reports$q$, 0, 'T60 Spieler löschen ihre Meldung nicht');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.accident_reports)::text, '0', 'T60 Mitspieler sehen keine Unfallmeldungen');
+end $$;
+commit;
+
+update public.team_staff set perms = array['squad', 'perf']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.accident_reports where team_id = tst.get('team_a')::uuid)::text, '0', 'T60 ohne Recht Gesundheitsdaten keine Unfallmeldungen');
+end $$;
+select tst.throws(format($q$insert into public.accident_reports (player_id, accident_date, how, injury) values (%L, current_date, 'x', 'y')$q$, tst.get('tom')), 'T60 ohne Recht Gesundheitsdaten nichts melden', 'row-level security');
+commit;
+update public.team_staff set perms = array['health']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.eq((select count(*) from public.accident_reports where team_id = tst.get('team_a')::uuid)::text, '2', 'T60 mit Recht Gesundheitsdaten alle Meldungen');
+end $$;
+select tst.affects(format($q$update public.accident_reports set insurer_on = current_date where id = %L$q$, tst.get('ac60')), 1, 'T60 an die Versicherung gemeldet (Recht Gesundheitsdaten)');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachB';
+do $$ begin
+  perform tst.eq((select count(*) from public.accident_reports where team_id = tst.get('team_a')::uuid)::text, '0', 'T60 fremdes Trainerteam sieht keine Meldungen');
+end $$;
+commit;
+
+insert into public.accident_reports (team_id, player_id, accident_date, how, injury) values (tst.get('team_a')::uuid, tst.get('tom')::uuid, current_date - 1200, 'alt', 'alt');
+do $$ begin
+  perform tst.eq(public.purge_old_accidents()::text, '1', 'T60 Löschfrist: Meldung älter als 36 Monate gelöscht');
+  perform tst.eq((select count(*) from public.accident_reports where team_id = tst.get('team_a')::uuid)::text, '2', 'T60 Löschfrist: aktuelle Meldungen bleiben');
+end $$;
+delete from public.matches where id = tst.get('m60')::uuid;
+delete from public.absences where id = tst.get('ab60')::uuid;
+do $$ begin
+  perform tst.ok((select match_id is null and absence_id is null from public.accident_reports where id = tst.get('ac60')::uuid), 'T60 Spiel und Verletzung gelöscht: Meldung bleibt');
+end $$;
+delete from public.matches where id = tst.get('m60b')::uuid;
+delete from public.absences where id = tst.get('ab60tom')::uuid;
+
+-- =====================================================================
+-- T61 Eltern-Zugang: Einladung nur fürs Trainerteam (Recht Kader, nur Minderjährige mit Geburtsdatum), Code nur als
+--     Hash, Fehlversuche begrenzt, Bestätigung durch das Trainerteam, höchstens zwei Elternteile; Eltern sehen nur das
+--     Paket ihres Kindes (keine Codes, keine Gesundheitsdetails, keine anderen Kinder, keine Tabellen direkt);
+--     abmelden, zu-/absagen, Elterninfo, Einwilligungen (unter 16), Foto-Erlaubnis; Volljährigkeit; Löschfristen; Export
+-- =====================================================================
+\set g1 'f1000000-0000-4000-8000-0000000000f1'
+\set g2 'f2000000-0000-4000-8000-0000000000f2'
+\set g3 'f3000000-0000-4000-8000-0000000000f3'
+\set gx 'f9000000-0000-4000-8000-0000000000f9'
+\set k61 'f6000000-0000-4000-8000-0000000000f6'
+insert into tst.users (name, id) values ('g1', :'g1'), ('g2', :'g2'), ('g3', :'g3'), ('gx', :'gx'), ('k61', :'k61');
+insert into auth.users (id, email, raw_user_meta_data) values
+  (:'g1', 'g1@test.local', '{"display_name": "Eva"}'), (:'g2', 'g2@test.local', '{"display_name": "Paul"}'),
+  (:'g3', 'g3@test.local', '{"display_name": "Dritter"}'), (:'gx', 'gx@test.local', '{"display_name": "Fremd"}'),
+  (:'k61', 'k61@test.local', '{"display_name": "Kim"}');
+insert into public.players (team_id, first_name, last_name) values (tst.get('team_a')::uuid, 'Ohne', 'Datum') returning tst.put('nobirth', id::text) is not null;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+select tst.put('k61_player', public.join_team(tst.get('join_a'), 'Kim', 'Klein', '2013-03-03', null, null, null)::text);
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.put('code61', (select invite_code from public.guardian_invite_create(tst.get('p4_player')::uuid)));
+select tst.put('code61k', (select invite_code from public.guardian_invite_create(tst.get('k61_player')::uuid)));
+do $$ begin
+  perform tst.ok(tst.get('code61') ~ '^[A-HJKMNP-Z2-9]{5}-[A-HJKMNP-Z2-9]{5}$', 'T61 Einladungscode mit zehn Zeichen');
+  perform tst.eq((select count(*)::text || '/' || min(uses_left)::text from public.guardian_invites where player_id = tst.get('p4_player')::uuid), '1/2', 'T61 Einladung für zwei Elternteile');
+end $$;
+select tst.throws($q$select code_hash from public.guardian_invites$q$, 'T61 der Code liegt nur als Hash vor und ist nicht lesbar', 'permission denied');
+select tst.throws(format($q$select * from public.guardian_invite_create(%L)$q$, tst.get('max')), 'T61 keine Einladung für Volljährige', 'not_minor');
+select tst.throws(format($q$select * from public.guardian_invite_create(%L)$q$, tst.get('nobirth')), 'T61 Einladung braucht das Geburtsdatum', 'birthdate_required');
+commit;
+update public.team_staff set perms = array['notes']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.throws(format($q$select * from public.guardian_invite_create(%L)$q$, tst.get('p4_player')), 'T61 Einladen nur mit Recht Kader', 'forbidden');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+
+-- Fehlversuche: nach zehn falschen Codes in einer Stunde ist Schluss
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'gx';
+do $$
+declare r jsonb;
+begin
+  for i in 1..10 loop r := public.guardian_redeem('AAAAA-AAAA' || i, 'Fremd', 'guardian'); end loop;
+  perform tst.eq(r ->> 'error', 'invalid_code', 'T61 falscher Code wird abgelehnt');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'gx';
+select tst.throws(format($q$select public.guardian_redeem(%L, 'Fremd', 'guardian')$q$, tst.get('code61')), 'T61 nach zehn Fehlversuchen gesperrt (auch mit richtigem Code)', 'too_many_attempts');
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$
+declare r jsonb;
+begin
+  r := public.guardian_redeem(lower(replace(tst.get('code61'), '-', '')), 'Eva Jung', 'mother');
+  perform tst.eq((r ->> 'ok') || '/' || (r ->> 'first_name'), 'true/Lena', 'T61 Code eingelöst (Groß-/Kleinschreibung und Strich egal)');
+  perform tst.put('link_g1', r ->> 'link_id');
+  perform tst.eq((select status || '/' || access::text from public.guardian_children()), 'pending/false', 'T61 wartet auf Bestätigung – noch kein Zugang');
+end $$;
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('p4_player')), 'T61 vor der Bestätigung keine Daten', 'not_found');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin
+  perform tst.put('link_g2', public.guardian_redeem(tst.get('code61'), 'Paul Jung', 'father') ->> 'link_id');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g3';
+do $$ begin
+  perform tst.eq(public.guardian_redeem(tst.get('code61'), 'Dritter', 'guardian') ->> 'error', 'invalid_code', 'T61 höchstens zwei Elternteile je Einladung');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_guardians)::text, '2', 'T61 das Kind sieht, wer als Eltern verknüpft ist');
+  perform tst.eq(public.guardian_redeem(tst.get('code61k'), 'Lena', 'guardian') ->> 'ok', 'true', 'T61 (Kontrolle) andere Einladung einlösbar');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.player_guardians)::text, '0', 'T61 Mitspieler sehen keine Eltern');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((public.guardian_decide(tst.get('link_g1')::uuid, true)).status, 'active', 'T61 Trainerteam bestätigt');
+  perform tst.ok(public.guardian_decide(tst.get('link_g2')::uuid, true) is not null, 'T61 zweiter Elternteil bestätigt');
+  perform public.guardian_decide((select id from public.player_guardians where player_id = tst.get('k61_player')::uuid and user_id = tst.uid('p4')), false);
+  perform tst.eq((select count(*) from public.player_guardians where player_id = tst.get('k61_player')::uuid)::text, '0', 'T61 abgelehnt: Verknüpfung gelöscht');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$
+declare d jsonb;
+begin
+  d := public.guardian_child_data(tst.get('p4_player')::uuid);
+  perform tst.ok(d -> 'team' ? 'name' and not (d -> 'team' ? 'join_code') and not (d -> 'team' ? 'staff_code'), 'T61 Paket: Team ohne Beitrittscodes');
+  perform tst.eq(d -> 'player' ->> 'first_name', 'Lena', 'T61 Paket: das eigene Kind');
+  perform tst.eq((select count(*) from public.players)::text || '/' || (select count(*) from public.absences)::text || '/' || (select count(*) from public.rpe_entries)::text
+                 || '/' || (select count(*) from public.match_nominations)::text || '/' || (select count(*) from public.teams)::text, '0/0/0/0/0',
+                 'T61 Eltern lesen keine Tabellen direkt (nur das Paket)');
+end $$;
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('max')), 'T61 kein Paket für fremde Kinder', 'not_found');
+-- Abmelden
+select tst.throws(format($q$select public.guardian_absence(%L, 'krank', public.team_today(%L), null)$q$, tst.get('p4_player'), tst.get('team_a')), 'T61 „krank“ nur mit Einwilligung in Gesundheitsdaten', 'consent_required');
+select tst.throws(format($q$select public.guardian_absence(%L, 'verletzung', public.team_today(%L), null)$q$, tst.get('p4_player'), tst.get('team_a')), 'T61 Verletzungen trägt das Trainerteam ein', 'invalid_type');
+select tst.throws(format($q$select public.guardian_absence(%L, 'urlaub', public.team_today(%L) - 30, null)$q$, tst.get('p4_player'), tst.get('team_a')), 'T61 nicht weit rückwirkend', 'invalid_dates');
+do $$
+declare a jsonb;
+begin
+  perform public.guardian_consent(tst.get('p4_player')::uuid, 'health_data', true, 'v1');
+  a := public.guardian_absence(tst.get('p4_player')::uuid, 'krank', public.team_today(tst.get('team_a')::uuid) + 1, public.team_today(tst.get('team_a')::uuid) + 2);
+  perform tst.put('abs61', a ->> 'id');
+  perform tst.eq((a ->> 'type') || '/' || (a ->> 'mine'), 'krank/true', 'T61 mit Einwilligung: krank abgemeldet');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.ok((select reported_by_player and created_by = tst.uid('g1') and stage is null and note is null from public.absences where id = tst.get('abs61')::uuid),
+                 'T61 Trainerteam sieht die Abmeldung der Eltern (ohne Details)');
+end $$;
+with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date) values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, 'schule', current_date + 5, current_date + 5) returning id)
+select tst.put('abs61s', id::text) from ins;
+with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date) values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, 'verletzung', current_date + 8, current_date + 9) returning id)
+select tst.put('abs61v', id::text) from ins;
+select tst.put('settings61', settings::text) from public.teams where id = tst.get('team_a')::uuid;
+update public.teams set settings = settings || '{"days": {"2": {"zeit": "18:00", "platz": "halb", "dauer": 90}}, "kasse": {"on": true, "treasurer": "x", "fees": []}, "units": {"2": []}}'::jsonb
+ where id = tst.get('team_a')::uuid;
+with ins as (insert into public.matches (team_id, date, time, opponent, competition) values (tst.get('team_a')::uuid, current_date + 3, '15:00', 'T61 FC', 'liga') returning id)
+select tst.put('m61', id::text) from ins;
+insert into public.match_squads (match_id, team_id, meet_time, meet_place, published_at) values (tst.get('m61')::uuid, tst.get('team_a')::uuid, '13:45', 'Vereinsheim', now());
+insert into public.match_nominations (match_id, player_id, standby) values (tst.get('m61')::uuid, tst.get('p4_player')::uuid, false), (tst.get('m61')::uuid, tst.get('max')::uuid, false);
+with ins as (insert into public.parent_posts (team_id, title, body, need_ack) values (tst.get('team_a')::uuid, 'Elternabend', 'Am Freitag um 19 Uhr im Vereinsheim.', true) returning id)
+select tst.put('post61', id::text) from ins;
+do $$ begin
+  perform tst.ok((select author is not null and created_by = tst.uid('coachA') from public.parent_posts where id = tst.get('post61')::uuid), 'T61 Elterninfo: Verfasser setzt der Server');
+end $$;
+commit;
+
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+select tst.throws(format($q$select public.guardian_absence_delete(%L)$q$, tst.get('abs61s')), 'T61 Eltern löschen keine Einträge des Trainerteams', 'not_found');
+do $$
+declare d jsonb; n public.match_nominations;
+begin
+  d := public.guardian_child_data(tst.get('p4_player')::uuid);
+  perform tst.ok(not exists (select 1 from jsonb_object_keys(coalesce(d -> 'team' -> 'settings', '{}'::jsonb)) k
+                             where k not in ('days', 'dauer', 'fix', 'spieltag', 'anstoss', 'playerAbs'))
+                 and (d -> 'team' -> 'settings') ? 'days' and not (d -> 'team') ? 'principles' and not (d -> 'team') ? 'logo_path',
+                 'T61 Paket: vom Team nur Trainingszeiten – keine Kasse, Einheiten oder andere Einstellungen');
+  perform tst.ok(not (d -> 'player') ? 'position' and not (d -> 'player') ? 'shirt_number' and not (d -> 'player') ? 'weight_kg',
+                 'T61 Paket: vom Kind nur Name, Geburtsdatum und aktiv');
+  perform public.guardian_absence_delete(tst.get('abs61')::uuid);
+  n := public.guardian_answer(tst.get('m61')::uuid, tst.get('p4_player')::uuid, 'no', 'Klassenfahrt');
+  perform tst.eq(n.answer || '/' || n.answered_by_guardian::text || '/' || n.answered_by_staff::text, 'no/true/false', 'T61 Absage der Eltern gekennzeichnet');
+  d := public.guardian_child_data(tst.get('p4_player')::uuid);
+  perform tst.eq(jsonb_array_length(d -> 'noms')::text || '/' || (d -> 'squads' -> 0 ->> 'meet_place') || '/' || (d -> 'squads' -> 0 ->> 'show_all'), '1/Vereinsheim/false',
+                 'T61 Paket: Nominierung des eigenen Kindes mit Treffpunkt, ohne Kaderliste');
+  perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'noms') x where x ? 'reason'), 'T61 Paket: ohne Absagegrund (nur fürs Trainerteam)');
+  perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'absences') x where x ? 'stage' or x ? 'note'), 'T61 Paket: Abwesenheiten ohne Stufe und Hinweis');
+  perform tst.ok(not exists (select 1 from jsonb_array_elements(d -> 'absences') x where x ->> 'id' = tst.get('abs61')), 'T61 eigene Abmeldung zurückgenommen');
+  perform tst.eq((select string_agg(coalesce(x ->> 'type', 'abwesend'), ',' order by x ->> 'from_date') from jsonb_array_elements(d -> 'absences') x
+                   where x ->> 'id' in (tst.get('abs61s'), tst.get('abs61v'))), 'schule,abwesend',
+                 'T61 Paket: Verletzung vom Trainerteam nur als „abwesend“, andere Abwesenheiten mit Art');
+  perform tst.eq((d -> 'posts' -> 0 ->> 'title') || '/' || coalesce(d -> 'posts' -> 0 ->> 'read_at', 'ungelesen'), 'Elternabend/ungelesen', 'T61 Elterninfo im Paket');
+  perform public.parent_post_read(tst.get('post61')::uuid, true);
+  perform tst.ok((public.guardian_child_data(tst.get('p4_player')::uuid) -> 'posts' -> 0 ->> 'acked_at') is not null, 'T61 Elterninfo gelesen und bestätigt');
+end $$;
+select tst.throws(format($q$insert into public.parent_posts (team_id, title, body) values (%L, 'x', 'y')$q$, tst.get('team_a')), 'T61 Eltern schreiben keine Elterninfo', 'row-level security');
+commit;
+update public.teams set settings = tst.get('settings61')::jsonb where id = tst.get('team_a')::uuid;
+-- Modul aus: Eltern sehen nichts mehr und können nichts eintragen, Codes gelten nicht – die Verknüpfung bleibt
+select tst.put('mods61', modules::text) from public.teams where id = tst.get('team_a')::uuid;
+update public.teams set modules = modules || '{"eltern": false}'::jsonb where id = tst.get('team_a')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('p4_player')), 'T61 Modul aus: kein Paket', 'not_found');
+select tst.throws(format($q$select public.guardian_absence(%L, 'urlaub', public.team_today(%L) + 1, null)$q$, tst.get('p4_player'), tst.get('team_a')), 'T61 Modul aus: kein Abmelden', 'not_found');
+do $$ begin
+  perform tst.eq((select access::text || '/' || module_on::text from public.guardian_children()), 'false/false', 'T61 Modul aus: Verknüpfung bleibt, ohne Zugang');
+  perform tst.eq((select count(*) from public.parent_posts)::text, '0', 'T61 Modul aus: keine Elterninfo');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+select tst.throws(format($q$select * from public.guardian_invite_create(%L)$q$, tst.get('k61_player')), 'T61 Modul aus: keine Einladung', 'module_off');
+commit;
+update public.teams set modules = tst.get('mods61')::jsonb where id = tst.get('team_a')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.eq((public.answer_nomination(tst.get('m61')::uuid, 'yes')).answered_by_guardian::text, 'false', 'T61 eigene Antwort des Kindes ersetzt die Kennung');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'gx';
+do $$ begin
+  perform tst.eq((select count(*) from public.parent_posts)::text || '/' || (select count(*) from public.guardian_children())::text, '0/0', 'T61 Fremde sehen keine Elterninfo');
+end $$;
+select tst.throws(format($q$select public.parent_post_read(%L, true)$q$, tst.get('post61')), 'T61 Fremde bestätigen nichts', 'not_found');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin
+  perform tst.eq((select count(*)::text || '/' || count(acked_at)::text from public.parent_post_reads where post_id = tst.get('post61')::uuid), '1/1', 'T61 Trainerteam sieht, wer gelesen und bestätigt hat');
+  perform tst.ok(exists (select 1 from public.team_guardian_consents(tst.get('team_a')::uuid) where player_id = tst.get('p4_player')::uuid and kind = 'health_data'), 'T61 geprüfte Einwilligung der Eltern fürs Trainerteam');
+  perform tst.eq((select count(*) from public.consents where player_id = tst.get('p4_player')::uuid and user_id = tst.uid('g1'))::text, '1', 'T61 Trainerteam sieht die Einwilligung der Eltern');
+  perform tst.put('code61k2', (select invite_code from public.guardian_invite_create(tst.get('k61_player')::uuid)));
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_guardian_consents(tst.get('team_a')::uuid))::text, '0', 'T61 Spieler sehen keine Einwilligungen anderer');
+end $$;
+commit;
+
+-- Einwilligung unter 16 (Art. 8): erst die geprüfte Einwilligung der Eltern öffnet Gesundheitsdaten fürs Kind
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform tst.put('link_k61', public.guardian_redeem(tst.get('code61k2'), 'Paul Klein', 'father') ->> 'link_id'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin perform public.guardian_decide(tst.get('link_k61')::uuid, true); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin perform tst.eq(public.missing_health_consent(tst.get('k61_player')::uuid), 'health_data', 'T61 Kind unter 16 ohne Einwilligung: Gesundheitsdaten gesperrt'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform public.guardian_consent(tst.get('k61_player')::uuid, 'health_data', true, 'v1'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin perform tst.eq(public.missing_health_consent(tst.get('k61_player')::uuid), 'parental', 'T61 noch ohne Einwilligung der Eltern in die Nutzung'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform public.guardian_consent(tst.get('k61_player')::uuid, 'parental', true, 'v1'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin perform tst.eq(coalesce(public.missing_health_consent(tst.get('k61_player')::uuid), 'ok'), 'ok', 'T61 mit geprüfter Eltern-Einwilligung frei'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform public.guardian_consent(tst.get('k61_player')::uuid, 'health_data', false, 'v1'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin perform tst.eq(public.missing_health_consent(tst.get('k61_player')::uuid), 'health_data', 'T61 Widerruf der Eltern wirkt sofort'); end $$;
+commit;
+-- Ab 16 entscheidet das Kind: „krank“ durch Eltern nur mit der eigenen Einwilligung des Kindes
+update public.players set birthdate = (current_date - interval '17 years')::date where id = tst.get('k61_player')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$ begin perform public.guardian_consent(tst.get('k61_player')::uuid, 'health_data', true, 'v1'); end $$;
+select tst.throws(format($q$select public.guardian_absence(%L, 'krank', public.team_today(%L) + 1, null)$q$, tst.get('k61_player'), tst.get('team_a')),
+                  'T61 ab 16: „krank“ nur mit Einwilligung des Kindes (die der Eltern reicht nicht)', 'consent_required');
+do $$ begin perform tst.eq(public.guardian_child_data(tst.get('k61_player')::uuid) ->> 'sick_ok', 'false', 'T61 Paket ab 16: „krank“ noch nicht möglich'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+insert into public.consents (kind, version) values ('health_data', 'v1');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$
+declare a jsonb;
+begin
+  perform tst.eq(public.guardian_child_data(tst.get('k61_player')::uuid) ->> 'sick_ok', 'true', 'T61 Paket ab 16: mit Einwilligung des Kindes „krank“ möglich');
+  a := public.guardian_absence(tst.get('k61_player')::uuid, 'krank', public.team_today(tst.get('team_a')::uuid) + 1, null);
+  perform tst.eq(a ->> 'type', 'krank', 'T61 ab 16 mit Einwilligung des Kindes: krank abgemeldet');
+  perform public.guardian_absence_delete((a ->> 'id')::uuid);
+  perform public.guardian_consent(tst.get('k61_player')::uuid, 'health_data', false, 'v1');
+end $$;
+commit;
+update public.consents set withdrawn_at = now() where user_id = tst.uid('k61') and kind = 'health_data' and withdrawn_at is null;
+update public.players set birthdate = date '2013-03-03' where id = tst.get('k61_player')::uuid;
+
+-- Foto-Erlaubnis: Erklärung der Eltern, Zustimmung der 14-Jährigen (→ beide), Widerruf lässt „beide“ bestehen
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$ begin
+  perform tst.eq((public.photo_consent_save(tst.get('p4_player')::uuid, true, true, true, true, null, null, null)).given_by, 'parents', 'T61 Eltern erklären die Foto-Erlaubnis');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.eq((public.photo_consent_save(tst.get('p4_player')::uuid, true, true, true, true, 'both', null, null)).given_by, 'both', 'T61 14-Jährige stimmt der Erklärung zu');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$ begin
+  perform tst.eq((public.photo_consent_save(tst.get('p4_player')::uuid, true, false, true, true, null, null, null)).given_by, 'both', 'T61 Widerruf der Eltern lässt die gemeinsame Erklärung bestehen');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachA';
+do $$ begin perform public.photo_consent_save(tst.get('p4_player')::uuid, true, null, null, null, 'player', current_date, 'Formular nur vom Spieler'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$
+declare r public.photo_consents;
+begin
+  r := public.photo_consent_save(tst.get('p4_player')::uuid, true, null, null, null, null, null, null);
+  perform tst.eq(r.given_by || '/' || r.note, 'both/Formular nur vom Spieler', 'T61 Eltern bestätigen die Erklärung des Kindes (→ beide, Hinweis bleibt)');
+  r := public.photo_consent_save(tst.get('p4_player')::uuid, true, true, null, null, null, null, null);
+  perform tst.eq(r.given_by, 'parents', 'T61 neues „Ja“ der Eltern: neue Erklärung der Eltern');
+end $$;
+commit;
+
+-- Volljährigkeit: Zugang endet, das volljährige Kind kann ihn verlängern oder Eltern entfernen
+update public.players set birthdate = date '2007-01-01' where id = tst.get('p4_player')::uuid;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('p4_player')), 'T61 volljährig: kein Zugang mehr', 'not_found');
+do $$ begin perform tst.eq((select access::text from public.guardian_children()), 'false', 'T61 volljährig: Verknüpfung ohne Zugang'); end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p4';
+do $$ begin
+  perform tst.ok((public.guardian_adult_ok(tst.get('link_g1')::uuid, true)).adult_ok, 'T61 volljähriges Kind verlängert den Zugang');
+  perform public.guardian_remove(tst.get('link_g2')::uuid);
+  perform tst.eq((select count(*) from public.player_guardians)::text, '1', 'T61 volljähriges Kind entfernt einen Elternteil');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+do $$
+declare x jsonb;
+begin
+  perform tst.ok(public.guardian_child_data(tst.get('p4_player')::uuid) ? 'team', 'T61 verlängert: wieder Zugang');
+  x := public.my_data_export();
+  perform tst.eq((x ->> 'format') || '/' || jsonb_array_length(x -> 'guardian_links')::text || '/' || jsonb_array_length(x -> 'parent_post_reads')::text
+                 || '/' || (select count(*) from jsonb_array_elements(x -> 'consents') c where c ->> 'player_id' = tst.get('p4_player'))::text,
+                 'trainerstab-export-v17/1/1/1', 'T61 Export der Eltern: Verknüpfung, Lesebestätigung, Einwilligung');
+  perform public.guardian_remove(tst.get('link_g1')::uuid);
+  perform tst.eq((select count(*) from public.guardian_children())::text, '0', 'T61 Eltern lösen die Verknüpfung selbst');
+  perform tst.eq((select count(*) filter (where withdrawn_at is null)::text || '/' || count(*)::text from public.consents
+                   where user_id = tst.uid('g1') and player_id = tst.get('p4_player')::uuid), '0/1',
+                 'T61 Verknüpfung gelöst: Einwilligung der Eltern endet (Widerruf bleibt als Nachweis)');
+end $$;
+commit;
+do $$ begin
+  perform tst.eq((select count(*) from public.parent_post_reads where user_id = tst.uid('g1'))::text, '0',
+                 'T61 Verknüpfung gelöst: Lesebestätigungen der Elterninfo im Team gelöscht');
+end $$;
+begin;
+commit;
+update public.players set birthdate = date '2012-01-01' where id = tst.get('p4_player')::uuid;
+
+-- Eltern berichtigen ihre Angaben selbst; nur die eigene Verknüpfung
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+do $$
+declare g public.player_guardians;
+begin
+  g := public.guardian_update(tst.get('link_k61')::uuid, '  Paul  Klein-Berg ', 'guardian');
+  perform tst.eq(g.name || '/' || g.relation, 'Paul  Klein-Berg/guardian', 'T61 Eltern ändern Namen und Beziehung selbst');
+  perform tst.eq((select my_name || '/' || child_active::text from public.guardian_children() where link_id = tst.get('link_k61')::uuid), 'Paul  Klein-Berg/true',
+                 'T61 Eltern sehen ihre eigenen Angaben');
+end $$;
+select tst.throws(format($q$select public.guardian_update(%L, 'X', 'father')$q$, tst.get('link_k61')), 'T61 Name zu kurz', 'invalid_name');
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g1';
+select tst.throws(format($q$select public.guardian_update(%L, 'Fremd', 'father')$q$, tst.get('link_k61')), 'T61 fremde Verknüpfung nicht änderbar', 'not_found');
+commit;
+
+-- Spielerzeile wechselt das Team: das neue Trainerteam bestätigt neu
+update public.players set team_id = tst.get('team_b')::uuid where id = tst.get('k61_player')::uuid;
+do $$ begin
+  perform tst.eq((select status || '/' || (team_id = tst.get('team_b')::uuid)::text from public.player_guardians where id = tst.get('link_k61')::uuid), 'pending/true',
+                 'T61 Teamwechsel: Verknüpfung wartet auf das neue Trainerteam');
+end $$;
+update public.players set team_id = tst.get('team_a')::uuid where id = tst.get('k61_player')::uuid;
+update public.player_guardians set status = 'active' where id = tst.get('link_k61')::uuid;
+
+-- Kind nicht mehr aktiv: Zugang ruht sofort, nach 30 Tagen wird die Verknüpfung gelöscht
+update public.players set active = false where id = tst.get('k61_player')::uuid;
+do $$ begin
+  perform tst.ok((select inactive_since is not null from public.players where id = tst.get('k61_player')::uuid), 'T61 Zeitpunkt der Deaktivierung gesetzt');
+end $$;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'g2';
+select tst.throws(format($q$select public.guardian_child_data(%L)$q$, tst.get('k61_player')), 'T61 Kind nicht mehr aktiv: kein Paket', 'not_found');
+do $$ begin
+  perform tst.eq((select access::text || '/' || child_active::text from public.guardian_children() where link_id = tst.get('link_k61')::uuid), 'false/false',
+                 'T61 Kind nicht mehr aktiv: Verknüpfung ruht');
+end $$;
+commit;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'k61';
+do $$ begin
+  update public.players set inactive_since = null where id = tst.get('k61_player')::uuid;
+exception when others then null;
+end $$;
+commit;
+do $$ begin
+  perform tst.ok((select inactive_since is not null from public.players where id = tst.get('k61_player')::uuid), 'T61 Zeitpunkt der Deaktivierung nicht von Hand änderbar');
+end $$;
+alter table public.players disable trigger players_inactive_since;
+update public.players set inactive_since = now() - interval '31 days' where id = tst.get('k61_player')::uuid;
+alter table public.players enable trigger players_inactive_since;
+do $$ begin
+  perform public.purge_guardians();
+  perform tst.eq((select count(*) from public.player_guardians where player_id = tst.get('k61_player')::uuid)::text, '0',
+                 'T61 30 Tage nicht mehr aktiv: Verknüpfung gelöscht');
+end $$;
+
+-- Löschfristen
+insert into public.guardian_invites (team_id, player_id, code_hash, uses_left, expires_at)
+values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, public.guardian_code_hash('ALT00-ALT00'), 2, now() - interval '1 day');
+insert into public.player_guardians (team_id, player_id, user_id, name, relation, created_at)
+values (tst.get('team_a')::uuid, tst.get('p4_player')::uuid, :'g3', 'Alt Anfrage', 'guardian', now() - interval '40 days');
+do $$ begin
+  perform tst.ok(public.purge_guardians() >= 2, 'T61 Löschfristen: abgelaufene Einladung und alte Anfrage gelöscht');
+  perform tst.eq((select count(*) from public.player_guardians where user_id = tst.uid('g3'))::text, '0', 'T61 alte Anfrage weg');
+end $$;
+
+delete from public.match_nominations where match_id = tst.get('m61')::uuid;
+delete from public.match_squads where match_id = tst.get('m61')::uuid;
+delete from public.matches where id = tst.get('m61')::uuid;
+delete from public.parent_posts where id = tst.get('post61')::uuid;
+delete from public.absences where id = tst.get('abs61s')::uuid;
+delete from public.consents where user_id in (:'g1', :'g2');
+delete from public.players where id in (tst.get('k61_player')::uuid, tst.get('nobirth')::uuid);
+
+-- =====================================================================
 -- T21b Datenexport (Art. 15/20 DSGVO)
 -- =====================================================================
 begin;
@@ -3478,7 +5090,25 @@ begin
                             'match_stats', 'player_ratings', 'performance_tests', 'findings',
                             'push_tokens', 'ai_usage'],
                  'T21b Export enthält alle Bereiche');
-  perform tst.eq(x ->> 'format', 'trainerbank-export-v8', 'T21b Exportformat v8');
+  perform tst.eq(x ->> 'format', 'trainerstab-export-v17', 'T21b Exportformat v17');
+  perform tst.eq(jsonb_array_length(x -> 'photo_consents')::text || '/' || (x -> 'photo_consents' -> 0 ->> 'declared_by'), '1/player', 'T21b Export: eigene Foto-Erlaubnis');
+  perform tst.eq(jsonb_array_length(x -> 'accident_reports')::text || '/' || (x -> 'accident_reports' -> 0 ->> 'injury') || '/' || (x -> 'accident_reports' -> 0 ->> 'claim_number'), '1/Prellung Knie/SV-1', 'T21b Export: eigene Unfallmeldungen');
+  perform tst.eq(jsonb_array_length(x -> 'suspensions')::text || '/' || (x -> 'suspensions' -> 0 ->> 'kind') || '/' || (x -> 'suspensions' -> 0 ->> 'games'), '1/red/3', 'T21b Export: eigene Sperren');
+  perform tst.eq(jsonb_array_length(x -> 'rides_offered')::text || '/' || (x -> 'rides_offered' -> 0 ->> 'target') || '/' || (x -> 'rides_offered' -> 0 ->> 'passengers'),
+                 '1/T57 Turnier/1', 'T21b Export: eigene Fahrten als Fahrer (ohne Namen der Mitfahrer)');
+  perform tst.ok(jsonb_typeof(x -> 'ride_seats') = 'array' and jsonb_typeof(x -> 'ride_needs') = 'array', 'T21b Export enthält Plätze und Suchen');
+  perform tst.eq(jsonb_array_length(x -> 'nominations')::text || '/' || (x -> 'nominations' -> 0 ->> 'answer') || '/' || (x -> 'nominations' -> 0 ->> 'opponent'), '1/yes/T56 FC', 'T21b Export: eigene Nominierungen');
+  perform tst.eq(jsonb_array_length(x -> 'sizes')::text || '/' || (x -> 'sizes' -> 0 ->> 'top') || '/' || (x -> 'sizes' -> 0 ->> 'print_name'), '1/L/MAXI', 'T21b Export: eigene Größen');
+  perform tst.eq(jsonb_array_length(x -> 'emergency_contacts')::text || '/' || jsonb_array_length(x -> 'emergency_contacts' -> 0 -> 'contacts')::text || '/' || jsonb_array_length(x -> 'emergency_notes')::text,
+                 '1/2/1', 'T21b Export: Notfallkontakte und Hinweis');
+  perform tst.eq(jsonb_array_length(x -> 'poll_answers')::text, '2', 'T21b Export: eigene Antworten aus Umfragen');
+  perform tst.ok((select bool_and(e ? 'questions' and e ? 'answers') from jsonb_array_elements(x -> 'poll_answers') e), 'T21b Export: Antworten mit den Fragen');
+  perform tst.eq(x -> 'polls_started' -> 0 ->> 'title', 'Kicken am Sonntag?', 'T21b Export: selbst gestartete Abstimmung');
+  perform tst.ok(x ?& array['dev_program', 'dev_self', 'peer_skills_given', 'peer_skills_received'], 'T21b Export enthält Entwicklungsprogramm und Stärken-Runde');
+  perform tst.eq(x -> 'dev_program' -> 0 -> 'content' ->> 'tag', 'FESTMACHEN', 'T21b Export: freigegebenes Programm');
+  perform tst.eq(x -> 'dev_self' -> 0 -> 'weapons' ->> 0, 'physis', 'T21b Export: eigene Selbstanalyse');
+  perform tst.eq(x -> 'peer_skills_given' -> 0 ->> 'to', 'Paul', 'T21b Export: verschenkte Stärken nur mit Vornamen');
+  perform tst.eq((x -> 'peer_skills_received')::text, '{"mut": 1, "physis": 1}', 'T21b Export: erhaltene Stärken als Summe ohne Namen');
   perform tst.eq(jsonb_array_length(x -> 'feedback')::text, '3', 'T21b Export enthält die eigenen Rückmeldungen');
   perform tst.ok(not ((x -> 'feedback' -> 0) ? 'shot_path'), 'T21b Export ohne Speicherpfade der Bildschirmfotos');
   perform tst.ok(x ? 'match_plan_views', 'T21b Export enthält das Zugriffsprotokoll der Matchpläne');
@@ -3669,6 +5299,254 @@ begin
 end
 $$;
 commit;
+
+-- =====================================================================
+-- T62 Löschung nach Widerruf und weitere Löschfristen: purge_privacy(), privacy_findings_due(), health_basis
+-- =====================================================================
+-- p2: Einwilligungen vor 35 Tagen widerrufen (zuletzt passiert: Widerruf), keine neue → Gesundheitsdaten werden gelöscht
+update public.consents set given_at = now() - interval '40 days', withdrawn_at = now() - interval '35 days'
+ where user_id = :'p2' and kind in ('health_data', 'parental', 'findings');
+insert into public.consents (user_id, kind, version, given_at, withdrawn_at)
+values (:'p2', 'health_data', 'v1', now() - interval '40 days', now() - interval '35 days'),
+       (:'p2', 'findings', 'v1', now() - interval '40 days', now() - interval '35 days');
+update public.players set weight_kg = 70.5 where id = tst.get('p2_player')::uuid;
+insert into public.rpe_entries (player_id, date, rpe, minutes) values (tst.get('p2_player')::uuid, current_date - 2, 6, 60);
+insert into public.wellness_entries (player_id, date, fatigue) values (tst.get('p2_player')::uuid, current_date - 2, 3);
+insert into public.extra_activities (player_id, date, type, minutes) values (tst.get('p2_player')::uuid, current_date - 2, 'lauf', 30);
+insert into public.growth_measurements (player_id, date, height_cm) values (tst.get('p2_player')::uuid, current_date - 10, 172.5);
+insert into public.player_emergency_med (player_id, team_id, note) values (tst.get('p2_player')::uuid, public.player_team(tst.get('p2_player')::uuid), 'Asthma-Spray in der Tasche')
+on conflict (player_id) do update set note = excluded.note;
+with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date, stage, note)
+             values (public.player_team(tst.get('p2_player')::uuid), tst.get('p2_player')::uuid, 'verletzung', current_date - 5, current_date + 5, 2, 'Knie') returning id)
+select tst.put('abs62v', id::text) from ins;
+with ins as (insert into public.absences (team_id, player_id, type, from_date, to_date, note)
+             values (public.player_team(tst.get('p2_player')::uuid), tst.get('p2_player')::uuid, 'urlaub', current_date + 20, current_date + 25, 'Mallorca') returning id)
+select tst.put('abs62u', id::text) from ins;
+with ins as (insert into public.team_groups (team_id, name, kind) values (public.player_team(tst.get('p2_player')::uuid), 'T62 Reha', 'reha') returning id)
+select tst.put('grp62', id::text) from ins;
+insert into public.group_members (group_id, player_id, team_id)
+values (tst.get('grp62')::uuid, tst.get('p2_player')::uuid, public.player_team(tst.get('p2_player')::uuid));
+insert into public.findings (team_id, player_id, date, title, path, mime, consent_source)
+select public.player_team(tst.get('p2_player')::uuid), tst.get('p2_player')::uuid, current_date - 30, v.t,
+       public.player_team(tst.get('p2_player')::uuid)::text || '/' || tst.get('p2_player') || '/' || v.f, 'application/pdf', v.c
+  from (values ('T62 App', 't62a.pdf', 'app'), ('T62 Papier', 't62p.pdf', 'schriftlich')) v(t, f, c);
+-- Anwesenheit und Abwesenheiten (älter als 24 Monate)
+insert into public.attendance (player_id, date, team_id, status)
+values (tst.get('p2_player')::uuid, current_date - 800, public.player_team(tst.get('p2_player')::uuid), 'da'),
+       (tst.get('p2_player')::uuid, current_date - 30, public.player_team(tst.get('p2_player')::uuid), 'da')
+on conflict do nothing;
+insert into public.absences (team_id, player_id, type, from_date, to_date, note)
+values (public.player_team(tst.get('p2_player')::uuid), tst.get('p2_player')::uuid, 'urlaub', current_date - 800, current_date - 790, 'T62 uralt');
+-- Push-Token und Nachrichten
+insert into public.push_tokens (token, user_id, platform, updated_at)
+values ('T62-alt', :'p2', 'ios', now() - interval '7 months'), ('T62-neu', :'p2', 'ios', now());
+insert into public.coach_messages (player_id, type, text, valid_until)
+values (tst.get('p2_player')::uuid, 'info', 'T62 alt', current_date - 400), (tst.get('p2_player')::uuid, 'info', 'T62 neu', current_date + 5),
+       (tst.get('p2_player')::uuid, 'pause', 'T62 Pause', current_date + 2);
+do $$
+declare r jsonb; pid uuid := tst.get('p2_player')::uuid;
+begin
+  perform tst.ok(not public.health_basis(pid), 'T62 nach Widerruf keine Einwilligung mehr');
+  perform tst.eq((select string_agg(title, ',' order by title) from public.findings f join public.privacy_findings_due() d on d.id = f.id
+                   where f.player_id = pid and f.title like 'T62%'), 'T62 App', 'T62 Befund aus der App-Einwilligung zum Löschen fällig, schriftlicher nicht');
+  r := public.purge_privacy();
+  perform tst.ok((r ->> 'players_withdrawn')::int >= 1, 'T62 Widerruf vor 35 Tagen: Gesundheitsdaten gelöscht');
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = pid)::text || '/' || (select count(*) from public.wellness_entries where player_id = pid)::text
+                 || '/' || (select count(*) from public.extra_activities where player_id = pid)::text || '/' || (select count(*) from public.growth_measurements where player_id = pid)::text
+                 || '/' || (select count(*) from public.player_emergency_med where player_id = pid)::text || '/' || (select count(*) from public.group_members where player_id = pid and group_id = tst.get('grp62')::uuid)::text
+                 || '/' || coalesce((select weight_kg::text from public.players where id = pid), 'leer'),
+                 '0/0/0/0/0/0/leer', 'T62 Belastung, Morgen-Check, Zusatzsport, Größe, Notfall-Hinweise, Reha-Gruppe und Gewicht gelöscht');
+  perform tst.eq((select type || ':' || coalesce(stage::text, '-') || ':' || coalesce(note, '-') from public.absences where id = tst.get('abs62v')::uuid)
+                 || ',' || (select type || ':' || coalesce(note, '-') from public.absences where id = tst.get('abs62u')::uuid),
+                 'sonst:-:-,urlaub:Mallorca', 'T62 Verletzung bleibt als „Sonstiges“ ohne Stufe und Hinweis, Urlaub unverändert');
+  perform tst.eq((select string_agg(token, ',') from public.push_tokens where token like 'T62-%'), 'T62-neu', 'T62 Push-Token nach 6 Monaten ohne Aktualisierung gelöscht');
+  perform tst.eq((select string_agg(text, ',') from public.coach_messages where text like 'T62%'), 'T62 neu', 'T62 Nachricht 12 Monate nach Ablauf gelöscht, Pause-Empfehlung mit den Gesundheitsdaten gelöscht');
+  perform tst.eq((select count(*) from public.attendance where player_id = pid and date = current_date - 800)::text || '/'
+                 || (select count(*) from public.attendance where player_id = pid and date = current_date - 30)::text || '/'
+                 || (select count(*) from public.absences where note = 'T62 uralt')::text, '0/1/0',
+                 'T62 Anwesenheit und Abwesenheiten 24 Monate nach dem Eintrag gelöscht, neuere bleiben');
+end $$;
+-- Widerruf erst vor 5 Tagen: noch nichts gelöscht; erneute Einwilligung: bleibt
+insert into public.rpe_entries (player_id, date, rpe, minutes) values (tst.get('p2_player')::uuid, current_date - 1, 5, 45);
+insert into public.consents (user_id, kind, version, given_at, withdrawn_at) values (:'p2', 'health_data', 'v1', now() - interval '10 days', now() - interval '5 days');
+do $$ begin
+  perform public.purge_privacy();
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('p2_player')::uuid)::text, '1', 'T62 Widerruf vor 5 Tagen: Frist von 30 Tagen läuft noch');
+end $$;
+update public.consents set withdrawn_at = now() - interval '31 days', given_at = now() - interval '40 days' where user_id = :'p2' and withdrawn_at > now() - interval '30 days';
+insert into public.consents (user_id, kind, version) values (:'p2', 'health_data', 'v1'), (:'p2', 'parental', 'v1');
+do $$ begin
+  perform public.purge_privacy();
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('p2_player')::uuid)::text, '1', 'T62 erneut eingewilligt: Daten bleiben');
+  perform tst.ok(public.health_basis(tst.get('p2_player')::uuid), 'T62 erneute Einwilligung zählt');
+end $$;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+do $$ begin
+  perform tst.eq((select count(*) from public.team_health_consent_players(public.player_team(tst.get('p2_player')::uuid)))::text, '0', 'T62 Spieler sehen keine Einwilligungen anderer');
+end $$;
+select tst.throws('select public.purge_privacy()', 'T62 Löschlauf nur für den Server', 'permission denied');
+select tst.throws('select * from public.privacy_findings_due()', 'T62 fällige Befunde nur für den Server', 'permission denied');
+commit;
+-- Spieler seit 7 Monaten nicht mehr aktiv: Gesundheitsdaten und Befunde fällig
+update public.players set active = false where id = tst.get('p4_player')::uuid;
+alter table public.players disable trigger players_inactive_since;
+update public.players set inactive_since = now() - interval '7 months' where id = tst.get('p4_player')::uuid;
+alter table public.players enable trigger players_inactive_since;
+insert into public.rpe_entries (player_id, date, rpe, minutes) values (tst.get('p4_player')::uuid, current_date - 200, 7, 90);
+insert into public.findings (team_id, player_id, date, title, path, mime, consent_source)
+values (public.player_team(tst.get('p4_player')::uuid), tst.get('p4_player')::uuid, current_date - 200, 'T62 alt',
+        public.player_team(tst.get('p4_player')::uuid)::text || '/' || tst.get('p4_player') || '/t62x.pdf', 'application/pdf', 'schriftlich');
+do $$
+declare r jsonb;
+begin
+  perform tst.ok(exists (select 1 from public.privacy_findings_due() d join public.findings f on f.id = d.id where f.title = 'T62 alt'),
+                 'T62 Befund eines seit 6 Monaten inaktiven Spielers fällig');
+  r := public.purge_privacy();
+  perform tst.ok((r ->> 'players_inactive')::int >= 1 and not exists (select 1 from public.rpe_entries where player_id = tst.get('p4_player')::uuid),
+                 'T62 seit 6 Monaten nicht mehr aktiv: Gesundheitsdaten gelöscht');
+end $$;
+delete from public.findings where title like 'T62%';
+delete from public.team_groups where id = tst.get('grp62')::uuid;
+delete from public.push_tokens where token like 'T62-%';
+delete from public.coach_messages where text like 'T62%';
+
+-- =====================================================================
+-- T63 Zuletzt genutzt, Löschfristen für Spielerprofile, Teams und Konten, Werkzeuge fürs Trainerteam
+-- =====================================================================
+\set u63a 'f6300000-0000-4000-8000-00000000063a'
+\set u63b 'f6300000-0000-4000-8000-00000000063b'
+\set u63c 'f6300000-0000-4000-8000-00000000063c'
+insert into tst.users (name, id) values ('u63a', :'u63a'), ('u63b', :'u63b'), ('u63c', :'u63c');
+insert into auth.users (id, email, raw_user_meta_data) values
+  (:'u63a', 'u63a@test.local', '{"display_name": "Alt"}'), (:'u63b', 'u63b@test.local', '{"display_name": "Neu"}'),
+  (:'u63c', 'u63c@test.local', '{"display_name": "Trainer alt"}');
+do $$ begin
+  perform tst.ok((select last_seen_at from public.profiles where id = tst.uid('u63a')) > now() - interval '1 minute',
+                 'T63 neues Konto: zuletzt genutzt = jetzt');
+end $$;
+-- Selbst setzen wirkt nicht; touch_seen() frischt höchstens einmal am Tag auf
+update public.profiles set last_seen_at = now() - interval '2 days' where id = :'p2';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+update public.profiles set last_seen_at = now() + interval '10 years' where id = :'p2';
+do $$ begin
+  perform tst.ok((select last_seen_at from public.profiles where id = tst.uid('p2')) < now() - interval '1 day',
+                 'T63 zuletzt genutzt lässt sich in der App nicht selbst setzen');
+end $$;
+select public.touch_seen();
+do $$ begin
+  perform tst.ok((select last_seen_at from public.profiles where id = tst.uid('p2')) > now() - interval '1 minute',
+                 'T63 touch_seen() frischt auf');
+end $$;
+select tst.throws('select * from public.privacy_players_due()', 'T63 Fristen-Liste Spielerprofile nur für den Server', 'permission denied');
+select tst.throws('select * from public.privacy_teams_due()', 'T63 Fristen-Liste Teams nur für den Server', 'permission denied');
+select tst.throws('select * from public.privacy_accounts_due()', 'T63 Fristen-Liste Konten nur für den Server', 'permission denied');
+commit;
+
+-- Konten ohne Rolle
+update public.profiles set last_seen_at = now() - interval '25 months' where id in (:'u63a', :'u63c', :'p2');
+do $$ begin
+  perform tst.ok(exists (select 1 from public.privacy_accounts_due() d where d.id = tst.uid('u63a')),
+                 'T63 Konto ohne Rolle, 25 Monate nicht genutzt: fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_accounts_due() d where d.id = tst.uid('u63b')),
+                 'T63 Konto ohne Rolle, gerade erst angelegt: nicht fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_accounts_due() d where d.id = tst.uid('p2')),
+                 'T63 Konto mit Spielerprofil: nicht fällig, auch wenn lange nicht genutzt');
+end $$;
+
+-- Team, das seit 24 Monaten niemand genutzt hat
+with ins as (insert into public.teams (club, name, age_class, join_code, staff_code)
+             values ('T63 FC', 'Alt', 'u17', 'TSTA-T63X', 'TSTB-T63Y') returning id)
+select tst.put('team63', id::text) from ins;
+update public.teams set created_at = now() - interval '3 years' where id = tst.get('team63')::uuid;
+insert into public.team_staff (team_id, user_id, role) values (tst.get('team63')::uuid, :'u63c', 'owner');
+do $$ begin
+  perform tst.ok(exists (select 1 from public.privacy_teams_due() d where d.id = tst.get('team63')::uuid),
+                 'T63 Team ohne Nutzung seit 24 Monaten: fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_teams_due() d where d.id = tst.get('team_a')::uuid),
+                 'T63 genutztes Team: nicht fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_accounts_due() d where d.id = tst.uid('u63c')),
+                 'T63 Konto mit Trainerrolle: nicht fällig');
+end $$;
+update public.profiles set last_seen_at = now() where id = :'u63c';
+do $$ begin
+  perform tst.ok(not exists (select 1 from public.privacy_teams_due() d where d.id = tst.get('team63')::uuid),
+                 'T63 Trainer wieder in der App: Team nicht mehr fällig');
+end $$;
+delete from public.teams where id = tst.get('team63')::uuid;
+
+-- Spielerprofil seit 24 Monaten nicht mehr aktiv (p4 ist seit T62 inaktiv)
+alter table public.players disable trigger players_inactive_since;
+update public.players set inactive_since = now() - interval '25 months' where id = tst.get('p4_player')::uuid;
+alter table public.players enable trigger players_inactive_since;
+do $$ begin
+  perform tst.eq((select string_agg(d.team_id::text, ',') from public.privacy_players_due() d where d.id = tst.get('p4_player')::uuid),
+                 tst.get('team_a'), 'T63 Spielerprofil 25 Monate nicht aktiv: fällig');
+  perform tst.ok(not exists (select 1 from public.privacy_players_due() d where d.id = tst.get('p2_player')::uuid),
+                 'T63 aktives Spielerprofil: nicht fällig');
+end $$;
+
+-- Trainerteam: Gesundheitsdaten löschen (Recht „Gesundheitsdaten“) und Auskunft (nur Owner)
+select tst.put('c63role', (select role from public.team_staff where team_id = tst.get('team_a')::uuid and user_id = :'coachC'));
+insert into public.rpe_entries (player_id, date, rpe, minutes) values (tst.get('p2_player')::uuid, current_date - 3, 4, 50);
+update public.team_staff set role = 'coach', perms = array['squad']::text[] where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.throws(format('select public.staff_erase_health_data(%L)', tst.get('p2_player')),
+                  'T63 Gesundheitsdaten löschen nur mit Recht Gesundheitsdaten', 'not_allowed');
+select tst.throws(format('select public.player_data_export(%L)', tst.get('p2_player')),
+                  'T63 Auskunft nur für den Owner', 'not_allowed');
+commit;
+update public.team_staff set perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+do $$ begin
+  perform tst.ok(public.staff_erase_health_data(tst.get('p2_player')::uuid) >= 1,
+                 'T63 Trainerteam löscht Gesundheitsdaten eines Spielers (z. B. Widerruf auf Papier)');
+end $$;
+commit;
+do $$ begin
+  perform tst.eq((select count(*) from public.rpe_entries where player_id = tst.get('p2_player')::uuid)::text, '0',
+                 'T63 Belastungsdaten danach gelöscht');
+end $$;
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'p2';
+select tst.throws(format('select public.staff_erase_health_data(%L)', tst.get('p2_player')),
+                  'T63 Spieler können kein Löschen fürs Trainerteam auslösen', 'not_allowed');
+select tst.throws(format('select public.player_data_export(%L)', tst.get('p2_player')),
+                  'T63 Spieler bekommen keine Auskunft fürs Trainerteam', 'not_allowed');
+commit;
+update public.team_staff set role = 'owner' where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
+begin;
+set local role authenticated;
+set local request.jwt.claim.sub = :'coachC';
+select tst.put('export63', public.player_data_export(tst.get('p2_player')::uuid)::text);
+commit;
+do $$
+declare x jsonb := tst.get('export63')::jsonb;
+begin
+  perform tst.eq(x ->> 'format', 'trainerstab-auskunft', 'T63 Auskunft: Format');
+  perform tst.ok((x -> 'daten') ? 'abwesenheiten' and (x -> 'daten') ? 'trainernotizen' and (x -> 'daten') ? 'einwilligungen'
+                 and (x -> 'daten') ? 'umfragen' and (x -> 'daten') ? 'morgen_check', 'T63 Auskunft: alle Bereiche, auch interne Notizen');
+  perform tst.ok(not (x -> 'spieler') ? 'user_id' and (x -> 'spieler') ? 'konto', 'T63 Auskunft: ohne Konto-ID, mit Hinweis auf das Konto');
+  perform tst.ok(position(tst.uid('p2')::text in x::text) = 0 and position('@test.local' in x::text) = 0,
+                 'T63 Auskunft enthält keine Konto-IDs und E-Mail-Adressen');
+  perform tst.ok(not exists (select 1 from jsonb_array_elements(x -> 'daten' -> 'einwilligungen') e where e ->> 'von' not in ('spieler', 'eltern')),
+                 'T63 Auskunft: Einwilligungen mit Herkunft (Spieler oder Eltern)');
+  perform tst.eq((select coalesce(string_agg(c.table_name::text, ',' order by c.table_name), '')
+                    from information_schema.columns c
+                    join information_schema.tables t on t.table_schema = c.table_schema and t.table_name = c.table_name and t.table_type = 'BASE TABLE'
+                   where c.table_schema = 'public' and c.column_name = 'player_id'
+                     and c.table_name not in (select e.tbl from public.player_export_tables() e union select sp.tbl from public.player_export_special() sp)),
+                 '', 'T63 Auskunft deckt jede Tabelle mit player_id ab oder nimmt sie ausdrücklich aus');
+end $$;
+update public.team_staff set role = tst.get('c63role'), perms = null where team_id = tst.get('team_a')::uuid and user_id = :'coachC';
 
 -- =====================================================================
 -- Zusammenfassung

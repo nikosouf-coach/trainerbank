@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import { teamLabel } from "../src/core/classes";
 import React from "react";
 import { Pressable } from "react-native";
+import { invitePath } from "../src/data/invite";
 import { useStore } from "../src/data/store";
 import { Banner, Btn, Card, Col, Header, Muted, Row, Screen, T } from "../src/ui/kit";
 
@@ -19,14 +20,15 @@ export default function Start() {
         {s.pendingInvite ? <Banner testID="st-invite"><Col gap={8}>
           <T>{tf("inv_found", { c: s.pendingInvite.code })}</T>
           <Row gap={8} wrap>
-            <Btn small kind="primary" testID="st-invite-go" label={t(s.pendingInvite.kind === "staff" ? "inv_joinStaff" : "inv_join")}
-              onPress={() => router.push((s.pendingInvite!.kind === "staff" ? "/staff-join?code=" : "/join?code=") + encodeURIComponent(s.pendingInvite!.code))} />
+            <Btn small kind="primary" testID="st-invite-go" label={t(s.pendingInvite.kind === "staff" ? "inv_joinStaff" : s.pendingInvite.kind === "parent" ? "inv_parent" : "inv_join")}
+              onPress={() => router.push("/" + invitePath(s.pendingInvite!.kind) + "?code=" + encodeURIComponent(s.pendingInvite!.code))} />
             <Btn small kind="ghost" testID="st-invite-forget" label={t("inv_forget")} onPress={() => s.rememberInvite(null)} />
           </Row>
         </Col></Banner> : null}
         {opt("create", t("st_create"), t("st_create_d"), "/setup")}
         {opt("join", t("st_join"), t("st_join_d"), "/join")}
         {opt("staff", t("st_staff"), t("st_staff_d"), "/staff-join")}
+        {opt("parent", t("el_startTitle"), t("el_startDesc"), "/parent-link")}
         {s.clubs.length ? <Col gap={8} testID="st-clubs"><T v="eyebrow">{t("st_clubs")}</T>{s.clubs.map(x => x.role === "pending"
           ? <Muted key={x.id} small>{tf("cl_pendingText", { c: x.name })}</Muted>
           : <Btn key={x.id} testID={"st-club-" + x.id} label={`${t("cl_open")} · ${x.name}`} onPress={() => router.push("/verein?id=" + x.id)} />)}</Col> : null}

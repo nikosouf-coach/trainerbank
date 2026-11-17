@@ -21,7 +21,7 @@
  *   Software.
  */
 
-// Angepasst für Trainerbank: als ES-Modul (ohne Namespace), ohne encodeBinary/makeEci, Einrückung mit Leerzeichen.
+// Angepasst für Trainerstab: als ES-Modul (ohne Namespace), ohne encodeBinary/makeEci, Einrückung mit Leerzeichen.
 // Unten ergänzt: qrMatrix() als einfacher Einstieg. Quelle: https://github.com/nayuki/QR-Code-generator
 
 type bit  = number;

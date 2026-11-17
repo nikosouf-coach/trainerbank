@@ -17,3 +17,6 @@ google-play-service-account.json
 *.p12
 *.mobileprovision
 .eas/
+
+# Website (gebaut von website/build.mjs)
+website/dist/

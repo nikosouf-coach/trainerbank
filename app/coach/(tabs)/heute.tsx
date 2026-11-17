@@ -25,6 +25,10 @@ import { TeamLogo } from "../../../src/ui/teamLogo";
 import { CoachPhaseCard } from "../../../src/ui/prep";
 import { CrashAsk } from "../../../src/ui/pilot";
 import { InboxCard } from "../../../src/ui/inbox";
+import { CoachPollsCard } from "../../../src/ui/polls";
+import { NextSquadCard } from "../../../src/ui/nomination";
+import { CoachRidesCard } from "../../../src/ui/rides";
+import { CoachBirthdaysCard } from "../../../src/ui/birthdays";
 import { ViaClubBanner } from "../../../src/ui/club";
 import { Icon, type IconName } from "../../../src/ui/icons";
 import { longDate } from "../../../src/ui/insight";
@@ -163,9 +167,13 @@ export default function Heute() {
   const cards: Record<string, React.ReactNode> = {
     next: hero, focus: <FocusCard />, matchday: <MatchdayCard />, tasks: <MyTasksCard />, inbox: <InboxCard />, phase: <CoachPhaseCard />, status: mods.belastung ? <TeamStatusCard /> : null,
     attn: attnCard, absent: absentCard, week: weekCard, events: eventsCard, last: lastCard, load: loadCard, ai: aiCard,
+    polls: s.can("messages") && E.D.polls.length ? <CoachPollsCard /> : null,
+    squad: <NextSquadCard />,
+    rides: <CoachRidesCard />,
+    birthdays: <CoachBirthdaysCard />,
   };
   const wide = width >= 1000, rest = dash.order.filter(k => k !== "next" && !!cards[k]);
-  const available = (k: string): boolean => ({ focus: true, matchday: true, inbox: !!mods.entwicklung || !!mods.chat, status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true } as Record<string, boolean>)[k] ?? true;
+  const available = (k: string): boolean => ({ focus: true, matchday: true, inbox: !!mods.entwicklung || !!mods.chat, status: !!mods.belastung, load: !!mods.belastung && E.lvl(2), phase: !!mods.vorbereitung, ai: !!mods.ki, tasks: true, polls: s.can("messages"), rides: mods.fahrten !== false, birthdays: mods.geburtstage !== false } as Record<string, boolean>)[k] ?? true;
 
   return (
     <Screen testID="coach-heute">

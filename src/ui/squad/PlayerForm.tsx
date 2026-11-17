@@ -1,8 +1,9 @@
 // Spieler anlegen/bearbeiten (Trainer) und doppelte Einträge zusammenführen.
 import React, { useState } from "react";
 import { POS } from "../../core/classes";
-import type { Player } from "../../core/types";
+import type { EmContact, Player } from "../../core/types";
 import { tmpId, useEngine, useStore } from "../../data/store";
+import { EmergencyFields, draftError, toDraft, type EmDraft } from "../emergency";
 import { Banner, Btn, Check, ChoiceChips, Col, DateField, Field, ListItem, Muted, NumField, Row, Sheet, T, ToggleRow } from "../kit";
 import { PlayerAvatar } from "../playerAvatar";
 import { useTheme } from "../theme";
@@ -19,16 +20,26 @@ export function PlayerForm({ player, onDone }: { player: Player | null; onDone: 
   const [active, setActive] = useState(player ? player.active !== false : true);
   const [busy, setBusy] = useState(false); const [msg, setMsg] = useState("");
   const [ask, setAsk] = useState(false);
+  // Neuer Spieler: Notfallkontakt freiwillig gleich mit eintragen (sonst trägt ihn der Spieler selbst ein)
+  const emOn = !player && s.can("squad");
+  const [em, setEm] = useState<EmDraft[]>(() => toDraft([]));
   const own = E.D.groups;
   const save = async () => {
     if (!vn.trim() || !nn.trim()) { setMsg(t("pf_need")); return; }
-    setBusy(true);
+    let contacts: EmContact[] = [];
+    if (emOn && em.some(x => x.name.trim() || x.phone.trim())) {
+      const r = draftError(E.tf, em);
+      if ("error" in r) { setMsg(r.error); return; }
+      contacts = r.contacts;
+    }
+    setMsg(""); setBusy(true);
     try {
       const p: Player = { ...(player || { id: tmpId(), photo: null, userId: null, neu: false }), vn: vn.trim(), nn: nn.trim(), geb: geb || player?.geb || "", pos: pos || player?.pos || "ZM", nr, kg, groups, active } as Player;
       const saved = await s.savePlayer(p);
       // Gruppen getrennt speichern (eigene Tabelle): nur Änderungen
       const before = player?.groups || [];
       for (const g of own) { const on = groups.includes(g.id); if (on !== before.includes(g.id)) await s.setGroupMember(g.id, saved.id, on); }
+      if (contacts.length) await s.saveEmergency(saved.id, contacts);
       s.toast(t("pf_playerSaved")); onDone(saved);
     } catch (e) { setMsg(s.errText(e)); } finally { setBusy(false); }
   };
@@ -52,6 +63,11 @@ export function PlayerForm({ player, onDone }: { player: Player | null; onDone: 
         <Row wrap gap={12}>{own.map(g => <Check key={g.id} testID={"pf-group-" + g.id} label={g.name} value={groups.includes(g.id)} onChange={v => setGroups(v ? [...groups, g.id] : groups.filter(x => x !== g.id))} />)}</Row>
       </Col> : null}
       {player ? <ToggleRow testID="pf-active" label={t("pf_active")} desc={t("pf_activeD")} value={active} onChange={setActive} /> : null}
+      {emOn ? <Col gap={8} testID="pf-emergency">
+        <T v="small" bold color={c.muted}>{t("pf_emergency")}</T>
+        <Muted small>{t("pf_emergencyD")}</Muted>
+        <EmergencyFields testID="pf-nf" value={em} onChange={v => { setEm(v); setMsg(""); }} />
+      </Col> : null}
       {msg ? <Muted>{msg}</Muted> : null}
       <Row gap={8} wrap>
         <Btn testID="pf-save" kind="primary" label={t("save")} disabled={busy} onPress={save} />

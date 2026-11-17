@@ -1,8 +1,10 @@
 // Absturzberichte – App (iOS/Android) über Sentry, Speicherort EU. Nur mit Zustimmung auf diesem Gerät (Konto bzw. Hinweis
 // auf der Startseite) und nur, wenn EXPO_PUBLIC_SENTRY_DSN gesetzt ist. Gesendet werden Fehler mit Stelle im Code,
 // App-Version, Gerät, Betriebssystem und die zuletzt geöffneten Seiten (ohne IDs) – keine Namen, E-Mail- oder IP-Adressen,
-// keine Bildschirmfotos, keine Konsolen- und Netzwerkdaten. Gleiche Exporte wie crash.ts (Browser).
+// keine Bildschirmfotos, keine Konsolen- und Netzwerkdaten; E-Mail-Adressen, IDs, Telefonnummern und Codes in
+// Fehlermeldungen werden vor dem Senden ersetzt (scrubText). Gleiche Exporte wie crash.ts (Browser).
 import * as Sentry from "@sentry/react-native";
+import { scrubText } from "../core/text";
 import { appInfo } from "./release";
 
 const DSN = process.env.EXPO_PUBLIC_SENTRY_DSN || "";
@@ -16,7 +18,7 @@ export function startCrashReports(on: boolean): void {
     Sentry.init({
       dsn: DSN,
       environment: a.channel || "development",
-      release: `trainerbank@${a.version}${a.build ? "+" + a.build : ""}`,
+      release: `trainerstab@${a.version}${a.build ? "+" + a.build : ""}`,
       dist: a.build || undefined,
       sendDefaultPii: false,
       tracesSampleRate: 0,
@@ -29,9 +31,12 @@ export function startCrashReports(on: boolean): void {
       // nur die eigenen Seiten-Einträge (keine Konsole, keine Netzwerk-Anfragen mit Adressen und IDs)
       beforeBreadcrumb: b => b.category === "page" ? b : null,
       beforeSend: e => {
-        delete e.user; delete e.request;
+        delete e.user; delete e.request; delete e.extra;
         const dev = e.contexts?.device as { name?: unknown } | undefined;
         if (dev) delete dev.name;
+        // Fehlermeldungen können Angaben aus Server-Antworten enthalten (z. B. E-Mail-Adresse, ID, Code)
+        if (e.message) e.message = scrubText(e.message);
+        for (const x of e.exception?.values || []) if (x.value) x.value = scrubText(x.value);
         return e;
       },
     });

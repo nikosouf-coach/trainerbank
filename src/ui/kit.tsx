@@ -433,6 +433,25 @@ export function ChoiceChips<K extends string>({ options, value, onChange, testID
     </Row>
   );
 }
+/** Mehrfachauswahl als Chips (je Eintrag an/aus, gewählte mit Haken) */
+export function MultiChips<K extends string>({ options, value, onChange, testID }: { options: { key: K; label: string }[]; value: K[]; onChange: (v: K[]) => void; testID?: string }) {
+  const { c } = useTheme(); const tn = tonal(c, useSurface());
+  return (
+    <Row wrap gap={6}>
+      {options.map(o => {
+        const on = value.includes(o.key);
+        return (
+          <Pressable key={o.key} testID={testID ? testID + "-" + o.key : undefined} accessibilityRole="checkbox" accessibilityState={{ checked: on }}
+            onPress={() => onChange(on ? value.filter(x => x !== o.key) : [...value, o.key])}
+            style={{ flexDirection: "row", alignItems: "center", gap: 6, borderWidth: 1, borderColor: on ? c.ink : tn.borderColor, backgroundColor: on ? c.ink : tn.backgroundColor, borderRadius: radius.pill, paddingVertical: 8, paddingHorizontal: 14 }}>
+            {on ? <Icon name="check" size={14} color={c.bg} strokeWidth={2.6} /> : null}
+            <Text style={{ fontWeight: "600", fontSize: 14, color: on ? c.bg : c.ink }}>{cap(o.label)}</Text>
+          </Pressable>
+        );
+      })}
+    </Row>
+  );
+}
 export function Chip({ label, color, testID }: { label: string; color?: string; testID?: string }) {
   const { c, dark } = useTheme(); const col = color || c.build;
   return (

@@ -5,6 +5,7 @@ import { isGoalkeeper } from "./units";
 import {
   defaultUntil, emptyContent, fitToView, kickoff, lineupFor, mpId, newSlide, oppLineup, publishedOf, suggestLineup, DEFAULT_SECTIONS,
 } from "./matchplan";
+import { cardRules, suspendedIn } from "./cards";
 import type { Lang, Match, MatchPlan, MpContent, MpItem, MpLog, MpSlide, TeamData } from "./types";
 
 const L = (en: boolean, de: string, e: string): string => en ? e : de;
@@ -46,7 +47,8 @@ export function demoMatchPlans(D: TeamData, lang: Lang, now: Date): void {
   const minutes = (pid: string) => Object.values(D.stats).reduce((s, st) => s + (st[pid]?.min || 0), 0);
   const build = (m: Match): MpContent => {
     let c = emptyContent(D.team.cls);
-    c = suggestLineup(c, D.players, pid => !absent(pid, m.date), pid => -minutes(pid), p => isGoalkeeper(D, p));
+    const sus = suspendedIn(D, cardRules(D.team), m.id, TODAY);
+    c = suggestLineup(c, D.players, pid => !absent(pid, m.date) && !sus.has(pid), pid => -minutes(pid), p => isGoalkeeper(D, p));
     const zm = c.lineup.find(x => (x.label === "ZM" || x.label === "DM" || x.label === "IV") && x.pid);
     c.captain = zm?.pid || null;
     c.mode = "name"; c.size = 1;

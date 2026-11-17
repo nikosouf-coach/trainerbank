@@ -1,6 +1,6 @@
-# Trainerbank – Architektur
+# Trainerstab – Architektur
 
-Trainerbank ist eine App für Fußballtrainer (Senioren bis U7) und ihre Spieler: Kalender, Wochenplanung mit
+Trainerstab ist eine App für Fußballtrainer (Senioren bis U7) und ihre Spieler: Kalender, Wochenplanung mit
 Spieltags-Prinzipien, Belastungssteuerung (Session-RPE, ACWR), Regeneration nach Alter, Anwesenheit,
 Abwesenheiten, Spieler-App mit Selbsteingabe und KI-Coach.
 
@@ -15,10 +15,18 @@ Abwesenheiten, Spieler-App mit Selbsteingabe und KI-Coach.
 | Server | Supabase (Postgres, Auth, Storage, Edge Functions), Region Frankfurt | `supabase/` |
 | KI | Edge Function `ai` ruft die Claude API serverseitig auf | `supabase/functions/ai` |
 | Push | `expo-notifications` + Edge Function `push-reminders` (zeitgesteuert) | `supabase/functions/push-reminders` |
+| Website trainerstab.app | statische Seiten (Datenschutz, Impressum, Hilfe, Konto löschen, Einladungen, E-Mail bestätigt, neues Passwort), gebaut mit `website/build.mjs`, veröffentlicht über GitHub Pages (Branch `gh-pages`) | `website/` |
+| Anbieter, Kontakt, Adressen | eine JSON-Datei für App (Impressum, Rechtstexte, Einladungslinks) und Website | `src/data/site.json` |
 
 Grundsatz: Die gesamte Fachlogik (Wochenplan, Erholungsmodell, Kennzahlen, Tipps) liegt in `src/core` und kennt
 weder React noch Supabase. Sie arbeitet auf einem `TeamData`-Objekt (siehe `src/core/types.ts`). Die App baut
 `TeamData` aus der Datenbank (oder aus den Demo-Daten) und ruft die Logik auf.
+
+Links aus E-Mails und Einladungen: Einladungslinks zeigen auf die Website (`https://trainerstab.app/join?code=…`,
+`/staff-join`, `/parent-link`); die Seite zeigt den Code und öffnet die App über `trainerstab://…` (Android über einen
+Intent mit Rückfall auf die Installationshinweise). Bestätigungs-E-Mails führen auf `/bestaetigt`, Passwort-E-Mails auf
+`/passwort` (setzt das neue Passwort direkt über die Auth-API von Supabase; beide Seiten beenden die Sitzung aus dem
+Link danach). Dafür müssen beide Adressen in Supabase unter Redirect URLs erlaubt sein (`https://trainerstab.app/**`).
 
 ## Rollen
 
@@ -30,6 +38,11 @@ weder React noch Supabase. Sie arbeitet auf einem `TeamData`-Objekt (siehe `src/
 - **Spieler** (`players.user_id` = eigenes Konto): sieht Teamkalender und veröffentlichten Wochenplan, nur die
   **eigenen** Gesundheitsdaten, eigene Abwesenheiten, für ihn freigegebene Potenziale und Nachrichten des Trainers.
   Spieler sehen keine Daten von Mitspielern.
+- **Eltern** (`player_guardians`, Status `active`): Konto, das das Trainerteam mit einem minderjährigen Spieler
+  verknüpft hat (Code je Kind, Bestätigung mit Recht `squad`). Kein Zugriff auf Tabellen des Teams – nur das Paket
+  `guardian_child_data` fürs eigene Kind und eigene RPCs; die Elterninfo per RLS. Zugang, solange das Kind minderjährig
+  ist (oder das volljährige Kind verlängert, `adult_ok`) und das Modul `eltern` an ist (`team_parents_on`). Ohne eigene
+  Teammitgliedschaft startet die App in der Eltern-Ansicht (`phase = "parent"`).
 - Spieler können auch ohne eigenes Konto existieren (vom Trainer angelegt). Beim Beitritt per Team-Code wird ein
   vorhandener Spieler mit gleichem Vor-/Nachnamen und Geburtsdatum verknüpft, sonst neu angelegt.
 
@@ -39,7 +52,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 
 | Tabelle | Spalten | Hinweise |
 |---|---|---|
-| `profiles` | `id` (pk, → auth.users, cascade), `display_name`, `lang` ('de'/'en'), `created_at` | per Trigger bei Registrierung |
+| `profiles` | `id` (pk, → auth.users, cascade), `display_name`, `lang` ('de'/'en'), `created_at`, `last_seen_at` (Tag der letzten Nutzung, nur über `touch_seen()`; …20261105000010) | per Trigger bei Registrierung |
 | `teams` | `id`, `club`, `name`, `accent`, `age_class`, `depth` ('org'/'basis'/'pro'), `settings` jsonb, `principles` jsonb, `modules` jsonb, `timezone` (default 'Europe/Berlin'), `join_code` (unique), `staff_code` (unique), `created_by` (→ auth.users, set null), `created_at` | Codes: 4–4 Zeichen, ohne verwechselbare Zeichen |
 | `team_staff` | `team_id`, `user_id`, `role`, pk(team_id,user_id) | cascade |
 | `players` | `id`, `team_id`, `user_id` (null, → auth.users, **cascade**), `first_name`, `last_name`, `birthdate`, `position`, `shirt_number`, `weight_kg`, `photo_path`, `is_new` bool, `active` bool, `created_at`; unique(team_id,user_id) | Konto löschen ⇒ Spielerzeile + Gesundheitsdaten weg |
@@ -69,7 +82,7 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | Tabelle | Spalten (Auszug) | Zugriff |
 |---|---|---|
 | `extra_activities.label`, `.program_item` | freie Bezeichnung; erledigter Programm-Baustein | wie Zusatzsport |
-| `match_stats` | pk(`match_id`,`player_id`), `minutes`, `goals`, `assists`, `started` | Staff; Spieler eigene, wenn `player_view(team,'stats')` |
+| `match_stats` | pk(`match_id`,`player_id`), `minutes`, `goals`, `assists`, `started`; `card` (y, yr, r – …20261105000007) | Staff; Spieler eigene, wenn `player_view(team,'stats')`; schreiben Staff mit `perf` |
 | `player_ratings` | `id`, `player_id`, `date`, `kind` (spiel/training), `rating` 1–10, `text`, `visible` | Staff; Spieler eigene freigegebene, wenn `player_view(team,'ratings')` |
 | `videos` | `id`, `title`, `url`, `date`, `match_id`, `player_ids` und `group_ids` (beide leer = ganzes Team), `note`, `visible` | Staff; Mitglieder freigegebene (für sie oder ihre Gruppe bestimmte) |
 | `performance_tests` | `id`, `player_id`, `test` (eingebaut oder `c:<id>` eines eigenen Tests des Teams, …0029), `date`, `value` (0 … 99 999,99), `note` | Staff; Spieler eigene, wenn `player_view(team,'tests')` |
@@ -122,6 +135,28 @@ Alle IDs `uuid default gen_random_uuid()`, Zeitstempel `timestamptz default now(
 | `scout_reports` (…0026) | Beobachtung: `date`, `event`, `kind` (match/tournament/training/video/trial/other), `minutes`, `position`, `scores` jsonb (Bereiche und Kompetenzen 1–5), `grade` 1–5, `verdict` (sign/watch/no), `strengths`, `weaknesses`, `summary`, `author`/`author_name` (setzt der Server) | nur Staff mit `scout`; ein neuer Bericht frischt `scout_players.updated_at` auf (Löschfrist) |
 | `squad_plans` (…0026) | Saisonplanung je Team und Saison (`season` = Beginnjahr, unique, nicht änderbar): `content` jsonb (Spielform, Grundordnung, je Position Soll, Anforderungsprofil, eingeplanter Kader und Schattenkandidaten in Reihenfolge, Stand der eigenen Spieler, Kurzangaben zu Aufrückern, Notizen; ≤ 200 kB) | nur Staff mit `scout` |
 | `app_admins`, `feedback` (…0030) | Betreiber der App (nur per SQL eintragen); Rückmeldungen: `kind` (bug/unclear/wish/praise), `text`, `page` (ohne IDs), `app_version`, `update_id`, `platform`, `os_version`, `device`, `shot_path` (Bucket `feedback`, `{user_id}/{uuid}.jpg`), `status`, `role` und `team_id` (setzt der Trigger nach Mitgliedschaft), höchstens 20 je Konto und Tag | eigene lesen, einfügen; Betreiber alles über `feedback_list`, `feedback_set_done`, `feedback_delete`; Löschfrist 12 Monate nach Erledigung (ohne Foto) |
+| `dev_programs` (…20261105000001) | Entwicklungsprogramm, eines je Spieler (pk `player_id`): `content` jsonb (`tag` Motto ≤ 24, `xf` X-Faktor ≤ 3, `sit` Situationen ≤ 3, `zones` stärkster Bereich ≤ 15, `improve` ≤ 4 Felder mit Art, Thema, Stärke, Ort, Hilfe, Weg, Ziel, `coach` Sicht des Trainerteams, `peers` ausgewählte Stärken aus der Stärken-Runde ≤ 5; ≤ 16 KB, `dev_program_ok`), `visible`, `published_at` (setzt der Trigger beim Freigeben und bei jeder Änderung eines freigegebenen Programms), `updated_by` | Staff mit `notes`; Spieler nur das eigene freigegebene |
+| `dev_self` (…20261105000001) | Selbstanalyse: `weapons` und `skills` (je ≤ 3 Schlüssel aus dem Stärken-Katalog der App, ohne Überschneidung) | Spieler eigene (schreiben, löschen); Staff mit `notes` lesen und löschen |
+| `dev_peer_skills` (…20261105000001) | Stärken-Runde: pk(`giver_id`,`target_id`), `skills` 1–3 Katalog-Schlüssel (nur Positives, kein Freitext); Schenkender und Empfänger aktiv im selben Team (`different_teams`), Spieler schreiben nur während der Runde `teams.settings.peer = {since, until}` (`peer_closed`) | lesen Staff mit `notes` und der Schenkende (eigene); Empfänger sehen keine Einträge – nur, was das Trainerteam ins Programm übernimmt; Löschfrist 12 Monate |
+| `match_stats.pre_assists` (…20261105000001) | Pre-Assists (vorletzter Pass vor einem Tor, 0–20; leer = nicht erfasst) | wie Spieldaten |
+| `polls` (…20261105000002) | Umfrage: `kind` (quick = Abstimmung mit genau einer Auswahlfrage, survey = Fragebogen), `title`, `intro` (nur Fragebogen), `questions` jsonb (1–15 Fragen: `id`, `type` single/multi/scale/text, `text` ≤ 200, `options` 2–10 verschiedene je ≤ 80 bzw. keine, `required`, Skalenbeschriftungen `lo`/`hi` ≤ 30; `poll_questions_ok`), `anonymous`, `results` (all/staff), `group_id` (Gruppe gelöscht ⇒ Umfrage weg), `until` (letzter Tag, Zeitzone des Teams), `closed_at`, `by_player`/`author_player`/`author_name`/`created_by`/`answer_count` (setzt der Server); Spieler-Abstimmungen nur mit `settings.polls.players` (`polls_off`), immer mit Namen, ganzes Team, Ergebnisse für alle (`polls_player_rules`), höchstens zwei laufende (`limit`/`open_polls`); nach der ersten Antwort bleiben Fragen und Einstellungen fest (`poll_answered`); höchstens 300 je Team | Staff mit `messages` alle; Spieler die an sie gerichteten (`poll_target_me`, auch nicht freigegebene Gruppen) und eigenen; ändern/löschen Staff mit `messages` (Inhalt von Spieler-Abstimmungen nur der Autor) und der Autor |
+| `poll_answers` (…20261105000002) | Antwort, pk(`poll_id`,`player_id`): `answers` jsonb (Frage-ID → Index, Indizes, 1–5 oder Text ≤ 500; `poll_answer_ok`), nur solange die Umfrage läuft (`poll_closed`) und nur von Angesprochenen; Zähler `polls.answer_count` per Trigger | nur der Spieler selbst (lesen, schreiben, zurückziehen solange sie läuft); Ergebnisse nur über `poll_results`; Löschfrist mit der Umfrage |
+| `player_emergency` (…20261105000003) | Notfallkontakt, einer je Spieler (pk `player_id` → `players`, Cascade): `contacts` jsonb mit 1–2 Kontakten (`name` 1–80, `rel` mother/father/guardian/partner/sibling/grandparent/other, `phone` ≤ 30 Zeichen aus Ziffern, `+` nur am Anfang, Leerzeichen, `/`, `-`, Klammern, 6–20 Ziffern; keine Nummer doppelt – `emergency_contacts_ok`), `team_id` setzt der Server, `updated_at`/`updated_by` (Client-Änderungen); `player_id` nicht änderbar | Spieler eigene (lesen, schreiben, löschen); Staff mit `squad` oder `health` lesen, mit `squad` schreiben und löschen |
+| `player_emergency_med` (…20261105000003) | Hinweise für den Notfall (Gesundheitsdaten), einer je Spieler: `note` 1–500 Zeichen; Spieler nur mit Einwilligung (`require_health_consent`) | Spieler eigene; Staff mit `health` (lesen, schreiben, löschen) |
+| `player_sizes` (…20261105000004) | Größen, eine Zeile je Spieler (pk `player_id` → `players`, Cascade): `top` und `bottom` (116–176 oder XS–3XL), `shoes` (EU 26–50, halbe Größen), `gloves` (4–12, halbe Größen), `print_name` (Beflockung, 1–20 Zeichen ohne Steuerzeichen), `note` (1–200), mindestens eine Angabe; `team_id`, `updated_at`/`updated_by` setzt der Server (`player_emergency_prepare`), `player_id` nicht änderbar. Modul `ausruestung` (Standard an) | Spieler eigene (lesen, schreiben, löschen); Staff mit `squad` |
+| `match_squads` (…20261105000005) | Kader je Spiel (pk `match_id` → `matches`, Cascade): `meet_time` (HH:MM), `meet_place` (1–120), `note` (1–500), `show_all` (Nominierte sehen die Kaderliste), `published_at` (setzt der Server beim Veröffentlichen; null = Entwurf), `team_id`/`updated_at`/`updated_by` vom Server, Spiel nicht wechselbar | Staff lesen; Spieler veröffentlichte Kader, in denen sie nominiert sind (`nominated_me`); schreiben Staff mit `plan` |
+| `match_nominations` (…20261105000005) | pk(`match_id` → `match_squads`, `player_id`): `standby` (auf Abruf), `answer` (yes/no), `reason` (nur bei Absage, 1–200), `answered_at`, `answered_by_staff` (Antworten von Clients = Trainerteam, Zeitpunkt vom Server); Spieler aus demselben Team (`different_teams`) | Staff lesen; Spieler die eigene, wenn veröffentlicht (`squad_published`); schreiben Staff mit `plan`; Spieler antworten über `answer_nomination` |
+| `rides` (…20261105000006) | Fahrt zu einem Spiel (`match_id`) oder Termin (`event_id`, genau eins – `rides_one_target`; `ref_id` generiert, Cascade): `driver_pid` (Spieler bzw. Eltern; null = Trainerteam), `driver_label` (1–60, z. B. „Mama von Max“), `seats` 1–8 (Plätze für Mitfahrer), `depart_time` (HH:MM), `depart_place` (1–120), `note` (1–200); je Ziel höchstens eine Fahrt pro Fahrer (`rides_driver_once`) | lesen Team (`is_team_member`); schreiben nur über `ride_save`/`ride_delete` |
+| `ride_seats` (…20261105000006) | pk(`ride_id` → `rides`, `player_id`), `ref_id` (vom Server), je Ziel ein Platz pro Spieler (`ride_seats_once`) | lesen Team; schreiben nur über `ride_join`/`ride_leave` |
+| `ride_needs` (…20261105000006) | Spieler sucht eine Mitfahrgelegenheit: `match_id`/`event_id` (genau eins, Cascade), `ref_id` generiert, je Ziel einmal (`ride_needs_once`) | lesen Team; schreiben nur über `ride_need` (und die Funktionen oben) |
+| `player_suspensions` (…20261105000007) | Eingetragene Sperre: `player_id` (Cascade), `match_id` (Auslöser, `set null`), `kind` (yellow, yellow_red, red, other), `start_date`, `games` (0–30; 0 = aufgehoben; null = bis zum Urteil) oder `until_date` (nicht beides, nicht vor dem Beginn), `scope` (league, all), `note` (1–200, einzeilig); je Auslöser, Spieler und Grund eine (`player_suspensions_once`); `team_id` aus dem Spieler, Auslöser aus demselben Team (`different_teams`), Spieler nicht wechselbar, `updated_by`/`updated_at` vom Server. Sperren aus Karten nach den Regeln (`teams.settings.cards`) berechnet die App (`core/cards`) | Staff lesen, Spieler eigene; schreiben Staff mit `perf` |
+| `photo_consents` (…20261105000008) | Foto-Erlaubnis je Spieler (pk `player_id`, Cascade): `web`, `social`, `press`, `name_ok` (ja/nein/null = offen), `given_by` (player, parents, both), `given_on`, `note` (1–200, einzeilig), `updated_at/by` | lesen Staff und der Spieler selbst; schreiben nur `photo_consent_save` (Staff mit `squad`: Erklärung aus dem Formular; Spieler: Nein immer, Ja nur volljährig – Geburtsdatum, ohne Geburtsdatum nur in `sen`/`ue32` –, dann `given_by = player`, `given_on` heute) |
+| `accident_reports` (…20261105000008) | Unfallmeldung (Gesundheitsdaten): `player_id` (Cascade), `accident_date`, `accident_time` (HH:MM), `place`, `activity` (training, match, travel, other), `match_id` (nur bei match/travel, `set null`), `absence_id` (Verletzung desselben Spielers, `set null`), `how` (1–1000), `injury` (1–300), `body_area` (Code aus core/body), `first_aid`, `treatment`, `witnesses` (je 1–300), `club_on`, `insurer_on` (nicht vor dem Unfall, nicht in der Zukunft), `claim_no`, `closed`, `note`; Trigger `accident_reports_prepare` (Team aus dem Spieler, Spiel aus dem Team, Konto) | lesen Staff mit `health` und der Spieler selbst; schreiben nur Staff mit `health` |
+| `player_guardians` (…20261105000009) | Eltern-Verknüpfung: `team_id`, `player_id` (Cascade), `user_id` (Cascade), `name` (2–60), `relation` (mother, father, guardian), `status` (pending, active), `adult_ok` (volljähriges Kind hat verlängert), `created_at`, `confirmed_at/by`; je Kind und Konto einmal, höchstens zwei je Kind (`guardian_redeem`); Trigger `player_guardians_ended` setzt beim Löschen die Einwilligungen dieses Elternteils fürs Kind auf widerrufen | lesen das eigene Konto, Staff mit `squad` und das Kind selbst; schreiben nur über RPCs |
+| `guardian_invites` (…20261105000009) | Einladung je Kind: `code_hash` (SHA-256 des Codes, Code selbst nie gespeichert), `uses_left` (0–2), `expires_at` (14 Tage), `created_by` | lesen Staff mit `squad` (Spaltenrecht ohne `code_hash`); schreiben nur `guardian_invite_create` |
+| `guardian_code_attempts` (…20261105000009) | falsche Codes je Konto mit Zeitpunkt (höchstens 10 je Stunde, nach einem Tag gelöscht) | kein Zugriff für Clients |
+| `parent_posts` (…20261105000009) | Elterninfo: `title` (1–120), `body` (1–4000), `need_ack`, `author` (setzt der Server aus dem Profil), `created_by`, `created_at/updated_at` | lesen Staff mit `squad` und bestätigte Eltern des Teams (`is_guardian_in_team`); schreiben Staff mit `squad` |
+| `parent_post_reads` (…20261105000009) | Lesestand: `post_id` (Cascade), `user_id`, `read_at`, `acked_at` | lesen das eigene Konto und Staff mit `squad`; schreiben nur `parent_post_read` |
 
 `player_view(team, key)` liest `teams.settings.playerView` (Baukasten) und das zugehörige Modul. Erinnerungen stehen
 in `teams.settings.reminders` und werden von `push-reminders` ausgewertet. Dienste (`settings.duties`), Strafenkatalog
@@ -134,6 +169,8 @@ ihrem Startdatum, fallen an Spieltagen, in Pausen und bei abgesagtem Mannschafts
 Tage (42 Tage) als `day_units` festgehalten, damit spätere Änderungen am Wochenrhythmus die Historie nicht verändern.
 `settings.indivReq` (Anfragen für Individualtraining an/aus) und `settings.challengeRank` (Bestenliste der Challenge)
 gehören zur Planung (`plan`); `settings.chat` = `{ on, dm: off|staff|all, transparent, teamReadOnly }` zu `admin`.
+`settings.peer` = `{ since, until }` (Stärken-Runde, 7/14/21 Tage; Beenden setzt `until` auf gestern) gehört zu `notes`.
+`settings.polls` = `{ players }` (Spieler dürfen Abstimmungen starten, Standard aus) gehört zu `messages`.
 
 ### Chat und Kinderschutz
 
@@ -231,6 +268,11 @@ zusätzlich auf dem Gerät gespeichert, damit sie schon vor der Anmeldung gilt).
 nicht in der Leiste liegen (`useNavBack`). Bildschirme im Hintergrund werden eingefroren (`enableFreeze`,
 `freezeOnBlur`), damit Speichern im Hintergrund die sichtbare Seite nicht verlangsamt.
 
+Eltern-Ansicht: `app/parent/` (Guard-Bereich `parent`, `src/ui/parent.tsx`) und `/parent-link` (Code einlösen, auch
+als Link `…/parent-link?code=…` – ohne Anmeldung wird der Code gemerkt, `PendingInvite.kind = "parent"`). Wer selbst
+im Team ist und Kinder verknüpft hat, öffnet sie über „Mehr → Eltern-Ansicht“, „Ich“ bzw. das Konto
+(`setParentMode`); Trainerteam: „Mehr → Eltern-Zugang“ (`app/coach/(tabs)/eltern.tsx`, Zahl = offene Anfragen).
+
 ### Erscheinungsbild
 
 Leitfaden mit Farben, Schrift, Formen und Seitenmustern: [DESIGN.md](DESIGN.md). `src/ui/theme.tsx` hält alle Farben als
@@ -313,7 +355,8 @@ Der Datenexport (`my_data_export`) bleibt unverändert, da Scouting keine Daten 
 `staff_can(team, perm)` ist die zentrale Prüfung: Owner immer, sonst `team_staff.perms` bzw. `default_perms(role)`
 (coach: health, plan, squad, perf, notes, messages, tasks, scout; physio: health, medical, perf, messages). Die Regeln nutzen
 sie für Gesundheitsdaten (`health`), Befunde inkl. Dateien und KI-Auswertung (`medical`), Planung (`plan`), Kader,
-Gruppen, Anwesenheit, Kontakte (`squad`), Tests/Statistik (`perf`), Notizen/Bewertungen (`notes`), Nachrichten
+Gruppen, Anwesenheit, Kontakte, Größen, Notfallkontakte (`squad`; Notfallkontakte lesen auch mit `health`, Hinweise
+für den Notfall nur `health`), Tests/Statistik (`perf`), Notizen/Bewertungen (`notes`), Nachrichten
 (`messages`), Aufgaben/Dienste/Strafen (`tasks`), Kaderplanung und Scouting (`scout`), Kasse (`cash`) und
 Team-Einstellungen (`admin`). Eigene Todos darf
 jeder im Trainerteam abhaken. In der App wirken fehlende Rechte wie ausgeschaltete Module (`core/perms.viewFor`).
@@ -323,7 +366,8 @@ jeder im Trainerteam abhaken. In der App wirken fehlende Rechte wie ausgeschalte
 Einträge (RPE, Morgen-Check, Zusatzsport, Abwesenheit, Anwesenheit, Aufgabe erledigt) gehen ohne Netz in eine
 Warteschlange (`core/outbox`, Gerätespeicher je Konto, 14 Tage) und werden in Reihenfolge nachgereicht; neue Datensätze
 bekommen IDs vom Gerät (wiederholbares Senden). Der letzte Stand wird für den Start ohne Netz auf dem Gerät gehalten
-(höchstens 2,5 MB, 14 Tage, beim Abmelden gelöscht).
+(höchstens 2,5 MB, 14 Tage, beim Abmelden gelöscht) – dazu gehören die Notfallkontakte, damit das Trainerteam auch
+ohne Netz anrufen kann.
 
 Storage-Buckets: `avatars` (Profilbilder), `findings` (Befunde, Staff + Spieler selbst), `sketches` (Fotos von
 Trainingsskizzen, Pfad `{team_id}/{block_id}.jpg`, JPEG ≤ 4 MB, nur Trainerteam).
@@ -354,8 +398,79 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
 - `regenerate_codes(team)` (nur Owner).
 - `team_by_join_code(code)` → Vereins-/Teamname zur Anzeige vor dem Beitritt (keine weiteren Daten).
 - `merge_players(new, existing)` – führt eine doppelte Spielerzeile zusammen (inkl. Gruppen, Aufgaben, Dienste, Strafen,
-  Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining; v7: Matchplan).
-- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerbank-export-v8` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos): Profil, Gesundheitsdaten
+  Kasse; v5: RPE je Einheit des Tages; v6: Entwicklung, Challenges, Individualtraining; v7: Matchplan; v8:
+  Entwicklungsprogramm, Selbstanalyse, Stärken-Runde; v9: Antworten und Abstimmungen aus Umfragen – doppelte Einträge
+  bleiben beim bestehenden Spieler; v10: Notfallkontakt und Hinweise für den Notfall – der neuere Stand gewinnt; v11:
+  Größen – der neuere Stand gewinnt; v12: Kader-Nominierungen – doppelte bleiben bei der neuen Zeile; v13:
+  Fahrgemeinschaften – je Ziel nur eins von Fahrer, Platz, Suche, Doppelungen bleiben bei der neuen Zeile; v14:
+  eingetragene Sperren – je Karte eine, Doppelungen bleiben bei der neuen Zeile; v15: Foto-Erlaubnis – die zuletzt
+  geänderte gilt, Unfallmeldungen; v16: Eltern-Verknüpfungen – doppelte Verknüpfung desselben Elternteils entfällt,
+  Einladungen der neuen Zeile verfallen).
+- `answer_nomination(match, answer, reason)` – Zu-/Absage des Spielers für die eigene Nominierung: nur veröffentlicht,
+  mit `settings.playerAbs` (wie Absagen bei Trainings, Standard an) und vor dem Anpfiff (Datum + Uhrzeit in der Zeitzone
+  des Teams); Grund nur bei Absage (bereinigt, ≤ 200). Fehler `answers_off`, `match_started`, `invalid_answer`.
+- `squad_mates(team)` – Kaderlisten für nominierte Spieler (nur `show_all`): Vorname und Initial, Nummer, Position, auf
+  Abruf – keine Antworten. `purge_old_squads()` (täglich) – Kader 12 Monate nach dem Spiel.
+- Fahrgemeinschaften (alle security definer, Regeln wie `core/rides → rideCheck`; Datum in der Zeitzone des Teams):
+  `ride_save(id, kind, ref, driver_pid, driver, seats, time, place, note)` – neu: Trainerteam für jeden (ohne Fahrer =
+  Fahrt des Trainerteams), Spieler nur als eigener Fahrer und ohne andere Fahrt zum Ziel (`already_in_ride`), Fahrer
+  sucht danach nicht mehr; ändern: Trainerteam oder der Fahrer, Ziel und Fahrer bleiben, Plätze nicht unter die Zahl
+  der Mitfahrer (`seats_taken`). `ride_delete(id)` → Zahl der Mitfahrer, die (kommende Ziele) wieder suchen.
+  `ride_join(ride, player)` – Trainerteam ordnet jeden zu, Spieler sich selbst, Fahrer nur Suchende; Fahrt gesperrt
+  (`ride_full`), Wechsel aus einer anderen Fahrt (Trainerteam oder der Spieler selbst), wer mitfährt, sucht nicht mehr.
+  `ride_leave(ride, player, need)` – Trainerteam, der Spieler selbst oder der Fahrer; `need` = sucht danach wieder.
+  `ride_need(kind, ref, player, on)` – Trainerteam oder der Spieler selbst; suchen nur ohne Fahrt. Vergangene Ziele:
+  `ride_past`; Modul `fahrten` aus: `rides_off` (austragen, löschen und Suche beenden gehen weiter); je Spieler und
+  Ziel nacheinander (`ride_lock`, Advisory-Lock). `ride_names(team)` – Vorname und Initial der Beteiligten.
+  `purge_old_rides()` (täglich) – Suchen am Tag nach dem Ziel, Fahrten 30 Tage danach.
+- `purge_old_suspensions()` (täglich) – eingetragene Sperren 24 Monate nach Beginn bzw. Ende. `teams_perm_guard`: die
+  Regeln für Sperren (`settings.cards`) brauchen `perf`.
+- `photo_consent_save(player, web, social, press, name, by, on, note)` – Foto-Erlaubnis speichern (siehe Tabelle; je
+  Spieler serialisiert). `purge_old_accidents()` (täglich) – Unfallmeldungen 36 Monate nach dem Unfall.
+  Eltern: Erklärung gilt als die der Eltern (`given_by = parents`, heute); nur Widerrufe bzw. unverändert lassen die
+  Erklärung bestehen – hatte nur das Kind erklärt, wird sie zu „beide“. Spieler 14–17 stimmen einer Erklärung der
+  Eltern mit `p_by = 'both'` zu.
+- Eltern-Zugang (…20261105000009): `guardian_invite_create(player)` (Staff `squad`; Geburtsdatum, minderjährig,
+  höchstens zwei; ersetzt die alte Einladung; Code `XXXXX-XXXXX` nur in der Antwort), `guardian_redeem(code, name,
+  relation)` (`{ok, link_id, first_name, team}` bzw. `{ok: false, error: invalid_code | own_player | guardians_full |
+  module_off}`; Fehlversuche bleiben gezählt), `guardian_decide(link, ok)`, `guardian_remove(link)` (Staff, der
+  Elternteil oder das volljährige Kind), `guardian_adult_ok(link, ok)`, `guardian_children()` (eigene Verknüpfungen mit
+  `access`, `module_on`), `guardian_child_data(player)` (das Paket: Team ohne Codes, Spiele, Termine,
+  Trainingsänderungen und Pausen von −14 bis +60 Tagen, Abwesenheiten ohne Stufe und Notiz – Art bei Krankheit und
+  Verletzung nur bei eigenen Abmeldungen –, veröffentlichte Nominierungen mit Treffpunkt ohne Kaderliste,
+  Foto-Erlaubnis, eigene Einwilligungen, `sick_ok`, Elterninfo der letzten 120 Tage mit eigenem Lesestand),
+  `guardian_absence(player, type, from, to)` (krank, urlaub, schule, sonst; ab 7 Tage zurück, höchstens 90 Tage;
+  „krank“ nur mit `guardian_sick_ok`: unter 16 Einwilligung des Elternteils, ab 16 die des Kindes),
+  `guardian_absence_delete(id)` (eigene, nicht rückwirkend), `guardian_answer(match, player, answer, reason)`
+  (gekennzeichnet `answered_by_guardian`), `guardian_consent(player, kind, give, version)` (parental, health_data),
+  `parent_post_read(post, ack)`, `team_guardian_consents(team)` (Staff: Einwilligungen der Eltern je Kind),
+  `purge_guardians()` (täglich, Cron `purge-guardians`: abgelaufene Einladungen, Fehlversuche nach einem Tag,
+  unbestätigte Anfragen nach 30 Tagen, Verknüpfungen 30 Tage nach dem 18. Geburtstag ohne `adult_ok`, Elterninfo nach
+  12 Monaten). `missing_health_consent` akzeptiert für Kinder unter 16 die Einwilligungen bestätigter Eltern.
+- Löschung nach Widerruf und Löschfristen (…20261105000010): `health_basis(player)` (gültige Einwilligung in
+  Gesundheitsdaten: eigene, unter 16 auch die bestätigter Eltern, plus Einwilligung der Eltern), `team_health_consent_players(team)`
+  (Staff: eingewilligte Spieler – die App nutzt sie für Automatiken), `erase_health_data(player)` (Belastung,
+  Morgen-Check, Zusatzsport, Wachstum, Notfall-Hinweise, Gewicht, Reha-/Aufbau-/Wachstumsgruppen, Pause- und
+  Regenerationsempfehlungen; Abwesenheiten wegen Krankheit/Verletzung werden zu „sonst“ ohne Stufe, Region und
+  Notiz), `purge_privacy()` (täglich, Cron `purge-privacy`), `privacy_findings_due()`, `privacy_players_due()`,
+  `privacy_teams_due()`, `privacy_accounts_due()` (nur `service_role`, ausgeführt von der Edge Function
+  `privacy-purge`, Cron `privacy-purge`), `profiles.last_seen_at` (nur über `touch_seen()`, Trigger
+  `profiles_seen_guard`), `staff_erase_health_data(player)` (Staff mit `health`), `player_data_export(player)`
+  (Owner: Auskunft als JSON; Tabellen in `player_export_tables()`, Ausnahmen in `player_export_special()` – RLS-Test
+  T63 prüft, dass jede Tabelle mit `player_id` erfasst ist).
+- Notfallkontakte: Beim Beitreten speichert die App den Kontakt (Pflicht) direkt nach `join_team` und vor dem Laden
+  des Teams; Prüfung der Kontakte `emergency_contacts_ok(c)` (wie `core/emergency → cleanContacts`).
+- `peer_targets(team)` – Spieler: Mitspieler für die Stärken-Runde (Vorname, Initial, Rückennummer, Position), nur
+  während einer Runde und nur für aktive Spieler des Teams; `peer_round_open(team)` prüft die Runde (Zeitzone des Teams).
+- `purge_old_peer_skills()` (täglich) – Einträge der Stärken-Runde nach 12 Monaten.
+- `poll_results(poll)` – Ergebnis einer Umfrage (wie `core/polls → pollResult`): Anzahl je Antwort bzw. Stufe, Schnitt
+  der Skalen; mit Namen auch wer was gewählt hat; Freitexte nur für Staff mit `messages` (anonym ohne Namen, nach
+  Inhalt sortiert); anonym erst ab drei Antworten und ohne „wer fehlt“; Staff bei Umfragen mit Namen zusätzlich wer
+  geantwortet hat und wer fehlt. Spieler (angesprochen oder Autor) nur bei „Ergebnisse für alle“ nach der eigenen
+  Antwort, nach dem Ende oder bei der eigenen Abstimmung. Hilfen: `team_today(team)`, `poll_running(poll)`,
+  `poll_target_me(team, group)`, `poll_my_player(team)`, `poll_group_ok(group, team)`.
+- `purge_old_polls()` (täglich) – Umfragen mit allen Antworten 12 Monate nach dem Ende (ohne Ende: nach dem Start).
+- `my_data_export()` – Datenexport (Art. 15/20 DSGVO), Format `trainerstab-export-v17` (v6: eigene Einträge im Zugriffsprotokoll der Matchpläne; v7: eigene Funktionen im Verein; v8: eigene Rückmeldungen ohne Speicherpfad der Bildschirmfotos; v9: freigegebenes Entwicklungsprogramm, Selbstanalyse, selbst geschenkte Stärken (Vorname des Mitspielers) und erhaltene Stärken nur als Anzahl je Stärke; v10: eigene Antworten aus Umfragen mit den Fragen und selbst gestartete Umfragen; v11: Notfallkontakte und Hinweise für den Notfall; v12: eigene Größen; v13: eigene Kader-Nominierungen mit Antwort; v14: eigene Fahrgemeinschaften – Fahrten als Fahrer mit Zahl der Mitfahrer, Plätze mit Fahrer und Abfahrt, Suchen, ohne Namen anderer; v15: eingetragene Sperren – Karten stehen bei den Spieldaten; v16: Foto-Erlaubnis und Unfallmeldungen; v17: als Elternteil eigene Verknüpfungen, Lesestand der Elterninfo, als Spieler die verknüpften Eltern): Profil, Gesundheitsdaten
   (inkl. Angaben zum Schmerz), freigegebene Inhalte, eigene sichtbare Gruppen, Aufgaben, Dienste, Strafen, Zahlungen und
   Befreiungen der Mannschaftskasse; Selbsteinschätzungen, eigene und freigegebene Ziele mit Fortschritt, freigegebene
   Gesprächsprotokolle (ohne interne Notiz), Challenge-Einträge, Anfragen für Individualtraining, eigene Chat-Nachrichten,
@@ -445,6 +560,51 @@ Hilfsfunktionen (`security definer`, `stable`, `search_path = public`):
   Unterschiede Selbst-/Fremdbild (ab 2 Stufen), Zielfortschritt (Test, Statistik, Beteiligung, Zähler, Messwert,
   Meilensteine; „hinter Plan“ nach verstrichener Zeit), Gesprächsvorbereitung aus den Daten, Saisonrückblick,
   Individualtraining (Einheit nur für den Spieler).
+- `program.ts` – Entwicklungsprogramm (Herzstück der Spielerentwicklung): Stärken-Katalog in der Sprache des Platzes
+  (Technik, Taktik, Athletik, Persönlichkeit; eigene für Torhüter), Bereinigung mit den Grenzen der Datenbank,
+  stärkster Bereich (15 Zonen: Drittel × Flügel/Halbraum/Zentrum), Stand und offene Punkte eines Programms,
+  Stärken-Runde (starten, beenden, Zählung je Stärke ohne Namen, Teilnahme), Vorschläge für den X-Faktor (wo sich
+  Selbstanalyse, Mitspieler und Trainerteam treffen), Saisonzahlen der Spielerkarte (Spiele, Minuten, Tore, Vorlagen,
+  Pre-Assists, Ø Note, Notenverlauf; Torhüter zu null/Gegentore) und Thema für „Individualtraining anfragen“.
+- `polls.ts` – Umfragen: Bereinigung mit den Grenzen der Datenbank (Abstimmung = eine Auswahlfrage mit dem Titel als
+  Text; Fragebogen bis 15 Fragen mit eindeutigen IDs), Prüfung der Antworten, Status (läuft bis einschließlich zum
+  Ende), Zielgruppe, Sichtbarkeit der Ergebnisse, Auswertung wie `poll_results` (anonym ab drei Antworten, Freitexte
+  nur fürs Trainerteam, anonym nach Inhalt sortiert), Regeln für Spieler-Abstimmungen und Vorlagen (Fahrt, Termin,
+  Mannschaftsabend, nächste Saison; Fragebögen Trainingswoche, Teamklima, Saison-Feedback).
+- `emergency.ts` – Notfallkontakte: Telefonnummern aufräumen und prüfen (`00` → `+`, 6–20 Ziffern, Link zum Anrufen),
+  Kontakte bereinigen (höchstens zwei, Name und gültige Nummer, keine Nummer doppelt), Prüfung im Formular mit
+  Fehler je Kontakt, Hinweise für den Notfall (≤ 500), fehlende Kontakte (nur aktive Spieler und nur, wenn die Kontakte
+  geladen sind – `emergencyOk`), Erinnerung an Spieler mit Konto.
+- `nomination.ts` – Kader-Nominierung: Bereinigung (Treffpunkt, Hinweis, Grund), Anpfiff und Antwortregeln
+  (`answersAllowed`: Einstellung „Absagen durch Spieler“ und vor dem Anpfiff), Zahlen (Kader, Abruf, Zu-/Absagen,
+  offen), Reihenfolge nach Mannschaftsteilen, Kaderliste mit Vorname und Initial, Kader aus Sicht eines Spielers (nur
+  veröffentlicht und nominiert), Offene mit Konto (Erinnerung), Text für die Ankündigung im Chat.
+- `cards.ts` – Karten & Sperren: Regeln (Voreinstellung je Altersklasse nach WDFV/FVN, Grenzen), Karten je Spieler und
+  Saison, abgeleitete Sperren (Gelbsperre bei jeder x-ten Gelben in Meisterschaftsspielen einer Saison, Gelb-Rot,
+  Rot – Spiele oder bis zum Urteil), eingetragene ersetzen abgeleitete, Stand einer Sperre (betroffene Spiele nach dem
+  Auslöser, verbüßt, bis, aufgehoben), gesperrt für ein Spiel, Gelb-Warnung, Karte im Spielbericht setzen.
+- `birthdays.ts` – Geburtstage: gültiges Geburtsdatum, nächster Geburtstag mit Alter (29.02. → 28.02.), Liste, die
+  nächsten Tage, Kalendertag, fehlende Geburtsdaten.
+- `photos.ts` – Foto-Erlaubnis: wer zustimmen muss (unter 14 Eltern, 14–17 Eltern und Spieler, ab 18 Spieler), Stand je
+  Kanal (ja, nein, offen, Zustimmung fehlt), eigene Änderung des Spielers (Nein immer, Ja ab 18), Übersicht, neu einholen.
+- `accidents.ts` – Unfallmeldung: Bereinigen, Pflichtangaben, Stand (offen, an den Verein, an die Versicherung,
+  abgeschlossen), Erinnerung nach drei Tagen, Vorlage aus einer Verletzung, Text zum Teilen.
+- `parents.ts` – Eltern-Zugang: Code säubern und prüfen (zehn Zeichen ohne verwechselbare), minderjährig bzw. unter
+  16, Stand je Kind fürs Trainerteam (Verknüpfungen, gültige Einladung, höchstens zwei), offene Anfragen,
+  Elterninfo-Statistik (gelesen, bestätigt, wer fehlt – nur bestätigte Eltern minderjähriger bzw. verlängerter
+  Kinder), Abmelden durch Eltern (Arten, Zeitraum, „krank“), Termine des Kindes (Training, Spiele, Termine mit
+  Abwesenheit und Nominierung), offene Aufgaben der Eltern, Demo-Elterninfo.
+- `rides.ts` – Fahrgemeinschaften: Bereinigung (Plätze 1–8, Abfahrt, Texte), Ziele (Spiel oder Termin, trainingsfrei
+  ohne Fahrten), Ziele der nächsten Tage für die Startseite (Auswärtsspiele und Ziele mit Fahrten), Stand eines
+  Spielers (fährt, fährt mit, sucht), Zahlen (Fahrten, Plätze, frei, Suchende), Regeln wie der Server (`rideCheck`)
+  und Änderungen wie der Server (`applyRide`: Wechsel, Mitnehmen, Löschen mit erneuter Suche), Zuordnen (Suchende
+  zuerst, ohne Abwesende), „noch ohne Angabe“, Vorbelegung der Abfahrt, Bezeichnung des Fahrers, Text für den Teamchat.
+- `sizes.ts` – Größen & Ausrüstung: Größenlisten (Kinder 116–176, XS–3XL), halbe Schuh- und Handschuhgrößen,
+  Bereinigung wie `player_sizes`, vollständig (Oberteil, Hose, Schuhe), fehlende Größen (nur wenn geladen – `sizesOk`),
+  Stutzen aus der Schuhgröße, Bestellliste (Summen je Artikel und Größe, Fehlende, Handschuhe nur Torhüter, sortiert
+  nach Rückennummer) als CSV (Semikolon bzw. Komma, BOM, Freitexte nicht als Formel) und als Text zum Teilen.
+- `text.ts` – Texteingaben bereinigen (eine Zeile, Absatz, Kürzen ohne Emojis zu zerschneiden) – gemeinsam für
+  Umfragen, Notfallkontakte und Größen; zählt wie die Datenbank (`char_length`).
 - `challenge.ts` – Wochenchallenge: Vorschläge je Altersgruppe, Eintragen (Bestleistung, Menge, Tage, geschafft),
   Fortschritt, Teamsumme, Serie.
 - `chat.ts` – Chat-Regeln wie in der Datenbank (Teilnehmer, Mitlesen, Schreiben, Einzelchats nach Einstellung),

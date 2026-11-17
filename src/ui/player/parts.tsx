@@ -35,9 +35,9 @@ export function PlayerHero({ p, g }: { p: Player; g: GameState }) {
         <Pressable accessibilityRole="button" accessibilityLabel={t("pn_ich")} onPress={() => router.push("/player/ich")}><PlayerAvatar p={p} size={50} /></Pressable>
       </Row>
       <Row gap={8} wrap>
-        <View testID="player-streak" accessibilityLabel={g.streak ? tf("gm_streak", { n: g.streak }) : t("gm_streak0")} style={pill}>
+        <View testID="player-streak" accessibilityLabel={g.streak ? tf(g.streak === 1 ? "gm_streak1" : "gm_streak", { n: g.streak }) : t("gm_streak0")} style={pill}>
           <Icon name="flame" size={16} color={g.streak ? GOLD : c.faint} strokeWidth={2.2} />
-          <Text style={{ color: c.ink, fontWeight: "700", fontSize: 13.5, fontVariant: ["tabular-nums"] }}>{g.streak} {t("gm_days")}</Text>
+          <Text style={{ color: c.ink, fontWeight: "700", fontSize: 13.5, fontVariant: ["tabular-nums"] }}>{g.streak} {t(g.streak === 1 ? "gm_day" : "gm_days")}</Text>
         </View>
         {E.mods.belastung ? (
           <Pressable testID="player-reliability" accessibilityRole="button" accessibilityLabel={`${t("gm_rel")}: ${pct != null ? pct + " %" : "–"}`} onPress={() => router.push("/player/daten/week")} style={pill}>

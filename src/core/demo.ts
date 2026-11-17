@@ -6,12 +6,20 @@ import { createEngine } from "./engine";
 import { duePeriods, periodStart, seasonStart } from "./kasse";
 import { translator } from "./i18n";
 import { artOf, defaultProgram, phaseWeeks, weekItems } from "./prep";
-import type { Chat, ChatMsg, Goal, FeeDef, FineEntry, Wellness, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles, DayUnit, UnitArt } from "./types";
+import type { Chat, ChatMsg, Goal, Suspension, FeeDef, FineEntry, Wellness, Contact, Phase, PhaseKind, TeamGroup, AttStatus, BoardItem, ClassKey, Depth, Drawing, Exercise, Lang, Team, TeamData, TestResult, Modules, TeamSettings, Principles, DayUnit, UnitArt } from "./types";
 import { cleanUnit, freeDateSlot, isGoalkeeper, shiftTime } from "./units";
 import { emptyTeamData } from "./types";
 import { challengeDefsFor, fromDef } from "./challenge";
 import { demoPeople } from "./chat";
 import { compsOf, posGroupOf } from "./dev";
+import { cleanGift, cleanProgram, cleanSelf } from "./program";
+import { cleanPoll, pollTemplates } from "./polls";
+import { cleanContacts } from "./emergency";
+import { cleanSizes } from "./sizes";
+import { absentOn, cleanSquad, squadMatesOf, squadSort } from "./nomination";
+import { defaultDepart } from "./rides";
+import { cardRules, suspState, suspendedIn } from "./cards";
+import { DEMO_PARENT, demoParentPosts, isMinor } from "./parents";
 import { demoMatchPlans } from "./demoMatch";
 import { demoScouting } from "./demoScout";
 
@@ -42,6 +50,12 @@ export function buildDemo(team: Team, lang: Lang, now: Date = new Date()): TeamD
     if (bd > new Date(now.getFullYear() - a, now.getMonth(), now.getDate())) bd.setFullYear(bd.getFullYear() - 1);
     return { id: "p" + (i + 1), vn: n[0], nn: n[1], pos: n[2], nr: i + 1, geb: iso(bd) };
   });
+  // Geburtstage: p4 hat heute Geburtstag, p11 in drei Tagen (Alter bleibt in der Altersklasse)
+  {
+    const a4 = ageOn(D.players[3].geb, now), a11 = ageOn(D.players[10].geb, now) + 1, in3 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 3);
+    D.players[3].geb = iso(new Date(now.getFullYear() - a4, now.getMonth(), now.getDate()));
+    D.players[10].geb = iso(new Date(in3.getFullYear() - a11, in3.getMonth(), in3.getDate()));
+  }
   if (grp === "akt") {
     const o = c.k === "ue32" ? 6 : 0;
     D.players[2].geb = iso(new Date(now.getFullYear() - 36 - o, 2, 4)); D.players[7].geb = iso(new Date(now.getFullYear() - 33 - o, 5, 12)); D.players[16].geb = iso(new Date(now.getFullYear() - 38 - o, 8, 20));
@@ -237,6 +251,16 @@ export function demoExtras(D: TeamData, lang: Lang, now: Date = new Date()): voi
   demoGroups(D, en, TODAY);
   demoUnits(D, lang, now);
   demoDev(D, lang, now);
+  demoProgram(D, lang, now);
+  demoPolls(D, lang, now);
+  demoEmergency(D, lang);
+  demoSizes(D, lang, now);
+  demoCards(D, lang, now);
+  demoSquads(D, lang, now);
+  demoRides(D, lang, now);
+  demoPhotos(D, lang, now);
+  demoAccidents(D, lang, now);
+  demoGuardians(D, lang, now);
   demoBlocks(D, lang, now);
   demoTasks(D, lang, TODAY);
   demoMatchPlans(D, lang, now);
@@ -613,6 +637,378 @@ function demoDev(D: TeamData, lang: Lang, now: Date): void {
     if (i % 2 === 0) { const v = Math.round((c1.target || 100) * (0.3 + r() * 0.9)); D.chEntries.push({ cid: c1.id, pid: p.id, value: v, days: [], done: v >= (c1.target || 1), at: atNow }); }
     if (i % 3 === 0) D.chEntries.push({ cid: c2.id, pid: p.id, value: Math.round(5 + r() * (grp === "u11" ? 25 : 40)), days: [], done: true, at: atNow });
   });
+}
+
+/**
+ * Entwicklungsprogramm für die Demo: Stürmer (p17) mit vollständigem Programm wie ein Spielerprofil im NLZ, Sechser (p8),
+ * ein Entwurf (p6), Selbstanalysen, eine laufende Stärken-Runde mit Einträgen, Pre-Assists und Notenverlauf.
+ * Eigener Zufallsgenerator, damit die übrigen Demo-Daten unverändert bleiben.
+ */
+function demoProgram(D: TeamData, lang: Lang, now: Date): void {
+  const TODAY = iso(now), en = lang === "en", r = rng(523), at = (d: number) => new Date(now.getTime() + d * 86400e3).toISOString();
+  const P = (id: string) => D.players.find(p => p.id === id);
+  if (!P("p17") || !P("p8") || !P("p6")) return;
+  const co = D.staff.find(x => x.role === "co")?.id || null;
+  // Pre-Assists in allen erfassten Spielen (Offensive häufiger), dazu Spielnoten für Stürmer und Sechser über die ganze Saison
+  const chance = (pos: string) => ["ST", "OM", "LM", "RM"].includes(pos) ? 0.3 : ["ZM", "DM"].includes(pos) ? 0.18 : 0.04;
+  const byDate = [...D.matches].filter(m => m.date < TODAY).sort((a, b) => a.date < b.date ? -1 : 1);
+  for (const m of byDate) for (const [pid, x] of Object.entries(D.stats[m.id] || {})) {
+    const p = P(pid); if (!p) continue;
+    x.pre = x.min > 0 && r() < chance(p.pos) * (x.min / 90) ? (r() < 0.15 ? 2 : 1) : 0;
+  }
+  let rid = 1;
+  for (const pid of ["p17", "p8"]) for (const m of byDate) {
+    const x = D.stats[m.id]?.[pid];
+    if (!x || x.min <= 0 || D.ratings.some(q => q.pid === pid && q.date === m.date && q.kind === "spiel")) continue;
+    const rating = Math.min(9.5, Math.round((5.4 + r() * 1.8 + Math.min(1.2, x.goals * 0.6 + x.assists * 0.4 + (x.pre || 0) * 0.2)) * 10) / 10);
+    D.ratings.push({ id: "rp" + (rid++), pid, date: m.date, kind: "spiel", rating, text: "", vis: true });
+  }
+  // Ziel für die Extraschicht des Stürmers (Fortschritt aus Einträgen)
+  const g17: Goal = { id: "dgp17", pid: "p17", title: en ? "Left foot: 400 shots" : "Linker Fuß: 400 Abschlüsse", area: "tech", kind: "process", metric: "count", unit: en ? "shots" : "Abschlüsse",
+    start: 0, target: 400, lower: false, test: null, stat: null, from: addDays(TODAY, -35), due: addDays(TODAY, 49), why: en ? "So defenders can't force me onto my right." : "Damit mich Verteidiger nicht mehr auf rechts zwingen können.",
+    steps: [], status: "active", vis: true, by: "coach", talkId: null };
+  D.goals.push(g17);
+  for (const [d, v] of [[-30, 45], [-23, 60], [-16, 55], [-9, 70], [-2, 50]] as [number, number][]) D.goalEntries.push({ id: "dep" + d, goalId: g17.id, pid: "p17", date: addDays(TODAY, d), value: v, note: "", by: "player" });
+  const g8 = D.goals.find(g => g.pid === "p8" && g.metric === "count")?.id || null;
+  const help = (...ids: (string | null)[]) => ["team", ...ids.filter((x): x is string => !!x)];
+  D.programs.push(cleanProgram({
+    pid: "p17", tag: en ? "HOLDUP" : "FESTMACHEN", xf: ["festmachen", "schusstechnik", "passspiel"],
+    sit: en ? ["When I hold up the ball with a defender at my back", "I play the pass in behind", "I get into good finishing positions and strike the ball cleanly"]
+      : ["Wenn ich den Ball mit dem Gegner im Rücken festmache", "Ich spiele den tiefen Pass", "Ich bringe mich in gute Abschlusspositionen und schließe sauber ab"],
+    zones: ["o2", "o3", "o4", "m3"],
+    improve: [
+      { kind: "excel", topic: en ? "Final pass" : "Letzter Pass", skill: "letzterpass", where: ["training", "indiv", "extra"], help: help(co), how: en ? "After holding up: head up, look for the run in behind first" : "Nach dem Festmachen: Kopf hoch, zuerst den Lauf in die Tiefe suchen", goalId: null },
+      { kind: "extra", topic: en ? "Left foot" : "Linker Fuß", skill: "beidfuss", where: ["extra", "home", "indiv"], help: help(co), how: en ? "3× a week 15 min finishing with the left after training" : "3× pro Woche 15 Min. Abschluss mit links nach dem Training", goalId: g17.id },
+      { kind: "focus", topic: en ? "Defending the box" : "Box verteidigen", skill: "boxverteidigen", where: ["training", "video", "spiel"], help: ["team"], how: en ? "Set pieces against us: I take the man at the near post" : "Standards gegen uns: Ich übernehme den Mann am ersten Pfosten", goalId: null },
+      { kind: "off", topic: en ? "Coaching teammates" : "Mitspieler coachen", skill: "coaching", where: ["training", "spiel"], help: ["team", "mates"], how: en ? "Agree two calls with the attackers before every match" : "Vor jedem Spiel zwei Kommandos mit der Offensive absprechen", goalId: null },
+    ],
+    coach: { weapons: ["festmachen", "schusstechnik", "passspiel"], skills: ["flugbaelle"] },
+    peers: ["physis", "kopfball", "abschluss", "aggressivitaet", "festmachen"], vis: true, at: at(-2),
+  }));
+  D.programs.push(cleanProgram({
+    pid: "p8", tag: en ? "BALLHUNTER" : "BALLJÄGER", xf: ["zweikampf", "spielverstaendnis", "passspiel"],
+    sit: en ? ["After we lose the ball I hunt it back straight away", "I play the first pass forward through the lines", "I cover when our full-backs push up"]
+      : ["Nach Ballverlust jage ich den Ball sofort zurück", "Ich spiele den ersten Pass nach vorne durch die Linien", "Ich sichere ab, wenn unsere Außenverteidiger aufrücken"],
+    zones: ["m2", "m3", "m4", "d3"],
+    improve: [
+      { kind: "excel", topic: en ? "Pass through the lines" : "Pass durch die Linien", skill: "tiefpass", where: ["training", "video"], help: ["team"], how: "", goalId: null },
+      { kind: "extra", topic: en ? "Left foot" : "Linker Fuß", skill: "beidfuss", where: ["extra", "indiv"], help: help(co), how: en ? "Wall passes with the left after training" : "Wandpässe mit links nach dem Training", goalId: g8 },
+      { kind: "focus", topic: en ? "Scanning before receiving" : "Schulterblick vor der Ballannahme", skill: "uebersicht", where: ["training", "spiel", "video"], help: ["team"], how: en ? "Two shoulder checks before every pass you receive" : "Vor jeder Ballannahme zweimal über die Schulter schauen", goalId: null },
+    ],
+    coach: { weapons: ["zweikampf", "einsatz", "spielverstaendnis"], skills: ["passspiel"] },
+    peers: ["zweikampf", "einsatz", "fuehrung"], vis: true, at: at(-6),
+  }));
+  D.programs.push(cleanProgram({
+    pid: "p6", tag: "", xf: ["schnelligkeit", "dribbling"], sit: [], zones: ["o1", "m1"],
+    improve: [{ kind: "focus", topic: en ? "Defensive positioning" : "Defensives Stellungsspiel", skill: "stellungsspiel", where: ["training", "video"], help: ["team"], how: "", goalId: null }],
+    coach: { weapons: ["schnelligkeit", "flanken"], skills: [] }, peers: [], vis: false, at: at(-1),
+  }));
+  D.selfSkills.push(cleanSelf({ pid: "p17", weapons: ["physis", "schusstechnik", "zweikampf"], skills: [], at: at(-9) }));
+  D.selfSkills.push(cleanSelf({ pid: "p8", weapons: ["zweikampf", "einsatz", "passspiel"], skills: ["kommunikation"], at: at(-12) }));
+  D.selfSkills.push(cleanSelf({ pid: "p6", weapons: ["schnelligkeit", "dribbling", "flanken"], skills: ["mut"], at: at(-2) }));
+  // Stärken-Runde: läuft seit 4 Tagen, noch 10 Tage; Mitspieler nennen typische Stärken je Position
+  D.team.settings.peer = { since: addDays(TODAY, -4), until: addDays(TODAY, 9) };
+  const typical = (pos: string): string[] => pos === "TW" ? ["reflexe", "strafraum", "ruhe", "kommunikation", "fussspiel"]
+    : ["ST"].includes(pos) ? ["abschluss", "physis", "kopfball", "festmachen", "aggressivitaet", "schnelligkeit"]
+      : ["LM", "RM", "OM"].includes(pos) ? ["dribbling", "schnelligkeit", "flanken", "letzterpass", "mut"]
+        : ["ZM", "DM"].includes(pos) ? ["passspiel", "einsatz", "zweikampf", "uebersicht", "fuehrung"]
+          : ["zweikampf", "kopfball", "stellungsspiel", "fuehrung", "ruhe"];
+  const fixed: Record<string, string[][]> = {
+    p17: [["physis", "kopfball", "abschluss"], ["festmachen", "physis"], ["aggressivitaet", "abschluss", "physis"], ["kopfball", "festmachen"], ["physis", "abschluss"]],
+    p8: [["zweikampf", "einsatz"], ["einsatz", "fuehrung", "zweikampf"], ["fuehrung"], ["zweikampf", "passspiel"]],
+  };
+  const givers = D.players.filter(p => !["p15"].includes(p.id)).map(p => p.id);
+  const pick = (L: string[], n: number) => { const c = [...L], out: string[] = []; while (out.length < n && c.length) out.push(c.splice(Math.floor(r() * c.length), 1)[0]); return out; };
+  const add = (giver: string, target: string, skills: string[], d: number) => {
+    if (giver === target || D.peerGifts.some(g => g.giver === giver && g.target === target)) return;
+    D.peerGifts.push({ giver, target, skills: cleanGift(skills), at: at(-d) });
+  };
+  for (const [target, lists] of Object.entries(fixed)) {
+    const from = givers.filter(g => g !== target && g !== "p17" && g !== "p8");
+    lists.forEach((skills, i) => add(from[(i * 5 + 3) % from.length], target, skills, 1 + (i % 3)));
+  }
+  for (const giver of givers.slice(0, 16)) {
+    if (giver === "p17") continue; // die Spieler-Ansicht des Stürmers zeigt die Runde noch offen
+    for (const target of pick(givers.filter(x => x !== giver), 2 + Math.floor(r() * 2))) add(giver, target, pick(typical(P(target)!.pos), 1 + Math.floor(r() * 3)), Math.floor(r() * 4));
+  }
+  add("p17", "p8", ["zweikampf", "fuehrung"], 1);
+}
+
+/**
+ * Umfragen der Demo: laufende Abstimmung mit Namen (Fahrt zum Auswärtsspiel), anonymer Fragebogen zur Trainingswoche
+ * (Ergebnisse fürs Trainerteam, mit Freitexten), Abstimmung für den Mannschaftsrat (Gruppe), beendete Abstimmung
+ * (Mannschaftsabend) und eine Abstimmung, die ein Spieler gestartet hat. Der Stürmer (p17) hat bei Fahrt und
+ * Fragebogen noch nicht geantwortet – so zeigt die Spieler-Ansicht beides. Eigener Zufallsgenerator.
+ */
+function demoPolls(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", r = rng(611), TODAY = iso(now), at = (d: number, h = 0) => new Date(now.getTime() + d * 86400e3 + h * 3600e3).toISOString();
+  const P = D.players.filter(p => p.active !== false);
+  if (P.length < 8) return;
+  D.team.settings.polls = { players: true };
+  const tpl = pollTemplates(lang), T = (k: string) => tpl.find(x => x.key === k)!;
+  // Konto des Demo-Trainers (wie DemoApi) – sein Name kommt aus dem Trainerprofil
+  const coach = { author: D.staff.find(x => x.id === "s1")?.name || "", createdBy: "demo-user" };
+  const short = (pid: string) => { const p = D.players.find(x => x.id === pid); return p ? `${p.vn} ${p.nn.slice(0, 1)}.` : ""; };
+  const nextAway = [...D.matches].filter(m => m.date >= TODAY && !m.heim).sort((a, b) => a.date < b.date ? -1 : 1)[0];
+  const ans = (pollId: string, pid: string, answers: Record<string, number | number[] | string>, d: number) => D.pollAnswers.push({ pollId, pid, answers, at: at(d) });
+  const pick = (w: number[]) => { let x = r() * w.reduce((a, b) => a + b, 0); for (let i = 0; i < w.length; i++) { x -= w[i]; if (x < 0) return i; } return w.length - 1; };
+
+  // 1. Fahrt zum nächsten Auswärtsspiel (mit Namen, Ergebnisse für alle)
+  const trip = T("trip"), tripTitle = nextAway ? (en ? `Away at ${nextAway.gegner}: how are you getting there?` : `Auswärts bei ${nextAway.gegner}: Wie kommst du hin?`) : trip.title;
+  D.polls.push(cleanPoll({ ...trip, id: "dpo1", title: tripTitle, questions: trip.questions.map(q => ({ ...q, text: tripTitle })), until: nextAway ? addDays(nextAway.date, -1) : addDays(TODAY, 3), ...coach, created: at(-1, -3) }));
+  P.filter(p => p.id !== "p17").slice(0, 14).forEach((p, i) => ans("dpo1", p.id, { q1: pick([7, 3, 1]) }, -1 + i * 0.05));
+
+  // 2. Fragebogen zur Trainingswoche (anonym, Ergebnisse fürs Trainerteam)
+  const week = T("week");
+  D.polls.push(cleanPoll({ ...week, id: "dpo2", until: addDays(TODAY, 3), ...coach, created: at(-2, -2) }));
+  const texts = en
+    ? ["More small-sided games with goals, please.", "Thursday was really hard after the match.", "Finishing drills were great.", "Explain the tactics a bit more slowly.", "More music in the warm-up 😄"]
+    : ["Mehr Spielformen mit Toren bitte.", "Donnerstag war nach dem Spiel echt hart.", "Torschuss-Übungen waren super.", "Taktik bitte etwas langsamer erklären.", "Mehr Musik beim Aufwärmen 😄"];
+  P.filter(p => p.id !== "p17").slice(2, 13).forEach((p, i) => ans("dpo2", p.id, {
+    q1: 2 + pick([1, 3, 4, 2]), q2: 2 + pick([1, 2, 4, 3]), q3: pick([5, 2, 1, 2]), ...(i < texts.length ? { q4: texts[i] } : {}),
+  }, -2 + i * 0.1));
+
+  // 3. Mannschaftsrat (Gruppe): Termin für das nächste Treffen – mehrere Antworten möglich
+  const council = D.groups.find(g => g.id === "g3");
+  const councilIds = P.filter(p => (p.groups || []).includes("g3")).map(p => p.id);
+  if (council && councilIds.length) {
+    const text = en ? "Team council: when shall we meet?" : "Mannschaftsrat: Wann treffen wir uns?";
+    D.polls.push(cleanPoll({ id: "dpo3", kind: "quick", title: text, questions: [{ id: "q1", type: "multi", text, options: en ? ["Monday 6 pm", "Tuesday 7 pm", "Thursday after training"] : ["Montag 18 Uhr", "Dienstag 19 Uhr", "Donnerstag nach dem Training"], required: true, lo: "", hi: "" }],
+      anonymous: false, results: "all", groupId: council.id, until: addDays(TODAY, 4), ...coach, created: at(-1, -1) }));
+    ans("dpo3", councilIds[0], { q1: [1, 2] }, -0.5);
+  }
+
+  // 4. Von einem Spieler gestartet (in der Demo erlaubt das Trainerteam eigene Abstimmungen): Kicken am freien Samstag
+  const by = P.find(p => p.id === "p8") || P[0];
+  const kick = en ? "Free Saturday: who's up for a kickabout at 11?" : "Freier Samstag: Wer kickt um 11 Uhr mit?";
+  D.polls.push(cleanPoll({ id: "dpo4", kind: "quick", title: kick, questions: [{ id: "q1", type: "single", text: kick, options: en ? ["I'm in", "Can't make it"] : ["Bin dabei", "Kann nicht"], required: true, lo: "", hi: "" }],
+    anonymous: false, results: "all", groupId: null, until: addDays(TODAY, 2), byPlayer: true, authorPid: by.id, author: short(by.id), createdBy: by.userId || null, created: at(0, -5) }));
+  [by, ...P.filter(p => p.id !== by.id && p.id !== "p17").slice(4, 9)].forEach((p, i) => ans("dpo4", p.id, { q1: i === 3 ? 1 : 0 }, -0.2));
+
+  // 5. Beendet: Mannschaftsabend
+  const food = T("food");
+  D.polls.push(cleanPoll({ ...food, id: "dpo5", until: addDays(TODAY, -9), closed: true, ...coach, created: at(-14) }));
+  P.slice(0, 17).forEach((p, i) => ans("dpo5", p.id, { q1: pick([6, 3, 2]) }, -14 + i * 0.2));
+
+  for (const p of D.polls) p.answers = D.pollAnswers.filter(a => a.pollId === p.id).length;
+}
+
+/**
+ * Notfallkontakte der Demo: Mutter und/oder Vater je Spieler, bei drei Spielern fehlt der Kontakt (Hinweis im Kader und
+ * Erinnerung), zwei Hinweise für den Notfall. Nummern aus dem Bereich 0199 (netzintern, keine echten Anschlüsse) – die
+ * Demo wählt ohnehin nicht.
+ */
+function demoEmergency(D: TeamData, lang: Lang): void {
+  const en = lang === "en";
+  const moms = ["Sabine", "Katrin", "Nicole", "Anja", "Melanie", "Sandra", "Julia", "Tanja", "Stefanie", "Claudia", "Martina"];
+  const dads = ["Thomas", "Michael", "Andreas", "Stefan", "Frank", "Markus", "Christian", "Oliver", "Jens", "Dirk", "Sven"];
+  const missing = new Set(["p5", "p11", "p19"]);
+  D.players.forEach((p, i) => {
+    if (missing.has(p.id) || p.active === false) return;
+    const nr = (k: number) => `0199 ${String(4100000 + i * 37 + k * 11).slice(0, 7)}`;
+    const L = [{ name: `${moms[i % moms.length]} ${p.nn}`, rel: "mother", phone: nr(1) }];
+    if (i % 3 !== 1) L.push({ name: `${dads[(i * 5) % dads.length]} ${p.nn}`, rel: "father", phone: nr(2) });
+    D.emergency[p.id] = cleanContacts(i % 4 === 2 ? L.reverse() : L);
+  });
+  const med: Record<string, string> = en
+    ? { p3: "Asthma – inhaler is in the sports bag.", p9: "Wasp sting allergy – emergency kit (adrenaline pen) in the side pocket of the bag." }
+    : { p3: "Asthma – Spray ist in der Sporttasche.", p9: "Allergie gegen Wespenstiche – Notfallset (Adrenalin-Pen) in der Seitentasche der Tasche." };
+  for (const [pid, note] of Object.entries(med)) if (D.players.some(p => p.id === pid)) D.emergencyMed[pid] = note;
+  D.emergencyOk = true;
+}
+
+/**
+ * Kader fürs nächste Spiel: veröffentlicht (für die Nominierten sichtbar), 16 im Kader und 2 auf Abruf aus den
+ * verfügbaren Spielern (nicht abwesend, nicht gesperrt – die Karten der Demo stehen schon fest); einige haben zugesagt,
+ * einer abgesagt, der Rest ist offen (p17 nominiert, noch offen).
+ */
+function demoSquads(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", TODAY = iso(now);
+  const m = D.matches.filter(x => x.date >= TODAY && !x.result).sort((a, b) => (a.date + a.zeit < b.date + b.zeit ? -1 : 1))[0];
+  if (!m) return;
+  const sus = suspendedIn(D, cardRules(D.team), m.id, TODAY);
+  const avail = D.players.filter(p => p.active !== false && !absentOn(D, p.id, m.date) && !sus.has(p.id)).sort(squadSort);
+  const gk = avail.filter(p => p.pos === "TW"), field = avail.filter(p => p.pos !== "TW");
+  const pick = [...gk.slice(0, 2), ...field.filter(p => p.id === "p17"), ...field.filter(p => p.id !== "p17")].slice(0, 18);
+  const [h, mi] = (m.zeit || "15:00").split(":").map(Number), meet = Math.max(0, h * 60 + mi - 75);
+  D.squads[m.id] = cleanSquad({
+    matchId: m.id, meetTime: `${String(Math.floor(meet / 60)).padStart(2, "0")}:${String(meet % 60).padStart(2, "0")}`,
+    meetPlace: m.heim ? (en ? "Clubhouse, changing room 2" : "Vereinsheim, Kabine 2") : (en ? "Clubhouse car park (carpools)" : "Parkplatz am Vereinsheim (Fahrgemeinschaften)"),
+    note: en ? "Home kit in red. Please bring your player pass." : "Heimtrikots in Rot. Bitte Spielerpass mitbringen.",
+    showAll: true, published: addDays(TODAY, -2) + "T18:30:00.000Z",
+  });
+  const at = (k: number) => addDays(TODAY, -1) + `T${String(9 + k).padStart(2, "0")}:15:00.000Z`;
+  pick.forEach((p, i) => {
+    const standby = i >= 16, yes = p.id !== "p17" && i % 4 !== 3 && !standby, no = i === 7;
+    D.noms.push({
+      matchId: m.id, pid: p.id, standby,
+      answer: no ? "no" : yes ? "yes" : null, reason: no ? (en ? "Family celebration" : "Familienfeier") : "",
+      at: no || yes ? at(i % 10) : null, byStaff: i === 5,
+    });
+  });
+  D.squadMates[m.id] = squadMatesOf(D, m.id);
+}
+
+/**
+ * Fahrgemeinschaften zum nächsten Auswärtsspiel: zwei Fahrten von Eltern und eine des Trainerteams mit Mitfahrern (am
+ * Tag nicht abwesend), zwei Spieler suchen noch; p17 hat noch nichts eingetragen (zeigt die Karte auf „Heute“).
+ */
+function demoRides(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", TODAY = iso(now), tr = translator(lang);
+  const m = D.matches.filter(x => x.date >= TODAY && !x.heim && !x.result).sort((a, b) => (a.date + a.zeit < b.date + b.zeit ? -1 : 1))[0];
+  if (!m) return;
+  const ok = (pid: string) => { const p = D.players.find(x => x.id === pid); return !!p && p.active !== false && !absentOn(D, pid, m.date); };
+  const used = new Set<string>(["p17"]);
+  const take = (pref: string[], n: number): string[] => {
+    const out: string[] = [];
+    for (const pid of [...pref, ...D.players.map(p => p.id)]) { if (out.length >= n) break; if (!used.has(pid) && ok(pid)) { out.push(pid); used.add(pid); } }
+    return out;
+  };
+  const time = defaultDepart({ kind: "match", time: m.zeit, away: true }) || null, place = en ? "Clubhouse car park" : "Parkplatz am Vereinsheim";
+  const ride = (id: string, driverPid: string | null, driver: string, seats: number, note: string, pax: string[]) => {
+    D.rides.push({ id, kind: "match", refId: m.id, driverPid, driver, seats, time, place, note });
+    for (const pid of pax) D.rideSeats.push({ rideId: id, pid });
+  };
+  const [d1] = take(["p10"], 1), [d2] = take(["p4"], 1);
+  if (d1) ride("dr1", d1, tr.tf("fg_mumOf", { n: D.players.find(p => p.id === d1)!.vn }), 3, en ? "Straight back after the match" : "Rückfahrt direkt nach dem Spiel", take(["p12", "p14"], 2));
+  if (d2) ride("dr2", d2, "", 4, "", take(["p6", "p9"], 2));
+  ride("dr3", null, "", 3, en ? "Please be on time." : "Bitte pünktlich sein.", take(["p3", "p7"], 2));
+  for (const pid of take(["p19", "p21"], 2)) D.rideNeeds.push({ kind: "match", refId: m.id, pid });
+}
+
+/**
+ * Karten der Demo in den vergangenen Meisterschaftsspielen: p6 hat vier Gelbe (Gelb-Warnung, sobald eine Gelbsperre
+ * eingestellt ist), weitere Gelbe verteilt, Gelb-Rot und Rot im letzten Spiel (Rot: Sperre bis zum Urteil); dazu ein
+ * Urteil nach einer Roten Karte vor drei Spielen (3 Spiele – eines ist noch offen).
+ */
+function demoCards(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", TODAY = iso(now);
+  const past = D.matches.filter(m => m.date < TODAY && m.comp === "liga" && m.date >= seasonStart(TODAY)).sort((a, b) => (a.date < b.date ? 1 : -1));
+  if (past.length < 4) return;
+  const used = new Set<string>(["p17"]); // p17 ist der Demo-Spieler – ohne Karten (nominiert, Fahrgemeinschaft offen)
+  const playedIn = (pid: string, m: { id: string }) => (D.stats[m.id]?.[pid]?.min || 0) > 0 && !D.stats[m.id][pid].card;
+  /** Spieler aus der Vorschlagsliste (sonst irgendeiner), der in den Spielen gespielt hat */
+  const who = (pref: string[], ms: { id: string }[]) => [...pref, ...D.players.map(p => p.id)].find(pid => !used.has(pid) && ms.every(m => playedIn(pid, m)));
+  const set = (pid: string | undefined, ms: { id: string }[], card: "y" | "yr" | "r") => { if (!pid) return; used.add(pid); for (const m of ms) D.stats[m.id][pid].card = card; };
+  // vier Gelbe (Gelb-Warnung, sobald eine Gelbsperre eingestellt ist): in den vier Spielen, die er gespielt hat
+  const four = [...D.players.map(p => p.id)].sort((a, b) => (a === "p6" ? -1 : b === "p6" ? 1 : 0)).find(pid => !used.has(pid) && past.filter(m => playedIn(pid, m)).length >= 4);
+  if (four) set(four, past.filter(m => playedIn(four, m)).slice(0, 4), "y");
+  for (const [pref, i] of [[["p9"], 1], [["p14"], 0], [["p20"], 2]] as const) set(who([...pref], [past[i]]), [past[i]], "y");
+  set(who(["p8"], [past[0]]), [past[0]], "yr");
+  set(who(["p13"], [past[0]]), [past[0]], "r");
+  // Rote Karte vor drei Spielen mit Urteil (3 Spiele): zwei verbüßt, eines offen
+  const red = who(["p18"], [past[2]]);
+  if (red) {
+    set(red, [past[2]], "r");
+    const dsu: Suspension = { id: "dsu1", pid: red, kind: "red", matchId: past[2].id, start: past[2].date, games: 3, until: null, scope: "all", note: en ? "Sports court ruling: 3 matches" : "Urteil Sportgericht: 3 Spiele" };
+    D.suspensions.push(dsu);
+    // in den schon verbüßten Spielen hat er nicht gespielt
+    for (const m of suspState(D, dsu, TODAY).covered) if (m.date < TODAY && D.stats[m.id]?.[red]) delete D.stats[m.id][red];
+  }
+}
+
+/**
+ * Foto-Erlaubnis: die meisten haben zugestimmt (unter 18 Eltern und Spieler, sonst der Spieler); einer lehnt Social
+ * Media ab, einer will ohne Namen, einer hat noch nichts abgegeben, bei einem fehlt mit 17 die Zustimmung des Spielers
+ * und ein Volljähriger hat nur die Erklärung der Eltern (neu einholen). Der Demo-Spieler p17 ist noch offen.
+ */
+function demoPhotos(D: TeamData, lang: Lang, now: Date): void {
+  const TODAY = iso(now), en = lang === "en", on = addDays(TODAY, -64);
+  const adult = (pid: string) => { const p = D.players.find(x => x.id === pid); return !!p && ageOn(p.geb, now) >= 18; };
+  const yes = { web: true, social: true, press: true, name: true };
+  for (const p of D.players) {
+    if (p.id === "p17" || p.id === "p7") continue;
+    D.photos[p.id] = { ...yes, by: adult(p.id) ? "player" : "both", on, note: en ? "Club form, start of season" : "Formular Saisonstart" };
+  }
+  if (D.photos.p4) D.photos.p4 = { ...D.photos.p4, social: false };
+  if (D.photos.p12) D.photos.p12 = { ...D.photos.p12, name: false };
+  const teen = D.players.find(p => !["p17", "p7", "p4", "p12"].includes(p.id) && !adult(p.id) && ageOn(p.geb, now) >= 14);
+  if (teen) D.photos[teen.id] = { ...D.photos[teen.id], by: "parents", note: en ? "Parents' form – player still to sign" : "Formular der Eltern – Spieler unterschreibt noch" };
+  const grown = D.players.find(p => !["p17", "p7", "p4", "p12", teen?.id].includes(p.id) && adult(p.id));
+  if (grown) D.photos[grown.id] = { ...D.photos[grown.id], by: "parents", on: addDays(TODAY, -400), note: en ? "Parents' form from last season" : "Formular der Eltern aus der Vorsaison" };
+}
+
+/**
+ * Unfallmeldungen: Zerrung von p15 (aus der Verletzung, an den Verein gemeldet), Prellung im letzten Spiel vor ein paar
+ * Tagen (noch nicht gemeldet – Erinnerung) und das Umknicken von p3 (abgeschlossen, mit Schadennummer).
+ */
+function demoAccidents(D: TeamData, lang: Lang, now: Date): void {
+  const TODAY = iso(now), en = lang === "en";
+  const ground = en ? "Home ground, artificial turf" : "Heimplatz, Kunstrasen";
+  const strain = D.absences.find(a => a.pid === "p15" && a.typ === "verletzung");
+  if (strain) D.accidents.push({
+    id: "dac1", pid: "p15", date: strain.von, time: "19:20", place: ground, activity: "training", matchId: null, absenceId: strain.id,
+    how: en ? "Sprint training: felt a sharp pain in the back of the right thigh when accelerating, stopped immediately." : "Sprinttraining: beim Antritt stechender Schmerz hinten im rechten Oberschenkel, sofort abgebrochen.",
+    injury: en ? "Strain, back of the right thigh" : "Zerrung, hinterer Oberschenkel rechts", area: strain.area || null,
+    firstAid: en ? "Assistant coach: ice, compression, elevation" : "Co-Trainer: Kühlen, Kompression, Hochlegen",
+    treatment: en ? `GP on ${addDays(strain.von, 1).slice(8)}.${addDays(strain.von, 1).slice(5, 7)}.` : `Hausarzt am ${addDays(strain.von, 1).slice(8)}.${addDays(strain.von, 1).slice(5, 7)}.`,
+    witnesses: en ? "Coaching staff, team-mates" : "Trainerteam, Mitspieler",
+    clubOn: addDays(strain.von, 2), insurerOn: null, claimNo: "", closed: false, note: "",
+  });
+  const m = D.matches.filter(x => x.date <= addDays(TODAY, -3)).sort((a, b) => a.date < b.date ? 1 : -1)[0];
+  const bruised = D.players.find(p => !["p15", "p3", "p17"].includes(p.id) && (D.stats[m?.id || ""]?.[p.id]?.min || 0) > 0);
+  if (m && bruised) D.accidents.push({
+    id: "dac2", pid: bruised.id, date: m.date, time: m.zeit || null, place: m.heim ? ground : (en ? `Away at ${m.gegner}` : `Auswärts bei ${m.gegner}`), activity: "match", matchId: m.id, absenceId: null,
+    how: en ? "Kicked on the left ankle in a challenge in midfield, played on until the break." : "Im Zweikampf im Mittelfeld auf den linken Knöchel getreten worden, bis zur Pause weitergespielt.",
+    injury: en ? "Bruise, left ankle" : "Prellung, linker Knöchel", area: "ankle:l",
+    firstAid: en ? "Ice at the touchline" : "Kühlen an der Seitenlinie", treatment: "", witnesses: en ? "Referee, assistant coach" : "Schiedsrichter, Co-Trainer",
+    clubOn: null, insurerOn: null, claimNo: "", closed: false, note: "",
+  });
+  const ankle = D.absences.find(a => a.pid === "p3" && a.typ === "verletzung");
+  if (ankle) D.accidents.push({
+    id: "dac3", pid: "p3", date: ankle.von, time: "18:45", place: ground, activity: "training", matchId: null, absenceId: ankle.id,
+    how: en ? "Landed on a team-mate's foot after a header and twisted the right ankle." : "Nach dem Kopfball auf dem Fuß eines Mitspielers gelandet und mit dem rechten Fuß umgeknickt.",
+    injury: en ? "Sprained right ankle" : "Umknicktrauma, Sprunggelenk rechts", area: ankle.area || null,
+    firstAid: en ? "Head coach: ice, tape" : "Cheftrainer: Kühlen, Tape", treatment: en ? "A&E, X-ray without findings" : "Notaufnahme, Röntgen ohne Befund",
+    witnesses: en ? "Team-mates" : "Mitspieler", clubOn: addDays(ankle.von, 1), insurerOn: addDays(ankle.von, 3), claimNo: "SV-2026-0815", closed: true, note: "",
+  });
+}
+
+/**
+ * Eltern-Zugang: der Demo-Elternteil („demo-parent“) ist mit dem Demo-Spieler bzw. dem ersten Minderjährigen verknüpft,
+ * ein zweiter Elternteil mit einem anderen Kind, eine Anfrage wartet auf Bestätigung, eine Einladung ist offen; zwei
+ * Elterninfos (eine mit Lesebestätigung, die der zweite Elternteil schon bestätigt hat).
+ */
+function demoGuardians(D: TeamData, lang: Lang, now: Date): void {
+  if (D.team.modules.eltern === false) return;
+  const TODAY = iso(now);
+  const minors = D.players.filter(p => isMinor(p, TODAY));
+  const kid = minors.find(p => p.id === "p17") || minors[0];
+  if (!kid) return;
+  const others = minors.filter(p => p.id !== kid.id);
+  const at = (d: number) => new Date(now.getTime() - d * 864e5).toISOString();
+  D.guardians.push({ id: "dg1", pid: kid.id, userId: DEMO_PARENT, name: `Sandra ${kid.nn}`, relation: "mother", status: "active", adultOk: false, at: at(40), confirmedAt: at(39) });
+  if (others[0]) D.guardians.push({ id: "dg2", pid: others[0].id, userId: "demo-parent-2", name: `Michael ${others[0].nn}`, relation: "father", status: "active", adultOk: false, at: at(30), confirmedAt: at(29) });
+  if (others[1]) D.guardians.push({ id: "dg3", pid: others[1].id, userId: "demo-parent-3", name: `Ayşe ${others[1].nn}`, relation: "mother", status: "pending", adultOk: false, at: at(1), confirmedAt: null });
+  if (others[2]) D.guardianInvites.push({ pid: others[2].id, expires: new Date(now.getTime() + 10 * 864e5).toISOString(), usesLeft: 2 });
+  D.parentPosts = demoParentPosts(lang, now);
+  D.parentReads = [
+    { postId: "dpp1", userId: "demo-parent-2", readAt: at(0.5), ackedAt: at(0.5) },
+    { postId: "dpp2", userId: "demo-parent-2", readAt: at(8), ackedAt: null },
+    { postId: "dpp2", userId: DEMO_PARENT, readAt: at(8), ackedAt: null },
+  ];
+}
+
+/** Größen: die meisten Spieler haben sie eingetragen (passend zum Alter), drei fehlen, einer ist unvollständig */
+function demoSizes(D: TeamData, lang: Lang, now: Date): void {
+  const en = lang === "en", missing = new Set(["p4", "p12", "p20"]);
+  const adultTop = ["S", "M", "M", "L", "M", "L", "XL", "M", "S", "L", "M"], adultShoe = [41, 42, 42.5, 43, 44, 44.5, 45, 43, 42, 46, 43.5];
+  D.players.forEach((p, i) => {
+    if (missing.has(p.id) || p.active === false) return;
+    const age = p.geb ? ageOn(p.geb, now) : 18;
+    let top: string, bottom: string, shoes: number;
+    if (age <= 9) { top = ["128", "140"][i % 2]; bottom = top; shoes = 31 + (i % 4); }
+    else if (age <= 12) { top = ["140", "152", "164"][i % 3]; bottom = ["140", "152", "152"][i % 3]; shoes = 35 + (i % 5) * 0.5; }
+    else if (age <= 15) { top = ["164", "176", "XS", "S"][i % 4]; bottom = ["164", "164", "XS", "S"][i % 4]; shoes = 39 + (i % 6) * 0.5; }
+    else { top = adultTop[i % adultTop.length]; bottom = i % 3 === 0 && top !== "S" ? ["S", "M", "L", "XL"][Math.max(0, ["M", "L", "XL"].indexOf(top))] : top; shoes = adultShoe[i % adultShoe.length]; }
+    D.sizes[p.id] = cleanSizes({
+      top, bottom: p.id === "p16" ? null : bottom, shoes,
+      gloves: p.pos === "TW" ? 9 + (i % 2) * 0.5 : null,
+      print: i % 6 === 0 ? p.nn.toUpperCase() : "",
+      note: i % 7 === 3 ? (en ? "Shorts run small – one size up, please." : "Hosen fallen bei mir klein aus – lieber eine Größe größer.") : "",
+    });
+  });
+  D.sizesOk = true;
 }
 
 /** Chat der Demo: Teamchat, Trainerteam, Torhüter-Gruppe, Einzelchats (Jugend: transparent), eigene Gruppe, eine Meldung. */

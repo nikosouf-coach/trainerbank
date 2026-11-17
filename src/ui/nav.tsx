@@ -4,6 +4,12 @@
 import { useRouter } from "expo-router";
 import { chatSettings } from "../core/chat";
 import { openRequests } from "../core/dev";
+import { missingEmergency } from "../core/emergency";
+import { accOverdue, openAccidents } from "../core/accidents";
+import { upcomingBirthdays } from "../core/birthdays";
+import { activeSuspensions, cardRules } from "../core/cards";
+import { iso } from "../core/dates";
+import { pendingGuardians } from "../core/parents";
 import type { Perm } from "../core/perms";
 import type { Modules } from "../core/types";
 import { useStore } from "../data/store";
@@ -14,7 +20,8 @@ export type NavGroup = "team" | "training" | "spiel" | "orga" | "setup";
 export const NAV_GROUPS: NavGroup[] = ["team", "training", "spiel", "orga", "setup"];
 
 export interface NavCtx { mods: Partial<Modules>; can: (p: Perm) => boolean; chatOn: boolean;
-  /** Betreiber der App (Rückmeldungen aller Nutzer) */ appAdmin?: boolean }
+  /** Betreiber der App (Rückmeldungen aller Nutzer) */ appAdmin?: boolean;
+  /** eigene Kinder (Eltern-Zugang) – dann gibt es die Eltern-Ansicht */ kids?: number }
 export interface NavItem {
   /** Schlüssel = Name der Seite in der Tab-Navigation (wenn tab) */
   k: string; href: string; icon: IconName;
@@ -33,7 +40,13 @@ export const NAV: NavItem[] = [
   { k: "belastung", href: "/coach/belastung?from=mehr", icon: "pulse", short: "ts_title", title: "ts_title", sub: "nvs_belastung", group: "training", tab: false, need: x => !!x.mods.belastung },
   { k: "kader", href: "/coach/kader", icon: "kader", short: "nav_kader", title: "nav_kader", sub: "nvs_kader", group: "team", tab: true },
   { k: "statistik", href: "/coach/statistik", icon: "chart", short: "nvb_statistik", title: "sx_title", sub: "sx_menuSub", group: "team", tab: true },
+  { k: "notfall", href: "/coach/notfall", icon: "phone", short: "nvb_notfall", title: "nf_title", sub: "nf_menuSub", group: "team", tab: true, need: x => x.can("squad") || x.can("health") },
+  { k: "geburtstage", href: "/coach/geburtstage", icon: "cake", short: "nvb_geburtstage", title: "gb_title", sub: "gb_menuSub", group: "team", tab: true, need: x => x.mods.geburtstage !== false },
+  { k: "fotos", href: "/coach/fotos", icon: "camera", short: "nvb_fotos", title: "ph_title", sub: "ph_menuSub", group: "team", tab: true, need: x => x.mods.fotos !== false },
+  { k: "unfaelle", href: "/coach/unfaelle", icon: "aid", short: "nvb_unfaelle", title: "ac_title", sub: "ac_menuSub", group: "team", tab: true, need: x => x.mods.unfall !== false && x.can("health") },
+  { k: "eltern", href: "/coach/eltern", icon: "people", short: "nvb_eltern", title: "el_coachTitle", sub: "el_menuSub", group: "team", tab: true, need: x => x.mods.eltern !== false && x.can("squad") },
   { k: "chat", href: "/coach/chat", icon: "chat", short: "nav_chat", title: "nav_chat", sub: "nvs_chat", group: "orga", tab: true, need: x => x.chatOn },
+  { k: "umfragen", href: "/coach/umfragen", icon: "poll", short: "nvb_umfragen", title: "um_title", sub: "um_menuSub", group: "orga", tab: true, need: x => x.can("messages") },
   { k: "entwicklung", href: "/coach/entwicklung", icon: "trend", short: "nvb_entwicklung", title: "dv_overview", sub: "dv_menuSub", group: "team", tab: true, need: x => !!x.mods.entwicklung },
   { k: "individual", href: "/coach/individual", icon: "target", short: "nvb_individual", title: "iq_title", sub: "iq_menuSub", group: "team", tab: true, need: x => !!x.mods.entwicklung },
   { k: "challenge", href: "/coach/challenge", icon: "flame", short: "nvb_challenge", title: "cg_title", sub: "cg_menuSub", group: "team", tab: true, need: x => !!x.mods.challenge },
@@ -43,9 +56,11 @@ export const NAV: NavItem[] = [
   { k: "archiv", href: "/coach/archiv", icon: "book", short: "nvb_archiv", title: "ar_title", sub: "ar_sub", group: "training", tab: true, need: x => !!x.mods.archiv },
   { k: "matchplaene", href: "/coach/matchplaene", icon: "board", short: "nvb_matchplaene", title: "mp_list", sub: "mp_menuSub", group: "spiel", tab: true, need: x => !!x.mods.matchplan },
   { k: "spiele", href: "/coach/spiele", icon: "ball", short: "nvb_spiele", title: "sp_list", sub: "sp_listSub", group: "spiel", tab: true, need: x => !!x.mods.spielanalyse },
+  { k: "karten", href: "/coach/karten", icon: "cards", short: "nvb_karten", title: "kr_title", sub: "kr_menuSub", group: "spiel", tab: true, need: x => x.mods.karten !== false },
   { k: "videos", href: "/coach/videos", icon: "video", short: "nvb_videos", title: "sp_lib", sub: "sp_libSub", group: "spiel", tab: true, need: x => !!x.mods.videos },
   { k: "scouting", href: "/coach/scouting", icon: "scout", short: "nav_scout", title: "m_kaderplanung", sub: "sk_menuSub", group: "spiel", tab: true, need: x => !!x.mods.kaderplanung && x.can("scout") },
   { k: "aufgaben", href: "/coach/aufgaben", icon: "checklist", short: "nvb_aufgaben", title: "tk_title2", sub: "tk_menuSub", group: "orga", tab: true },
+  { k: "groessen", href: "/coach/groessen", icon: "shirt", short: "nvb_groessen", title: "gr_title", sub: "gr_menuSub", group: "orga", tab: true, need: x => x.mods.ausruestung !== false && x.can("squad") },
   { k: "kasse", href: "/coach/kasse", icon: "wallet", short: "nvb_kasse", title: "ks_title", sub: "ks_menuSub", group: "orga", tab: true, need: x => x.can("cash") },
   { k: "kontakte", href: "/coach/kontakte", icon: "phone", short: "nvb_kontakte", title: "ct_title", sub: "ct_sub", group: "orga", tab: true, need: x => !!x.mods.kontakte },
   { k: "team", href: "/coach/team", icon: "shield", short: "nvb_team", title: "mh_team", sub: "nvs_team", group: "setup", tab: true },
@@ -55,6 +70,7 @@ export const NAV: NavItem[] = [
   { k: "nutzung", href: "/coach/nutzung", icon: "people", short: "nu_title", title: "nu_title", sub: "nu_menuSub", group: "setup", tab: false, need: x => x.can("admin") },
   { k: "wiki", href: "/wiki", icon: "help", short: "wk_menu", title: "wk_menu", sub: "wk_menuSub", group: "setup", tab: false },
   { k: "konto", href: "/konto", icon: "person", short: "mh_account", title: "mh_account", sub: "nvs_konto", group: "setup", tab: false },
+  { k: "elternansicht", href: "/parent", icon: "heart", short: "el_parentView", title: "el_parentView", sub: "el_parentViewSub", group: "setup", tab: false, need: x => (x.kids || 0) > 0 },
   { k: "feedback", href: "/feedback", icon: "flag", short: "fb_menu", title: "fb_menu", sub: "fb_menuSub", group: "setup", tab: false },
   { k: "rueckmeldungen", href: "/rueckmeldungen", icon: "note", short: "fbl_title", title: "fbl_title", sub: "fbl_menuSub", group: "setup", tab: false, need: x => !!x.appAdmin },
 ];
@@ -77,7 +93,8 @@ export function barOf(saved: string[] | undefined, avail: NavItem[]): string[] {
 export function useNav() {
   const s = useStore();
   const D = s.D;
-  const x: NavCtx = { mods: D?.team.modules || {}, can: s.can, chatOn: !!D && D.team.modules.chat !== false && chatSettings(D.team).on, appAdmin: s.appAdmin };
+  const x: NavCtx = { mods: D?.team.modules || {}, can: s.can, chatOn: !!D && D.team.modules.chat !== false && chatSettings(D.team).on, appAdmin: s.appAdmin,
+    kids: s.isDemo ? 0 : s.myChildren.length };
   const items = availNav(x);
   const saved = s.prefs.nav;
   const bar = barOf(saved?.bar, items);
@@ -85,7 +102,12 @@ export function useNav() {
   const save = (nb: string[], nh: string[]) => s.setPrefs({ nav: { bar: nb.slice(0, MAX_BAR), hide: [...new Set(nh)].slice(0, 40) } });
   const reset = () => s.setPrefs({ nav: undefined });
   /** Zahl am Menüpunkt (z. B. offene Anfragen) */
-  const badge = (k: string): number => k === "individual" && D ? openRequests(D).length : k === "rueckmeldungen" ? s.feedbackOpen : 0;
+  const badge = (k: string): number => k === "individual" && D ? openRequests(D).length : k === "rueckmeldungen" ? s.feedbackOpen
+    : k === "notfall" && D ? missingEmergency(D).length
+    : k === "karten" && D && D.team.modules.karten !== false ? new Set(activeSuspensions(D, cardRules(D.team), iso(new Date())).map(x => x.s.pid)).size
+    : k === "geburtstage" && D && D.team.modules.geburtstage !== false ? upcomingBirthdays(D, iso(new Date()), 0).length
+    : k === "unfaelle" && D && D.team.modules.unfall !== false ? openAccidents(D).filter(a => accOverdue(a, iso(new Date()))).length
+    : k === "eltern" && D && D.team.modules.eltern !== false ? pendingGuardians(D).length : 0;
   return { items, bar, hidden, save, reset, badge, custom: !!saved?.bar?.length || !!saved?.hide?.length };
 }
 

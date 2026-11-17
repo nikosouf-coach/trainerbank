@@ -324,7 +324,7 @@ export const en: Dict = {
   "t_del": "Deleted",
   "stages": ["Individual / rehab","Partial training","Full training","Match fit"],
   "wd": ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],
-  "ob_hi": "Welcome to Trainerbank",
+  "ob_hi": "Welcome to Trainerstab",
   "ob_hi2": "Tailored to you in one minute. Everything can be changed later under “More”.",
   "ob_next": "Next",
   "ob_back": "Back",

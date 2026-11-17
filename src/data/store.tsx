@@ -14,19 +14,33 @@ import { freeDateSlot, recurringOn } from "../core/units";
 import { applyChallenge, entryOf } from "../core/challenge";
 import { cleanBody, demoMe, putMsg, toggleReaction, visibleChats } from "../core/chat";
 import { indivUnit } from "../core/dev";
+import { cleanGift, cleanProgram, cleanSelf, matesOf, peerOpen } from "../core/program";
+import { cleanPoll, pollsFor, sortPolls } from "../core/polls";
+import { cleanContacts, cleanMed } from "../core/emergency";
+import { cleanSizes, sizesEmpty } from "../core/sizes";
+import { applyAnswer, cleanSquad, mySquads as mySquadsOf, squadMatesOf, type MySquad } from "../core/nomination";
+import { applyRide, cleanRide, dropRideRef, rideCheck, rideName, type RideOp } from "../core/rides";
+import { cleanSuspension, withCard } from "../core/cards";
+import { cleanAccident } from "../core/accidents";
+import { eraseHealthLocal } from "../core/privacy";
+import { cleanInviteCode, cleanPost } from "../core/parents";
+import { groupOf } from "../core/classes";
+import { canSelfConsent, cleanPhotoConsent, photoAge, selfChange } from "../core/photos";
 import { availFor, cleanShare, copyPlan, forPlayer, newPlan, publishedOf, squadOf, visibleTo } from "../core/matchplan";
 import { uuid4 } from "../core/outbox";
 import type { ClubInfo } from "../core/club";
 import { cleanPlanContent, cleanReport, cleanScout, isYounger, refOf, refsIn, removeRef, riserYears, takeoverPlayer } from "../core/scout";
 import { fmtOf } from "../core/matchplan";
 import type { Riser, ScoutList, ScoutPlayer, ScoutReport, SpContent, MatchPlan, MpAvail, MpOpened, MpShare, Assessment, Challenge, ChallengeEntry, ChatKind, ChatMsg, ChatReportReason, DevTalk, Goal, GoalEntry, IndivRequest,
+  DevProgram, DevSelf, PeerGift, PeerMate, PeerRound, Poll, PollAnswer, PollValue, EmContact, PlayerSizes, MatchSquad, NomAnswer, Nomination, Ride, RideKind, CardKind, Suspension, PhotoChannel, PhotoConsent, Accident, GuardianRelation, ParentPost,
   CashEntry, CashWaiver, KasseSettings, StaffRoleKey, TeamGroup, UnitArt, DayBlock, DayUnit, DutyDef, DutyEntry, FineEntry, FineRule, TeamTask,
   Absence, AttStatus, CalOverride, Contact, Phase as SeasonPhase, ClassKey, CoachMsg, CustomKind, Depth, Extra, Growth, Lang, Match, MatchStat, Player, PlanOverride,
   Potential, Rating, RpeEntry, Session, TeamData, TeamEvent, TestResult, Video, WeekMode, Wellness, Finding, Exercise, SessionTemplate, StaffProfile,
 } from "../core/types";
-import { ApiError, isOffline, isStaffRole, type Api, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type FeedbackKind, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type ThemeMode, type UserInfo, type UserPrefs } from "./api";
+import { emptyTeamData } from "../core/types";
+import { ApiError, isOffline, isStaffRole, type Api, type ChildData, type GuardianChild, type ChatEvent, type ConsentKind, type ConsentState, type CreateTeamInput, type FeedbackKind, type JoinProfile, type Membership, type PublishedDay, type TeamPatch, type ThemeMode, type UserInfo, type UserPrefs } from "./api";
 import { startCrashReports } from "./crash";
-import { cleanCode, type PendingInvite } from "./invite";
+import { cleanInviteOf, type PendingInvite } from "./invite";
 import { appInfo } from "./release";
 import { DemoApi, type DemoSetup } from "./demoApi";
 import { hasSupabase } from "./supabase";
@@ -44,7 +58,9 @@ const CACHE_MAX = 2_500_000, CACHE_DAYS = 14;
 let tmp = 1;
 export const tmpId = (): string => "tmp-" + Date.now().toString(36) + "-" + (tmp++);
 
-export type Phase = "loading" | "signedOut" | "noTeam" | "pending" | "ready";
+export type Phase = "loading" | "signedOut" | "noTeam" | "pending" | "ready" | "parent";
+/** Eltern-Ansicht: verknüpfte Kinder und je Kind das Paket vom Server */
+export interface ParentState { children: GuardianChild[]; data: Record<string, ChildData>; sel: string | null }
 
 interface State {
   phase: Phase;
@@ -62,8 +78,12 @@ interface State {
   /** Spieler mit Einwilligung in Gesundheitsdaten (Automatik „RPE zu spät“ gilt nur für sie) */
   healthPlayers: string[];
   toastMsg: string | null;
-  /** Nur im Demo-Modus: Trainer- oder Spieleransicht und gewählter Spieler. */
-  demoView: "coach" | "player";
+  /** Nur im Demo-Modus: Trainer-, Spieler- oder Eltern-Ansicht und gewählter Spieler. */
+  demoView: "coach" | "player" | "parent";
+  /** Eltern-Zugang: geladene Eltern-Ansicht, eigene Verknüpfungen (auch für Trainer/Spieler mit eigenen Kindern), Ansicht aktiv */
+  parent: ParentState | null;
+  myChildren: GuardianChild[];
+  parentMode: boolean;
   demoPlayer: string | null;
   /** Nur im Demo-Modus: als Co-Trainer ansehen (StaffProfile.id), sonst null = Cheftrainer */
   demoStaff: string | null;
@@ -104,7 +124,7 @@ function makeApi(): Api {
 function useStoreValue() {
   const [s, setS] = useState<State>(() => ({
     phase: "loading", api: makeApi(), user: null, memberships: [], active: null, D: null, version: 0, lang: systemLang(), themeLocal: "system",
-    consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null,
+    consents: null, aiPlayers: [], healthPlayers: [], toastMsg: null, demoView: "coach", demoPlayer: null, demoStaff: null, parent: null, myChildren: [], parentMode: false,
     outbox: [], offline: false, syncing: false, cachedAt: null, clubs: [], risers: {}, appAdmin: false, feedbackOpen: 0, crashPref: null, pendingInvite: null,
   }));
   const ref = useRef(s); ref.current = s;
@@ -118,6 +138,14 @@ function useStoreValue() {
   const asStaff = (st: State = ref.current): boolean => !!st.active && (st.api instanceof DemoApi ? st.demoView === "coach" : isStaffRole(st.active.role));
   /** Warteschlange als sofort aktuelle Quelle (State nur für die Anzeige – wird erst beim nächsten Rendern aktuell) */
   const obRef = useRef<OutboxItem[]>([]);
+  // Zuletzt genutzt (Löschfristen für Konten und Teams): höchstens einmal am Tag melden
+  const seenRef = useRef("");
+  function touchSeen(api: Api) {
+    const day = iso(new Date());
+    if (api.kind !== "supabase" || seenRef.current === day) return;
+    seenRef.current = day;
+    api.touchSeen().catch(() => { seenRef.current = ""; });
+  }
   const set = useCallback((p: Partial<State>) => setS(prev => ({ ...prev, ...p })), []);
   const tr = useMemo(() => translator(s.lang), [s.lang]);
 
@@ -148,9 +176,15 @@ function useStoreValue() {
 
   // ---------- Laden ----------
   const loadActive = useCallback(async (api: Api, m: Membership | null, extra: Partial<State> = {}) => {
+    touchSeen(api);
     // Vereine (Übersicht, Anfragen) – ohne Netz bleibt der letzte Stand
     const clubsP = api.myClubs().catch(() => ref.current.clubs);
-    if (!m) { set({ phase: "noTeam", active: null, D: null, ...extra, clubs: await clubsP }); return; }
+    if (!m) {
+      const kids = await api.guardianChildren().catch(() => [] as GuardianChild[]);
+      if (kids.length) { set({ phase: "parent", active: null, D: null, myChildren: kids, parentMode: true, ...extra, clubs: await clubsP }); await loadParentOf(api, kids); return; }
+      set({ phase: "noTeam", active: null, D: null, myChildren: [], ...extra, clubs: await clubsP }); return;
+    }
+    api.guardianChildren().then(kids => { if (ref.current.api === api) set({ myChildren: kids }); }).catch(() => undefined);
     if (m.role === "pending") { set({ phase: "pending", active: m, D: null, ...extra, clubs: await clubsP }); return; }
     const [D, clubs] = await Promise.all([api.loadTeam(m), clubsP]);
     extra = { clubs, ...extra };
@@ -169,6 +203,16 @@ function useStoreValue() {
     if (isStaffRole(m.role) && api.kind === "supabase" && effectivePerms(m.role, m.perms).has("plan")) afterCoachLoad(api, m, D);
   }, [set]);
 
+  // ---------- Eltern-Ansicht laden (je Kind mit Zugang das Paket vom Server) ----------
+  async function loadParentOf(api: Api, kids?: GuardianChild[]) {
+    const children = kids ?? await api.guardianChildren();
+    const data: Record<string, ChildData> = {};
+    await Promise.all(children.filter(c => c.access).map(async c => { try { data[c.pid] = await api.guardianChildData(c.pid); } catch { /* kein Zugang (mehr) */ } }));
+    if (ref.current.api !== api) return;
+    const old = ref.current.parent?.sel;
+    set({ parent: { children, data, sel: old && children.some(c => c.pid === old) ? old : children[0]?.pid || null }, myChildren: children });
+  }
+
   const boot = useCallback(async () => {
     const api = ref.current.api;
     let lang = ref.current.lang;
@@ -180,8 +224,8 @@ function useStoreValue() {
     } catch { /* optional */ }
     try {
       const raw = await AsyncStorage.getItem(K_INVITE), inv = raw ? JSON.parse(raw) as Partial<PendingInvite> : null;
-      const code = cleanCode(inv?.code);
-      if (inv && code && (inv.kind === "player" || inv.kind === "staff")) set({ pendingInvite: { kind: inv.kind, code } });
+      const code = cleanInviteOf(inv?.kind, inv?.code);
+      if (inv && code && (inv.kind === "player" || inv.kind === "staff" || inv.kind === "parent")) set({ pendingInvite: { kind: inv.kind, code } });
     } catch { /* optional */ }
     let user: UserInfo | null = null;
     try {
@@ -240,8 +284,10 @@ function useStoreValue() {
       const c = JSON.parse(raw) as { v: number; uid: string; user?: UserInfo; m: Membership; D: TeamData; consents: ConsentState | null; at: string };
       if (c.v !== 1 || (user && c.uid !== user.id) || Date.now() - Date.parse(c.at) > CACHE_DAYS * 86400e3) return false;
       if (!user) await loadOutbox(c.uid);
-      applyOutbox(c.D, obRef.current, c.m.teamId);
-      set({ phase: "ready", active: c.m, D: c.D, memberships: [c.m], consents: c.consents, user: user || c.user || { id: c.uid, email: "", displayName: "", lang },
+      // Stand einer älteren App-Version: neue Bereiche (z. B. Entwicklungsprogramm) leer ergänzen
+      const D: TeamData = { ...emptyTeamData(c.D.team), ...c.D };
+      applyOutbox(D, obRef.current, c.m.teamId);
+      set({ phase: "ready", active: c.m, D, memberships: [c.m], consents: c.consents, user: user || c.user || { id: c.uid, email: "", displayName: "", lang },
         lang: user?.lang || lang, offline: true, cachedAt: c.at, version: ref.current.version + 1 });
       return true;
     } catch { return false; }
@@ -337,20 +383,42 @@ function useStoreValue() {
 
   // ---------- Änderungen ----------
   /** Lokal ändern, neu rechnen, speichern; bei Fehler Meldung und neu laden. */
-  const change = useCallback(async (local: (D: TeamData) => void, remote: (api: Api, teamId: string) => Promise<unknown>, opts: { plan?: boolean; ok?: string } = {}) => {
-    const { D, active, api } = ref.current; if (!D || !active) return;
+  /** Änderung: erst lokal, dann an den Server. Ergebnis: gespeichert? (false: ohne Netz, Fehler – mit Hinweis – oder kein Team) */
+  const changeOk = useCallback(async (local: (D: TeamData) => void, remote: (api: Api, teamId: string) => Promise<unknown>, opts: { plan?: boolean; ok?: string } = {}): Promise<boolean> => {
+    const { D, active, api } = ref.current; if (!D || !active) return false;
     local(D); setS(prev => ({ ...prev, version: prev.version + 1 }));
     try {
       await remote(api, active.teamId); setS(prev => ({ ...prev, version: prev.version + 1, offline: false }));
       if (opts.ok) toast(opts.ok); if (opts.plan) { publishPlans(); scheduleAutomation(); }
       if (obRef.current.length) scheduleFlush(300);
+      return true;
     }
     catch (e) {
       // Ohne Netz bleibt diese Änderung nicht erhalten (nur Einträge kommen in die Warteschlange) – klar sagen
-      if (isOffline(e)) { set({ offline: true }); toast(translator(ref.current.lang).t("off_notSaved")); return; }
+      if (isOffline(e)) { set({ offline: true }); toast(translator(ref.current.lang).t("off_notSaved")); return false; }
       toast(errText(e)); reload();
+      return false;
     }
   }, [toast, errText, reload, publishPlans, scheduleAutomation]); // eslint-disable-line react-hooks/exhaustive-deps
+  const change = useCallback(async (local: (D: TeamData) => void, remote: (api: Api, teamId: string) => Promise<unknown>, opts: { plan?: boolean; ok?: string } = {}): Promise<void> => {
+    await changeOk(local, remote, opts);
+  }, [changeOk]);
+
+  // Fahrgemeinschaften: eigene Spielerzeile (Demo: gewählter Spieler), Name für Hinweise; erst prüfen wie der Server
+  // (sonst Hinweis, nichts ändern), dann lokal anwenden und senden
+  const rideMe = (): string | null => ref.current.api.kind === "demo" ? ref.current.demoPlayer : ref.current.active?.playerId || null;
+  const rideWho = (pid: string): string => { const D = ref.current.D; return D ? rideName(D, pid, asStaff()) : ""; };
+  const rideRun = async (op: RideOp, remote: (api: Api) => Promise<unknown>, ok: (tr0: Translator, n: number) => string): Promise<boolean> => {
+    const { D, lang } = ref.current; if (!D) return false;
+    const today = iso(new Date()), tr0 = translator(lang);
+    const err = rideCheck(D, op, { staff: asStaff(), me: rideMe() }, today);
+    if (err) { toast(tr0.t("err_" + err)); return false; }
+    const msg = ok(tr0, 0);
+    let n = 0;
+    const done = await changeOk(D2 => { n = applyRide(D2, op, today); }, api => remote(api));
+    if (done) toast(op.k === "delete" ? ok(tr0, n) : msg);
+    return done;
+  };
 
   /** Eintrag senden (an das jeweilige Api) – gibt bei neuen Datensätzen den gespeicherten Stand zurück */
   async function exec(api: Api, teamId: string, o: OutboxOp): Promise<Extra | Absence | void> {
@@ -446,7 +514,7 @@ function useStoreValue() {
   /** Konto im Chat (Demo: gewählte Ansicht – Spieler, Co-Trainer oder Cheftrainer) */
   const meNow = (st: State = ref.current): string => {
     if (!st.D) return st.user?.id || "";
-    if (st.api instanceof DemoApi) { const me = demoMe(st.D, st.demoView, st.demoPlayer, st.demoStaff, st.user?.id || ""); st.api.chatMe = me; return me; }
+    if (st.api instanceof DemoApi) { const me = demoMe(st.D, st.demoView === "player" ? "player" : "coach", st.demoPlayer, st.demoStaff, st.user?.id || ""); st.api.chatMe = me; return me; }
     return st.user?.id || "";
   };
   const canModerate = (st: State = ref.current): boolean => asStaff(st) && permsNow(st).has("messages");
@@ -548,7 +616,64 @@ function useStoreValue() {
       await loadActive(api, ms[0], { api, user, memberships: ms, demoView: "coach", demoPlayer: null, demoStaff: null });
     },
     leaveDemo: () => { obRef.current = []; set({ api: makeApi(), phase: "loading", D: null, active: null, user: null, outbox: [], offline: false, cachedAt: null, appAdmin: false, feedbackOpen: 0 }); setTimeout(() => boot(), 0); },
-    setDemoView: (v: "coach" | "player", pid?: string | null, staffId?: string | null) => set({ demoView: v, demoPlayer: pid ?? ref.current.demoPlayer, demoStaff: v === "coach" ? (staffId ?? null) : ref.current.demoStaff }),
+    setDemoView: (v: "coach" | "player" | "parent", pid?: string | null, staffId?: string | null) => {
+      set({ demoView: v, demoPlayer: pid ?? ref.current.demoPlayer, demoStaff: v === "coach" ? (staffId ?? null) : ref.current.demoStaff, parentMode: v === "parent" });
+      if (v === "parent") loadParentOf(ref.current.api).catch(e => toast(errText(e)));
+    },
+
+    // ---------- Eltern-Zugang: Eltern-Ansicht ----------
+    /** Eltern-Ansicht öffnen bzw. verlassen (Trainer oder Spieler mit eigenen Kindern) */
+    setParentMode: async (on: boolean) => {
+      set({ parentMode: on });
+      // ohne Netz bzw. Fehler: zurück in die bisherige Ansicht (sonst bliebe der Ladebildschirm stehen)
+      if (on) { try { await loadParentOf(ref.current.api); } catch (e) { set({ parentMode: false }); toast(errText(e)); } }
+    },
+    parentSelect: (pid: string) => { const P = ref.current.parent; if (P) set({ parent: { ...P, sel: pid } }); },
+    parentReload: async () => { try { await loadParentOf(ref.current.api); } catch (e) { toast(errText(e)); } },
+    /** Code einlösen: Anfrage an das Trainerteam (wartet auf Bestätigung) */
+    parentRedeem: async (code: string, name: string, relation: GuardianRelation): Promise<boolean> => {
+      const api = ref.current.api;
+      try {
+        const r = await api.guardianRedeem(cleanInviteCode(code), name.trim(), relation);
+        toast(translator(ref.current.lang).tf("el_redeemed", { n: r.vn, t: r.team }));
+        if (ref.current.phase === "noTeam") { set({ phase: "loading" }); await loadActive(api, null); }
+        else await loadParentOf(api);
+        return true;
+      } catch (e) { toast(errText(e)); return false; }
+    },
+    /** Eltern: Aktion ausführen und das Paket des Kindes neu laden */
+    parentDo: async (pid: string, fn: (api: Api) => Promise<unknown>, okKey?: string): Promise<boolean> => {
+      const api = ref.current.api;
+      try {
+        await fn(api);
+        const data = await api.guardianChildData(pid).catch(() => null);
+        const P = ref.current.parent;
+        // Demo: Paket und Teamdaten sind dasselbe Objekt – version neu, damit auch die Trainer-Ansicht neu rechnet
+        if (P) { const d = { ...P.data }; if (data) d[pid] = data; else delete d[pid]; set({ parent: { ...P, data: d }, version: ref.current.version + 1 }); }
+        if (okKey) toast(translator(ref.current.lang).t(okKey));
+        return true;
+      } catch (e) { toast(errText(e)); return false; }
+    },
+    /** Eltern berichtigen ihren Namen bzw. die Beziehung (sehen das Trainerteam und das Kind) */
+    parentUpdate: async (linkId: string, name: string, relation: GuardianRelation): Promise<boolean> => {
+      const api = ref.current.api;
+      try {
+        await api.guardianUpdate(linkId, name.trim(), relation);
+        await loadParentOf(api);
+        toast(translator(ref.current.lang).t("el_updated"));
+        return true;
+      } catch (e) { toast(errText(e)); return false; }
+    },
+    /** Eltern lösen die Verknüpfung selbst */
+    parentLeave: async (linkId: string): Promise<boolean> => {
+      const api = ref.current.api;
+      try {
+        await api.guardianRemove(linkId);
+        toast(translator(ref.current.lang).t("el_left"));
+        if (ref.current.phase === "parent") { set({ phase: "loading", parent: null }); await loadActive(api, null); } else await loadParentOf(api);
+        return true;
+      } catch (e) { toast(errText(e)); return false; }
+    },
     selectTeam: async (m: Membership) => { set({ phase: "loading" }); try { await loadActive(ref.current.api, m); } catch (e) { toast(errText(e)); } },
     createTeam: async (input: CreateTeamInput & { me?: Partial<StaffProfile>; staff?: { name: string; role: StaffRoleKey }[]; logoUri?: string | null; prefs?: UserPrefs }) => {
       const api = ref.current.api;
@@ -600,7 +725,26 @@ function useStoreValue() {
       if (saved.userId && saved.userId === ref.current.user?.id) { await api.setDisplayName(saved.name).catch(() => undefined); const u = ref.current.user; if (u) set({ user: { ...u, displayName: saved.name } }); }
       set({ version: ref.current.version + 1 }); return saved;
     },
-    joinTeam: async (code: string, p: JoinProfile) => { const pid = await ref.current.api.joinTeam(code, p); const ms = await ref.current.api.memberships(); await loadActive(ref.current.api, ms.find(m => m.playerId === pid) || ms[0] || null, { memberships: ms }); return pid; },
+    /**
+     * Team beitreten. Der Notfallkontakt (beim Beitreten Pflicht) wird gleich danach gespeichert – vor dem Laden des
+     * Teams, damit die Startseite ihn schon kennt. saved = false: nicht gespeichert (z. B. Netz weg) – der Spieler trägt
+     * ihn auf der Startseite nach (Hinweis „fehlt“).
+     */
+    joinTeam: async (code: string, p: JoinProfile, em?: { contacts: EmContact[]; med?: string }): Promise<{ pid: string; saved: boolean }> => {
+      const api = ref.current.api;
+      const pid = await api.joinTeam(code, p);
+      let saved = true;
+      if (em) {
+        try {
+          await api.saveEmergency(pid, cleanContacts(em.contacts));
+          const n = cleanMed(em.med);
+          if (n) await api.saveEmergencyMed(pid, n);
+        } catch { saved = false; }
+      }
+      const ms = await api.memberships();
+      await loadActive(api, ms.find(m => m.playerId === pid) || ms[0] || null, { memberships: ms });
+      return { pid, saved };
+    },
     /** Trainerteam-Code eines Teams oder Funktionärs-Code eines Vereins: liefert, wohin die Anfrage ging */
     joinStaff: async (code: string): Promise<"team" | "club"> => {
       const api = ref.current.api;
@@ -660,6 +804,15 @@ function useStoreValue() {
     withdrawConsent: async (kind: ConsentKind) => { await ref.current.api.withdrawConsent(kind); set({ consents: await ref.current.api.consents() }); },
     deleteAccount: async () => { const uid = ref.current.user?.id; await ref.current.api.deleteAccount(); clearDevice(uid); obRef.current = []; set({ phase: "signedOut", user: null, D: null, active: null, memberships: [], outbox: [], cachedAt: null }); },
     exportMyData: () => ref.current.api.exportMyData(),
+    // Datenschutz im Trainerteam: Auskunft über einen Spieler (nur Owner, prüft der Server) und Gesundheitsdaten löschen
+    playerExport: (pid: string) => ref.current.api.playerDataExport(pid),
+    eraseHealth: async (pid: string): Promise<boolean> => {
+      const { D, active } = ref.current; if (!D || !active) return false;
+      const files = effectivePerms(active.role, active.perms).has("medical") ? D.findings.filter(f => f.pid === pid) : [];
+      return changeOk(D0 => { eraseHealthLocal(D0, pid); if (files.length) D0.findings = D0.findings.filter(f => f.pid !== pid); },
+        async api => { for (const f of files) await api.deleteFinding(f); await api.staffEraseHealth(pid); },
+        { ok: translator(ref.current.lang).t("dsp_erased") });
+    },
 
     // Team
     updateTeam: (patch: TeamPatch) => change(D => { Object.assign(D.team, patch); }, (api, id) => api.updateTeam(id, patch), { plan: true }),
@@ -667,10 +820,14 @@ function useStoreValue() {
     // Kalender & Plan
     saveMatch: (m: Match) => { const isNew = m.id.startsWith("tmp-"); return change(D => { if (isNew) D.matches.push(m); else Object.assign(D.matches.find(x => x.id === m.id)!, m); D.matches.sort((a, b) => a.date < b.date ? -1 : 1); },
       async (api, id) => { const saved = await api.saveMatch(id, m); replaceIn(ref.current.D!.matches, m, saved); }, { plan: true }); },
-    deleteMatch: (id: string) => change(D => { D.matches = D.matches.filter(x => x.id !== id); }, (api, t) => api.deleteMatch(t, id), { plan: true }),
+    deleteMatch: (id: string) => change(D => {
+      // wie in der Datenbank: Kader, Spieldaten (mit Karten) und Fahrgemeinschaften gehen mit, Sperren bleiben ohne Auslöser
+      D.matches = D.matches.filter(x => x.id !== id); delete D.squads[id]; D.noms = D.noms.filter(n => n.matchId !== id); dropRideRef(D, id); delete D.stats[id];
+      D.suspensions = D.suspensions.map(z => z.matchId === id ? { ...z, matchId: null } : z);
+    }, (api, t) => api.deleteMatch(t, id), { plan: true }),
     saveEvent: (e: TeamEvent) => { const isNew = e.id.startsWith("tmp-"); return change(D => { if (isNew) D.events.push(e); else Object.assign(D.events.find(x => x.id === e.id)!, e); },
       async (api, id) => { const saved = await api.saveEvent(id, e); replaceIn(ref.current.D!.events, e, saved); }, { plan: true }); },
-    deleteEvent: (id: string) => change(D => { D.events = D.events.filter(x => x.id !== id); }, (api, t) => api.deleteEvent(t, id), { plan: true }),
+    deleteEvent: (id: string) => change(D => { D.events = D.events.filter(x => x.id !== id); dropRideRef(D, id); }, (api, t) => api.deleteEvent(t, id), { plan: true }),
     setCal: (date: string, ov: CalOverride | null) => change(D => { if (ov) D.cal[date] = ov; else delete D.cal[date]; }, (api, t) => api.setCal(t, date, ov), { plan: true }),
     setOver: (date: string, ov: PlanOverride | null) => change(D => { if (ov) D.over[date] = ov; else delete D.over[date]; }, (api, t) => api.setOver(t, date, ov), { plan: true }),
     setWeekMode: (ws: string, mode: WeekMode) => change(D => { if (mode === "normal") delete D.wkMode[ws]; else D.wkMode[ws] = mode; }, (api, t) => api.setWeekMode(t, ws, mode), { plan: true }),
@@ -885,6 +1042,279 @@ function useStoreValue() {
     deleteGoalEntry: (id: string) => change(D => { D.goalEntries = D.goalEntries.filter(x => x.id !== id); }, api => api.deleteGoalEntry(id)),
     saveTalk: (x: DevTalk) => upsert("talks", x, (api, t) => api.saveTalk(t, x), { ok: translator(ref.current.lang).t("dv_talkSaved") }),
     deleteTalk: (id: string) => change(D => { D.talks = D.talks.filter(x => x.id !== id); D.goals.forEach(g => { if (g.talkId === id) g.talkId = null; }); }, api => api.deleteTalk(id)),
+
+    // ---------- Entwicklungsprogramm ----------
+    /** Programm eines Spielers speichern (ein Programm je Spieler; Freigabe = Spieler sieht es unter „Mein Weg“) */
+    saveProgram: (p: DevProgram, ok?: string) => {
+      const x = cleanProgram(p);
+      return change(D => { D.programs = [...D.programs.filter(y => y.pid !== x.pid), x]; },
+        async (api, t) => { const saved = await api.saveProgram(t, x); const D = ref.current.D; if (D) D.programs = [...D.programs.filter(y => y.pid !== saved.pid), saved]; },
+        { ok: ok ?? translator(ref.current.lang).t("ep_saved") });
+    },
+    deleteProgram: (pid: string) => change(D => { D.programs = D.programs.filter(y => y.pid !== pid); }, api => api.deleteProgram(pid), { ok: translator(ref.current.lang).t("ep_deleted") }),
+    /** Selbstanalyse des Spielers: Waffen und weitere Stärken */
+    saveSelfSkills: (x: DevSelf) => {
+      const v = cleanSelf({ ...x, at: new Date().toISOString() });
+      return change(D => { D.selfSkills = [...D.selfSkills.filter(y => y.pid !== v.pid), v]; },
+        async (api, t) => { const saved = await api.saveSelfSkills(t, v); const D = ref.current.D; if (D) D.selfSkills = [...D.selfSkills.filter(y => y.pid !== saved.pid), saved]; },
+        { ok: translator(ref.current.lang).t("ep_selfSaved") });
+    },
+    /** Stärken-Runde: einem Mitspieler bis zu drei Stärken schenken (leere Liste = zurücknehmen) */
+    savePeerGift: (g: PeerGift) => {
+      const x: PeerGift = { ...g, skills: cleanGift(g.skills), at: new Date().toISOString() };
+      const same = (y: PeerGift) => y.giver === x.giver && y.target === x.target;
+      return change(D => { D.peerGifts = [...D.peerGifts.filter(y => !same(y)), ...(x.skills.length ? [x] : [])]; },
+        async (api, t) => { const saved = await api.savePeerGift(t, x); const D = ref.current.D; if (D && saved) { const i = D.peerGifts.findIndex(same); if (i >= 0) D.peerGifts[i] = saved; } },
+        { ok: translator(ref.current.lang).t(x.skills.length ? "ep_peerSaved" : "ep_peerRemoved") });
+    },
+    /** Stärken-Runde starten oder beenden (Team-Einstellung; Recht „Notizen“) */
+    setPeerRound: (r: PeerRound | null, ok?: string) => change(D => { D.team.settings = { ...D.team.settings, peer: r }; },
+      (api, id) => api.updateTeam(id, { settings: { ...ref.current.D!.team.settings } }), { ok }),
+
+    // ---------- Umfragen ----------
+    /** Umfrage anlegen oder ändern (Fragen nur ohne Antworten); announce = Chat, in dem sie angekündigt wird */
+    savePoll: (p: Poll, announce?: string | null) => {
+      const tr0 = translator(ref.current.lang), isNew = p.id.startsWith("tmp-");
+      const x = cleanPoll({ ...p, created: p.created || new Date().toISOString() });
+      return change(D => { const i = D.polls.findIndex(y => y.id === x.id); if (i >= 0) D.polls[i] = x; else D.polls.unshift(x); delete D.pollResults[x.id]; },
+        async (api, t) => {
+          const saved = await api.savePoll(t, x);
+          const D = ref.current.D; if (D) { const i = D.polls.findIndex(y => y.id === x.id); if (i >= 0) D.polls[i] = saved; }
+          if (announce) await actions.chatSend(announce, tr0.tf("um_shareMsg", { t: saved.title }));
+        }, { ok: tr0.t(isNew ? "um_started" : "um_saved") });
+    },
+    /** Beenden, wieder öffnen oder Ende ändern (geht auch, wenn schon geantwortet wurde) */
+    setPollState: (p: Poll, st: { closed: boolean; until: string | null }, ok?: string) =>
+      change(D => { const x = D.polls.find(y => y.id === p.id); if (x) { x.closed = st.closed; x.until = st.until; } delete D.pollResults[p.id]; },
+        async api => { const saved = await api.setPollState(p.id, st); const D = ref.current.D; if (D) { const i = D.polls.findIndex(y => y.id === p.id); if (i >= 0) D.polls[i] = saved; } }, { ok }),
+    deletePoll: (id: string) => change(D => { D.polls = D.polls.filter(x => x.id !== id); D.pollAnswers = D.pollAnswers.filter(a => a.pollId !== id); delete D.pollResults[id]; },
+      api => api.deletePoll(id), { ok: translator(ref.current.lang).t("um_deleted") }),
+    /** Eigene Antwort speichern bzw. ändern (Spieler) */
+    answerPoll: (p: Poll, pid: string, answers: Record<string, PollValue>) => {
+      const a: PollAnswer = { pollId: p.id, pid, answers, at: new Date().toISOString() };
+      const same = (x: PollAnswer) => x.pollId === p.id && x.pid === pid;
+      return change(D => {
+        const had = D.pollAnswers.some(same);
+        D.pollAnswers = [...D.pollAnswers.filter(x => !same(x)), a];
+        const x = D.polls.find(y => y.id === p.id); if (x && !had) x.answers++;
+        delete D.pollResults[p.id];
+      }, async api => { const saved = await api.savePollAnswer(a); const D = ref.current.D; if (D) { const i = D.pollAnswers.findIndex(same); if (i >= 0) D.pollAnswers[i] = saved; } },
+      { ok: translator(ref.current.lang).t("um_thanks") });
+    },
+    /** Eigene Antwort zurückziehen, solange die Umfrage läuft */
+    withdrawPollAnswer: (p: Poll, pid: string) => {
+      const same = (x: PollAnswer) => x.pollId === p.id && x.pid === pid;
+      return change(D => {
+        const had = D.pollAnswers.some(same);
+        D.pollAnswers = D.pollAnswers.filter(x => !same(x));
+        const x = D.polls.find(y => y.id === p.id); if (x && had) x.answers = Math.max(0, x.answers - 1);
+        delete D.pollResults[p.id];
+      }, api => api.deletePollAnswer(p.id, pid), { ok: translator(ref.current.lang).t("um_withdrawn") });
+    },
+    /** Ergebnis vom Server laden (Demo: rechnet die Oberfläche mit der Sicht der Person) */
+    loadPollResults: async (pollId: string) => {
+      const { api, D } = ref.current; if (!D || api.kind === "demo") return;
+      try { D.pollResults[pollId] = await api.pollResults(pollId); bump(); }
+      catch (e) { if (isOffline(e)) set({ offline: true }); else toast(errText(e)); }
+    },
+    /** Spieler dürfen Abstimmungen starten (Team-Einstellung; Recht „Nachrichten“) */
+    setPlayerPolls: (on: boolean) => change(D => { D.team.settings = { ...D.team.settings, polls: { ...(D.team.settings.polls || {}), players: on } }; },
+      (api, id) => api.updateTeam(id, { settings: { ...ref.current.D!.team.settings } }), { ok: translator(ref.current.lang).t(on ? "um_playersOn" : "um_playersOff") }),
+    /** An die Umfrage erinnern: kurze Nachricht vom Trainerteam an die Spieler (sichtbar bis zum Ende der Umfrage) */
+    remindPoll: async (p: Poll, pids: string[], text: string) => {
+      const today = iso(new Date()), bis = p.until && p.until >= today ? p.until : addDays(today, 3);
+      for (const pid of pids) await actions.saveMessage(pid, { id: tmpId(), date: today, typ: "info", text, bis });
+      toast(translator(ref.current.lang).t("um_reminded"));
+    },
+
+    // ---------- Notfallkontakte ----------
+    /** Kontakte eines Spielers speichern (Spieler: eigene; Trainerteam: Recht „Kader“); leer = löschen */
+    saveEmergency: (pid: string, contacts: EmContact[]) => {
+      const L = cleanContacts(contacts);
+      return changeOk(D => { if (L.length) D.emergency[pid] = L; else delete D.emergency[pid]; },
+        async api => { const saved = await api.saveEmergency(pid, L); const D = ref.current.D; if (D) { if (saved.length) D.emergency[pid] = saved; else delete D.emergency[pid]; } },
+        { ok: translator(ref.current.lang).t("nf_saved") });
+    },
+    /** Hinweise für den Notfall (Gesundheitsdaten; Spieler: eigene; Trainerteam: Recht „Gesundheitsdaten“); leer = löschen */
+    saveEmergencyMed: (pid: string, note: string) => {
+      const n = cleanMed(note);
+      return changeOk(D => { if (n) D.emergencyMed[pid] = n; else delete D.emergencyMed[pid]; }, api => api.saveEmergencyMed(pid, n),
+        { ok: translator(ref.current.lang).t("nf_saved") });
+    },
+    /** Spieler mit Konto an den fehlenden Notfallkontakt erinnern (Nachricht vom Trainerteam, 7 Tage sichtbar) */
+    remindEmergency: async (pids: string[]) => {
+      const tr0 = translator(ref.current.lang), today = iso(new Date());
+      for (const pid of pids) await actions.saveMessage(pid, { id: tmpId(), date: today, typ: "info", text: tr0.t("nf_remindMsg"), bis: addDays(today, 7) });
+      toast(tr0.t("nf_reminded"));
+    },
+
+    // ---------- Kader-Nominierung ----------
+    /**
+     * Kader speichern (Treffpunkt, Hinweis, Sichtbarkeit, veröffentlicht) und die Nominierungen abgleichen – vorhandene
+     * Antworten bleiben. ok = Hinweis nach dem Speichern (Entwurf, veröffentlicht, zurückgezogen).
+     */
+    saveSquad: (sq: MatchSquad, list: { pid: string; standby: boolean }[], ok?: string) => {
+      const x = cleanSquad(sq), id = x.matchId;
+      const merge = (D: TeamData, noms: Nomination[]) => { D.noms = [...D.noms.filter(n => n.matchId !== id), ...noms]; };
+      return changeOk(D => {
+        const old = D.noms.filter(n => n.matchId === id);
+        D.squads[id] = { ...x, published: x.published ? (D.squads[id]?.published || x.published) : null };
+        merge(D, list.map((l): Nomination => { const o = old.find(n => n.pid === l.pid); return o ? { ...o, standby: l.standby } : { matchId: id, pid: l.pid, standby: l.standby, answer: null, reason: "", at: null, byStaff: false }; }));
+      }, async api => {
+        const saved = await api.saveSquad(x), noms = await api.setNominations(id, list);
+        const D = ref.current.D; if (D) { D.squads[id] = saved; merge(D, noms); }
+      }, { ok });
+    },
+    /** Kader mit allen Nominierungen und Antworten löschen */
+    deleteSquad: (matchId: string) => changeOk(D => { delete D.squads[matchId]; D.noms = D.noms.filter(n => n.matchId !== matchId); },
+      api => api.deleteSquad(matchId), { ok: translator(ref.current.lang).t("nm_deleted") }),
+    /** Antwort für einen Spieler eintragen (Trainerteam; null = wieder offen) */
+    setNomAnswer: (matchId: string, pid: string, answer: NomAnswer | null, reason: string) => {
+      const now = new Date().toISOString();
+      return changeOk(D => { D.noms = D.noms.map(n => n.matchId === matchId && n.pid === pid ? applyAnswer(n, answer, reason, now, true) : n); },
+        async api => { const saved = await api.setNomAnswer(matchId, pid, answer, reason); const D = ref.current.D; if (D) D.noms = D.noms.map(n => n.matchId === matchId && n.pid === pid ? saved : n); },
+        { ok: translator(ref.current.lang).t("nm_answered") });
+    },
+    /** Zu- oder Absage des Spielers (eigene Nominierung) */
+    answerNomination: (matchId: string, answer: NomAnswer, reason: string) => {
+      const pid = ref.current.api.kind === "demo" ? ref.current.demoPlayer || "" : ref.current.active?.playerId || "";
+      const now = new Date().toISOString();
+      return changeOk(D => { D.noms = D.noms.map(n => n.matchId === matchId && n.pid === pid ? applyAnswer(n, answer, reason, now, false) : n); },
+        async api => { const saved = await api.answerNomination(matchId, pid, answer, reason); const D = ref.current.D; if (D) D.noms = D.noms.map(n => n.matchId === matchId && n.pid === saved.pid ? saved : n); },
+        { ok: translator(ref.current.lang).t("nm_answered") });
+    },
+    /** Nominierte mit Konto ohne Antwort erinnern (Nachricht vom Trainerteam, gültig bis zum Spieltag) */
+    remindSquad: async (pids: string[], text: string, until: string) => {
+      const tr0 = translator(ref.current.lang), today = iso(new Date());
+      for (const pid of pids) await actions.saveMessage(pid, { id: tmpId(), date: today, typ: "info", text, bis: until < today ? today : until });
+      toast(tr0.t("nm_reminded"));
+    },
+
+    // ---------- Karten & Sperren ----------
+    /** Karte im Spielbericht setzen bzw. entfernen (Minuten, Tore usw. bleiben) */
+    saveCard: (matchId: string, pid: string, card: CardKind | null) => {
+      const st = withCard(ref.current.D?.stats[matchId]?.[pid], card);
+      return changeOk(D => { const m = (D.stats[matchId] ||= {}); if (st) m[pid] = st; else delete m[pid]; },
+        (api, t) => api.saveStat(t, matchId, pid, st), { ok: translator(ref.current.lang).t("kr_cardSaved") });
+    },
+    /** Sperre eintragen bzw. ändern (Urteil, aufgehoben = 0 Spiele, sonstige); ok = Schlüssel des Hinweises */
+    saveSuspension: (x: Suspension, ok = "kr_saved") => {
+      const y = cleanSuspension(x), isNew = y.id.startsWith("tmp-");
+      return changeOk(D => { if (isNew) D.suspensions.push(y); else D.suspensions = D.suspensions.map(z => z.id === y.id ? y : z); },
+        async (api, t) => { const saved = await api.saveSuspension(t, y); const D = ref.current.D; if (D) replaceIn(D.suspensions, y, saved); },
+        { ok: translator(ref.current.lang).t(ok) });
+    },
+    /** Sperre löschen (bei einer Karte gilt danach wieder die Regel) */
+    deleteSuspension: (id: string, ok = "kr_deleted") => changeOk(D => { D.suspensions = D.suspensions.filter(z => z.id !== id); },
+      api => api.deleteSuspension(id), { ok: translator(ref.current.lang).t(ok) }),
+
+    // ---------- Foto-Erlaubnis ----------
+    /** Erklärung eintragen (Trainerteam, Recht „Kader“ – z. B. aus dem unterschriebenen Formular) */
+    savePhotoConsent: (pid: string, c: PhotoConsent) => {
+      const x = cleanPhotoConsent(c);
+      return changeOk(D => { D.photos[pid] = x; },
+        async api => { const saved = await api.savePhotoConsent(pid, x); const D = ref.current.D; if (D) D.photos[pid] = saved; },
+        { ok: translator(ref.current.lang).t("ph_saved") });
+    },
+    /** Eigene Erklärung (Spieler): Ja ab 18 bzw. im Erwachsenenbereich ohne Geburtsdatum, Nein immer */
+    savePhotoSelf: (pid: string, v: Partial<Record<PhotoChannel, boolean>>) => {
+      const D0 = ref.current.D;
+      if (!pid || !D0) return Promise.resolve(false);
+      const p = D0.players.find(x => x.id === pid), today = iso(new Date());
+      const x = selfChange(D0.photos[pid], v, canSelfConsent(photoAge(p, today), groupOf(D0.team.cls) === "akt"), today);
+      return changeOk(D => { D.photos[pid] = x; },
+        async api => { const saved = await api.savePhotoConsent(pid, x); const D = ref.current.D; if (D) D.photos[pid] = saved; },
+        { ok: translator(ref.current.lang).t("ph_saved") });
+    },
+
+    /** Spieler 14–17: der Erklärung der Eltern selbst zustimmen (einzelne Kanäle vorher mit „Nein“ ausnehmen) */
+    photoConfirm: (pid: string, v: Partial<Record<PhotoChannel, boolean>> = {}) => {
+      const D0 = ref.current.D;
+      if (!pid || !D0) return Promise.resolve(false);
+      const today = iso(new Date()), x: PhotoConsent = { ...selfChange(D0.photos[pid], v, false, today), by: "both", on: today };
+      return changeOk(D => { D.photos[pid] = x; },
+        async api => { const saved = await api.savePhotoConsent(pid, x); const D = ref.current.D; if (D) D.photos[pid] = saved; },
+        { ok: translator(ref.current.lang).t("ph_confirmed") });
+    },
+
+    // ---------- Eltern-Zugang: Trainerteam und volljährige Spieler ----------
+    /** Einladungscode für die Eltern eines Kindes (14 Tage, bis zu zwei Elternteile) – der Code wird nur jetzt angezeigt */
+    guardianInvite: async (pid: string): Promise<{ code: string; expires: string } | null> => {
+      try {
+        const r = await ref.current.api.guardianInvite(pid);
+        const D = ref.current.D;
+        if (D) { D.guardianInvites = [...D.guardianInvites.filter(i => i.pid !== pid), { pid, expires: r.expires, usesLeft: Math.max(0, 2 - D.guardians.filter(g => g.pid === pid).length) }]; set({ version: ref.current.version + 1 }); }
+        return r;
+      } catch (e) { toast(errText(e)); return null; }
+    },
+    /** Anfrage bestätigen bzw. ablehnen (Trainerteam, Recht „Kader“) */
+    guardianDecide: (linkId: string, ok: boolean) => changeOk(D => {
+      if (ok) D.guardians = D.guardians.map(g => g.id === linkId ? { ...g, status: "active" as const, confirmedAt: g.confirmedAt || new Date().toISOString() } : g);
+      else D.guardians = D.guardians.filter(g => g.id !== linkId);
+    }, api => api.guardianDecide(linkId, ok), { ok: translator(ref.current.lang).t(ok ? "el_confirmed" : "el_declined") }),
+    /** Verknüpfung lösen (Trainerteam oder volljähriges Kind) */
+    guardianRemove: (linkId: string) => changeOk(D => { D.guardians = D.guardians.filter(g => g.id !== linkId); },
+      api => api.guardianRemove(linkId), { ok: translator(ref.current.lang).t("el_removed") }),
+    /** Volljähriges Kind: Zugang der Eltern verlängern bzw. beenden */
+    guardianAdultOk: (linkId: string, ok: boolean) => changeOk(D => { D.guardians = D.guardians.map(g => g.id === linkId ? { ...g, adultOk: ok } : g); },
+      api => api.guardianAdultOk(linkId, ok), { ok: translator(ref.current.lang).t(ok ? "el_adultOn" : "el_adultOff") }),
+    /** Elterninfo schreiben bzw. ändern, löschen */
+    saveParentPost: (p: ParentPost) => {
+      const x = cleanPost(p), isNew = x.id.startsWith("tmp-");
+      return changeOk(D => { if (isNew) D.parentPosts = [{ ...x, at: new Date().toISOString(), author: x.author || "" }, ...D.parentPosts]; else D.parentPosts = D.parentPosts.map(z => z.id === x.id ? { ...z, ...x, at: z.at, author: z.author } : z); },
+        async (api, t) => { const saved = await api.saveParentPost(t, x); const D = ref.current.D; if (D) replaceIn(D.parentPosts, x, saved); },
+        { ok: translator(ref.current.lang).t("el_postSaved") });
+    },
+    deleteParentPost: (id: string) => changeOk(D => { D.parentPosts = D.parentPosts.filter(z => z.id !== id); D.parentReads = D.parentReads.filter(r => r.postId !== id); },
+      api => api.deleteParentPost(id), { ok: translator(ref.current.lang).t("el_postDeleted") }),
+
+    // ---------- Unfallmeldungen ----------
+    /** Unfallmeldung anlegen bzw. ändern (Trainerteam, Recht „Gesundheitsdaten“) */
+    saveAccident: (a: Accident) => {
+      const y = cleanAccident(a), isNew = y.id.startsWith("tmp-");
+      return changeOk(D => { if (isNew) D.accidents.push(y); else D.accidents = D.accidents.map(z => z.id === y.id ? y : z); },
+        async (api, t) => { const saved = await api.saveAccident(t, y); const D = ref.current.D; if (D) replaceIn(D.accidents, y, saved); },
+        { ok: translator(ref.current.lang).t("ac_saved") });
+    },
+    deleteAccident: (id: string) => changeOk(D => { D.accidents = D.accidents.filter(z => z.id !== id); },
+      api => api.deleteAccident(id), { ok: translator(ref.current.lang).t("ac_deleted") }),
+
+    // ---------- Fahrgemeinschaften ----------
+    /** Fahrt anbieten bzw. ändern (Spieler: eigene; Trainerteam: alle) */
+    saveRide: (r: Ride) => {
+      const x = cleanRide(r), isNew = x.id.startsWith("tmp-"), staff = asStaff();
+      return rideRun({ k: "save", ride: x }, async api => {
+        const saved = await api.saveRide(x), D = ref.current.D;
+        if (D) { const i = D.rides.findIndex(y => y.id === x.id); if (i >= 0) D.rides[i] = saved; else D.rides.push(saved); }
+      }, tr0 => tr0.t(!isNew ? "fg_saved" : staff ? "fg_added" : "fg_offered"));
+    },
+    /** Fahrt löschen (Trainerteam oder der Fahrer) – Mitfahrer kommender Ziele suchen wieder */
+    deleteRide: (id: string) => rideRun({ k: "delete", id }, api => api.deleteRide(id),
+      (tr0, n) => n ? (n === 1 ? tr0.t("fg_deleted1") : tr0.tf("fg_deletedN", { n })) : tr0.t("fg_deleted")),
+    /** Mitfahren bzw. zuordnen (wechselt ggf. aus einer anderen Fahrt zum selben Ziel) */
+    joinRide: (rideId: string, pid: string) => rideRun({ k: "join", rideId, pid }, api => api.joinRide(rideId, pid),
+      tr0 => pid === rideMe() ? tr0.t("fg_joined") : tr0.tf("fg_joinedN", { n: rideWho(pid) })),
+    /** Austragen; need: sucht danach wieder (wenn andere austragen) */
+    leaveRide: (rideId: string, pid: string, need = false) => rideRun({ k: "leave", rideId, pid, need }, api => api.leaveRide(rideId, pid, need),
+      tr0 => pid === rideMe() ? tr0.t("fg_left") : tr0.tf(need ? "fg_removedNeed" : "fg_removed", { n: rideWho(pid) })),
+    /** Mitfahrgelegenheit suchen bzw. nicht mehr suchen */
+    setRideNeed: (kind: RideKind, refId: string, pid: string, on: boolean) => rideRun({ k: "need", kind, refId, pid, on }, api => api.setRideNeed(kind, refId, pid, on),
+      tr0 => on ? (pid === rideMe() ? tr0.t("fg_needOnT") : tr0.tf("fg_needOnN", { n: rideWho(pid) })) : tr0.t("fg_needOffT")),
+
+    // ---------- Größen & Ausrüstung ----------
+    /** Größen eines Spielers speichern (Spieler: eigene; Trainerteam: Recht „Kader“); alles leer = löschen */
+    saveSizes: (pid: string, sizes: PlayerSizes) => {
+      const x = cleanSizes(sizes);
+      return changeOk(D => { if (sizesEmpty(x)) delete D.sizes[pid]; else D.sizes[pid] = x; },
+        async api => { const saved = await api.saveSizes(pid, x); const D = ref.current.D; if (D) { if (saved) D.sizes[pid] = saved; else delete D.sizes[pid]; } },
+        { ok: translator(ref.current.lang).t("gr_saved") });
+    },
+    /** Spieler mit Konto an fehlende Größen erinnern (Nachricht vom Trainerteam, 7 Tage sichtbar) */
+    remindSizes: async (pids: string[]) => {
+      const tr0 = translator(ref.current.lang), today = iso(new Date());
+      for (const pid of pids) await actions.saveMessage(pid, { id: tmpId(), date: today, typ: "info", text: tr0.t("gr_remindMsg"), bis: addDays(today, 7) });
+      toast(tr0.t("gr_reminded"));
+    },
 
     // ---------- Wochenchallenge ----------
     saveChallenge: (c: Challenge) => upsert("challenges", c, (api, t) => api.saveChallenge(t, c), { ok: translator(ref.current.lang).t("cg_saved") }),
@@ -1175,12 +1605,20 @@ function useStoreValue() {
     saveAbsence: ["squad", "health"], deleteAbsence: ["squad", "health"],
     saveRpe: "health", saveWellness: "health", saveExtra: "health", deleteExtra: "health", saveGrowth: "health",
     uploadFinding: "medical", updateFinding: "medical", deleteFinding: "medical", analyzeFinding: "medical",
+    eraseHealth: "health",
     saveNote: "notes", savePotential: "notes", deletePotential: "notes", saveRating: "notes", deleteRating: "notes",
     saveMessage: "messages", deleteMessage: "messages",
-    saveStat: "perf", saveTest: "perf", deleteTest: "perf",
+    saveStat: "perf", saveTest: "perf", deleteTest: "perf", saveCard: "perf", saveSuspension: "perf", deleteSuspension: "perf",
+    savePhotoConsent: "squad", saveAccident: "health", deleteAccident: "health",
+    guardianDecide: "squad", saveParentPost: "squad", deleteParentPost: "squad",
     saveDutyDefs: "tasks", saveFineRules: "tasks", saveDuty: "tasks", saveFine: "tasks", deleteFine: "tasks", saveTask: "tasks", deleteTask: "tasks",
     saveCash: "cash", deleteCash: "cash", payItems: "cash", setWaiver: "cash",
     saveAssessment: "notes", deleteAssessment: "notes", saveGoal: "notes", deleteGoal: "notes", saveGoalEntry: "notes", deleteGoalEntry: "notes", saveTalk: "notes", deleteTalk: "notes",
+    saveProgram: "notes", deleteProgram: "notes", setPeerRound: "notes",
+    // Umfragen: Trainerteam mit „Nachrichten“ (Spieler verwalten eigene Abstimmungen – prüft der Server)
+    savePoll: "messages", setPollState: "messages", deletePoll: "messages", setPlayerPolls: "messages", remindPoll: "messages",
+    // Notfallkontakte: Kontakte „Kader“, Hinweise (Gesundheitsdaten) „Gesundheitsdaten“, Erinnerung „Nachrichten“
+    saveEmergency: "squad", saveEmergencyMed: "health", remindEmergency: "messages", saveSizes: "squad", remindSizes: "messages", saveSquad: "plan", deleteSquad: "plan", setNomAnswer: "plan", remindSquad: "messages",
     savePlan: "plan", deletePlan: "plan",
     saveScout: "scout", deleteScout: "scout", saveScoutReport: "scout", deleteScoutReport: "scout", saveScoutList: "scout", deleteScoutList: "scout",
     saveSquadPlan: "scout", deleteSquadPlan: "scout", takeOverScout: ["scout"],
@@ -1221,7 +1659,8 @@ function useStoreValue() {
   // Rolle für die Oberfläche (im Demo-Modus umschaltbar)
   const isDemo = s.api.kind === "demo";
   const role = s.active?.role;
-  const viewAs: "coach" | "player" | null = !s.active ? null : isDemo ? s.demoView : role === "player" ? "player" : isStaffRole(role) ? "coach" : null;
+  const viewAs: "coach" | "player" | "parent" | null = s.phase === "parent" || (s.parentMode && !isDemo) ? "parent"
+    : !s.active ? null : isDemo ? s.demoView : role === "player" ? "player" : isStaffRole(role) ? "coach" : null;
   const mePid = isDemo ? s.demoPlayer : s.active?.playerId || null;
 
   // Eigenes Trainerprofil (Staff mit verknüpftem Konto)
@@ -1230,7 +1669,7 @@ function useStoreValue() {
   const themeMode: ThemeMode = prefs.theme || s.themeLocal;
 
   // Chat: wer bin ich, welche Chats sehe ich (Demo: wie die Zugriffsregeln; echt: liefert der Server nur Erlaubtes)
-  const chatMeId = s.D ? (isDemo ? demoMe(s.D, s.demoView, s.demoPlayer, s.demoStaff, s.user?.id || "") : s.user?.id || "") : "";
+  const chatMeId = s.D ? (isDemo ? demoMe(s.D, s.demoView === "player" ? "player" : "coach", s.demoPlayer, s.demoStaff, s.user?.id || "") : s.user?.id || "") : "";
   const chatMod = staffView && perms.has("messages");
   const chats = useMemo(() => !s.D ? [] : isDemo ? visibleChats(s.D, chatMeId, chatMod) : s.D.chats, [s.D, s.version, chatMeId, chatMod, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -1238,7 +1677,21 @@ function useStoreValue() {
   const myPlans: MpAvail[] = useMemo(() => !s.D || staffView ? [] : isDemo ? (mePid ? availFor(s.D.plans, s.D.planLogs, mePid, new Date()) : []) : s.D.myPlans,
     [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, themeMode, perms, can, chats, chatMeId, chatMod, myPlans };
+  // Stärken-Runde (Spieler): Mitspieler – Demo aus dem Kader, echt vom Server (nur während einer Runde)
+  const peerMates: PeerMate[] = useMemo(() => !s.D || staffView ? [] : isDemo ? (mePid && peerOpen(s.D.team.settings, iso(new Date())) ? matesOf(s.D.players, mePid) : []) : s.D.peerMates,
+    [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Umfragen (Spieler): an ihn gerichtete und eigene – Demo nach den Zugriffsregeln, echt liefert der Server nur diese
+  const myPolls: Poll[] = useMemo(() => !s.D || staffView || !mePid ? [] : isDemo ? pollsFor(s.D, mePid, iso(new Date())) : sortPolls(s.D.polls, iso(new Date())),
+    [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Kader, in denen der Spieler nominiert ist (Demo: Kaderliste aus den Teamdaten wie squad_mates)
+  const mySquads: MySquad[] = useMemo(() => {
+    if (!s.D || staffView || !mePid) return [];
+    const D = s.D, mates = isDemo ? Object.fromEntries(Object.keys(D.squads).filter(id => D.squads[id].showAll).map(id => [id, squadMatesOf(D, id)])) : D.squadMates;
+    return mySquadsOf({ ...D, squadMates: mates }, mePid, iso(new Date()));
+  }, [s.D, s.version, staffView, isDemo, mePid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return { ...s, D: viewD, ...actions, tr, engine, isDemo, viewAs, mePid, myStaff, prefs, themeMode, perms, can, chats, chatMeId, chatMod, myPlans, peerMates, myPolls, mySquads };
 }
 
 export type Store = ReturnType<typeof useStoreValue>;

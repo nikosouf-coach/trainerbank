@@ -1,0 +1,67 @@
+// Texte: Fahrgemeinschaften zu Spielen und Terminen – de
+import type { Dict } from "./types";
+
+export const de_rides: Dict = {
+  m_fahrten: "Fahrgemeinschaften",
+  md_fahrten: "Wer fährt, wer hat Plätze frei, wer sucht noch? Spieler bzw. Eltern bieten Fahrten zu Auswärtsspielen und Terminen an und steigen zu – das Trainerteam ordnet zu und behält den Überblick.",
+  fg_title: "Fahrgemeinschaften", fg_titleShort: "Fahrten", fg_card: "Fahrgemeinschaft",
+  fg_info: "Für jedes Spiel und jeden Termin: Wer fährt, bietet Plätze an (mit Abfahrt und Treffpunkt), andere fahren mit oder sagen Bescheid, dass sie eine Mitfahrgelegenheit suchen. Fahrer nehmen Suchende mit, das Trainerteam ordnet zu und teilt den Stand im Teamchat. Alle im Team sehen die Fahrten mit Vorname und Initial. Bitte keine Adressen oder Telefonnummern eintragen – Absprachen im Chat. Suchen enden mit dem Tag des Spiels, die Fahrten werden 30 Tage danach automatisch gelöscht.",
+  fg_rideOf: "Fahrt von {n}", fg_staffRide: "Trainerteam", fg_mumOf: "Mama von {n}", fg_dadOf: "Papa von {n}", fg_parentsOf: "Eltern von {n}",
+  fg_depart: "Abfahrt", fg_free1: "1 Platz frei", fg_freeN: "{n} Plätze frei", fg_full: "voll", fg_fullLong: "Die Fahrt ist voll.",
+  fg_freeShort1: "1 frei", fg_freeShortN: "{n} frei",
+  fg_rides1: "1 Fahrt", fg_ridesN: "{n} Fahrten", fg_need1: "1 sucht", fg_needN: "{n} suchen", fg_none: "Noch keine Fahrten",
+  fg_seatLine: "{t} von {s} Plätzen belegt",
+  fg_noPassengers: "Noch keine Mitfahrer", fg_you: "du", fg_absent: "abwesend",
+  fg_noneShort: "Keine Fahrten eingetragen.",
+  fg_noneStaff: "Noch keine Fahrten. Legt eine Fahrt des Trainerteams an oder teilt den Stand im Teamchat, damit Eltern Plätze anbieten.",
+  fg_nonePlayer: "Noch keine Fahrten. Ihr fahrt? Dann biete Plätze an – oder sag Bescheid, dass du eine Mitfahrgelegenheit suchst.",
+  fg_pastBanner: "Das Spiel bzw. der Termin ist vorbei – hier lässt sich nichts mehr ändern.",
+  // Eigener Stand (Spieler)
+  fg_meTitle: "Dein Stand", fg_stDriver: "Du bietest {s} Plätze an – {t} belegt", fg_stSeat: "Du fährst mit: {d}", fg_stNeed: "Du suchst eine Mitfahrgelegenheit", fg_stNone: "Noch nichts eingetragen",
+  fg_stNeedHint: "Sobald dich jemand mitnimmt, siehst du es hier. Du kannst auch selbst bei einer Fahrt mit freien Plätzen einsteigen.",
+  fg_stNoneHint: "Ihr fahrt? Dann biete Plätze an. Du brauchst eine Mitfahrgelegenheit? Steig bei einer Fahrt ein oder sag Bescheid. Fahrt ihr allein, musst du nichts eintragen.",
+  fg_meAbsent: "Du bist an dem Tag abwesend gemeldet.",
+  fg_offer: "Plätze anbieten", fg_need: "Ich suche eine Mitfahrgelegenheit", fg_needOff: "Suche beenden",
+  fg_join: "Mitfahren", fg_switch: "Hierher wechseln", fg_leave: "Austragen", fg_take: "Mitnehmen", fg_takeHint: "„Mitnehmen“ trägt den Spieler in deine Fahrt ein.",
+  fg_edit: "Bearbeiten", fg_delete: "Fahrt löschen", fg_deleteQ: "Fahrt wirklich löschen?",
+  fg_deleteQPax: "Fahrt wirklich löschen? Die Mitfahrer suchen dann wieder eine Mitfahrgelegenheit.",
+  fg_removeA: "{n} austragen", fg_needRmA: "{n} sucht nicht mehr",
+  // Trainerteam
+  fg_add: "Fahrt anlegen", fg_assign: "Spieler zuordnen", fg_assignShort: "Zuordnen", fg_share: "Im Teamchat teilen", fg_shared: "Im Teamchat geteilt",
+  fg_needsT: "Suchen noch eine Mitfahrgelegenheit ({n})", fg_searching: "sucht eine Mitfahrgelegenheit", fg_inOther: "fährt bei {d}", fg_forWhom: "Spieler: {n}",
+  fg_withoutT: "Noch ohne Angabe ({n})",
+  fg_withoutD: "Viele fahren mit den eigenen Eltern – nur zum Nachfragen. Abwesende sind nicht dabei.",
+  fg_withoutSquad: "Aus dem Kader – viele fahren mit den eigenen Eltern, nur zum Nachfragen. Abwesende sind nicht dabei.",
+  fg_assignT: "Zuordnen · {d}", fg_assignNone: "Alle verfügbaren Spieler haben schon eine Fahrt.", fg_pickT: "Fahrt für {n}", fg_pickNone: "Keine Fahrt mit freien Plätzen.",
+  fg_openShort: "Öffnen", fg_organize: "Fahrgemeinschaft organisieren", fg_organizeShort: "organisieren",
+  // Blatt: Fahrt anbieten bzw. bearbeiten
+  fg_sheetNew: "Plätze anbieten", fg_sheetAdd: "Fahrt anlegen", fg_sheetEdit: "Fahrt bearbeiten",
+  fg_forStaff: "Trainerteam fährt", fg_forPlayer: "Spieler bzw. Eltern", fg_player: "Spieler", fg_pickPlayer: "Spieler wählen",
+  fg_who: "Wer fährt?", fg_whoSelf: "Ich fahre", fg_whoSelfStaff: "Spieler selbst", fg_who_mum: "Mama", fg_who_dad: "Papa", fg_who_parents: "Eltern", fg_who_other: "Jemand anderes",
+  fg_whoOtherL: "Wer fährt?", fg_whoOtherPh: "z. B. Oma von Max, Familie Brenner",
+  fg_staffLabel: "Bezeichnung (freiwillig)", fg_staffLabelPh: "z. B. Vereinsbus, Trainer Mike",
+  fg_shownAs: "Angezeigt als: {l}",
+  fg_seats: "Plätze für Mitfahrer", fg_seatsD: "Ohne Fahrer und ohne dich selbst.", fg_seatsDStaff: "Ohne Fahrer.",
+  fg_time: "Abfahrt um", fg_place: "Abfahrt ab", fg_placePh: "z. B. Parkplatz am Vereinsheim",
+  fg_useMeet: "Treffpunkt aus dem Kader übernehmen ({w})",
+  fg_note: "Hinweis (freiwillig)", fg_notePh: "z. B. nur Hinfahrt, zurück gegen 19 Uhr",
+  fg_privacy: "Alle im Team sehen die Fahrt. Bitte keine Adressen oder Telefonnummern – Absprachen am besten im Chat.",
+  fg_offerBtn: "Plätze anbieten", fg_addBtn: "Fahrt anlegen",
+  fg_errPlayer: "Wähle den Spieler.", fg_errWho: "Trag ein, wer fährt.",
+  // Hinweise nach Änderungen
+  fg_offered: "Danke – deine Fahrt ist eingetragen", fg_added: "Fahrt angelegt", fg_saved: "Fahrt gespeichert",
+  fg_deleted: "Fahrt gelöscht", fg_deleted1: "Fahrt gelöscht – 1 Mitfahrer sucht wieder", fg_deletedN: "Fahrt gelöscht – {n} Mitfahrer suchen wieder",
+  fg_joined: "Du fährst mit", fg_joinedN: "{n} fährt mit", fg_left: "Du bist ausgetragen", fg_removed: "{n} ausgetragen", fg_removedNeed: "{n} ausgetragen – sucht wieder eine Fahrt",
+  fg_needOnT: "Eingetragen: Du suchst eine Mitfahrgelegenheit", fg_needOnN: "{n} sucht eine Mitfahrgelegenheit", fg_needOffT: "Suche beendet",
+  // Teamchat
+  fg_chatHead: "Fahrgemeinschaften – {w} {g}", fg_chatNone: "Noch keine Fahrten eingetragen.", fg_stillNeed: "Suchen noch eine Mitfahrgelegenheit",
+  fg_chatFoot: "Plätze anbieten, mitfahren oder Bescheid sagen: in der App unter Fahrgemeinschaften.",
+  // Startseite, Spieltag-Check
+  db_rides: "Fahrgemeinschaften", dp_rides: "Fahrgemeinschaften",
+  md_ridesNone: "Fahrgemeinschaften organisieren", md_ridesNoneSub: "Noch keine Fahrten zum Auswärtsspiel",
+  md_ridesNeed1: "1 Spieler sucht noch eine Fahrt", md_ridesNeed: "{n} Spieler suchen noch eine Fahrt", md_ridesOk: "Fahrgemeinschaften stehen",
+  // Fehler vom Server
+  err_ride_full: "Die Fahrt ist schon voll.", err_already_in_ride: "Schon für eine Fahrt eingetragen – erst dort austragen.",
+  err_seats_taken: "Es fahren schon mehr mit – erst Mitfahrer austragen.", err_ride_past: "Das Spiel bzw. der Termin ist vorbei.",
+  err_rides_off: "Fahrgemeinschaften sind in diesem Team ausgeschaltet.", err_invalid_seats: "Bitte 1 bis 8 Plätze wählen.",
+};

@@ -1,15 +1,19 @@
 // Startseite Trainer: „Spieltag-Check“ fürs nächste Spiel (bis 7 Tage vorher) – alles, was vor dem Anpfiff
-// organisiert sein muss, auf einen Blick: Matchplan (angelegt, freigegeben, gesehen), Aufstellung, Ausfälle,
+// organisiert sein muss, auf einen Blick: Kader, Fahrgemeinschaften (auswärts), Matchplan (angelegt, freigegeben, gesehen), Aufstellung, Ausfälle,
 // Belastung (überlastete Spieler dosieren), Dienste am Spieltag und offene Aufgaben. Jede Zeile führt direkt hin.
 import { useRouter } from "expo-router";
 import React, { useMemo } from "react";
 import { Pressable, Text, View } from "react-native";
 import { addDays } from "../core/dates";
 import { changedSincePublish, seenStats, shareState, squadOf } from "../core/matchplan";
+import { nomsOf, squadCounts } from "../core/nomination";
+import { needsOf, rideActive, rideSummary } from "../core/rides";
+import { cardRules, suspendedIn } from "../core/cards";
 import { useEngine } from "../data/store";
 import { Card, Col, Row, T } from "./kit";
 import { Icon } from "./icons";
 import { dutyName } from "./tasks/widgets";
+import { ridesHref, summaryText } from "./rides";
 import { radius, useTheme, withAlpha } from "./theme";
 
 type State = "ok" | "todo" | "warn" | "info";
@@ -31,6 +35,33 @@ export function useMatchdayChecks(): { m: ReturnType<typeof useNextMatch>; check
     const names = (ids: string[]) => ids.map(id => E.P(id)).filter(Boolean).slice(0, 4).map(p => p!.vn).join(", ") + (ids.length > 4 ? " " + tf("db_more", { n: ids.length - 4 }) : "");
     const plan = E.mods.matchplan ? E.D.plans.find(p => p.matchId === m.id) || null : null;
     const absent = E.absentOn(m.date).map(p => p.id);
+    // Kader (Nominierung): angelegt, veröffentlicht, Abwesende im Kader, Absagen, offene Antworten
+    {
+      const sq = E.D.squads[m.id], noms = nomsOf(E.D, m.id), k = squadCounts(noms), href = "/coach/nominierung/" + m.id;
+      const answersOn = E.team.settings.playerAbs ?? true, absentNom = noms.filter(n => absent.includes(n.pid)).map(n => n.pid);
+      if (!sq) L.push({ k: "squad", state: "todo", title: t("md_squadNone"), sub: t("md_squadNoneSub"), href });
+      else if (!sq.published) L.push({ k: "squad", state: "todo", title: t("md_squadDraft"), sub: tf("md_squadDraftSub", { n: noms.length }), href });
+      else if (absentNom.length) L.push({ k: "squad", state: "warn", title: tf("md_squadAbsent", { n: absentNom.length }), sub: names(absentNom), href });
+      else if (answersOn && k.no) L.push({ k: "squad", state: "warn", title: tf("md_squadNo", { n: k.no }), sub: names(noms.filter(n => n.answer === "no").map(n => n.pid)), href });
+      else if (answersOn && k.open) L.push({ k: "squad", state: "todo", title: tf("md_squadOpen", { o: k.open }), sub: tf("nm_answerLine", { y: k.yes, n: k.no, o: k.open }), href });
+      else L.push({ k: "squad", state: "ok", title: t("md_squadOk"), sub: tf("nm_countLine", { s: k.squad, b: k.standby }), href });
+    }
+    // Sperren (Karten & Sperren): Gesperrte im Kader bzw. in der Aufstellung warnen, sonst als Hinweis
+    if (E.mods.karten !== false) {
+      const sus = suspendedIn(E.D, cardRules(E.team), m.id, E.TODAY), ids = [...sus.keys()];
+      const nominated = ids.filter(pid => nomsOf(E.D, m.id).some(n => n.pid === pid));
+      const inPlan = plan ? ids.filter(pid => !nominated.includes(pid) && (plan.c.lineup.some(x => x.pid === pid) || plan.c.bench.includes(pid))) : [];
+      if (nominated.length) L.push({ k: "susp", state: "warn", title: tf("md_suspendedSquad", { n: nominated.length }), sub: names(nominated), href: "/coach/nominierung/" + m.id });
+      else if (inPlan.length && plan) L.push({ k: "susp", state: "warn", title: tf("md_suspendedPlan", { n: inPlan.length }), sub: names(inPlan), href: "/coach/matchplan/" + plan.id });
+      else if (ids.length) L.push({ k: "susp", state: "info", title: tf("md_suspended", { n: ids.length }), sub: names(ids), href: "/coach/karten" });
+    }
+    // Fahrgemeinschaften (Auswärtsspiel oder schon Fahrten): Suchende, noch keine Fahrten, steht
+    if (E.mods.fahrten !== false && (!m.heim || rideActive(E.D, m.id))) {
+      const sum = rideSummary(E.D, m.id), need = needsOf(E.D, m.id), href = ridesHref("coach", { kind: "match", id: m.id });
+      if (need.length) L.push({ k: "rides", state: "warn", title: need.length === 1 ? t("md_ridesNeed1") : tf("md_ridesNeed", { n: need.length }), sub: names(need), href });
+      else if (!sum.rides) L.push({ k: "rides", state: "todo", title: t("md_ridesNone"), sub: t("md_ridesNoneSub"), href });
+      else L.push({ k: "rides", state: "ok", title: t("md_ridesOk"), sub: summaryText(E, sum), href });
+    }
     // Matchplan
     if (E.mods.matchplan) {
       if (!plan) L.push({ k: "plan", state: "todo", title: t("md_planNone"), sub: t("md_planNoneSub"), href: "/coach/matchplaene" });

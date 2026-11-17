@@ -9,7 +9,7 @@ import { posGroup } from "../core/classes";
 import { STAT_CATS, STAT_PERIODS, compareStat, periodRange, statValue, statsFor, teamValue, type Range, type StatDef, type StatPeriod, type StatVal } from "../core/stats";
 import type { Player } from "../core/types";
 import type { UserPrefs } from "../data/api";
-import { shareTextFile } from "../data/files";
+import { fileSafe, shareTextFile } from "../data/files";
 import { useEngine, useStore } from "../data/store";
 import { ratingColor } from "./games";
 import { Icon } from "./icons";
@@ -30,7 +30,7 @@ const VIEWS: { k: string; keys: (defs: StatDef[]) => string[] }[] = [
   { k: "overview", keys: () => ["att", "rpe", "rateG", "min", "scorer", "absDays"] },
   { k: "training", keys: () => ["att", "unexc", "marks", "rpeRate", "extra", "absDays"] },
   { k: "load", keys: () => ["acwr", "load", "rpe", "well", "sleep", "wellRate"] },
-  { k: "games", keys: () => ["games", "starts", "min", "minPct", "goals", "assists", "rateG", "clean"] },
+  { k: "games", keys: () => ["games", "starts", "min", "minPct", "goals", "assists", "pre", "rateG", "clean"] },
   { k: "tests", keys: defs => defs.filter(d => d.cat === "tests").map(d => d.key).slice(0, MAX_COLS) },
   { k: "dev", keys: () => ["devC", "devS", "marks", "rateG", "att"] },
 ];
@@ -328,8 +328,6 @@ export function SquadValueSheet({ visible, onClose, cat }: { visible: boolean; o
 // ---------- Seite ----------
 const POS = ["TW", "Abwehr", "Mittelfeld", "Sturm"] as const;
 /** Dateiname ohne Umlaute und Sonderzeichen (Teilen auf dem Handy, Excel) */
-const fileSafe = (x: string): string => x.replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/Ä/g, "Ae").replace(/Ö/g, "Oe").replace(/Ü/g, "Ue").replace(/ß/g, "ss")
-  .replace(/[^A-Za-z0-9_-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "");
 
 export function StatsScreen() {
   const s = useStore(); const E = useEngine(); const { t, tf } = E; const { c } = useTheme(); const router = useRouter();

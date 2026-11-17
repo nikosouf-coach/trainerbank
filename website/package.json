@@ -1,0 +1,7 @@
+{
+  "name": "trainerstab-website",
+  "private": true,
+  "type": "module",
+  "description": "Website trainerstab.app – statisch, ohne Abhängigkeiten (marked liegt unter vendor/)",
+  "scripts": { "build": "node build.mjs" }
+}
